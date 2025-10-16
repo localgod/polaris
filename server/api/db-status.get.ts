@@ -1,6 +1,6 @@
 import neo4j from 'neo4j-driver'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async () => {
   const config = useRuntimeConfig()
   let driver = null
   
@@ -36,10 +36,11 @@ export default defineEventHandler(async (event) => {
     } finally {
       await session.close()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Database connection failed'
     return {
       status: 'offline',
-      message: error.message || 'Database connection failed'
+      message: errorMessage
     }
   } finally {
     if (driver) {

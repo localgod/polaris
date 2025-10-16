@@ -1,0 +1,6 @@
+# Production-specific migrations
+# 
+# Place migrations here that should only run in production environments:
+# - Production data transformations
+# - Performance optimizations
+# - Security constraints

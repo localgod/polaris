@@ -1,0 +1,6 @@
+# Development-specific migrations
+# 
+# Place migrations here that should only run in development environments:
+# - Test data seeding
+# - Sample relationships
+# - Debugging helpers

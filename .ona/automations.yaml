@@ -1,0 +1,84 @@
+tasks:
+  # Install dependencies
+  install-deps:
+    name: Install Dependencies
+    command: |
+      echo "📦 Installing dependencies..."
+      npm install
+      echo "✅ Dependencies installed"
+    triggeredBy:
+      - postEnvironmentStart
+    
+  # Wait for Neo4j to be ready
+  wait-neo4j:
+    name: Wait for Neo4j
+    command: |
+      echo "⏳ Waiting for Neo4j to be ready..."
+      max_attempts=60
+      attempt=0
+      
+      while [ $attempt -lt $max_attempts ]; do
+        if curl -s http://localhost:7474 > /dev/null 2>&1; then
+          echo "✅ Neo4j is ready!"
+          exit 0
+        fi
+        attempt=$((attempt + 1))
+        echo "Attempt $attempt/$max_attempts - Neo4j not ready yet..."
+        sleep 2
+      done
+      
+      echo "❌ Neo4j failed to start within timeout"
+      exit 1
+    triggeredBy:
+      - postEnvironmentStart
+    
+  # Run database migrations
+  run-migrations:
+    name: Run Database Migrations
+    command: |
+      echo "⏳ Waiting for dependencies..."
+      while [ ! -d "node_modules" ]; do
+        sleep 1
+      done
+      
+      echo "⏳ Waiting for Neo4j..."
+      max_attempts=60
+      attempt=0
+      while [ $attempt -lt $max_attempts ]; do
+        if curl -s http://localhost:7474 > /dev/null 2>&1; then
+          break
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+      done
+      
+      echo "🔄 Running database migrations..."
+      npm run migrate:up
+      echo "✅ Migrations completed"
+    triggeredBy:
+      - postEnvironmentStart
+
+services:
+  # Nuxt development server with hot reload
+  nuxt-dev:
+    name: Nuxt Dev Server
+    description: Nuxt development server with hot module replacement
+    commands:
+      start: |
+        echo "⏳ Waiting for dependencies..."
+        while [ ! -d "node_modules" ]; do
+          sleep 1
+        done
+        
+        echo "🚀 Starting Nuxt development server..."
+        npm run dev
+      ready: |
+        if curl -s http://localhost:3000/api/health > /dev/null 2>&1; then
+          echo "✅ Nuxt dev server is ready"
+          exit 0
+        else
+          echo "⏳ Nuxt dev server is not ready yet"
+          exit 1
+        fi
+    triggeredBy:
+      - postEnvironmentStart
