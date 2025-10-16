@@ -1,0 +1,43 @@
+{
+	"name": "Ona",
+	"build": {
+		"context": ".",
+		"dockerfile": "Dockerfile"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker": {
+			"moby": false
+		},
+		"ghcr.io/devcontainers/features/node": {
+			"nodeGypDependencies": true,
+			"version": "lts",
+			"nvmVersion": "latest"
+		},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"jebbs.plantuml",
+				"DavidAnson.vscode-markdownlint",
+				"usernamehw.errorlens",
+				"neo4j.neo4j-vscode"
+			]
+		}
+	},
+	"runServices": ["neo4j"],
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/polaris",
+	"forwardPorts": [7474, 7687],
+	"portsAttributes": {
+		"7474": {
+			"label": "Neo4j Browser",
+			"onAutoForward": "notify"
+		},
+		"7687": {
+			"label": "Neo4j Bolt",
+			"onAutoForward": "silent"
+		}
+	}
+}
