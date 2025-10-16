@@ -104,7 +104,7 @@ This creates:
 - `YYYY-MM-DD_HHMMSS_add_user_nodes.up.cypher` - Forward migration
 - `YYYY-MM-DD_HHMMSS_add_user_nodes.down.cypher` - Rollback migration
 
-See [docs/DATABASE_MIGRATIONS.md](docs/DATABASE_MIGRATIONS.md) for details.
+See [Database Migrations Guide](docs/DATABASE_MIGRATIONS.md) for details.
 
 ## Nuxt Application
 
@@ -161,7 +161,7 @@ Automations are configured in `.ona/automations.yaml`:
 - `wait-neo4j` - Wait for Neo4j to be ready
 - `run-migrations` - Apply database migrations
 
-See [docs/GITPOD_AUTOMATIONS.md](docs/GITPOD_AUTOMATIONS.md) for details.
+See [Gitpod Automations](.ona/README.md) for details.
 
 ## Accessing Neo4j
 
@@ -212,9 +212,29 @@ For direct database access during development, you can use:
 
 ## Documentation
 
+### Core Documentation
+
 - [Database Migrations](docs/DATABASE_MIGRATIONS.md) - Migration system guide
 - [Migration Runbook](docs/MIGRATION_RUNBOOK.md) - Common migration tasks
-- [Gitpod Automations](docs/GITPOD_AUTOMATIONS.md) - Automation configuration
+- [Database Seeding](docs/SEEDING_GUIDE.md) - How to seed test data
+- [Schema Management](docs/SCHEMA.md) - Schema directory overview
+- [Tech Catalog Schema](docs/TECH_CATALOG_SCHEMA.md) - Technology catalog data model
+
+### Application Documentation
+
+- [Pages & Routing](docs/PAGES.md) - Nuxt pages and API endpoints
+- [Nuxt Neo4j Usage](docs/NUXT_NEO4J_USAGE.md) - Using Neo4j in Nuxt
+
+### Environment Setup
+
+- [Dev Container](.devcontainer/README.md) - Development container setup
+- [Gitpod Automations](.ona/README.md) - Automation configuration
+
+### Project Guidelines
+
+- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
+- [Agent Instructions](AGENTS.md) - AI agent guidelines
 
 ## Technology Stack
 
@@ -244,8 +264,4 @@ NEO4J_PASSWORD=devpassword
 
 ## License
 
-[Your License Here]
-
-## Contributing
-
-[Your Contributing Guidelines Here]
+See [LICENSE.md](LICENSE.md) for details.

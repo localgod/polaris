@@ -2,6 +2,11 @@
 
 Emergency procedures and operational playbook for database migrations.
 
+## Related Documentation
+
+- [Database Migrations](DATABASE_MIGRATIONS.md) - Complete migration guide
+- [Schema Management](SCHEMA.md) - Schema directory overview
+
 ## 🚨 Emergency Contacts
 
 - **Database Team**: #database-team
