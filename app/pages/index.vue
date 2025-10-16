@@ -67,6 +67,101 @@
 
       <!-- Quick Links -->
       <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Technologies Catalog -->
+        <NuxtLink 
+          to="/technologies"
+          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
+        >
+          <div class="text-5xl mb-4">
+            🔧
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+            Technologies
+          </h2>
+          <p class="text-gray-600 mb-4">
+            Browse approved technologies, versions, and compliance status
+          </p>
+          <div class="text-blue-600 font-semibold">
+            View Technologies →
+          </div>
+        </NuxtLink>
+
+        <!-- Systems -->
+        <NuxtLink 
+          to="/systems"
+          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
+        >
+          <div class="text-5xl mb-4">
+            🖥️
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+            Systems
+          </h2>
+          <p class="text-gray-600 mb-4">
+            View deployable applications and their dependencies
+          </p>
+          <div class="text-blue-600 font-semibold">
+            View Systems →
+          </div>
+        </NuxtLink>
+
+        <!-- Teams -->
+        <NuxtLink 
+          to="/teams"
+          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
+        >
+          <div class="text-5xl mb-4">
+            👥
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+            Teams
+          </h2>
+          <p class="text-gray-600 mb-4">
+            Explore organizational teams and their responsibilities
+          </p>
+          <div class="text-blue-600 font-semibold">
+            View Teams →
+          </div>
+        </NuxtLink>
+
+        <!-- Policies -->
+        <NuxtLink 
+          to="/policies"
+          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
+        >
+          <div class="text-5xl mb-4">
+            📋
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+            Policies
+          </h2>
+          <p class="text-gray-600 mb-4">
+            Review governance and compliance rules
+          </p>
+          <div class="text-blue-600 font-semibold">
+            View Policies →
+          </div>
+        </NuxtLink>
+
+        <!-- Components -->
+        <NuxtLink 
+          to="/components"
+          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
+        >
+          <div class="text-5xl mb-4">
+            📦
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+            Components
+          </h2>
+          <p class="text-gray-600 mb-4">
+            Browse SBOM entries and dependency information
+          </p>
+          <div class="text-blue-600 font-semibold">
+            View Components →
+          </div>
+        </NuxtLink>
+
         <!-- Documentation -->
         <a 
           href="https://nuxt.com/docs"

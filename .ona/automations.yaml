@@ -79,6 +79,25 @@ tasks:
     command: |
       echo "🔍 Validating migrations..."
       npm run migrate:validate
+  
+  # Seed database with fixture data (on-demand only)
+  # Run manually: gitpod automations task start seed-database
+  seed-database:
+    name: Seed Database with Fixtures
+    command: |
+      echo "🌱 Seeding database with fixture data..."
+      npm run seed
+      echo "✅ Database seeded successfully"
+  
+  # Reset database to known state (on-demand only)
+  # Run manually: gitpod automations task start reset-database
+  reset-database:
+    name: Reset Database to Known State
+    command: |
+      echo "🔄 Resetting database to known state..."
+      echo "⚠️  This will clear all non-migration data!"
+      npm run seed:clear
+      echo "✅ Database reset complete"
 
 services:
   # Nuxt development server with hot reload

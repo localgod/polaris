@@ -42,6 +42,18 @@ Validate migration files without applying them.
 gitpod automations task start validate-migrations
 ```
 
+#### `seed-database`
+Seed the database with fixture data. This is idempotent - running it multiple times will not create duplicates.
+```bash
+gitpod automations task start seed-database
+```
+
+#### `reset-database`
+Reset the database to a known state by clearing all non-migration data and reseeding with fixtures.
+```bash
+gitpod automations task start reset-database
+```
+
 ## Available Services
 
 ### `nuxt-dev`
