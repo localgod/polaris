@@ -8,7 +8,7 @@
 
 - [ ] Bug fix (non-breaking change that fixes an issue)
 - [ ] New feature (non-breaking change that adds functionality)
-- [ ] Content update (changes to slides or presentation content)
+- [ ] Schema update (changes to database schemas)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] Documentation update
 - [ ] Configuration or build changes

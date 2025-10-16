@@ -24,6 +24,9 @@ jobs:
           node-version: 'lts/*'
           cache: 'npm'
 
+      - name: Install markdown linter
+        run: npm install markdownlint-cli
+
       - name: Lint markdown
         run: npm run mdlint
 
