@@ -1,0 +1,94 @@
+export default defineEventHandler(async (event) => {
+  try {
+    const name = getRouterParam(event, 'name')
+    
+    if (!name) {
+      throw createError({
+        statusCode: 400,
+        message: 'Technology name is required'
+      })
+    }
+    
+    const driver = useDriver()
+    
+    const { records } = await driver.executeQuery(
+      `
+      MATCH (t:Technology {name: $name})
+      OPTIONAL MATCH (team:Team)-[:OWNS]->(t)
+      OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
+      OPTIONAL MATCH (c:Component)-[:IS_VERSION_OF]->(t)
+      OPTIONAL MATCH (sys:System)-[:USES]->(c)
+      OPTIONAL MATCH (p:Policy)-[:APPLIES_TO]->(t)
+      RETURN t.name as name,
+             t.category as category,
+             t.vendor as vendor,
+             t.status as status,
+             t.approvedVersionRange as approvedVersionRange,
+             t.ownerTeam as ownerTeam,
+             t.riskLevel as riskLevel,
+             t.lastReviewed as lastReviewed,
+             team.name as ownerTeamName,
+             team.email as ownerTeamEmail,
+             collect(DISTINCT {
+               version: v.version,
+               releaseDate: v.releaseDate,
+               eolDate: v.eolDate,
+               approved: v.approved,
+               cvssScore: v.cvssScore,
+               notes: v.notes
+             }) as versions,
+             collect(DISTINCT {
+               name: c.name,
+               version: c.version,
+               packageManager: c.packageManager
+             }) as components,
+             collect(DISTINCT sys.name) as systems,
+             collect(DISTINCT {
+               name: p.name,
+               severity: p.severity,
+               ruleType: p.ruleType
+             }) as policies
+      `,
+      { name }
+    )
+    
+    if (records.length === 0) {
+      throw createError({
+        statusCode: 404,
+        message: `Technology '${name}' not found`
+      })
+    }
+    
+    const record = records[0]
+    
+    return {
+      success: true,
+      data: {
+        name: record.get('name'),
+        category: record.get('category'),
+        vendor: record.get('vendor'),
+        status: record.get('status'),
+        approvedVersionRange: record.get('approvedVersionRange'),
+        ownerTeam: record.get('ownerTeam'),
+        riskLevel: record.get('riskLevel'),
+        lastReviewed: record.get('lastReviewed')?.toString(),
+        ownerTeamName: record.get('ownerTeamName'),
+        ownerTeamEmail: record.get('ownerTeamEmail'),
+        versions: record.get('versions').filter((v: { version?: string }) => v.version),
+        components: record.get('components').filter((c: { name?: string }) => c.name),
+        systems: record.get('systems').filter((s: string) => s),
+        policies: record.get('policies').filter((p: { name?: string }) => p.name)
+      }
+    }
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch technology'
+    throw createError({
+      statusCode: 500,
+      message: errorMessage
+    })
+  }
+})
