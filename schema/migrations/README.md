@@ -144,17 +144,19 @@ CALL apoc.periodic.iterate(
 )
 ```
 
-2. Consider maintenance window for major changes
-3. Monitor execution time in Migration nodes
+1. Consider maintenance window for major changes
+2. Monitor execution time in Migration nodes
 
 ## Environment-Specific Migrations
 
 ### Development
+
 - Seed test data
 - Create sample relationships
 - Add debugging helpers
 
 ### Production
+
 - Real data transformations
 - Performance optimizations
 - Security constraints
