@@ -139,7 +139,7 @@ export class MigrationRunner {
    * Record applied migration in database
    */
   async recordMigration(
-    sessionOrTx: Session | any,
+    sessionOrTx: Session | ManagedTransaction,
     metadata: MigrationMetadata
   ): Promise<void> {
     await sessionOrTx.run(
