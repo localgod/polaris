@@ -211,7 +211,7 @@ See `fixtures/example-queries.cypher` for comprehensive examples:
 
 ## Best Practices
 
-### Migrations
+### Migration Guidelines
 
 1. **Always test migrations** with `migrate:validate` before applying
 2. **Write rollback scripts** for every migration

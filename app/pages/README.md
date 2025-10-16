@@ -5,6 +5,7 @@ This directory contains the application pages using Nuxt's file-based routing.
 ## Available Pages
 
 ### Home Page (`/`)
+
 **File:** `index.vue`
 
 The landing page with:
@@ -14,6 +15,7 @@ The landing page with:
 - Development tools information
 
 ### Technologies Catalog (`/technologies`)
+
 **File:** `technologies.vue`
 
 Displays all technologies from the Neo4j database with:

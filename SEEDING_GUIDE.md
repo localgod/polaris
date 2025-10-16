@@ -38,6 +38,7 @@ gitpod automations task start reset-database
 The fixture data includes:
 
 ### 5 Teams
+
 - Frontend Platform
 - Backend Platform  
 - Data Platform
@@ -45,14 +46,17 @@ The fixture data includes:
 - Security
 
 ### 10 Technologies
+
 - **Approved**: React, Vue, Node.js, PostgreSQL, Neo4j, Express, TypeScript, Docker
 - **Deprecated**: Angular
 - **Experimental**: MongoDB
 
 ### 7 Versions
+
 Specific versions with approval status and EOL dates for major technologies.
 
 ### 6 Policies
+
 Governance rules covering:
 - Frontend framework approval
 - Database version compliance
@@ -62,6 +66,7 @@ Governance rules covering:
 - EOL warnings
 
 ### 5 Systems
+
 Example applications with varying criticality:
 - customer-portal (high)
 - api-gateway (critical)
@@ -70,6 +75,7 @@ Example applications with varying criticality:
 - notification-service (high)
 
 ### 7 Components
+
 SBOM entries (npm packages):
 - react, react-dom
 - vue
@@ -79,6 +85,7 @@ SBOM entries (npm packages):
 - pg
 
 ### 47 Relationships
+
 Connecting all nodes with realistic ownership and dependency relationships.
 
 ## Idempotency Explained
