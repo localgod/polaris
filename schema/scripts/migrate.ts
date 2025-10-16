@@ -39,7 +39,7 @@ async function getDriver() {
 
 async function status() {
   const driver = await getDriver()
-  const runner = new MigrationRunner(driver)
+  const runner = new MigrationRunner(driver, join(process.cwd(), 'schema/migrations'))
 
   try {
     const status = await runner.getStatus()
@@ -79,7 +79,7 @@ async function status() {
 
 async function up(options: { dryRun?: boolean; force?: boolean; verbose?: boolean } = {}) {
   const driver = await getDriver()
-  const runner = new MigrationRunner(driver)
+  const runner = new MigrationRunner(driver, join(process.cwd(), 'schema/migrations'))
 
   try {
     console.log('\n🚀 Running migrations...\n')
@@ -141,8 +141,8 @@ function create(name: string) {
     .slice(0, 15)
 
   const filename = `${timestamp}_${name.replace(/\s+/g, '_')}`
-  const upFile = join(process.cwd(), 'src/db/migrations/common', `${filename}.up.cypher`)
-  const downFile = join(process.cwd(), 'src/db/migrations/common', `${filename}.down.cypher`)
+  const upFile = join(process.cwd(), 'schema/migrations/common', `${filename}.up.cypher`)
+  const downFile = join(process.cwd(), 'schema/migrations/common', `${filename}.down.cypher`)
 
   const version = timestamp.slice(0, 8) + '.' + timestamp.slice(9, 15)
 
@@ -195,7 +195,7 @@ function create(name: string) {
 
 async function validate() {
   const driver = await getDriver()
-  const runner = new MigrationRunner(driver)
+  const runner = new MigrationRunner(driver, join(process.cwd(), 'schema/migrations'))
 
   try {
     console.log('\n🔍 Validating migrations...\n')

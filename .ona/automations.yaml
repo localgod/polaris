@@ -1,5 +1,7 @@
 tasks:
   # Install dependencies
+  # Runs automatically on environment start
+  # Can also be triggered manually: gitpod automations task start install-deps
   install-deps:
     name: Install Dependencies
     command: |
@@ -10,6 +12,8 @@ tasks:
       - postEnvironmentStart
     
   # Wait for Neo4j to be ready
+  # Runs automatically on environment start
+  # Can also be triggered manually: gitpod automations task start wait-neo4j
   wait-neo4j:
     name: Wait for Neo4j
     command: |
@@ -33,6 +37,8 @@ tasks:
       - postEnvironmentStart
     
   # Run database migrations
+  # Runs automatically on environment start
+  # Can also be triggered manually: gitpod automations task start run-migrations
   run-migrations:
     name: Run Database Migrations
     command: |
@@ -57,6 +63,22 @@ tasks:
       echo "✅ Migrations completed"
     triggeredBy:
       - postEnvironmentStart
+  
+  # Check migration status (on-demand only)
+  # Run manually: gitpod automations task start migration-status
+  migration-status:
+    name: Check Migration Status
+    command: |
+      echo "📊 Checking migration status..."
+      npm run migrate:status
+  
+  # Validate migrations (on-demand only)
+  # Run manually: gitpod automations task start validate-migrations
+  validate-migrations:
+    name: Validate Migrations
+    command: |
+      echo "🔍 Validating migrations..."
+      npm run migrate:validate
 
 services:
   # Nuxt development server with hot reload
