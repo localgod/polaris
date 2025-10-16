@@ -21,7 +21,8 @@
 				"jebbs.plantuml",
 				"DavidAnson.vscode-markdownlint",
 				"usernamehw.errorlens",
-				"neo4j.neo4j-vscode"
+				"neo4j.neo4j-vscode",
+				"Vue.volar"
 			]
 		}
 	},
