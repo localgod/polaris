@@ -28,14 +28,14 @@ jobs:
         run: npm ci
 
       - name: Lint markdown
-        run: npm run lint
+        run: npm run mdlint
 
-      - name: Build Slidev
+      - name: Build
         run: npm run build
 
       - name: Check build output
         run: |
-          if [ ! -d "dist" ]; then
+          if [ ! -d "output" ]; then
             echo "Build failed: dist directory not found"
             exit 1
           fi
