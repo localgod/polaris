@@ -17,7 +17,9 @@
     "migrate:down": "tsx schema/scripts/migrate.ts down",
     "migrate:create": "tsx schema/scripts/migrate.ts create",
     "migrate:validate": "tsx schema/scripts/migrate.ts validate",
-    "test:migrations": "vitest run schema/scripts/migrationRunner.test.ts"
+    "test:migrations": "vitest run schema/scripts/migrationRunner.test.ts",
+    "seed": "tsx schema/scripts/seed.ts",
+    "seed:clear": "tsx schema/scripts/seed.ts --clear"
   },
   "dependencies": {
     "@nuxt/eslint": "^1.9.0",
