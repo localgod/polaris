@@ -2,6 +2,12 @@
 
 This project uses the `nuxt-neo4j` module for seamless Neo4j integration with Nuxt.
 
+## Related Documentation
+
+- [Pages & Routing](PAGES.md) - See examples of Neo4j usage in pages
+- [Tech Catalog Schema](TECH_CATALOG_SCHEMA.md) - Data model for queries
+- [Database Migrations](DATABASE_MIGRATIONS.md) - Schema management
+
 ## Overview
 
 The `nuxt-neo4j` module provides:

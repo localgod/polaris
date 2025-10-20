@@ -2,6 +2,12 @@
 
 Complete guide for managing Neo4j schema evolution in this project.
 
+## Related Documentation
+
+- [Migration Runbook](MIGRATION_RUNBOOK.md) - Common migration tasks and troubleshooting
+- [Schema Management](SCHEMA.md) - Schema directory overview
+- [Database Seeding](SEEDING_GUIDE.md) - Load test data after migrations
+
 ## Table of Contents
 
 - [Overview](#overview)

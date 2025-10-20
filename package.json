@@ -22,7 +22,6 @@
     "seed:clear": "tsx schema/scripts/seed.ts --clear"
   },
   "dependencies": {
-    "@nuxt/content": "^3.7.1",
     "@nuxt/eslint": "^1.9.0",
     "@nuxt/image": "^1.11.0",
     "@nuxt/test-utils": "^3.19.2",
