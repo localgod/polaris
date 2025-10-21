@@ -1,16 +1,30 @@
 # Polaris
 
-A Nuxt 4 application with Neo4j graph database support for development.
+[![CI](https://github.com/localgod/polaris/actions/workflows/ci.yml/badge.svg)](https://github.com/localgod/polaris/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+
+An enterprise technology catalog built with Nuxt 4 and Neo4j graph database. Track technologies, versions, systems, teams, and policies in your organization with a graph-based data model.
+
+## What is Polaris?
+
+Polaris helps organizations manage their technology landscape by:
+- **Technology Catalog**: Track approved technologies and their versions
+- **System Inventory**: Map systems and their technology dependencies
+- **Team Ownership**: Link technologies and systems to responsible teams
+- **Policy Compliance**: Define and track governance policies
+- **Dependency Visualization**: Understand relationships through graph queries
 
 ## Architecture
 
 This project follows a **separation of concerns** architecture:
 
-- **Nuxt Application**: Frontend application with Neo4j connection available via `nuxt-neo4j` module
-- **Neo4j Database**: Separate service for data persistence
-- **Migration System**: Standalone CLI tools for schema management
+- **Nuxt 4 Frontend**: Modern Vue 3 application with server-side rendering
+- **Neo4j Graph Database**: Stores relationships between technologies, systems, teams, and policies
+- **Standalone Migrations**: Database schema managed via CLI tools
+- **API Layer**: Server endpoints for data access with Neo4j integration
 
-The Nuxt application has the `nuxt-neo4j` module configured for database access. Schema management and migrations are handled independently via CLI tools.
+The application uses the `nuxt-neo4j` module for seamless database connectivity.
 
 ## Project Structure
 
@@ -25,57 +39,51 @@ polaris/
 │   ├── migrations/        # Cypher migration files
 │   ├── scripts/           # Migration CLI tools
 │   └── fixtures/          # Test data
-├── tests/                 # Test files
-│   ├── features/          # Gherkin-style tests
+├── test/                  # Test files (Gherkin-style BDD)
+│   ├── api/               # API endpoint tests
+│   ├── schema/            # Database migration tests
+│   ├── app/               # Frontend/application tests
 │   └── helpers/           # Test utilities
 ├── .devcontainer/         # Dev container configuration
 └── .ona/                  # Gitpod automations
 ```
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- Docker and Docker Compose (for Neo4j)
+- Node.js 18+ (LTS recommended)
+- Docker and Docker Compose
 
-### Development Setup
+### Setup
 
-1. **Start the environment** (if using dev container):
-   ```bash
-   # Dev container will automatically start Neo4j
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/localgod/polaris.git
+cd polaris
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-3. **Run database migrations**:
-   ```bash
-   npm run migrate:up
-   ```
+# Start Neo4j (if not using dev container)
+cd .devcontainer && docker compose up -d neo4j && cd ..
 
-4. **Start Nuxt dev server**:
-   ```bash
-   npm run dev
-   ```
+# Run database migrations
+npm run migrate:up
 
-The application will be available at `http://localhost:3000`.
+# Start development server
+npm run dev
+```
 
-The home page displays a real-time database status indicator showing whether Neo4j is online or offline.
+Visit `http://localhost:3000` - the home page displays a real-time database status indicator.
+
+**For detailed setup instructions**, see the [Contributing Guide](CONTRIBUTING.md#quick-start).
 
 ## Database Management
 
-### Neo4j Service
+The project uses Neo4j 5 Community Edition with a standalone migration system.
 
-Neo4j runs as a separate Docker service:
-- **Bolt Protocol**: `bolt://localhost:7687`
-- **Credentials**: `neo4j` / `devpassword`
-
-### Migration Commands
-
-All database operations are performed via CLI:
+### Common Commands
 
 ```bash
 # Check migration status
@@ -84,235 +92,98 @@ npm run migrate:status
 # Apply pending migrations
 npm run migrate:up
 
-# Rollback last migration
-npm run migrate:down
-
 # Create new migration
 npm run migrate:create <name>
 
-# Validate migrations
-npm run migrate:validate
-
-# Run migration tests
-npm run test:migrations
+# Seed database with sample data
+npm run seed
 ```
 
-### Creating Migrations
+**For detailed database documentation**, see the [Contributing Guide](CONTRIBUTING.md#database-management).
 
-Migrations are Cypher files in `src/db/migrations/`:
+## Development
 
-```bash
-npm run migrate:create add_user_nodes
-```
-
-This creates:
-- `YYYY-MM-DD_HHMMSS_add_user_nodes.up.cypher` - Forward migration
-- `YYYY-MM-DD_HHMMSS_add_user_nodes.down.cypher` - Rollback migration
-
-See [Contributing Guide](CONTRIBUTING.md#database-management) for details.
-
-## Nuxt Application
-
-### Available Scripts
+### Available Commands
 
 ```bash
 # Development
 npm run dev              # Start dev server
-
-# Production
 npm run build            # Build for production
 npm run preview          # Preview production build
 
+# Database
+npm run migrate:up       # Apply migrations
+npm run seed             # Seed sample data
+
+# Testing
+npm test                 # Run tests
+npm run test:coverage    # Run with coverage
+
 # Code Quality
-npm run postinstall      # Prepare Nuxt
+npm run lint             # Run linter
+npm run lint:fix         # Fix linting issues
 ```
 
-### Configuration
+### Development Environment
 
-Nuxt configuration is in `nuxt.config.ts`. The application includes the `nuxt-neo4j` module for database connectivity:
+The project supports multiple development environments:
+- **Dev Containers**: Fully configured environment with Neo4j
+- **Gitpod**: Cloud-based development with automations
+- **Local**: Manual setup with Docker Compose
 
-```typescript
-neo4j: {
-  uri: process.env.NEO4J_URI || 'bolt://172.19.0.2:7687',
-  auth: {
-    type: 'basic',
-    username: process.env.NEO4J_USERNAME || 'neo4j',
-    password: process.env.NEO4J_PASSWORD || 'devpassword'
-  }
-}
-```
-
-The Neo4j connection is available in your Nuxt application via the `useNeo4j()` composable.
-
-## Development Environment
-
-### Dev Container
-
-The project includes a dev container configuration with:
-- Node.js development environment
-- Neo4j 5 Community Edition
-- APOC plugin enabled
-- Persistent volumes for data
-
-### Gitpod Automations
-
-Automations are configured in `.ona/automations.yaml`:
-
-**Services:**
-- `nuxt-dev` - Nuxt development server (auto-starts)
-
-**Tasks:**
-- `install-deps` - Install npm dependencies
-- `wait-neo4j` - Wait for Neo4j to be ready
-- `run-migrations` - Apply database migrations
-
-See [Gitpod Automations](.ona/README.md) for details.
-
-## Accessing Neo4j
-
-Neo4j runs as a backend service accessible via the Bolt protocol.
-
-### Connection Details
-
-- **Bolt Protocol**: `bolt://localhost:7687` (or `bolt://172.19.0.2:7687` from within dev container)
-- **Username**: `neo4j`
-- **Password**: `devpassword`
-
-### Using Neo4j in Your Application
-
-The `nuxt-neo4j` module is configured and available in your Nuxt application:
-
-```typescript
-// In any component or composable
-const neo4j = useNeo4j()
-
-// Execute queries
-const result = await neo4j.run('MATCH (n) RETURN count(n) as count')
-```
-
-### Database Status API
-
-A status endpoint is available to check Neo4j connectivity:
-
-```bash
-curl http://localhost:3000/api/db-status
-```
-
-Returns:
-```json
-{
-  "status": "online",
-  "message": "Database connection successful"
-}
-```
-
-The home page automatically displays the database status.
-
-### Direct Database Access
-
-For direct database access during development, you can use:
-- Neo4j Desktop (connect to `bolt://localhost:7687`)
-- Cypher Shell CLI
-- Any Neo4j client library
+See [Dev Container README](.devcontainer/README.md) and [Gitpod Automations](.ona/README.md) for details.
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) with Gherkin-style BDD syntax for testing.
+This project uses [Vitest](https://vitest.dev/) with Gherkin-style BDD syntax.
+
+### Test Organization
+
+```
+test/
+├── api/           # API endpoint tests
+├── schema/        # Database migration tests
+├── app/           # Frontend tests
+└── helpers/       # Test utilities
+```
+
+Each test includes a `.feature` file (Gherkin scenarios) and `.spec.ts` file (implementation).
 
 ### Running Tests
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests once (CI mode)
-npm run test:run
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run tests with UI
-npm run test:ui
-
-# Run migration tests only
-npm run test:migrations
+npm test                 # Run all tests (watch mode)
+npm run test:run         # Run once (CI mode)
+npm run test:coverage    # Run with coverage
+npm run test:migrations  # Run migration tests only
 ```
 
-### Coverage Reports
-
-Test coverage is automatically reported in pull requests via GitHub Actions. Coverage reports include:
-- Overall coverage summary with thresholds
-- File-level coverage for changed files
-- Links to uncovered lines
-
-See [CI Coverage Documentation](CI_COVERAGE.md) for details.
-
-### Writing Tests
-
-Tests use Gherkin-style syntax for better readability:
-
-```typescript
-Feature('My Feature', ({ Scenario }) => {
-  Scenario('My scenario', ({ Given, When, Then }) => {
-    Given('a precondition', () => { /* ... */ })
-    When('an action occurs', () => { /* ... */ })
-    Then('an expected result', () => { /* ... */ })
-  })
-})
-```
-
-See [Testing Guide](tests/README.md) for comprehensive documentation.
+**For testing guidelines and examples**, see the [Contributing Guide](CONTRIBUTING.md#testing).
 
 ## Documentation
 
-### Contributing
-
-- [Contributing Guide](CONTRIBUTING.md) - Complete guide for contributors
-  - Quick start and setup
-  - Development workflow
-  - Testing with Gherkin-style BDD
-  - Database management (migrations and seeding)
-  - API development with Neo4j
-  - Code style guidelines
-  - CI/CD pipeline
-  - Troubleshooting
-
-### Environment Setup
-
-- [Dev Container](.devcontainer/README.md) - Development container setup
-- [Gitpod Automations](.ona/README.md) - Automation configuration
-
-### Project Guidelines
-
-- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
-- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
-- [Agent Instructions](AGENTS.md) - AI agent guidelines
+- **[Contributing Guide](CONTRIBUTING.md)** - Complete guide for contributors including setup, workflow, testing, and database management
+- **[Dev Container Setup](.devcontainer/README.md)** - Development container configuration
+- **[Gitpod Automations](.ona/README.md)** - Automation configuration for cloud development
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+- **[Agent Instructions](AGENTS.md)** - Guidelines for AI agents working on this project
 
 ## Technology Stack
 
-- **Frontend**: Nuxt 4, Vue 3, TypeScript
-- **Database**: Neo4j 5 Community Edition
+- **Frontend**: Nuxt 4, Vue 3, TypeScript, Tailwind CSS
+- **Database**: Neo4j 5 Community Edition (graph database)
+- **Testing**: Vitest with Gherkin-style BDD
 - **Development**: Docker, Dev Containers, Gitpod
+- **CI/CD**: GitHub Actions with automated testing and coverage
 
-## Key Principles
+## Key Features
 
-1. **Separation of Concerns**: Schema management is independent from application code
-2. **Standalone Migrations**: Database schema managed via CLI tools
-3. **Connection Available**: Neo4j accessible in Nuxt via `nuxt-neo4j` module
-4. **Backend Service**: Neo4j runs as a backend service (Bolt protocol only)
-
-## Environment Variables
-
-Create a `.env` file for local development:
-
-```env
-# Neo4j connection (used by both Nuxt and migration tools)
-NEO4J_URI=bolt://172.19.0.2:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=devpassword
-```
-
-**Note**: These variables are used by both the Nuxt application (via `nuxt-neo4j` module) and the migration scripts.
+- **Graph-Based Data Model**: Leverage Neo4j's native graph capabilities for complex relationships
+- **Type-Safe**: Full TypeScript support throughout the stack
+- **Modern Frontend**: Nuxt 4 with Vue 3 Composition API
+- **Standalone Migrations**: Database schema managed independently via CLI
+- **Comprehensive Testing**: Gherkin-style tests for better documentation
+- **Developer Experience**: Dev containers and automations for quick setup
 
 ## License
 
