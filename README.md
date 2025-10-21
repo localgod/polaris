@@ -19,10 +19,15 @@ polaris/
 ├── app/                    # Nuxt application
 │   ├── pages/             # Vue pages
 │   └── app.vue            # Root component
-├── schema/
-│   ├── migrations/    # Cypher migration files
-│   └── scripts/       # Migration CLI tools
-├── docs/                  # Documentation
+├── server/                # Server-side code
+│   └── api/               # API endpoints
+├── schema/                # Database management
+│   ├── migrations/        # Cypher migration files
+│   ├── scripts/           # Migration CLI tools
+│   └── fixtures/          # Test data
+├── tests/                 # Test files
+│   ├── features/          # Gherkin-style tests
+│   └── helpers/           # Test utilities
 ├── .devcontainer/         # Dev container configuration
 └── .ona/                  # Gitpod automations
 ```
@@ -104,7 +109,7 @@ This creates:
 - `YYYY-MM-DD_HHMMSS_add_user_nodes.up.cypher` - Forward migration
 - `YYYY-MM-DD_HHMMSS_add_user_nodes.down.cypher` - Rollback migration
 
-See [Database Migrations Guide](docs/DATABASE_MIGRATIONS.md) for details.
+See [Contributing Guide](CONTRIBUTING.md#database-management) for details.
 
 ## Nuxt Application
 
@@ -210,20 +215,67 @@ For direct database access during development, you can use:
 - Cypher Shell CLI
 - Any Neo4j client library
 
+## Testing
+
+This project uses [Vitest](https://vitest.dev/) with Gherkin-style BDD syntax for testing.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests once (CI mode)
+npm run test:run
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests with UI
+npm run test:ui
+
+# Run migration tests only
+npm run test:migrations
+```
+
+### Coverage Reports
+
+Test coverage is automatically reported in pull requests via GitHub Actions. Coverage reports include:
+- Overall coverage summary with thresholds
+- File-level coverage for changed files
+- Links to uncovered lines
+
+See [CI Coverage Documentation](CI_COVERAGE.md) for details.
+
+### Writing Tests
+
+Tests use Gherkin-style syntax for better readability:
+
+```typescript
+Feature('My Feature', ({ Scenario }) => {
+  Scenario('My scenario', ({ Given, When, Then }) => {
+    Given('a precondition', () => { /* ... */ })
+    When('an action occurs', () => { /* ... */ })
+    Then('an expected result', () => { /* ... */ })
+  })
+})
+```
+
+See [Testing Guide](tests/README.md) for comprehensive documentation.
+
 ## Documentation
 
-### Core Documentation
+### Contributing
 
-- [Database Migrations](docs/DATABASE_MIGRATIONS.md) - Migration system guide
-- [Migration Runbook](docs/MIGRATION_RUNBOOK.md) - Common migration tasks
-- [Database Seeding](docs/SEEDING_GUIDE.md) - How to seed test data
-- [Schema Management](docs/SCHEMA.md) - Schema directory overview
-- [Tech Catalog Schema](docs/TECH_CATALOG_SCHEMA.md) - Technology catalog data model
-
-### Application Documentation
-
-- [Pages & Routing](docs/PAGES.md) - Nuxt pages and API endpoints
-- [Nuxt Neo4j Usage](docs/NUXT_NEO4J_USAGE.md) - Using Neo4j in Nuxt
+- [Contributing Guide](CONTRIBUTING.md) - Complete guide for contributors
+  - Quick start and setup
+  - Development workflow
+  - Testing with Gherkin-style BDD
+  - Database management (migrations and seeding)
+  - API development with Neo4j
+  - Code style guidelines
+  - CI/CD pipeline
+  - Troubleshooting
 
 ### Environment Setup
 

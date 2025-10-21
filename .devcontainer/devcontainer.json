@@ -30,6 +30,7 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/polaris",
+	"postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
 	"forwardPorts": [7474, 7687],
 	"portsAttributes": {
 		"7474": {

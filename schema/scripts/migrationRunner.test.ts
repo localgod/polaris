@@ -48,6 +48,10 @@ describe('MigrationRunner', () => {
       await session.close()
     }
 
+    // Clean up migration files from previous tests
+    rmSync(testMigrationsDir, { recursive: true, force: true })
+    mkdirSync(join(testMigrationsDir, 'common'), { recursive: true })
+
     runner = new MigrationRunner(driver, testMigrationsDir)
   })
 

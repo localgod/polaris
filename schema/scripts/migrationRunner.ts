@@ -197,11 +197,15 @@ export class MigrationRunner {
       // Execute migration in transaction
       const tx = session.beginTransaction()
       try {
-        // Split by semicolon and execute each statement
-        const statements = content
+        // Remove multi-line comments and split by semicolon
+        const cleanedContent = content
+          .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
+          .replace(/\/\/.*/g, '') // Remove // comments
+        
+        const statements = cleanedContent
           .split(';')
           .map(s => s.trim())
-          .filter(s => s && !s.startsWith('/*') && !s.startsWith('//'))
+          .filter(s => s.length > 0)
 
         for (const statement of statements) {
           await tx.run(statement)
