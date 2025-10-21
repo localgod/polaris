@@ -1,5 +1,9 @@
 # Polaris
 
+[![CI](https://github.com/localgod/polaris/actions/workflows/ci.yml/badge.svg)](https://github.com/localgod/polaris/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+
 An enterprise technology catalog built with Nuxt 4 and Neo4j graph database. Track technologies, versions, systems, teams, and policies in your organization with a graph-based data model.
 
 ## What is Polaris?

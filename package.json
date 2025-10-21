@@ -1,7 +1,30 @@
 {
-  "name": "nuxt-app",
+  "name": "polaris",
+  "version": "0.1.0",
+  "description": "Enterprise technology catalog built with Nuxt 4 and Neo4j graph database",
   "type": "module",
   "private": true,
+  "author": "Johannes Skov Frandsen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/localgod/polaris.git"
+  },
+  "bugs": {
+    "url": "https://github.com/localgod/polaris/issues"
+  },
+  "homepage": "https://github.com/localgod/polaris#readme",
+  "keywords": [
+    "nuxt",
+    "neo4j",
+    "graph-database",
+    "technology-catalog",
+    "enterprise",
+    "sbom",
+    "dependency-management",
+    "typescript",
+    "vue"
+  ],
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
