@@ -11,8 +11,13 @@ import { apiGet, checkServerHealth } from '../helpers/api-client'
  * Alternative: Use exec_preview or start server programmatically in CI
  */
 
+interface DbStatusResponse {
+  status: string
+  message: string
+}
+
 Feature('API Health Check', ({ Scenario }) => {
-  let response: any
+  let response: DbStatusResponse
   let serverRunning = false
 
   beforeAll(async () => {

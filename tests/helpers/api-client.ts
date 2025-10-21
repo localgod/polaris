@@ -15,7 +15,7 @@ export function getBaseURL(): string {
   return process.env.NUXT_TEST_BASE_URL || DEFAULT_BASE_URL
 }
 
-export async function apiGet<T = any>(path: string): Promise<T> {
+export async function apiGet<T = unknown>(path: string): Promise<T> {
   const baseURL = getBaseURL()
   const url = `${baseURL}${path}`
   
@@ -28,7 +28,7 @@ export async function apiGet<T = any>(path: string): Promise<T> {
   return response.json()
 }
 
-export async function apiPost<T = any>(path: string, body: any): Promise<T> {
+export async function apiPost<T = unknown>(path: string, body: unknown): Promise<T> {
   const baseURL = getBaseURL()
   const url = `${baseURL}${path}`
   

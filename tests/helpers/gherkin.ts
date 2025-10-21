@@ -7,7 +7,11 @@ interface StepDefinitions {
   And: (description: string, fn: () => void | Promise<void>) => void
 }
 
-export function Feature(description: string, fn: (context: any) => void) {
+interface FeatureContext {
+  Scenario: (scenarioDescription: string, scenarioFn: (steps: StepDefinitions) => void) => void
+}
+
+export function Feature(description: string, fn: (context: FeatureContext) => void) {
   describe(`Feature: ${description}`, () => {
     fn({
       Scenario: (scenarioDescription: string, scenarioFn: (steps: StepDefinitions) => void) => {
