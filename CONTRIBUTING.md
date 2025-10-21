@@ -66,11 +66,12 @@ polaris/
 ├── schema/                # Database management (standalone)
 │   ├── migrations/        # Cypher migration files
 │   ├── scripts/          # Migration CLI tools
-│   └── seeds/            # Seed data
-├── tests/                 # Test files
-│   ├── features/         # Gherkin-style tests
+│   └── fixtures/         # Test data
+├── test/                  # Test files (Gherkin-style BDD)
+│   ├── api/              # API endpoint tests
+│   ├── schema/           # Database migration tests
+│   ├── app/              # Frontend/application tests
 │   └── helpers/          # Test utilities
-├── docs/                  # Documentation
 └── .devcontainer/         # Dev container configuration
 ```
 
@@ -144,6 +145,22 @@ git push origin feature/your-feature-name
 ```
 
 ## Testing
+
+### Test Structure
+
+Tests are organized by domain in the `test/` directory:
+
+```
+test/
+├── api/           # API endpoint tests
+├── schema/        # Database migration tests
+├── app/           # Frontend/application tests
+└── helpers/       # Shared test utilities
+```
+
+Each test includes:
+- `.feature` file - Gherkin feature description in plain language
+- `.spec.ts` file - Test implementation with Vitest
 
 ### Running Tests
 
@@ -344,6 +361,37 @@ npm run seed:clear
 The seeding system is idempotent - you can run it multiple times without creating duplicates.
 
 ## API Development
+
+### Nuxt Configuration
+
+The application uses the `nuxt-neo4j` module for database connectivity. Configuration is in `nuxt.config.ts`:
+
+```typescript
+neo4j: {
+  uri: process.env.NEO4J_URI || 'bolt://172.19.0.2:7687',
+  auth: {
+    type: 'basic',
+    username: process.env.NEO4J_USERNAME || 'neo4j',
+    password: process.env.NEO4J_PASSWORD || 'devpassword'
+  }
+}
+```
+
+The Neo4j connection is available throughout your Nuxt application via the `useNeo4j()` composable.
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev              # Start dev server
+npm run build            # Build for production
+npm run preview          # Preview production build
+
+# Code Quality
+npm run lint             # Run ESLint
+npm run lint:fix         # Fix ESLint issues
+npm run mdlint           # Lint markdown files
+```
 
 ### Using Neo4j in API Routes
 
