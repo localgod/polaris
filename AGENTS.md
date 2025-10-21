@@ -10,7 +10,7 @@ This document provides context and instructions for AI agents working on this pr
 
 - Direct pushes to `main` are blocked
 - All changes must go through Pull Requests
-- CI checks (linting, build) must pass before merging
+- CI checks (linting, build, test) must pass before merging
 - Code review may be required (depending on configuration)
 
 ### Workflow for Changes
