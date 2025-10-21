@@ -194,27 +194,36 @@ export class MigrationRunner {
       // Validate migration hasn't been modified
       await this.validateMigration(session, filename, content)
 
-      // Execute migration in transaction
-      const tx = session.beginTransaction()
-      try {
-        // Remove multi-line comments and split by semicolon
-        const cleanedContent = content
-          .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
-          .replace(/\/\/.*/g, '') // Remove // comments
-        
-        const statements = cleanedContent
-          .split(';')
-          .map(s => s.trim())
-          .filter(s => s.length > 0)
+      // Remove multi-line comments and split by semicolon
+      const cleanedContent = content
+        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
+        .replace(/\/\/.*/g, '') // Remove // comments
+      
+      const statements = cleanedContent
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
 
-        for (const statement of statements) {
+      // Execute each statement in its own transaction
+      // This is required for schema modifications (CREATE CONSTRAINT, CREATE INDEX)
+      // which cannot be mixed with data writes in the same transaction
+      for (const statement of statements) {
+        const tx = session.beginTransaction()
+        try {
           await tx.run(statement)
+          await tx.commit()
+        } catch (error) {
+          await tx.rollback()
+          throw error
         }
+      }
 
-        const executionTime = Date.now() - startTime
+      const executionTime = Date.now() - startTime
 
-        // Record migration in the same transaction
-        await this.recordMigration(tx, {
+      // Record migration in a separate transaction
+      const recordTx = session.beginTransaction()
+      try {
+        await this.recordMigration(recordTx, {
           filename,
           version: metadata.version || 'unknown',
           checksum,
@@ -224,18 +233,17 @@ export class MigrationRunner {
           description: metadata.description,
           dependencies: metadata.dependencies
         })
-
-        await tx.commit()
-
-        if (options.verbose) {
-          console.log(`✅ Applied migration: ${filename} (${executionTime}ms)`)
-        }
-
-        return { success: true, executionTime }
+        await recordTx.commit()
       } catch (error) {
-        await tx.rollback()
+        await recordTx.rollback()
         throw error
       }
+
+      if (options.verbose) {
+        console.log(`✅ Applied migration: ${filename} (${executionTime}ms)`)
+      }
+
+      return { success: true, executionTime }
     } catch (error) {
       const executionTime = Date.now() - startTime
       const errorMessage = error instanceof Error ? error.message : String(error)
