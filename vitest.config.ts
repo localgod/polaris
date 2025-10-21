@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json', 'html'],
@@ -23,7 +23,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.config.*',
         '**/mockData/**',
-        'tests/**',
+        'test/**',
       ],
     },
     env: {
