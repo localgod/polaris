@@ -3,8 +3,6 @@ title: Team Approvals
 description: Team-specific technology approval policies
 ---
 
-# Team Approvals
-
 Polaris supports flexible, team-specific technology approval policies using Gartner's TIME framework.
 
 ## Overview

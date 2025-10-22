@@ -5,6 +5,7 @@ This directory contains tests for database schema functionality, including migra
 ## Test Files
 
 ### Migration Tests
+
 - **migration-runner.feature** - Gherkin scenarios for database migration functionality
 - **migration-runner.spec.ts** - Implementation of migration tests
 
@@ -13,10 +14,12 @@ This directory contains tests for database schema functionality, including migra
 These tests define the requirements for team-specific and version-specific technology approval policies. They are currently implemented as placeholder tests that will be fully functional after the schema migration is applied.
 
 #### Team-Specific Technology Approvals
+
 - **team-technology-approvals.feature** - Gherkin scenarios for team-level approval policies
 - **team-technology-approvals.spec.ts** - Test implementation
 
 **Key Scenarios:**
+
 - Different teams approve the same technology with different statuses
 - Team deprecates technology while another keeps it approved
 - Track approval metadata (who, when, why)
@@ -24,10 +27,12 @@ These tests define the requirements for team-specific and version-specific techn
 - Default to "restricted" when no approval exists
 
 #### Version-Specific Approvals
+
 - **version-specific-approvals.feature** - Gherkin scenarios for version-level approval policies
 - **version-specific-approvals.spec.ts** - Test implementation
 
 **Key Scenarios:**
+
 - Team approves specific versions only (e.g., Java 17 approved, Java 8 deprecated)
 - Different teams approve different versions of same technology
 - Set EOL dates for deprecated versions
@@ -36,6 +41,7 @@ These tests define the requirements for team-specific and version-specific techn
 - Track migration paths from deprecated to approved versions
 
 #### Approval Resolution Logic
+
 - **approval-resolution.feature** - Gherkin scenarios for approval resolution algorithm
 - **approval-resolution.spec.ts** - Test implementation
 
@@ -80,20 +86,24 @@ npm run test:coverage
 ## Implementation Status
 
 ### ✅ Implemented
+
 - Migration runner tests (fully functional)
 
 ### 🚧 Pending Schema Migration
+
 - Team-specific technology approvals
 - Version-specific approvals
 - Approval resolution logic
 
 These tests are currently placeholders that skip when Neo4j is not available. They will become fully functional after applying the schema migration described in:
+
 - `docs/SCHEMA_ENHANCEMENT_TEAM_SPECIFIC_APPROVALS.md`
 - `docs/VERSION_SPECIFIC_APPROVALS_SUMMARY.md`
 
 ## Example Queries
 
 ### Check Team Approval for Technology
+
 ```cypher
 MATCH (team:Team {name: "Backend Team"})
 MATCH (tech:Technology {name: "Java"})
@@ -102,6 +112,7 @@ RETURN COALESCE(a.status, "restricted") as effectiveStatus
 ```
 
 ### Check Team Approval for Specific Version
+
 ```cypher
 MATCH (team:Team {name: "Backend Team"})
 MATCH (tech:Technology {name: "Java"})
@@ -112,6 +123,7 @@ RETURN COALESCE(va.status, ta.status, "restricted") as effectiveStatus
 ```
 
 ### Find Systems Using Deprecated Versions
+
 ```cypher
 MATCH (team:Team)-[:OWNS]->(sys:System)
 MATCH (sys)-[:USES]->(comp:Component)-[:IS_VERSION_OF]->(tech:Technology)

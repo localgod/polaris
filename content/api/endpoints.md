@@ -3,8 +3,6 @@ title: API Endpoints
 description: REST API endpoints for accessing technology catalog data
 ---
 
-# API Endpoints
-
 Polaris provides REST API endpoints for accessing technology catalog data.
 
 ## Base URL

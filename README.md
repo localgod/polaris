@@ -194,13 +194,15 @@ npm run test:migrations  # Run migration tests only
 
 ## Documentation
 
+### Project Documentation
+
 - **[Contributing Guide](CONTRIBUTING.md)** - Complete guide for contributors including setup, workflow, testing, and database management
 - **[Dev Container Setup](.devcontainer/README.md)** - Development container configuration
 - **[Gitpod Automations](.ona/README.md)** - Automation configuration for cloud development
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
 - **[Agent Instructions](AGENTS.md)** - Guidelines for AI agents working on this project
 
-## Documentation
+### In-App Documentation
 
 Polaris includes comprehensive in-app documentation powered by @nuxt/content:
 

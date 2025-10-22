@@ -3,8 +3,6 @@ title: Graph Model
 description: Neo4j graph database schema and relationships
 ---
 
-# Polaris Graph Model
-
 ## Overview
 
 Polaris uses a **Neo4j graph database** to model the enterprise technology landscape. The graph structure captures relationships between technologies, teams, systems, and policies, enabling powerful queries about dependencies, ownership, and compliance.

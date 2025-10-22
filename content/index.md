@@ -3,8 +3,6 @@ title: Polaris Documentation
 description: Enterprise Technology Catalog with Neo4j and Nuxt 4
 ---
 
-# Polaris Documentation
-
 Welcome to the Polaris documentation. Polaris is an enterprise technology catalog built with Nuxt 4 and Neo4j graph database.
 
 ## What is Polaris?
@@ -21,11 +19,13 @@ Polaris helps organizations manage their technology landscape by:
 ## Quick Links
 
 ### Features
+
 - [TIME Framework](/features/time-framework)
 - [Team Approvals](/features/team-approvals)
 - [Graph Model](/architecture/graph-model)
 
 ### Architecture
+
 - [Graph Model](/architecture/graph-model)
 - [Schema Design](/architecture/schema-design)
 - [API Endpoints](/api/endpoints)

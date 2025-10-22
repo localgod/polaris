@@ -3,8 +3,6 @@ title: TIME Framework
 description: Gartner's TIME framework for technology portfolio management
 ---
 
-# TIME Framework Implementation
-
 ## Overview
 
 Polaris uses **Gartner's TIME framework** for technology portfolio management. TIME categorizes technologies based on their strategic value and future direction.
@@ -12,6 +10,7 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management. T
 ## TIME Categories
 
 ### 🟢 Invest
+
 **Strategic technologies worth continued investment and enhancement**
 
 - Technologies that are core to the business
@@ -26,6 +25,7 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management. T
 - Node.js (Backend Platform)
 
 ### 🔵 Migrate
+
 **Technologies to move to newer platforms**
 
 - Deprecated technologies with migration paths
@@ -40,6 +40,7 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management. T
   - Notes: "Migrating to React for better ecosystem support"
 
 ### 🟡 Tolerate
+
 **Keep running but minimize investment**
 
 - Legacy systems that still work
@@ -52,6 +53,7 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management. T
 - Legacy systems awaiting decommissioning decisions
 
 ### 🔴 Eliminate
+
 **Phase out and decommission**
 
 - Technologies not approved for use
@@ -226,26 +228,31 @@ ORDER BY timeCategory
 ## Benefits
 
 ### 1. Strategic Alignment
+
 - Clear categorization of technology investments
 - Aligns with business strategy
 - Supports portfolio planning
 
 ### 2. Migration Planning
+
 - Explicit migration paths
 - EOL tracking
 - Resource allocation for migrations
 
 ### 3. Risk Management
+
 - Identify technologies to eliminate
 - Track legacy systems (tolerate)
 - Minimize technical debt
 
 ### 4. Budget Optimization
+
 - Focus investment on strategic technologies
 - Minimize spend on legacy systems
 - Plan migration budgets
 
 ### 5. Compliance & Governance
+
 - Clear approval policies per team
 - Audit trail of decisions
 - Standardized categorization
@@ -253,26 +260,31 @@ ORDER BY timeCategory
 ## Best Practices
 
 ### 1. Regular Reviews
+
 - Review TIME categories quarterly
 - Update EOL dates as needed
 - Reassess migration priorities
 
-### 2. Migration Planning
+### 2. Migration Strategy
+
 - Always specify `migrationTarget` for migrate category
 - Set realistic EOL dates
 - Document migration notes
 
 ### 3. Investment Decisions
+
 - Invest category should be < 30% of portfolio
 - Migrate should have clear timelines
 - Tolerate should be temporary
 
 ### 4. Team Alignment
+
 - Different teams can have different TIME categories for same technology
 - Document reasoning in `notes` field
 - Specify `approvedBy` for accountability
 
 ### 5. Version-Specific Policies
+
 - Use version-specific approvals for granular control
 - Specify `versionConstraint` for invest category
 - Track version-specific EOL dates
