@@ -7,19 +7,8 @@
           Polaris
         </h1>
         <p class="text-xl text-gray-600 mb-8">
-          Nuxt 4 Application
+          Enterprise Technology Catalog
         </p>
-        <div class="flex items-center justify-center gap-4">
-          <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
-            ✓ Nuxt 4.1.3
-          </span>
-          <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
-            ✓ TypeScript
-          </span>
-          <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-            ✓ Vue 3
-          </span>
-        </div>
       </div>
 
       <!-- Database Status -->
@@ -163,80 +152,24 @@
         </NuxtLink>
 
         <!-- Documentation -->
-        <a 
-          href="https://nuxt.com/docs"
-          target="_blank"
+        <NuxtLink 
+          to="/docs"
           class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
         >
-          <div class="text-5xl mb-4">📚</div>
+          <div class="text-5xl mb-4">
+            📚
+          </div>
           <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-            Nuxt Documentation
+            Documentation
           </h2>
           <p class="text-gray-600 mb-4">
-            Learn about Nuxt 4 features, API, and best practices
+            Learn about features, architecture, and API usage
           </p>
           <div class="text-blue-600 font-semibold">
-            Read Docs →
+            View Documentation →
           </div>
-        </a>
+        </NuxtLink>
 
-        <!-- Vue Guide -->
-        <a 
-          href="https://vuejs.org/guide/introduction.html"
-          target="_blank"
-          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
-        >
-          <div class="text-5xl mb-4">💚</div>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">
-            Vue.js Guide
-          </h2>
-          <p class="text-gray-600 mb-4">
-            Explore Vue 3 composition API and component patterns
-          </p>
-          <div class="text-green-600 font-semibold">
-            Learn Vue →
-          </div>
-        </a>
-
-        <!-- GitHub Repository -->
-        <a 
-          href="https://github.com/localgod/polaris"
-          target="_blank"
-          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group"
-        >
-          <div class="text-5xl mb-4">🐙</div>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-            GitHub Repository
-          </h2>
-          <p class="text-gray-600 mb-4">
-            View source code, issues, and project documentation
-          </p>
-          <div class="text-purple-600 font-semibold">
-            View on GitHub →
-          </div>
-        </a>
-
-        <!-- Dev Tools -->
-        <div class="bg-white rounded-lg shadow-lg p-8">
-          <div class="text-5xl mb-4">🛠️</div>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">
-            Development Tools
-          </h2>
-          <p class="text-gray-600 mb-4">
-            Available development utilities
-          </p>
-          <div class="space-y-2 text-sm">
-            <div class="text-gray-700">
-              <code class="bg-gray-100 px-2 py-1 rounded">npm run dev</code> - Start dev server
-            </div>
-            <div class="text-gray-700">
-              <code class="bg-gray-100 px-2 py-1 rounded">npm run build</code> - Build for production
-            </div>
-            <div class="text-gray-700">
-              <code class="bg-gray-100 px-2 py-1 rounded">npm run migrate:*</code> - Database migrations
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Footer -->

@@ -19,10 +19,12 @@ export default defineEventHandler(async (event) => {
       OPTIONAL MATCH (c:Component)-[:IS_VERSION_OF]->(t)
       OPTIONAL MATCH (sys:System)-[:USES]->(c)
       OPTIONAL MATCH (p:Policy)-[:APPLIES_TO]->(t)
+      OPTIONAL MATCH (approvalTeam:Team)-[techApproval:APPROVES]->(t)
+      OPTIONAL MATCH (t)-[:HAS_VERSION]->(approvedVersion:Version)
+      OPTIONAL MATCH (versionApprovalTeam:Team)-[versionApproval:APPROVES]->(approvedVersion)
       RETURN t.name as name,
              t.category as category,
              t.vendor as vendor,
-             t.status as status,
              t.approvedVersionRange as approvedVersionRange,
              t.ownerTeam as ownerTeam,
              t.riskLevel as riskLevel,
@@ -47,7 +49,29 @@ export default defineEventHandler(async (event) => {
                name: p.name,
                severity: p.severity,
                ruleType: p.ruleType
-             }) as policies
+             }) as policies,
+             collect(DISTINCT {
+               team: approvalTeam.name,
+               time: techApproval.time,
+               approvedAt: techApproval.approvedAt,
+               deprecatedAt: techApproval.deprecatedAt,
+               eolDate: techApproval.eolDate,
+               migrationTarget: techApproval.migrationTarget,
+               notes: techApproval.notes,
+               approvedBy: techApproval.approvedBy,
+               versionConstraint: techApproval.versionConstraint
+             }) as technologyApprovals,
+             collect(DISTINCT {
+               team: versionApprovalTeam.name,
+               version: approvedVersion.version,
+               time: versionApproval.time,
+               approvedAt: versionApproval.approvedAt,
+               deprecatedAt: versionApproval.deprecatedAt,
+               eolDate: versionApproval.eolDate,
+               migrationTarget: versionApproval.migrationTarget,
+               notes: versionApproval.notes,
+               approvedBy: versionApproval.approvedBy
+             }) as versionApprovals
       `,
       { name }
     )
@@ -67,7 +91,6 @@ export default defineEventHandler(async (event) => {
         name: record.get('name'),
         category: record.get('category'),
         vendor: record.get('vendor'),
-        status: record.get('status'),
         approvedVersionRange: record.get('approvedVersionRange'),
         ownerTeam: record.get('ownerTeam'),
         riskLevel: record.get('riskLevel'),
@@ -77,7 +100,9 @@ export default defineEventHandler(async (event) => {
         versions: record.get('versions').filter((v: { version?: string }) => v.version),
         components: record.get('components').filter((c: { name?: string }) => c.name),
         systems: record.get('systems').filter((s: string) => s),
-        policies: record.get('policies').filter((p: { name?: string }) => p.name)
+        policies: record.get('policies').filter((p: { name?: string }) => p.name),
+        technologyApprovals: record.get('technologyApprovals').filter((a: { team?: string }) => a.team),
+        versionApprovals: record.get('versionApprovals').filter((a: { team?: string }) => a.team)
       }
     }
   } catch (error: unknown) {
