@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import neo4j, { Driver } from 'neo4j-driver'
+import neo4j, { type Driver } from 'neo4j-driver'
 
 describe('Policy Enforcement', () => {
   let driver: Driver

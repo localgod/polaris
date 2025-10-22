@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     `
 
     const conditions: string[] = []
-    const params: Record<string, any> = {}
+    const params: Record<string, string> = {}
 
     if (severity) {
       conditions.push('policy.severity = $severity')

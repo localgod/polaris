@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
       enforcerTeam: record.get('enforcerTeam'),
       subjectTeams: record.get('subjectTeams').filter((t: string) => t),
       governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
-      governedVersions: record.get('governedVersions').filter((v: any) => v.technology)
+      governedVersions: record.get('governedVersions').filter((v: { technology: string }) => v.technology)
     }
     
     return {
