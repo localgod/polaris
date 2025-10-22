@@ -4,7 +4,7 @@ export default defineEventHandler(async () => {
     
     const { records } = await driver.executeQuery(`
       MATCH (t:Team)
-      OPTIONAL MATCH (t)-[:OWNS]->(tech:Technology)
+      OPTIONAL MATCH (t)-[:STEWARDED_BY]->(tech:Technology)
       OPTIONAL MATCH (t)-[:OWNS]->(sys:System)
       RETURN t.name as name,
              t.email as email,

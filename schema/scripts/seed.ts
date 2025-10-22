@@ -49,6 +49,11 @@ interface FixtureData {
     description: string
     ruleType: string
     severity: string
+    effectiveDate?: string
+    expiryDate?: string
+    enforcedBy?: string
+    scope?: string
+    status?: string
   }>
   systems: Array<{
     name: string
@@ -213,9 +218,24 @@ async function seedPolicies(driver: neo4j.Driver, policies: FixtureData['policie
         MERGE (p:Policy {name: $name})
         SET p.description = $description,
             p.ruleType = $ruleType,
-            p.severity = $severity
+            p.severity = $severity,
+            p.effectiveDate = COALESCE(date($effectiveDate), date()),
+            p.expiryDate = CASE WHEN $expiryDate IS NOT NULL THEN date($expiryDate) ELSE null END,
+            p.enforcedBy = COALESCE($enforcedBy, 'Security'),
+            p.scope = COALESCE($scope, 'organization'),
+            p.status = COALESCE($status, 'active')
         `,
-        policy
+        {
+          name: policy.name,
+          description: policy.description,
+          ruleType: policy.ruleType,
+          severity: policy.severity,
+          effectiveDate: policy.effectiveDate || null,
+          expiryDate: policy.expiryDate || null,
+          enforcedBy: policy.enforcedBy || null,
+          scope: policy.scope || null,
+          status: policy.status || null
+        }
       )
     }
     
@@ -297,12 +317,12 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
         `
         MATCH (team:Team {name: $team})
         MATCH (tech:Technology {name: $technology})
-        MERGE (team)-[:OWNS]->(tech)
+        MERGE (team)-[:STEWARDED_BY]->(tech)
         `,
         rel
       )
     }
-    console.log(`✅ Created ${relationships.team_technologies.length} team-technology relationships`)
+    console.log(`✅ Created ${relationships.team_technologies.length} team stewardship relationships`)
     
     // Team -> System
     for (const rel of relationships.team_systems) {
@@ -343,13 +363,13 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
     }
     console.log(`✅ Created ${relationships.component_technologies.length} component-technology relationships`)
     
-    // Policy -> Technology
+    // Policy -> Technology (using GOVERNS relationship)
     for (const rel of relationships.policy_technologies) {
       await session.run(
         `
         MATCH (pol:Policy {name: $policy})
         MATCH (tech:Technology {name: $technology})
-        MERGE (pol)-[:APPLIES_TO]->(tech)
+        MERGE (pol)-[:GOVERNS]->(tech)
         `,
         rel
       )
@@ -435,6 +455,129 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
   }
 }
 
+async function createUsesRelationships(driver: neo4j.Driver) {
+  const session = driver.session()
+  
+  try {
+    console.log('Creating USES relationships...')
+    
+    // Create USES relationships based on system ownership
+    // This infers actual usage from the system dependency graph
+    const result = await session.run(`
+      MATCH (team:Team)-[:OWNS]->(sys:System)
+      MATCH (sys)-[:USES]->(comp:Component)
+      MATCH (comp)-[:IS_VERSION_OF]->(tech:Technology)
+      WITH team, tech, 
+           count(DISTINCT sys) as systemCount
+      MERGE (team)-[u:USES]->(tech)
+      ON CREATE SET
+        u.firstUsed = datetime(),
+        u.lastVerified = datetime(),
+        u.systemCount = systemCount
+      ON MATCH SET
+        u.lastVerified = datetime(),
+        u.systemCount = systemCount
+      RETURN count(u) as usesCount
+    `)
+    
+    const usesCount = result.records[0]?.get('usesCount').toNumber() || 0
+    console.log(`✅ Created ${usesCount} USES relationships`)
+    
+  } finally {
+    await session.close()
+  }
+}
+
+async function createPolicyRelationships(driver: neo4j.Driver) {
+  const session = driver.session()
+  
+  try {
+    console.log('Creating policy enforcement relationships...')
+    
+    // Create ENFORCES relationships based on enforcedBy property
+    const enforcesResult = await session.run(`
+      MATCH (p:Policy)
+      WHERE p.enforcedBy IS NOT NULL
+      MATCH (team:Team {name: p.enforcedBy})
+      MERGE (team)-[:ENFORCES]->(p)
+      RETURN count(*) as enforcesCount
+    `)
+    
+    const enforcesCount = enforcesResult.records[0]?.get('enforcesCount').toNumber() || 0
+    console.log(`✅ Created ${enforcesCount} ENFORCES relationships`)
+    
+    // Create SUBJECT_TO relationships for organization-wide policies
+    const subjectToResult = await session.run(`
+      MATCH (p:Policy {scope: 'organization'})
+      MATCH (team:Team)
+      MERGE (team)-[:SUBJECT_TO]->(p)
+      RETURN count(*) as subjectToCount
+    `)
+    
+    const subjectToCount = subjectToResult.records[0]?.get('subjectToCount').toNumber() || 0
+    console.log(`✅ Created ${subjectToCount} SUBJECT_TO relationships`)
+    
+  } finally {
+    await session.close()
+  }
+}
+
+async function createViolationScenarios(driver: neo4j.Driver) {
+  const session = driver.session()
+  
+  try {
+    console.log('Creating policy violation scenarios...')
+    
+    // Scenario 1: Frontend Platform uses jQuery (deprecated) without approval
+    await session.run(`
+      MATCH (team:Team {name: 'Frontend Platform'})
+      MATCH (tech:Technology {name: 'jQuery'})
+      MERGE (team)-[u:USES]->(tech)
+      ON CREATE SET u.firstUsed = datetime(),
+                    u.lastVerified = datetime(),
+                    u.systemCount = 2
+    `)
+    console.log('✅ Frontend Platform uses jQuery (deprecated, not approved)')
+    
+    // Scenario 2: Backend Platform uses Lodash (deprecated) without approval
+    await session.run(`
+      MATCH (team:Team {name: 'Backend Platform'})
+      MATCH (tech:Technology {name: 'Lodash'})
+      MERGE (team)-[u:USES]->(tech)
+      ON CREATE SET u.firstUsed = datetime(),
+                    u.lastVerified = datetime(),
+                    u.systemCount = 3
+    `)
+    console.log('✅ Backend Platform uses Lodash (deprecated, not approved)')
+    
+    // Scenario 3: Data Platform uses MySQL (experimental) without approval
+    await session.run(`
+      MATCH (team:Team {name: 'Data Platform'})
+      MATCH (tech:Technology {name: 'MySQL'})
+      MERGE (team)-[u:USES]->(tech)
+      ON CREATE SET u.firstUsed = datetime(),
+                    u.lastVerified = datetime(),
+                    u.systemCount = 1
+    `)
+    console.log('✅ Data Platform uses MySQL (experimental, not approved)')
+    
+    // Count violations
+    const violationsResult = await session.run(`
+      MATCH (team:Team)-[:USES]->(tech:Technology)
+      WHERE NOT (team)-[:APPROVES]->(tech)
+      MATCH (policy:Policy {status: 'active'})-[:GOVERNS]->(tech)
+      MATCH (team)-[:SUBJECT_TO]->(policy)
+      RETURN count(*) as violationCount
+    `)
+    
+    const violationCount = violationsResult.records[0]?.get('violationCount').toNumber() || 0
+    console.log(`✅ Created ${violationCount} policy violations`)
+    
+  } finally {
+    await session.close()
+  }
+}
+
 async function seed(options: { clear?: boolean } = {}) {
   const driver = await getDriver()
   
@@ -468,6 +611,21 @@ async function seed(options: { clear?: boolean } = {}) {
     
     // Seed approvals
     await seedApprovals(driver, fixtureData.approvals)
+    
+    console.log('')
+    
+    // Create USES relationships (inferred from system ownership)
+    await createUsesRelationships(driver)
+    
+    console.log('')
+    
+    // Create policy enforcement relationships
+    await createPolicyRelationships(driver)
+    
+    console.log('')
+    
+    // Create violation scenarios
+    await createViolationScenarios(driver)
     
     console.log('\n✅ Database seeding completed successfully!\n')
     

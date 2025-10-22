@@ -1,16 +1,58 @@
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
   try {
+    const query = getQuery(event)
+    const scope = query.scope as string | undefined
+    const status = query.status as string | undefined
+    const enforcedBy = query.enforcedBy as string | undefined
+    
     const driver = useDriver()
     
-    const { records } = await driver.executeQuery(`
+    let cypher = `
       MATCH (p:Policy)
-      OPTIONAL MATCH (p)-[:APPLIES_TO]->(tech:Technology)
+    `
+    
+    const conditions: string[] = []
+    const params: Record<string, any> = {}
+    
+    if (scope) {
+      conditions.push('p.scope = $scope')
+      params.scope = scope
+    }
+    
+    if (status) {
+      conditions.push('p.status = $status')
+      params.status = status
+    }
+    
+    if (enforcedBy) {
+      conditions.push('p.enforcedBy = $enforcedBy')
+      params.enforcedBy = enforcedBy
+    }
+    
+    if (conditions.length > 0) {
+      cypher += ' WHERE ' + conditions.join(' AND ')
+    }
+    
+    cypher += `
+      OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(p)
+      OPTIONAL MATCH (subject:Team)-[:SUBJECT_TO]->(p)
+      OPTIONAL MATCH (p)-[:GOVERNS]->(tech:Technology)
+      WITH p, enforcer, 
+           collect(DISTINCT subject.name) as subjectTeams,
+           collect(DISTINCT tech.name) as governedTechnologies
       RETURN p.name as name,
              p.description as description,
              p.ruleType as ruleType,
              p.severity as severity,
-             count(DISTINCT tech) as technologyCount,
-             collect(DISTINCT tech.name) as technologies
+             p.effectiveDate as effectiveDate,
+             p.expiryDate as expiryDate,
+             p.enforcedBy as enforcedBy,
+             p.scope as scope,
+             p.status as status,
+             enforcer.name as enforcerTeam,
+             subjectTeams,
+             governedTechnologies,
+             size(governedTechnologies) as technologyCount
       ORDER BY 
         CASE p.severity
           WHEN 'critical' THEN 1
@@ -18,16 +60,26 @@ export default defineEventHandler(async () => {
           WHEN 'warning' THEN 3
           WHEN 'info' THEN 4
         END,
+        p.effectiveDate DESC,
         p.name
-    `)
+    `
+    
+    const { records } = await driver.executeQuery(cypher, params)
     
     const policies = records.map(record => ({
       name: record.get('name'),
       description: record.get('description'),
       ruleType: record.get('ruleType'),
       severity: record.get('severity'),
-      technologyCount: record.get('technologyCount').toNumber(),
-      technologies: record.get('technologies').filter((t: string) => t)
+      effectiveDate: record.get('effectiveDate')?.toString(),
+      expiryDate: record.get('expiryDate')?.toString(),
+      enforcedBy: record.get('enforcedBy'),
+      scope: record.get('scope'),
+      status: record.get('status'),
+      enforcerTeam: record.get('enforcerTeam'),
+      subjectTeams: record.get('subjectTeams').filter((t: string) => t),
+      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
+      technologyCount: record.get('technologyCount').toNumber()
     }))
     
     return {
