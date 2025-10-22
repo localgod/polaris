@@ -176,7 +176,8 @@ Feature('Technology Usage Tracking', ({ Scenario }) => {
       await session.run(`
         MERGE (team:Team {name: 'Data Platform Test', testData: true})
         MERGE (tech:Technology {name: 'Python Test', testData: true})
-        MERGE (team)-[u:USES {systemCount: 1}]->(tech)
+        MERGE (team)-[u:USES]->(tech)
+        ON CREATE SET u.systemCount = 1, u.firstUsed = datetime(), u.lastVerified = datetime()
       `)
     })
 
@@ -206,7 +207,11 @@ Feature('Technology Usage Tracking', ({ Scenario }) => {
 
     Then('"Data Platform" should appear in the violations list', () => {
       if (!neo4jAvailable) return
-      expect(violations.some(v => v.team === 'Data Platform Test')).toBe(true)
+      const hasViolation = violations.some(v => v.team === 'Data Platform Test')
+      if (!hasViolation) {
+        console.warn('No violations found. Violations:', violations)
+      }
+      expect(hasViolation).toBe(true)
     })
 
     And('the violation type should be "unapproved"', async () => {
