@@ -8,9 +8,26 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/test-utils',
     '@nuxtjs/tailwindcss',
+    '@nuxt/content',
     // '@nuxt/ui', // Temporarily disabled - has compatibility issue with Nuxt 4 (@nuxtjs/color-mode@3.5.2)
     'nuxt-neo4j'
   ],
+
+  content: {
+    highlight: {
+      theme: {
+        default: 'github-light',
+        dark: 'github-dark'
+      },
+      preload: ['cypher', 'typescript', 'javascript', 'bash', 'json', 'yaml', 'mermaid']
+    },
+    markdown: {
+      toc: {
+        depth: 3,
+        searchDepth: 3
+      }
+    }
+  },
 
   neo4j: {
     uri: process.env.NEO4J_URI || 'bolt://172.19.0.2:7687',

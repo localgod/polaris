@@ -55,19 +55,23 @@
               <p class="text-3xl font-bold text-blue-600">{{ data.count }}</p>
             </div>
             <div class="text-right">
-              <div class="text-sm text-gray-600">Status Breakdown</div>
+              <div class="text-sm text-gray-600">TIME Breakdown</div>
               <div class="flex gap-4 mt-2">
                 <div>
-                  <span class="text-xs text-gray-500">Approved:</span>
-                  <span class="ml-1 font-semibold text-green-600">{{ statusCounts.approved }}</span>
+                  <span class="text-xs text-gray-500">Invest:</span>
+                  <span class="ml-1 font-semibold text-green-600">{{ timeCounts.invest }}</span>
                 </div>
                 <div>
-                  <span class="text-xs text-gray-500">Deprecated:</span>
-                  <span class="ml-1 font-semibold text-orange-600">{{ statusCounts.deprecated }}</span>
+                  <span class="text-xs text-gray-500">Migrate:</span>
+                  <span class="ml-1 font-semibold text-blue-600">{{ timeCounts.migrate }}</span>
                 </div>
                 <div>
-                  <span class="text-xs text-gray-500">Experimental:</span>
-                  <span class="ml-1 font-semibold text-purple-600">{{ statusCounts.experimental }}</span>
+                  <span class="text-xs text-gray-500">Tolerate:</span>
+                  <span class="ml-1 font-semibold text-yellow-600">{{ timeCounts.tolerate }}</span>
+                </div>
+                <div>
+                  <span class="text-xs text-gray-500">Eliminate:</span>
+                  <span class="ml-1 font-semibold text-red-600">{{ timeCounts.eliminate }}</span>
                 </div>
               </div>
             </div>
@@ -114,22 +118,37 @@
             class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 block"
           >
             <!-- Header -->
-            <div class="flex items-start justify-between mb-4">
-              <div>
-                <h3 class="text-xl font-bold text-gray-900">{{ tech.name }}</h3>
-                <p class="text-sm text-gray-500">{{ tech.vendor }}</p>
+            <div class="mb-4">
+              <div class="flex items-start justify-between mb-2">
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900">{{ tech.name }}</h3>
+                  <p class="text-sm text-gray-500">{{ tech.vendor }}</p>
+                </div>
               </div>
-              <span
-                :class="[
-                  'px-3 py-1 rounded-full text-xs font-semibold',
-                  tech.status === 'approved' ? 'bg-green-100 text-green-800' :
-                  tech.status === 'deprecated' ? 'bg-orange-100 text-orange-800' :
-                  tech.status === 'experimental' ? 'bg-purple-100 text-purple-800' :
-                  'bg-gray-100 text-gray-800'
-                ]"
-              >
-                {{ tech.status }}
-              </span>
+              
+              <!-- Team Approvals -->
+              <div v-if="tech.approvals && tech.approvals.length > 0" class="flex flex-wrap gap-1 mt-2">
+                <span
+                  v-for="approval in tech.approvals"
+                  :key="approval.team"
+                  :class="[
+                    'px-2 py-1 rounded text-xs font-medium',
+                    approval.time === 'invest' ? 'bg-green-100 text-green-800' :
+                    approval.time === 'migrate' ? 'bg-blue-100 text-blue-800' :
+                    approval.time === 'tolerate' ? 'bg-yellow-100 text-yellow-800' :
+                    approval.time === 'eliminate' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  ]"
+                  :title="approval.notes || ''"
+                >
+                  {{ approval.team }}: {{ getTimeLabel(approval.time) }}
+                </span>
+              </div>
+              <div v-else class="mt-2">
+                <span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                  No team approvals
+                </span>
+              </div>
             </div>
 
             <!-- Details -->
@@ -203,17 +222,29 @@
 </template>
 
 <script setup lang="ts">
+interface Approval {
+  team: string
+  time: string
+  approvedAt?: string
+  deprecatedAt?: string
+  eolDate?: string
+  migrationTarget?: string
+  notes?: string
+  approvedBy?: string
+  versionConstraint?: string
+}
+
 interface Technology {
   name: string
   category: string
   vendor: string
-  status: string
   approvedVersionRange: string
   ownerTeam: string
   riskLevel: string
   lastReviewed: string
   ownerTeamName: string | null
   versions: string[]
+  approvals: Approval[]
 }
 
 interface TechnologiesResponse {
@@ -245,13 +276,16 @@ const categoryCounts = computed(() => {
   return counts
 })
 
-const statusCounts = computed(() => {
-  if (!data.value?.data) return { approved: 0, deprecated: 0, experimental: 0 }
-  const counts = { approved: 0, deprecated: 0, experimental: 0 }
+const timeCounts = computed(() => {
+  if (!data.value?.data) return { invest: 0, migrate: 0, tolerate: 0, eliminate: 0 }
+  const counts = { invest: 0, migrate: 0, tolerate: 0, eliminate: 0 }
   data.value.data.forEach(tech => {
-    if (tech.status === 'approved') counts.approved++
-    else if (tech.status === 'deprecated') counts.deprecated++
-    else if (tech.status === 'experimental') counts.experimental++
+    tech.approvals.forEach(approval => {
+      if (approval.time === 'invest') counts.invest++
+      else if (approval.time === 'migrate') counts.migrate++
+      else if (approval.time === 'tolerate') counts.tolerate++
+      else if (approval.time === 'eliminate') counts.eliminate++
+    })
   })
   return counts
 })
@@ -271,6 +305,32 @@ function formatDate(dateString: string): string {
   } catch {
     return dateString
   }
+}
+
+function _getApprovalSummary(tech: Technology): string {
+  if (!tech.approvals || tech.approvals.length === 0) return 'No approvals'
+  const invest = tech.approvals.filter(a => a.time === 'invest').length
+  const migrate = tech.approvals.filter(a => a.time === 'migrate').length
+  const tolerate = tech.approvals.filter(a => a.time === 'tolerate').length
+  const eliminate = tech.approvals.filter(a => a.time === 'eliminate').length
+  
+  const parts = []
+  if (invest > 0) parts.push(`${invest} invest`)
+  if (migrate > 0) parts.push(`${migrate} migrate`)
+  if (tolerate > 0) parts.push(`${tolerate} tolerate`)
+  if (eliminate > 0) parts.push(`${eliminate} eliminate`)
+  
+  return parts.join(', ') || `${tech.approvals.length} teams`
+}
+
+function getTimeLabel(time: string): string {
+  const labels: Record<string, string> = {
+    'invest': 'Invest',
+    'migrate': 'Migrate',
+    'tolerate': 'Tolerate',
+    'eliminate': 'Eliminate'
+  }
+  return labels[time] || time
 }
 
 // Page metadata

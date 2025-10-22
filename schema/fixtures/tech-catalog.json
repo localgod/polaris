@@ -135,7 +135,7 @@
       "releaseDate": "2023-06-14",
       "eolDate": "2025-12-31",
       "approved": true,
-      "cvssScore": 0.0,
+      "cvssScore": 0,
       "notes": "Stable LTS version"
     },
     {
@@ -144,7 +144,7 @@
       "releaseDate": "2024-04-26",
       "eolDate": "2026-06-30",
       "approved": true,
-      "cvssScore": 0.0,
+      "cvssScore": 0,
       "notes": "Latest stable version"
     },
     {
@@ -153,7 +153,7 @@
       "releaseDate": "2023-07-28",
       "eolDate": "2025-12-31",
       "approved": true,
-      "cvssScore": 0.0,
+      "cvssScore": 0,
       "notes": "Stable version"
     },
     {
@@ -162,7 +162,7 @@
       "releaseDate": "2024-01-09",
       "eolDate": "2026-04-30",
       "approved": true,
-      "cvssScore": 0.0,
+      "cvssScore": 0,
       "notes": "LTS version"
     },
     {
@@ -171,7 +171,7 @@
       "releaseDate": "2023-11-09",
       "eolDate": "2028-11-09",
       "approved": true,
-      "cvssScore": 0.0,
+      "cvssScore": 0,
       "notes": "Latest stable version"
     },
     {
@@ -180,7 +180,7 @@
       "releaseDate": "2024-10-01",
       "eolDate": "2027-10-01",
       "approved": true,
-      "cvssScore": 0.0,
+      "cvssScore": 0,
       "notes": "Community edition"
     },
     {
@@ -189,7 +189,7 @@
       "releaseDate": "2023-12-11",
       "eolDate": "2026-12-31",
       "approved": true,
-      "cvssScore": 0.0,
+      "cvssScore": 0,
       "notes": "Latest stable version"
     }
   ],
@@ -335,63 +335,385 @@
   ],
   "relationships": {
     "technology_versions": [
-      { "technology": "React", "version": "18.2.0" },
-      { "technology": "React", "version": "18.3.1" },
-      { "technology": "Vue", "version": "3.3.4" },
-      { "technology": "Node.js", "version": "20.11.0" },
-      { "technology": "PostgreSQL", "version": "16.1" },
-      { "technology": "Neo4j", "version": "5.26.13" },
-      { "technology": "TypeScript", "version": "5.3.3" }
+      {
+        "technology": "React",
+        "version": "18.2.0"
+      },
+      {
+        "technology": "React",
+        "version": "18.3.1"
+      },
+      {
+        "technology": "Vue",
+        "version": "3.3.4"
+      },
+      {
+        "technology": "Node.js",
+        "version": "20.11.0"
+      },
+      {
+        "technology": "PostgreSQL",
+        "version": "16.1"
+      },
+      {
+        "technology": "Neo4j",
+        "version": "5.26.13"
+      },
+      {
+        "technology": "TypeScript",
+        "version": "5.3.3"
+      }
     ],
     "team_technologies": [
-      { "team": "Frontend Platform", "technology": "React" },
-      { "team": "Frontend Platform", "technology": "Vue" },
-      { "team": "Frontend Platform", "technology": "Angular" },
-      { "team": "Frontend Platform", "technology": "TypeScript" },
-      { "team": "Backend Platform", "technology": "Node.js" },
-      { "team": "Backend Platform", "technology": "Express" },
-      { "team": "Data Platform", "technology": "PostgreSQL" },
-      { "team": "Data Platform", "technology": "Neo4j" },
-      { "team": "Data Platform", "technology": "MongoDB" },
-      { "team": "DevOps", "technology": "Docker" }
+      {
+        "team": "Frontend Platform",
+        "technology": "React"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "Vue"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "Angular"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "TypeScript"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "Node.js"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "Express"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "PostgreSQL"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "Neo4j"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "MongoDB"
+      },
+      {
+        "team": "DevOps",
+        "technology": "Docker"
+      }
     ],
     "team_systems": [
-      { "team": "Frontend Platform", "system": "customer-portal" },
-      { "team": "Backend Platform", "system": "api-gateway" },
-      { "team": "Data Platform", "system": "analytics-service" },
-      { "team": "Frontend Platform", "system": "admin-dashboard" },
-      { "team": "Backend Platform", "system": "notification-service" }
+      {
+        "team": "Frontend Platform",
+        "system": "customer-portal"
+      },
+      {
+        "team": "Backend Platform",
+        "system": "api-gateway"
+      },
+      {
+        "team": "Data Platform",
+        "system": "analytics-service"
+      },
+      {
+        "team": "Frontend Platform",
+        "system": "admin-dashboard"
+      },
+      {
+        "team": "Backend Platform",
+        "system": "notification-service"
+      }
     ],
     "system_components": [
-      { "system": "customer-portal", "component": "react", "version": "18.2.0", "packageManager": "npm" },
-      { "system": "customer-portal", "component": "react-dom", "version": "18.2.0", "packageManager": "npm" },
-      { "system": "customer-portal", "component": "typescript", "version": "5.3.3", "packageManager": "npm" },
-      { "system": "admin-dashboard", "component": "vue", "version": "3.3.4", "packageManager": "npm" },
-      { "system": "admin-dashboard", "component": "typescript", "version": "5.3.3", "packageManager": "npm" },
-      { "system": "api-gateway", "component": "express", "version": "4.18.2", "packageManager": "npm" },
-      { "system": "api-gateway", "component": "typescript", "version": "5.3.3", "packageManager": "npm" },
-      { "system": "api-gateway", "component": "pg", "version": "8.11.3", "packageManager": "npm" },
-      { "system": "analytics-service", "component": "neo4j-driver", "version": "5.14.0", "packageManager": "npm" },
-      { "system": "analytics-service", "component": "typescript", "version": "5.3.3", "packageManager": "npm" },
-      { "system": "notification-service", "component": "express", "version": "4.18.2", "packageManager": "npm" }
+      {
+        "system": "customer-portal",
+        "component": "react",
+        "version": "18.2.0",
+        "packageManager": "npm"
+      },
+      {
+        "system": "customer-portal",
+        "component": "react-dom",
+        "version": "18.2.0",
+        "packageManager": "npm"
+      },
+      {
+        "system": "customer-portal",
+        "component": "typescript",
+        "version": "5.3.3",
+        "packageManager": "npm"
+      },
+      {
+        "system": "admin-dashboard",
+        "component": "vue",
+        "version": "3.3.4",
+        "packageManager": "npm"
+      },
+      {
+        "system": "admin-dashboard",
+        "component": "typescript",
+        "version": "5.3.3",
+        "packageManager": "npm"
+      },
+      {
+        "system": "api-gateway",
+        "component": "express",
+        "version": "4.18.2",
+        "packageManager": "npm"
+      },
+      {
+        "system": "api-gateway",
+        "component": "typescript",
+        "version": "5.3.3",
+        "packageManager": "npm"
+      },
+      {
+        "system": "api-gateway",
+        "component": "pg",
+        "version": "8.11.3",
+        "packageManager": "npm"
+      },
+      {
+        "system": "analytics-service",
+        "component": "neo4j-driver",
+        "version": "5.14.0",
+        "packageManager": "npm"
+      },
+      {
+        "system": "analytics-service",
+        "component": "typescript",
+        "version": "5.3.3",
+        "packageManager": "npm"
+      },
+      {
+        "system": "notification-service",
+        "component": "express",
+        "version": "4.18.2",
+        "packageManager": "npm"
+      }
     ],
     "component_technologies": [
-      { "component": "react", "version": "18.2.0", "packageManager": "npm", "technology": "React" },
-      { "component": "react-dom", "version": "18.2.0", "packageManager": "npm", "technology": "React" },
-      { "component": "vue", "version": "3.3.4", "packageManager": "npm", "technology": "Vue" },
-      { "component": "express", "version": "4.18.2", "packageManager": "npm", "technology": "Express" },
-      { "component": "typescript", "version": "5.3.3", "packageManager": "npm", "technology": "TypeScript" },
-      { "component": "neo4j-driver", "version": "5.14.0", "packageManager": "npm", "technology": "Neo4j" },
-      { "component": "pg", "version": "8.11.3", "packageManager": "npm", "technology": "PostgreSQL" }
+      {
+        "component": "react",
+        "version": "18.2.0",
+        "packageManager": "npm",
+        "technology": "React"
+      },
+      {
+        "component": "react-dom",
+        "version": "18.2.0",
+        "packageManager": "npm",
+        "technology": "React"
+      },
+      {
+        "component": "vue",
+        "version": "3.3.4",
+        "packageManager": "npm",
+        "technology": "Vue"
+      },
+      {
+        "component": "express",
+        "version": "4.18.2",
+        "packageManager": "npm",
+        "technology": "Express"
+      },
+      {
+        "component": "typescript",
+        "version": "5.3.3",
+        "packageManager": "npm",
+        "technology": "TypeScript"
+      },
+      {
+        "component": "neo4j-driver",
+        "version": "5.14.0",
+        "packageManager": "npm",
+        "technology": "Neo4j"
+      },
+      {
+        "component": "pg",
+        "version": "8.11.3",
+        "packageManager": "npm",
+        "technology": "PostgreSQL"
+      }
     ],
     "policy_technologies": [
-      { "policy": "Frontend Framework Approval", "technology": "React" },
-      { "policy": "Frontend Framework Approval", "technology": "Vue" },
-      { "policy": "Frontend Framework Approval", "technology": "Angular" },
-      { "policy": "Database Version Policy", "technology": "PostgreSQL" },
-      { "policy": "Database Version Policy", "technology": "Neo4j" },
-      { "policy": "Database Version Policy", "technology": "MongoDB" },
-      { "policy": "Deprecated Technology Warning", "technology": "Angular" }
+      {
+        "policy": "Frontend Framework Approval",
+        "technology": "React"
+      },
+      {
+        "policy": "Frontend Framework Approval",
+        "technology": "Vue"
+      },
+      {
+        "policy": "Frontend Framework Approval",
+        "technology": "Angular"
+      },
+      {
+        "policy": "Database Version Policy",
+        "technology": "PostgreSQL"
+      },
+      {
+        "policy": "Database Version Policy",
+        "technology": "Neo4j"
+      },
+      {
+        "policy": "Database Version Policy",
+        "technology": "MongoDB"
+      },
+      {
+        "policy": "Deprecated Technology Warning",
+        "technology": "Angular"
+      }
+    ]
+  },
+  "approvals": {
+    "team_technology_approvals": [
+      {
+        "team": "Frontend Platform",
+        "technology": "React",
+        "approvedBy": "Frontend Lead",
+        "notes": "Primary framework for customer-facing applications",
+        "time": "invest"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "Vue",
+        "approvedBy": "Frontend Lead",
+        "notes": "Approved for internal tools and admin interfaces",
+        "time": "invest"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "Angular",
+        "deprecatedAt": "2024-06-01T00:00:00Z",
+        "eolDate": "2025-12-31",
+        "migrationTarget": "React",
+        "approvedBy": "Frontend Lead",
+        "notes": "Migrating to React for better ecosystem support",
+        "time": "migrate"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "TypeScript",
+        "approvedBy": "Frontend Lead",
+        "notes": "Required for all new frontend projects",
+        "time": "invest"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "Node.js",
+        "versionConstraint": ">=18",
+        "approvedBy": "Backend Lead",
+        "notes": "LTS versions only",
+        "time": "invest"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "Express",
+        "approvedBy": "Backend Lead",
+        "notes": "Standard web framework for Node.js services",
+        "time": "invest"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "TypeScript",
+        "approvedBy": "Backend Lead",
+        "notes": "Required for all backend services",
+        "time": "invest"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "PostgreSQL",
+        "versionConstraint": ">=14",
+        "approvedBy": "Data Lead",
+        "notes": "Primary relational database",
+        "time": "invest"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "Neo4j",
+        "versionConstraint": ">=5",
+        "approvedBy": "Data Lead",
+        "notes": "Graph database for relationship-heavy data",
+        "time": "invest"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "MongoDB",
+        "approvedBy": "Data Lead",
+        "notes": "Evaluating for document storage use cases",
+        "time": "invest"
+      },
+      {
+        "team": "DevOps",
+        "technology": "Docker",
+        "approvedBy": "DevOps Lead",
+        "notes": "Standard containerization platform",
+        "time": "invest"
+      }
+    ],
+    "team_version_approvals": [
+      {
+        "team": "Frontend Platform",
+        "technology": "React",
+        "version": "18.2.0",
+        "approvedBy": "Frontend Lead",
+        "notes": "Current stable version",
+        "time": "invest"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "Vue",
+        "version": "3.3.4",
+        "approvedBy": "Frontend Lead",
+        "notes": "Latest Vue 3 version",
+        "time": "invest"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "TypeScript",
+        "version": "5.3.3",
+        "approvedBy": "Frontend Lead",
+        "notes": "Latest stable TypeScript",
+        "time": "invest"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "Express",
+        "version": "4.18.2",
+        "approvedBy": "Backend Lead",
+        "notes": "Stable Express 4.x",
+        "time": "invest"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "TypeScript",
+        "version": "5.3.3",
+        "approvedBy": "Backend Lead",
+        "notes": "Latest stable TypeScript",
+        "time": "invest"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "Neo4j",
+        "version": "5.14.0",
+        "approvedBy": "Data Lead",
+        "notes": "Latest Neo4j 5.x driver",
+        "time": "invest"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "PostgreSQL",
+        "version": "8.11.3",
+        "approvedBy": "Data Lead",
+        "notes": "pg driver for PostgreSQL",
+        "time": "invest"
+      }
     ]
   }
 }

@@ -10,6 +10,7 @@ An enterprise technology catalog built with Nuxt 4 and Neo4j graph database. Tra
 
 Polaris helps organizations manage their technology landscape by:
 - **Technology Catalog**: Track approved technologies and their versions
+- **Team-Specific Approvals**: Different approval policies per team with version-specific controls
 - **System Inventory**: Map systems and their technology dependencies
 - **Team Ownership**: Link technologies and systems to responsible teams
 - **Policy Compliance**: Define and track governance policies
@@ -149,6 +150,37 @@ test/
 
 Each test includes a `.feature` file (Gherkin scenarios) and `.spec.ts` file (implementation).
 
+## Features
+
+### Team-Specific Technology Approvals with TIME Framework
+
+Polaris uses **Gartner's TIME framework** for technology portfolio management with team-specific policies:
+
+- **TIME Categories**: Tolerate, Invest, Migrate, Eliminate
+- **Per-Team Policies**: Each team can have different TIME categories for the same technology
+- **Version-Specific Approvals**: Categorize specific versions independently
+- **Approval Hierarchy**: Version-specific > Technology-level > Default (eliminate)
+- **Rich Metadata**: EOL dates, migration targets, version constraints, approval history
+
+**TIME Categories:**
+- 🟢 **Invest**: Strategic technologies worth continued investment
+- 🔵 **Migrate**: Technologies to move to newer platforms
+- 🟡 **Tolerate**: Keep running but minimize investment
+- 🔴 **Eliminate**: Phase out and decommission
+
+**Example Use Case:** Angular marked as "Migrate" for Frontend Team (EOL: 2025-12-31, target: React), while React is "Invest".
+
+**Documentation:**
+- [TIME Framework Guide](docs/TIME_FRAMEWORK.md)
+- [Implementation Summary](docs/TEAM_APPROVALS_IMPLEMENTATION.md)
+- [Schema Design](docs/SCHEMA_ENHANCEMENT_TEAM_SPECIFIC_APPROVALS.md)
+
+**API Endpoints:**
+- `GET /api/technologies` - List technologies with TIME categories
+- `GET /api/technologies/{name}` - Technology details with approvals
+- `GET /api/teams/{name}/approvals` - All approvals for a team
+- `GET /api/approvals/check` - Check TIME category with hierarchy resolution
+
 ### Running Tests
 
 ```bash
@@ -168,10 +200,22 @@ npm run test:migrations  # Run migration tests only
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
 - **[Agent Instructions](AGENTS.md)** - Guidelines for AI agents working on this project
 
+## Documentation
+
+Polaris includes comprehensive in-app documentation powered by @nuxt/content:
+
+- **Getting Started**: Installation and setup guides
+- **Features**: TIME Framework, Team Approvals
+- **Architecture**: Graph Model, Schema Design
+- **API**: Endpoint documentation with examples
+
+Access the documentation at `/docs` when running the application, or browse the `content/` directory.
+
 ## Technology Stack
 
 - **Frontend**: Nuxt 4, Vue 3, TypeScript, Tailwind CSS
 - **Database**: Neo4j 5 Community Edition (graph database)
+- **Documentation**: @nuxt/content with Markdown
 - **Testing**: Vitest with Gherkin-style BDD
 - **Development**: Docker, Dev Containers, Gitpod
 - **CI/CD**: GitHub Actions with automated testing and coverage
@@ -181,6 +225,7 @@ npm run test:migrations  # Run migration tests only
 - **Graph-Based Data Model**: Leverage Neo4j's native graph capabilities for complex relationships
 - **Type-Safe**: Full TypeScript support throughout the stack
 - **Modern Frontend**: Nuxt 4 with Vue 3 Composition API
+- **In-App Documentation**: Comprehensive guides powered by @nuxt/content
 - **Standalone Migrations**: Database schema managed independently via CLI
 - **Comprehensive Testing**: Gherkin-style tests for better documentation
 - **Developer Experience**: Dev containers and automations for quick setup

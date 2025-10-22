@@ -74,6 +74,32 @@ interface FixtureData {
     component_technologies: Array<{ component: string; version: string; packageManager: string; technology: string }>
     policy_technologies: Array<{ policy: string; technology: string }>
   }
+  approvals: {
+    team_technology_approvals: Array<{
+      team: string
+      technology: string
+      time: string
+      approvedAt?: string
+      deprecatedAt?: string
+      eolDate?: string
+      migrationTarget?: string
+      notes?: string
+      approvedBy?: string
+      versionConstraint?: string
+    }>
+    team_version_approvals: Array<{
+      team: string
+      technology: string
+      version: string
+      time: string
+      approvedAt?: string
+      deprecatedAt?: string
+      eolDate?: string
+      migrationTarget?: string
+      notes?: string
+      approvedBy?: string
+    }>
+  }
 }
 
 async function getDriver() {
@@ -335,6 +361,80 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
   }
 }
 
+async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['approvals']) {
+  const session = driver.session()
+  try {
+    console.log('✅ Seeding team approvals...')
+    
+    // Team -> Technology approvals
+    for (const approval of approvals.team_technology_approvals) {
+      await session.run(
+        `
+        MATCH (team:Team {name: $team})
+        MATCH (tech:Technology {name: $technology})
+        MERGE (team)-[a:APPROVES]->(tech)
+        SET a.time = $time,
+            a.approvedAt = CASE WHEN $approvedAt IS NOT NULL THEN datetime($approvedAt) ELSE datetime() END,
+            a.deprecatedAt = CASE WHEN $deprecatedAt IS NOT NULL THEN datetime($deprecatedAt) ELSE null END,
+            a.eolDate = CASE WHEN $eolDate IS NOT NULL THEN date($eolDate) ELSE null END,
+            a.migrationTarget = $migrationTarget,
+            a.notes = $notes,
+            a.approvedBy = $approvedBy,
+            a.versionConstraint = $versionConstraint
+        `,
+        {
+          team: approval.team,
+          technology: approval.technology,
+          time: approval.time,
+          approvedAt: approval.approvedAt || null,
+          deprecatedAt: approval.deprecatedAt || null,
+          eolDate: approval.eolDate || null,
+          migrationTarget: approval.migrationTarget || null,
+          notes: approval.notes || null,
+          approvedBy: approval.approvedBy || null,
+          versionConstraint: approval.versionConstraint || null
+        }
+      )
+    }
+    console.log(`✅ Created ${approvals.team_technology_approvals.length} team-technology approvals`)
+    
+    // Team -> Version approvals
+    for (const approval of approvals.team_version_approvals) {
+      await session.run(
+        `
+        MATCH (team:Team {name: $team})
+        MATCH (tech:Technology {name: $technology})
+        MATCH (tech)-[:HAS_VERSION]->(v:Version {version: $version})
+        MERGE (team)-[a:APPROVES]->(v)
+        SET a.time = $time,
+            a.approvedAt = CASE WHEN $approvedAt IS NOT NULL THEN datetime($approvedAt) ELSE datetime() END,
+            a.deprecatedAt = CASE WHEN $deprecatedAt IS NOT NULL THEN datetime($deprecatedAt) ELSE null END,
+            a.eolDate = CASE WHEN $eolDate IS NOT NULL THEN date($eolDate) ELSE null END,
+            a.migrationTarget = $migrationTarget,
+            a.notes = $notes,
+            a.approvedBy = $approvedBy
+        `,
+        {
+          team: approval.team,
+          technology: approval.technology,
+          version: approval.version,
+          time: approval.time,
+          approvedAt: approval.approvedAt || null,
+          deprecatedAt: approval.deprecatedAt || null,
+          eolDate: approval.eolDate || null,
+          migrationTarget: approval.migrationTarget || null,
+          notes: approval.notes || null,
+          approvedBy: approval.approvedBy || null
+        }
+      )
+    }
+    console.log(`✅ Created ${approvals.team_version_approvals.length} team-version approvals`)
+    
+  } finally {
+    await session.close()
+  }
+}
+
 async function seed(options: { clear?: boolean } = {}) {
   const driver = await getDriver()
   
@@ -363,6 +463,11 @@ async function seed(options: { clear?: boolean } = {}) {
     
     // Seed relationships
     await seedRelationships(driver, fixtureData.relationships)
+    
+    console.log('')
+    
+    // Seed approvals
+    await seedApprovals(driver, fixtureData.approvals)
     
     console.log('\n✅ Database seeding completed successfully!\n')
     
