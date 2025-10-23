@@ -146,7 +146,7 @@ Each team independently assigns TIME categories to technologies based on their n
 
 ## How TIME Categories Work
 
-### Team-Based Approvals
+### Approval Information
 
 Each team's approvals include a TIME category that indicates their strategic intent:
 
@@ -185,7 +185,7 @@ TIME categories are represented with visual indicators for quick recognition:
 - **Tolerate**: 🟡 Legacy maintenance
 - **Eliminate**: 🔴 Not approved
 
-### Approval Information
+### Approval Details
 
 Each team approval includes the TIME category along with supporting information:
 
@@ -214,6 +214,7 @@ The graph model enables queries to identify technologies that need migration:
 - Which teams are affected
 
 **Example Results:**
+
 | Technology | Team | EOL Date | Days Left | Migrate To |
 |-----------|------|----------|-----------|------------|
 | Angular | Frontend Platform | 2025-12-31 | 245 | React |
@@ -396,7 +397,7 @@ The model enables analysis of technology portfolio distribution:
 
 The TIME framework in the graph model enables various types of analysis and reporting:
 
-### Portfolio Health Analysis
+### Portfolio Health Metrics
 
 **What the model supports:**
 - Breakdown of technologies by TIME category
