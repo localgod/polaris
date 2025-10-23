@@ -75,14 +75,14 @@ Each approval includes:
 
 ## Approval Hierarchy
 
-When checking if a team can use a technology, the system follows this hierarchy:
+The graph model supports a hierarchical approval system for determining if a team can use a technology:
 
 1. **Version-Specific Approval** (highest priority)
-   - Check if team has approved this specific version
+   - Team has approved this specific version
    - Example: React 18.2.0 approved by Frontend Platform
 
 2. **Technology-Level Approval**
-   - Check if team has approved the technology
+   - Team has approved the technology
    - May include version constraint
    - Example: Node.js approved with constraint ">=18"
 
@@ -119,72 +119,37 @@ When checking React 18.2.0:
 When checking React 18.3.1:
 - Returns technology-level approval (no version-specific approval)
 
-## API Usage
+## Querying Approvals
 
-### Check Approval Status
+The graph model enables various queries to understand team approvals:
 
-```bash
-# Check technology-level approval
-curl 'http://localhost:3000/api/approvals/check?team=Frontend+Platform&technology=React'
+### Finding All Approvals for a Team
 
-# Check version-specific approval
-curl 'http://localhost:3000/api/approvals/check?team=Frontend+Platform&technology=React&version=18.2.0'
-```
+The model supports retrieving all technologies and versions a team has approved, including:
+- Target type (Technology or Version)
+- Technology name and version (if applicable)
+- TIME category
+- Notes and context
 
-### Get All Team Approvals
+### Finding Technologies to Migrate
 
-```bash
-curl 'http://localhost:3000/api/teams/Frontend+Platform/approvals'
-```
+The model enables identification of:
+- All teams with technologies in "migrate" status
+- EOL dates for migration planning
+- Migration targets
+- Sorted by urgency (EOL date)
 
-### Get Technology with All Approvals
+### Checking Approval Hierarchy
 
-```bash
-curl 'http://localhost:3000/api/technologies/TypeScript'
-```
+The model supports hierarchical approval checking:
+1. First check for version-specific approval
+2. Fall back to technology-level approval
+3. Default to "eliminate" if no approval exists
 
-## Cypher Queries
-
-### Find All Approvals for a Team
-
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})-[a:APPROVES]->(target)
-RETURN 
-  labels(target)[0] as targetType,
-  target.name as name,
-  CASE WHEN 'Version' IN labels(target) THEN target.version ELSE null END as version,
-  a.time as timeCategory,
-  a.notes as notes
-ORDER BY a.time, name
-```
-
-### Find Technologies to Migrate
-
-```cypher
-MATCH (team:Team)-[a:APPROVES {time: "migrate"}]->(tech:Technology)
-RETURN 
-  team.name as team,
-  tech.name as technology,
-  a.eolDate as eolDate,
-  a.migrationTarget as migrationTarget
-ORDER BY a.eolDate
-```
-
-### Check Approval Hierarchy
-
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})
-MATCH (tech:Technology {name: "React"})
-OPTIONAL MATCH (tech)-[:HAS_VERSION]->(v:Version {version: "18.2.0"})
-OPTIONAL MATCH (team)-[va:APPROVES]->(v)
-OPTIONAL MATCH (team)-[ta:APPROVES]->(tech)
-RETURN 
-  CASE 
-    WHEN va IS NOT NULL THEN {level: 'version', time: va.time, notes: va.notes}
-    WHEN ta IS NOT NULL THEN {level: 'technology', time: ta.time, notes: ta.notes}
-    ELSE {level: 'default', time: 'eliminate', notes: 'No approval found'}
-  END as approval
-```
+**Example Result:**
+- Level: version-specific
+- TIME: invest
+- Notes: "Current stable version"
 
 ## Best Practices
 

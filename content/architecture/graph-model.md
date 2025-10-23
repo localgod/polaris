@@ -1,53 +1,66 @@
 ---
 title: Graph Model
-description: Neo4j graph database schema and relationships
+description: Understanding Polaris's graph-based data architecture
 ---
 
 ## Overview
 
-Polaris uses a **Neo4j graph database** to model the enterprise technology landscape. The graph structure captures relationships between technologies, teams, systems, and policies, enabling powerful queries about dependencies, ownership, and compliance.
+Polaris uses a **graph database** to model your enterprise technology landscape. Unlike traditional databases that store data in tables, a graph database stores information as **nodes** (entities) and **relationships** (connections between entities).
+
+### Why a Graph Database?
+
+The graph structure is ideal for technology catalogs because:
+
+1. **Natural Relationship Modeling** - Technology ecosystems are inherently interconnected. A graph naturally represents how teams own systems, systems use components, and components implement technologies.
+
+2. **Flexible Queries** - You can easily answer questions like "Which teams are using deprecated technologies?" or "What systems will be affected if we retire this technology?" without complex joins.
+
+3. **Evolving Schema** - As your technology landscape grows, you can add new relationship types without restructuring existing data.
+
+4. **Compliance Tracking** - The graph makes it easy to identify violations by comparing actual usage (what teams use) against approvals (what teams have approved).
 
 ## Graph Visualization
 
 ```mermaid
 graph TB
     %% Node Definitions
-    Team[("Team<br/>━━━━━━━<br/>name*<br/>email<br/>responsibilityArea")]
-    Technology[("Technology<br/>━━━━━━━<br/>name*<br/>category<br/>vendor<br/>approvedVersionRange<br/>ownerTeam<br/>riskLevel<br/>lastReviewed")]
-    Version[("Version<br/>━━━━━━━<br/>technologyName*<br/>version*<br/>releaseDate<br/>eolDate<br/>approved<br/>cvssScore<br/>notes")]
-    Component[("Component<br/>━━━━━━━<br/>name*<br/>version*<br/>packageManager*<br/>license<br/>sourceRepo<br/>importPath<br/>hash")]
-    System[("System<br/>━━━━━━━<br/>name*<br/>domain<br/>ownerTeam<br/>businessCriticality<br/>environment")]
-    Policy[("Policy<br/>━━━━━━━<br/>name*<br/>description<br/>ruleType<br/>severity")]
+    Team[(Team)]
+    Technology[(Technology)]
+    Version[(Version)]
+    Component[(Component)]
+    System[(System)]
+    Policy[(Policy)]
     
     %% Relationships
-    Team -->|"STEWARDED_BY<br/>(1:N)<br/>Governance"| Technology
-    Team -->|"OWNS<br/>(1:N)<br/>Operations"| System
-    Team -->|"USES<br/>(M:N)<br/>{firstUsed, lastVerified,<br/>systemCount}"| Technology
-    Team -->|"APPROVES<br/>(M:N)<br/>{time, approvedAt,<br/>eolDate, migrationTarget,<br/>notes, approvedBy,<br/>versionConstraint}"| Technology
-    Team -->|"APPROVES<br/>(M:N)<br/>{time, approvedAt,<br/>eolDate, migrationTarget,<br/>notes, approvedBy}"| Version
+    Team -->|STEWARDED_BY<br/>Governance| Technology
+    Team -->|OWNS<br/>Operations| System
+    Team -->|USES<br/>Actual Usage| Technology
+    Team -->|APPROVES<br/>TIME Framework| Technology
+    Team -->|APPROVES<br/>TIME Framework| Version
     
-    Technology -->|"HAS_VERSION"| Version
+    Technology -->|HAS_VERSION| Version
     
-    Component -->|"IS_VERSION_OF"| Technology
+    Component -->|IS_VERSION_OF| Technology
     
-    System -->|"USES"| Component
+    System -->|USES| Component
     
-    Policy -->|"APPLIES_TO"| Technology
+    Policy -->|APPLIES_TO| Technology
     
     %% Styling
     classDef nodeStyle fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
-    classDef relationshipStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     
     class Team,Technology,Version,Component,System,Policy nodeStyle
 ```
 
-## Node Types
+## Core Entities
 
-### 1. Technology
+The graph model consists of six main entity types:
 
-Represents **governed software entities** in the enterprise catalog. A Technology is a strategic choice that requires governance oversight, approval processes, and lifecycle management.
+### Technology
 
-**What is a Technology?**
+Represents a **governed software entity** in your enterprise catalog - a strategic choice that requires governance oversight, approval processes, and lifecycle management.
+
+**What qualifies as a Technology?**
 
 Technologies are foundational software choices that:
 - Require architectural approval and governance
@@ -55,7 +68,7 @@ Technologies are foundational software choices that:
 - Need version management and security oversight
 - Are subject to enterprise policies and standards
 
-**Technology Types:**
+**Technology Categories:**
 
 1. **Foundational Runtime or Framework** - Core execution environments and application frameworks
    - Examples: Node.js, React, Vue, Angular, Spring Boot
@@ -81,70 +94,32 @@ Technologies are foundational software choices that:
    - Examples: jQuery (deprecated), Flash (disallowed), outdated frameworks
    - Impact: Prevents technical debt and security risks
 
-**Properties:**
-- `name` (string, unique) - Technology name (e.g., "React", "PostgreSQL")
-- `category` (string) - Technology type (runtime, database, integration, security, infrastructure, deprecated)
-- `vendor` (string) - Vendor or maintainer (e.g., "Meta", "PostgreSQL Global Development Group")
-- `approvedVersionRange` (string) - Semver range (e.g., ">=18.0.0 <19.0.0")
-- `ownerTeam` (string) - Team responsible for governance
-- `lastReviewed` (date) - Last review date
+**Key Information Tracked:**
+- Basic details (name, description, category)
+- Vendor/maintainer information
+- Approved version ranges (using semantic versioning)
+- External resources (homepage, documentation, repository)
+- License information
+- Risk assessment and review dates
 
-**Note:** Technologies don't have a single "status" field. Instead, each team approves technologies with a TIME category (invest, migrate, tolerate, eliminate) via the APPROVES relationship. This allows different teams to have different policies for the same technology.
+**Important Note:** Technologies don't have a single "status" field. Instead, each team approves technologies with a TIME category (invest, migrate, tolerate, eliminate) via the APPROVES relationship. This allows different teams to have different policies for the same technology.
 
-**Indexes:**
-- `technology_name_unique` (constraint)
-- `technology_category`
-- `technology_owner_team`
-- `technology_risk_level`
+### Version
 
-**Example:**
-```cypher
-CREATE (t:Technology {
-  name: "React",
-  category: "framework",
-  vendor: "Meta",
-  approvedVersionRange: ">=18.0.0 <19.0.0",
-  ownerTeam: "Frontend Platform",
-  riskLevel: "low",
-  lastReviewed: date("2025-10-01")
-})
-```
+Represents a specific version of a technology with approval status and security information.
 
-### 2. Version
+**What it tracks:**
+- Version number (e.g., "18.2.0")
+- Release and end-of-life dates
+- Approval status
+- Security vulnerability scores (CVSS)
+- Additional notes and context
 
-Represents specific versions of technologies with approval status and security information.
+**Why it matters:** Version tracking enables you to identify systems using outdated or unsupported versions, helping you plan upgrades and maintain security. Teams can approve specific versions with different TIME categories.
 
-**Properties:**
-- `technologyName` (string, composite unique) - Parent technology name
-- `version` (string, composite unique) - Version number (e.g., "18.2.0")
-- `releaseDate` (date) - Release date
-- `eolDate` (date) - End-of-life date
-- `approved` (boolean) - Approval status
-- `cvssScore` (float) - Security vulnerability score
-- `notes` (string) - Additional notes
+### Component
 
-**Indexes:**
-- `version_tech_version_unique` (constraint on technologyName + version)
-- `version_approved`
-- `version_eol_date`
-- `version_release_date`
-
-**Example:**
-```cypher
-CREATE (v:Version {
-  technologyName: "React",
-  version: "18.2.0",
-  releaseDate: date("2023-06-14"),
-  eolDate: date("2025-12-31"),
-  approved: true,
-  cvssScore: 0.0,
-  notes: "Stable LTS version"
-})
-```
-
-### 3. Component
-
-Represents **software entities used in systems** - the actual dependencies and packages discovered in SBOM (Software Bill of Materials) scans.
+Represents **software entities actually used in systems** - the concrete dependencies and packages discovered through SBOM (Software Bill of Materials) scanning.
 
 **What is a Component?**
 
@@ -166,431 +141,139 @@ Components are concrete software artifacts that:
 
 A Component may be an instance of a Technology (e.g., `react@18.2.0` is a component that implements the `React` technology), or it may be a transitive dependency that doesn't require governance approval.
 
-**Properties:**
-- `name` (string, composite unique) - Package name
-- `version` (string, composite unique) - Package version
-- `packageManager` (string, composite unique) - Package manager (npm, pip, maven, etc.)
-- `license` (string) - License type (MIT, Apache-2.0, etc.)
-- `sourceRepo` (string) - Source repository URL
-- `importPath` (string) - Import path in code
-- `hash` (string) - Package integrity hash
+**Key Information Tracked:**
+- Package name and version
+- Package manager (npm, pip, maven, etc.)
+- License type
+- Source repository URL
+- Import path in code
+- Package integrity hash
 
-**Indexes:**
-- `component_name_version_pm_unique` (constraint)
-- `component_package_manager`
-- `component_license`
-- `component_hash`
+### System
 
-**Example:**
-```cypher
-CREATE (c:Component {
-  name: "react",
-  version: "18.2.0",
-  packageManager: "npm",
-  license: "MIT",
-  sourceRepo: "https://github.com/facebook/react",
-  importPath: "react",
-  hash: "sha512-..."
-})
-```
+Represents a deployable unit, service, or application in your organization.
 
-### 4. System
+**What it tracks:**
+- System identity (name, description)
+- Business domain
+- Owning team
+- Business criticality level (low, medium, high, critical)
+- Deployment environment (dev, staging, production)
+- Source code location
 
-Represents deployable units, services, or applications.
+**Why it matters:** Systems are the high-level containers for your applications. They help organize components and show the bigger picture of your technology landscape. Understanding which team owns which systems enables accountability and proper governance.
 
-**Properties:**
-- `name` (string, unique) - System name
-- `domain` (string) - Business domain (e.g., "customer-portal", "api-gateway")
-- `ownerTeam` (string) - Team responsible for the system
-- `businessCriticality` (string) - Business impact (low, medium, high, critical)
-- `environment` (string) - Deployment environment (dev, staging, production)
+### Team
 
-**Indexes:**
-- `system_name_unique` (constraint)
-- `system_domain`
-- `system_owner_team`
-- `system_business_criticality`
-- `system_environment`
+Represents an organizational team with ownership and governance responsibilities.
 
-**Example:**
-```cypher
-CREATE (s:System {
-  name: "Customer Portal",
-  domain: "customer-experience",
-  ownerTeam: "Frontend Platform",
-  businessCriticality: "high",
-  environment: "production"
-})
-```
+**What it tracks:**
+- Team identity (name, description)
+- Contact information (email, Slack channel)
+- Area of responsibility (frontend, backend, data, infrastructure, security)
 
-### 5. Policy
+**Why it matters:** Teams are the organizational unit for ownership and approvals. The graph model supports three distinct team responsibilities:
+- **Stewardship** - Technical governance of technologies
+- **Ownership** - Operational responsibility for systems
+- **Approval** - Usage decisions for technologies
 
-Represents governance and compliance rules with team-based enforcement.
+### Policy
 
-**Properties:**
-- `name` (string, unique) - Policy name
-- `description` (string) - Policy description
-- `ruleType` (string) - Type of rule (security, compliance, performance, etc.)
-- `severity` (string) - Severity level (info, warning, error, critical)
-- `effectiveDate` (date) - When the policy becomes active
-- `expiryDate` (date, optional) - When the policy expires (null = no expiry)
-- `enforcedBy` (string) - Team responsible for enforcement
-- `scope` (string) - Policy scope (organization, domain, team)
-- `status` (string) - Policy status (active, draft, archived)
+Represents a governance rule for technology usage.
 
-**Indexes:**
-- `policy_name_unique` (constraint)
-- `policy_rule_type`
-- `policy_severity`
-- `policy_effective_date`
-- `policy_expiry_date`
-- `policy_enforced_by`
-- `policy_scope`
-- `policy_status`
+**What it tracks:**
+- Policy details (name, description, type)
+- Severity level (info, warning, error, critical)
+- Effective date range
+- Enforcing team
+- Scope (organization, domain, team)
+- Status (active, draft, archived)
 
-**Example:**
-```cypher
-CREATE (p:Policy {
-  name: "No Deprecated Dependencies",
-  description: "Systems must not use deprecated technology versions",
-  ruleType: "compliance",
-  severity: "error",
-  effectiveDate: date("2025-01-01"),
-  expiryDate: null,
-  enforcedBy: "Security",
-  scope: "organization",
-  status: "active"
-})
-```
-
-### 6. Team
-
-Represents organizational teams with ownership responsibilities.
-
-**Properties:**
-- `name` (string, unique) - Team name
-- `email` (string) - Contact email
-- `responsibilityArea` (string) - Area of responsibility (frontend, backend, data, infrastructure, security)
-
-**Indexes:**
-- `team_name_unique` (constraint)
-- `team_email`
-- `team_responsibility_area`
-
-**Example:**
-```cypher
-CREATE (t:Team {
-  name: "Frontend Platform",
-  email: "frontend-platform@company.com",
-  responsibilityArea: "frontend"
-})
-```
+**Why it matters:** Policies define your governance rules. They can require approval before using certain technologies, mark technologies as deprecated, enforce security standards, or implement other organizational requirements.
 
 ## Relationships
 
+The power of the graph model lies in its relationships. Here are the key connections:
+
 ### Understanding STEWARDED_BY vs OWNS vs USES vs APPROVES
 
-**Important Distinctions:**
+These four relationship types represent different aspects of team responsibility:
 
-- **STEWARDED_BY**: Technical stewardship - ONE team stewards a technology and is responsible for:
+**STEWARDED_BY (Team → Technology)**
+- **Purpose:** Technical stewardship and governance responsibility
+- **Cardinality:** One team stewards each technology
+- **Responsibilities:**
   - Maintaining technology standards
   - Evaluating new versions
   - Setting version ranges
   - Risk assessment
   - Documentation and best practices
-  - **Note:** This is governance responsibility, not operational ownership
+- **Note:** This is governance responsibility, not operational ownership
 
-- **OWNS**: Operational ownership - ONE team owns a system and is responsible for:
+**OWNS (Team → System)**
+- **Purpose:** Operational ownership and responsibility
+- **Cardinality:** One team owns each system
+- **Responsibilities:**
   - Running and maintaining the system
   - System lifecycle management
   - Operational support
-  - **Note:** This is operational responsibility, not governance
+  - Deployment and updates
+- **Note:** This is operational responsibility, not governance
 
-- **USES**: Actual usage - MULTIPLE teams can use the same technology (inferred from system ownership):
-  - Tracks which teams actually use a technology
-  - Inferred from: Team → System → Component → Technology
-  - Properties: firstUsed, lastVerified, systemCount
-  - Enables compliance checking (usage vs approval)
+**USES (Team → Technology)**
+- **Purpose:** Tracks actual technology usage by teams
+- **Cardinality:** Many-to-many (multiple teams can use the same technology)
+- **How it works:** Automatically inferred from system ownership and component dependencies
+  - Team → System → Component → Technology
+- **Properties tracked:**
+  - When the team first started using this technology
+  - When the usage was last verified
+  - Number of systems using this technology
+- **Why it matters:** Enables compliance checking by comparing actual usage against approvals
 
-- **APPROVES**: Usage approval - MULTIPLE teams can approve the same technology for their use with different TIME categories:
-  - Each team decides if they want to use the technology
-  - Teams can have different TIME categories (invest, migrate, tolerate, eliminate)
-  - Teams can approve different versions
-  - Teams can set their own version constraints
+**APPROVES (Team → Technology or Version)**
+- **Purpose:** Usage approval with TIME framework categorization
+- **Cardinality:** Many-to-many (multiple teams can approve the same technology)
+- **How it works:** Each team independently decides whether to use a technology
+- **Properties tracked:**
+  - TIME category (invest, migrate, tolerate, eliminate)
+  - Approval timestamp and approver
+  - Deprecation date and end-of-life date
+  - Migration target (for technologies being phased out)
+  - Version constraints
+  - Additional notes
+- **Why it matters:** Enables decentralized decision-making while maintaining governance
 
-**Example:**
+**Example Scenario:**
 - TypeScript is **STEWARDED BY** Frontend Platform (technical governance)
 - Customer Portal system is **OWNED BY** Frontend Platform (operational responsibility)
 - TypeScript is **USED** by Frontend Platform (3 systems) AND Backend Platform (5 systems)
 - TypeScript is **APPROVED** by Frontend Platform (time: invest) AND Backend Platform (time: invest)
 
-### 1. STEWARDED_BY (Team → Technology)
+### Other Key Relationships
 
-**Cardinality:** One-to-Many (One team stewards a technology, but a team can steward many technologies)
+**HAS_VERSION (Technology → Version)**
+- Links technologies to their specific versions
+- Enables version-specific approvals and policies
 
-**Purpose:** Establishes technical stewardship and governance responsibility for a technology. The stewarding team defines standards, evaluates versions, and maintains documentation.
+**IS_VERSION_OF (Component → Technology)**
+- Links components that implement governed technologies
+- **Optional relationship** - not all components map to technologies
+- When present: Component is subject to technology approval policies
+- When absent: Component is a transitive dependency or utility library tracked for security/licensing but not governance
 
-**Properties:** None
+**USES (System → Component)**
+- Links systems to the components they depend on
+- Discovered through SBOM scanning
+- Foundation for understanding technology usage
 
-**Example:**
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})
-MATCH (tech:Technology {name: "React"})
-CREATE (team)-[:STEWARDED_BY]->(tech)
-```
+**APPLIES_TO (Policy → Technology)**
+- Links policies to the technologies they govern
+- Enables technology-specific governance rules
 
-**Note:** The `ownerTeam` property on Technology nodes duplicates this relationship for query performance (will be renamed to `stewardTeam` in future migration).
+## Governance Models
 
-### 2. OWNS (Team → System)
-
-**Cardinality:** One-to-Many (One team owns a system, but a team can own many systems)
-
-**Purpose:** Establishes operational ownership and responsibility for a system. The owning team runs, maintains, and supports the system.
-
-**Properties:** None
-
-**Example:**
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})
-MATCH (sys:System {name: "Customer Portal"})
-CREATE (team)-[:OWNS]->(sys)
-```
-
-**Note:** This is operational ownership (running systems), distinct from STEWARDED_BY which is technical governance (defining standards).
-
-### 3. USES (Team → Technology)
-
-**Cardinality:** Many-to-Many (Multiple teams can use the same technology, each team can use many technologies)
-
-**Purpose:** Tracks actual technology usage by teams. This relationship is **inferred** from system ownership and component dependencies.
-
-**Properties:**
-- `firstUsed` (datetime) - When the team first started using this technology
-- `lastVerified` (datetime) - When the usage was last verified
-- `systemCount` (integer) - Number of systems owned by this team that use this technology
-
-**Indexes:**
-- `team_uses_technology_first_used`
-- `team_uses_technology_last_verified`
-
-**How it's created:**
-```cypher
-// Inferred from system ownership
-MATCH (team:Team)-[:OWNS]->(sys:System)
-MATCH (sys)-[:USES]->(comp:Component)
-MATCH (comp)-[:IS_VERSION_OF]->(tech:Technology)
-WITH team, tech, count(DISTINCT sys) as systemCount
-MERGE (team)-[u:USES]->(tech)
-SET u.systemCount = systemCount,
-    u.lastVerified = datetime()
-```
-
-**Example Query - Find what a team actually uses:**
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})-[u:USES]->(tech:Technology)
-RETURN tech.name, u.systemCount, u.firstUsed
-ORDER BY u.systemCount DESC
-```
-
-**Example Query - Find compliance violations (using unapproved technologies):**
-```cypher
-MATCH (team:Team)-[u:USES]->(tech:Technology)
-WHERE NOT (team)-[:APPROVES {time: 'invest'}|'tolerate']->(tech)
-RETURN team.name, tech.name, u.systemCount
-ORDER BY u.systemCount DESC
-```
-
-### 4. APPROVES (Team → Technology)
-
-**Cardinality:** Many-to-Many (Multiple teams can approve the same technology, each team can approve many technologies)
-
-**Purpose:** Establishes usage approval with TIME framework categorization. Each team independently decides whether to use a technology.
-
-**Properties:**
-- `time` (string) - TIME category: tolerate, invest, migrate, eliminate
-- `approvedAt` (datetime) - Approval timestamp
-- `deprecatedAt` (datetime) - Deprecation timestamp
-- `eolDate` (date) - End-of-life date
-- `migrationTarget` (string) - Target technology for migration
-- `notes` (string) - Additional context
-- `approvedBy` (string) - Approver name
-- `versionConstraint` (string) - Version constraint (e.g., ">=18")
-
-**Indexes:**
-- `approves_time`
-- `approves_eol_date`
-- `approves_approved_at`
-
-**Example - Single Team Approval:**
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})
-MATCH (tech:Technology {name: "Angular"})
-CREATE (team)-[:APPROVES {
-  time: "migrate",
-  approvedAt: datetime(),
-  deprecatedAt: datetime("2024-06-01T00:00:00Z"),
-  eolDate: date("2025-12-31"),
-  migrationTarget: "React",
-  notes: "Migrating to React for better ecosystem support",
-  approvedBy: "Frontend Lead"
-}]->(tech)
-```
-
-**Example - Multiple Teams Approving Same Technology:**
-```cypher
-// TypeScript approved by Frontend Platform
-MATCH (frontend:Team {name: "Frontend Platform"})
-MATCH (ts:Technology {name: "TypeScript"})
-CREATE (frontend)-[:APPROVES {
-  time: "invest",
-  approvedAt: datetime(),
-  notes: "Required for all new frontend projects",
-  approvedBy: "Frontend Lead"
-}]->(ts)
-
-// TypeScript also approved by Backend Platform
-MATCH (backend:Team {name: "Backend Platform"})
-MATCH (ts:Technology {name: "TypeScript"})
-CREATE (backend)-[:APPROVES {
-  time: "invest",
-  approvedAt: datetime(),
-  notes: "Required for all backend services",
-  approvedBy: "Backend Lead"
-}]->(ts)
-```
-
-### 5. APPROVES (Team → Version)
-
-Teams approve specific versions with TIME framework categorization.
-
-**Properties:**
-- `time` (string) - TIME category: tolerate, invest, migrate, eliminate
-- `approvedAt` (datetime) - Approval timestamp
-- `deprecatedAt` (datetime) - Deprecation timestamp
-- `eolDate` (date) - End-of-life date
-- `migrationTarget` (string) - Target version for migration
-- `notes` (string) - Additional context
-- `approvedBy` (string) - Approver name
-
-**Example:**
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})
-MATCH (tech:Technology {name: "React"})
-MATCH (tech)-[:HAS_VERSION]->(v:Version {version: "18.2.0"})
-CREATE (team)-[:APPROVES {
-  time: "invest",
-  approvedAt: datetime(),
-  notes: "Current stable version",
-  approvedBy: "Frontend Lead"
-}]->(v)
-```
-
-### 6. HAS_VERSION (Technology → Version)
-
-Technologies have specific versions.
-
-**Properties:** None
-
-**Example:**
-```cypher
-MATCH (tech:Technology {name: "React"})
-MATCH (v:Version {technologyName: "React", version: "18.2.0"})
-CREATE (tech)-[:HAS_VERSION]->(v)
-```
-
-### 7. IS_VERSION_OF (Component → Technology)
-
-**Cardinality:** Many-to-One (Optional - not all components map to technologies)
-
-**Purpose:** Links components that implement governed technologies. This relationship is **optional** because:
-- Not all components are governed technologies (e.g., transitive dependencies)
-- Utility libraries may not require governance oversight
-- Internal packages may not be strategic choices
-
-**Properties:** None
-
-**When this relationship exists:**
-- The component implements a governed technology
-- The component is subject to technology approval policies
-- Version compliance can be validated
-
-**When this relationship is absent:**
-- The component is a transitive dependency
-- The component is a utility library not requiring governance
-- The component is tracked for security/licensing but not governance
-
-**Example:**
-```cypher
-// Component that maps to a Technology
-MATCH (comp:Component {name: "react", version: "18.2.0", packageManager: "npm"})
-MATCH (tech:Technology {name: "React"})
-CREATE (comp)-[:IS_VERSION_OF]->(tech)
-
-// Component without Technology mapping (transitive dependency)
-CREATE (comp:Component {
-  name: "loose-envify",
-  version: "1.4.0",
-  packageManager: "npm",
-  license: "MIT"
-})
-// No IS_VERSION_OF relationship - this is just tracked for security
-```
-
-### 8. USES (System → Component)
-
-Systems use components as dependencies.
-
-**Properties:** None
-
-**Example:**
-```cypher
-MATCH (sys:System {name: "Customer Portal"})
-MATCH (comp:Component {name: "react", version: "18.2.0", packageManager: "npm"})
-CREATE (sys)-[:USES]->(comp)
-```
-
-### 9. GOVERNS (Policy → Technology/Version)
-
-Policies govern technologies and specific versions.
-
-**Properties:** None
-
-**Example:**
-```cypher
-MATCH (policy:Policy {name: "No Deprecated Dependencies"})
-MATCH (tech:Technology {name: "React"})
-CREATE (policy)-[:GOVERNS]->(tech)
-```
-
-### 10. ENFORCES (Team → Policy)
-
-Teams enforce policies within their domain.
-
-**Properties:** None
-
-**Example:**
-```cypher
-MATCH (team:Team {name: "Security"})
-MATCH (policy:Policy {name: "High Risk Technology Review"})
-CREATE (team)-[:ENFORCES]->(policy)
-```
-
-### 11. SUBJECT_TO (Team → Policy)
-
-Teams are subject to policies and must comply.
-
-**Properties:** None
-
-**Example:**
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})
-MATCH (policy:Policy {name: "Frontend Framework Approval"})
-CREATE (team)-[:SUBJECT_TO]->(policy)
-```
-
-## Stewardship vs Ownership vs Approval Model
-
-### Governance Model
+### Stewardship vs Ownership vs Approval
 
 Polaris uses a **centralized stewardship, decentralized approval** model with clear separation between technical governance and operational ownership:
 
@@ -605,7 +288,7 @@ Polaris uses a **centralized stewardship, decentralized approval** model with cl
 
 **Example:**
 - Frontend Platform **stewards** TypeScript
-- Frontend Platform sets `approvedVersionRange: ">=5.0.0 <6.0.0"`
+- Frontend Platform sets approved version range: ">=5.0.0 <6.0.0"
 - Frontend Platform maintains TypeScript coding standards
 
 #### Ownership (Operational Responsibility)
@@ -633,13 +316,11 @@ Polaris uses a **centralized stewardship, decentralized approval** model with cl
 - Backend Platform **approves** TypeScript (time: invest, notes: "Required for all backend services")
 - Data Platform might **not approve** TypeScript (no APPROVES relationship = eliminate)
 
-### Real-World Scenario
-
-**Technology:** Java
+### Real-World Scenario: Java
 
 **Stewardship:**
 - Backend Platform **stewards** Java
-- Sets `approvedVersionRange: ">=17 <22"`
+- Sets approved version range: ">=17 <22"
 - Maintains Java coding standards
 - Evaluates security patches
 
@@ -652,38 +333,32 @@ Polaris uses a **centralized stewardship, decentralized approval** model with cl
 
 ### Conceptual Model
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    GOVERNANCE LAYER                          │
-│  ┌──────────────┐      ┌──────────────┐                    │
-│  │ Technology   │      │ Technology   │                    │
-│  │   React      │      │  PostgreSQL  │                    │
-│  │ (Framework)  │      │  (Database)  │                    │
-│  └──────┬───────┘      └──────┬───────┘                    │
-│         │                     │                             │
-│    Governance                Governance                     │
-│    Approval                  Approval                       │
-│         │                     │                             │
-└─────────┼─────────────────────┼─────────────────────────────┘
-          │                     │
-          │                     │
-┌─────────┼─────────────────────┼─────────────────────────────┐
-│         │                     │        USAGE LAYER          │
-│         ▼                     ▼                             │
-│  ┌──────────────┐      ┌──────────────┐                    │
-│  │ Component    │      │ Component    │                    │
-│  │ react@18.2.0 │      │ pg@8.11.3    │                    │
-│  │ (npm)        │      │ (npm)        │                    │
-│  └──────┬───────┘      └──────┬───────┘                    │
-│         │                     │                             │
-│         └──────────┬──────────┘                             │
-│                    │                                        │
-│                    ▼                                        │
-│             ┌─────────────┐                                 │
-│             │   System    │                                 │
-│             │ API Gateway │                                 │
-│             └─────────────┘                                 │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph governance["GOVERNANCE LAYER"]
+        TechReact["Technology<br/>React<br/>(Framework)"]
+        TechPG["Technology<br/>PostgreSQL<br/>(Database)"]
+    end
+    
+    subgraph usage["USAGE LAYER"]
+        CompReact["Component<br/>react@18.2.0<br/>(npm)"]
+        CompPG["Component<br/>pg@8.11.3<br/>(npm)"]
+        System["System<br/>API Gateway"]
+    end
+    
+    TechReact -.->|"Governance<br/>Approval"| CompReact
+    TechPG -.->|"Governance<br/>Approval"| CompPG
+    
+    CompReact --> System
+    CompPG --> System
+    
+    style governance fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style usage fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style TechReact fill:#bbdefb,stroke:#1976d2
+    style TechPG fill:#bbdefb,stroke:#1976d2
+    style CompReact fill:#e1bee7,stroke:#7b1fa2
+    style CompPG fill:#e1bee7,stroke:#7b1fa2
+    style System fill:#e1bee7,stroke:#7b1fa2
 ```
 
 ### Key Differences
@@ -746,351 +421,158 @@ Status: ℹ️ Tracked - Not subject to governance, but monitored for security
 
 Polaris implements a **team-based policy enforcement model** that enables sophisticated governance rules:
 
-#### Policy Properties
+#### Policy Lifecycle
 
-**Lifecycle Management:**
-- `effectiveDate` - When the policy becomes active
-- `expiryDate` - When the policy expires (null = no expiry)
-- `status` - Current state (active, draft, archived)
+**Effective Dates:**
+- Policies have `effectiveDate` (when they become active)
+- Policies can have `expiryDate` (when they expire, or null for no expiry)
+- Policies have `status` (active, draft, archived)
 
 **Enforcement:**
-- `enforcedBy` - Team responsible for enforcement
-- `scope` - Policy scope (organization, domain, team)
-- `severity` - Impact level (info, warning, error, critical)
+- Each policy specifies which team is responsible for enforcement
+- Policies have a `scope` (organization, domain, team)
+- Policies have a `severity` level (info, warning, error, critical)
 
-#### Policy Relationships
-
-**ENFORCES (Team → Policy):**
-- Identifies which team is responsible for enforcing the policy
-- Enforcement teams monitor compliance and handle violations
-- One policy can have multiple enforcement teams
-
-**SUBJECT_TO (Team → Policy):**
-- Identifies which teams must comply with the policy
-- Organization-wide policies apply to all teams
-- Domain-specific policies apply to teams in that domain
-- Team-specific policies apply to individual teams
-
-**GOVERNS (Policy → Technology/Version):**
-- Specifies what technologies or versions the policy governs
-- Replaces the older APPLIES_TO relationship
-- Enables version-specific policy rules
-
-### Policy Scopes
+#### Policy Scopes
 
 **Organization Scope:**
-```cypher
-// All teams are subject to organization-wide policies
-MATCH (p:Policy {scope: 'organization'})
-MATCH (team:Team)
-MERGE (team)-[:SUBJECT_TO]->(p)
-```
+- Applies to all teams in the organization
+- Example: "All teams must use approved technologies"
 
 **Domain Scope:**
-```cypher
-// Only teams in a specific domain are subject to domain policies
-MATCH (p:Policy {scope: 'frontend'})
-MATCH (team:Team {responsibilityArea: 'frontend'})
-MERGE (team)-[:SUBJECT_TO]->(p)
-```
+- Applies to teams in a specific domain (frontend, backend, data, etc.)
+- Example: "Frontend teams must use TypeScript"
 
 **Team Scope:**
-```cypher
-// Only specific teams are subject to team policies
-MATCH (p:Policy {scope: 'team'})
-MATCH (team:Team {name: 'Frontend Platform'})
-MERGE (team)-[:SUBJECT_TO]->(p)
-```
+- Applies to a specific team
+- Example: "Frontend Platform must review all new framework proposals"
 
 ### Example: Security Policy
 
 **Policy:** High Risk Technology Review
 
 **Configuration:**
-- `effectiveDate`: 2025-01-01
-- `enforcedBy`: Security
-- `scope`: organization
-- `status`: active
-- `severity`: error
+- Effective date: 2025-01-01
+- Enforced by: Security team
+- Scope: Organization-wide
+- Status: Active
+- Severity: Error
 
-**Relationships:**
-```cypher
-// Security team enforces the policy
-MATCH (security:Team {name: 'Security'})
-MATCH (policy:Policy {name: 'High Risk Technology Review'})
-MERGE (security)-[:ENFORCES]->(policy)
-
-// All teams are subject to the policy
-MATCH (policy:Policy {name: 'High Risk Technology Review'})
-MATCH (team:Team)
-MERGE (team)-[:SUBJECT_TO]->(policy)
-
-// Policy governs high-risk technologies
-MATCH (policy:Policy {name: 'High Risk Technology Review'})
-MATCH (tech:Technology)
-WHERE tech.riskLevel IN ['high', 'critical']
-MERGE (policy)-[:GOVERNS]->(tech)
-```
-
-**System Ownership:**
-- Backend Platform **owns** API Gateway (uses Java)
-- Data Platform **owns** Batch Processor (uses Java)
-
-### Visual Example
-
-```mermaid
-graph LR
-    FE["Frontend Platform<br/>(Team)"]
-    BE["Backend Platform<br/>(Team)"]
-    TS["TypeScript<br/>(Technology)"]
-    CP["Customer Portal<br/>(System)"]
-    
-    FE -->|"STEWARDED_BY<br/>(Governance)"| TS
-    FE -->|"APPROVES<br/>(time: invest)"| TS
-    BE -->|"APPROVES<br/>(time: invest)"| TS
-    FE -->|"OWNS<br/>(Operations)"| CP
-    
-    style FE fill:#e3f2fd,stroke:#1976d2
-    style BE fill:#e3f2fd,stroke:#1976d2
-    style TS fill:#fff3e0,stroke:#f57c00
-    style CP fill:#e8f5e9,stroke:#388e3c
-```
-
-In this example:
-- **Frontend Platform** stewards TypeScript (technical governance responsibility)
-- **Frontend Platform** approves TypeScript for their use (time: invest)
-- **Backend Platform** also approves TypeScript for their use (time: invest)
-- **Frontend Platform** owns Customer Portal system (operational responsibility)
-- Both teams can use TypeScript, but Frontend Platform is responsible for technical governance
-
-### Query Examples
-
-**Find who stewards a technology:**
-```cypher
-MATCH (team:Team)-[:STEWARDED_BY]->(tech:Technology {name: "TypeScript"})
-RETURN team.name as steward
-// Result: "Frontend Platform"
-```
-
-**Find all teams that approve a technology:**
-```cypher
-MATCH (team:Team)-[a:APPROVES]->(tech:Technology {name: "TypeScript"})
-RETURN team.name as team, a.time as timeCategory, a.notes as notes
-// Results:
-// "Frontend Platform", "invest", "Required for all new frontend projects"
-// "Backend Platform", "invest", "Required for all backend services"
-```
-
-**Find technologies a team can use:**
-```cypher
-MATCH (team:Team {name: "Backend Platform"})-[a:APPROVES]->(tech:Technology)
-WHERE a.time IN ['invest', 'tolerate']
-RETURN tech.name, a.time, a.versionConstraint
-```
+**How it works:**
+1. Security team enforces the policy
+2. All teams are subject to the policy
+3. Policy governs high-risk technologies
+4. Violations are flagged as errors
+5. Teams must get Security approval before using high-risk technologies
 
 ## TIME Framework
 
-The APPROVES relationship uses **Gartner's TIME framework** for technology portfolio management:
+The TIME framework categorizes technologies based on their strategic value and lifecycle stage:
 
-- 🟢 **Invest**: Strategic technologies worth continued investment
-- 🔵 **Migrate**: Technologies to move to newer platforms
-- 🟡 **Tolerate**: Keep running but minimize investment
-- 🔴 **Eliminate**: Phase out and decommission
+### TIME Categories
 
-See [TIME Framework Guide](./TIME_FRAMEWORK.md) for detailed information.
+**Invest** - Technologies we're actively investing in
+- Strategic importance: High
+- Support level: Full support and training
+- Usage: Encouraged for new projects
+- Example: React, TypeScript, Kubernetes
 
-## Usage Tracking and Compliance
+**Tolerate** - Technologies we accept but don't promote
+- Strategic importance: Medium
+- Support level: Maintenance mode
+- Usage: Allowed for existing projects, not recommended for new ones
+- Example: Angular (if migrating to React), older Java versions
 
-The USES relationship enables powerful compliance checking by distinguishing between:
-- **Approved** technologies (what teams are allowed to use)
-- **Used** technologies (what teams actually use)
+**Migrate** - Technologies we're actively moving away from
+- Strategic importance: Low
+- Support level: Migration support only
+- Usage: Discouraged, migration plan required
+- Example: jQuery, legacy frameworks
 
-### Compliance States
+**Eliminate** - Technologies we don't allow
+- Strategic importance: None
+- Support level: No support
+- Usage: Blocked, must be removed
+- Example: Flash, severely outdated versions with security issues
 
-| State | Description | Query Pattern |
-|-------|-------------|---------------|
-| **Compliant** | Team uses approved technology (invest/tolerate) | `(team)-[:USES]->(tech)<-[:APPROVES {time: 'invest'\|'tolerate'}]-(team)` |
-| **Unapproved** | Team uses technology without any approval | `(team)-[:USES]->(tech)` WHERE NOT `(team)-[:APPROVES]->(tech)` |
-| **Violation** | Team uses eliminated technology | `(team)-[:USES]->(tech)<-[:APPROVES {time: 'eliminate'}]-(team)` |
-| **Migration Needed** | Team uses technology marked for migration | `(team)-[:USES]->(tech)<-[:APPROVES {time: 'migrate'}]-(team)` |
+### Team-Specific TIME Categories
 
-### API Endpoints for Usage Tracking
+Different teams can assign different TIME categories to the same technology based on their needs:
 
-- `GET /api/teams/:name/usage` - Get all technologies used by a team with compliance status
-- `GET /api/compliance/violations` - Find all teams using unapproved or eliminated technologies
+**Example: Angular**
+- Frontend Platform: **Migrate** (moving to React)
+- Legacy Systems Team: **Tolerate** (maintaining existing apps)
+- Mobile Team: **Eliminate** (never used, not planning to use)
 
-## Common Query Patterns
+This flexibility allows teams to manage their own technology transitions while maintaining overall governance.
 
-### 1. Find All Technologies Stewarded by a Team
+## Compliance and Violation Detection
 
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})-[:STEWARDED_BY]->(tech:Technology)
-RETURN tech.name, tech.category, tech.riskLevel
-ORDER BY tech.name
-```
+### How Compliance Works
 
-### 2. Find All Systems Using a Technology
+Polaris automatically detects compliance violations by comparing:
+1. **What teams are using** (USES relationships from SBOM scanning)
+2. **What teams have approved** (APPROVES relationships)
 
-```cypher
-MATCH (tech:Technology {name: "React"})<-[:IS_VERSION_OF]-(comp:Component)<-[:USES]-(sys:System)
-RETURN DISTINCT sys.name, sys.domain, sys.businessCriticality
-ORDER BY sys.businessCriticality DESC
-```
+### Violation Types
 
-### 3. Find Technologies Approaching EOL
+**Unapproved Technology Usage**
+- Team is using a technology they haven't approved
+- Severity: High
+- Action: Team must either approve the technology or remove it
 
-```cypher
-MATCH (team:Team)-[a:APPROVES]->(tech:Technology)
-WHERE a.eolDate IS NOT NULL
-  AND a.eolDate < date() + duration({days: 90})
-RETURN team.name, tech.name, a.time, a.eolDate, a.migrationTarget
-ORDER BY a.eolDate
-```
+**Version Constraint Violation**
+- Team is using a version outside their approved range
+- Severity: Medium to High
+- Action: Upgrade/downgrade to approved version
 
-### 4. Find All Approvals for a Team
+**Deprecated Technology Usage**
+- Team is using a technology marked as "migrate" or "eliminate"
+- Severity: Medium (migrate) to Critical (eliminate)
+- Action: Follow migration plan or remove immediately
 
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})-[a:APPROVES]->(target)
-RETURN 
-  labels(target)[0] as targetType,
-  target.name as name,
-  CASE WHEN 'Version' IN labels(target) THEN target.version ELSE null END as version,
-  a.time as timeCategory,
-  a.notes as notes
-ORDER BY a.time, name
-```
+**Policy Violation**
+- Team is violating an active policy
+- Severity: Depends on policy severity
+- Action: Comply with policy requirements
 
-### 5. Check Approval Hierarchy
+### Compliance Dashboard Capabilities
 
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})
-MATCH (tech:Technology {name: "React"})
-OPTIONAL MATCH (tech)-[:HAS_VERSION]->(v:Version {version: "18.2.0"})
-OPTIONAL MATCH (team)-[va:APPROVES]->(v)
-OPTIONAL MATCH (team)-[ta:APPROVES]->(tech)
-RETURN 
-  CASE 
-    WHEN va IS NOT NULL THEN {level: 'version', time: va.time, notes: va.notes}
-    WHEN ta IS NOT NULL THEN {level: 'technology', time: ta.time, notes: ta.notes}
-    ELSE {level: 'default', time: 'eliminate', notes: 'No approval found'}
-  END as approval
-```
+The Polaris UI provides visibility into:
+- Technologies used without approval
+- Systems using deprecated technologies
+- Version compliance status
+- Policy violations by team
+- Migration progress tracking
+- Security vulnerability exposure
 
-### 6. Find Policy Violations
+## Summary
 
-```cypher
-MATCH (policy:Policy {severity: "error"})-[:APPLIES_TO]->(tech:Technology)
-MATCH (tech)<-[:IS_VERSION_OF]-(comp:Component)<-[:USES]-(sys:System)
-MATCH (team:Team)-[:APPROVES {time: "eliminate"}]->(tech)
-RETURN 
-  policy.name as policyName,
-  sys.name as systemName,
-  tech.name as technologyName,
-  comp.version as version,
-  team.name as teamWithEliminate
-```
+The Polaris graph model provides:
 
-### 7. Technology Portfolio Distribution
+1. **Clear Separation of Concerns**
+   - Stewardship (technical governance)
+   - Ownership (operational responsibility)
+   - Approval (usage decisions)
 
-```cypher
-MATCH (team:Team)-[a:APPROVES]->(tech:Technology)
-RETURN 
-  team.name as team,
-  a.time as timeCategory,
-  count(tech) as technologyCount,
-  collect(tech.name) as technologies
-ORDER BY team, timeCategory
-```
+2. **Flexible Governance**
+   - Centralized stewardship for consistency
+   - Decentralized approvals for autonomy
+   - Team-specific TIME categories
 
-### 8. Find Deprecated Dependencies in Production
+3. **Automatic Compliance**
+   - SBOM scanning discovers actual usage
+   - Automatic comparison against approvals
+   - Real-time violation detection
 
-```cypher
-MATCH (sys:System {environment: "production"})-[:USES]->(comp:Component)
-MATCH (comp)-[:IS_VERSION_OF]->(tech:Technology)
-MATCH (team:Team)-[:APPROVES {time: "migrate"}]->(tech)
-RETURN 
-  sys.name as system,
-  tech.name as technology,
-  comp.version as version,
-  team.name as team
-ORDER BY sys.name
-```
+4. **Strategic Technology Management**
+   - TIME framework for lifecycle management
+   - Version-specific approvals
+   - Migration planning and tracking
 
-## Graph Statistics
+5. **Policy Enforcement**
+   - Team-based enforcement model
+   - Scoped policies (organization, domain, team)
+   - Severity-based prioritization
 
-To get an overview of the graph:
-
-```cypher
-// Node counts
-MATCH (n)
-RETURN labels(n)[0] as nodeType, count(n) as count
-ORDER BY count DESC
-
-// Relationship counts
-MATCH ()-[r]->()
-RETURN type(r) as relationshipType, count(r) as count
-ORDER BY count DESC
-
-// Average degree (connections per node)
-MATCH (n)
-OPTIONAL MATCH (n)-[r]-()
-RETURN labels(n)[0] as nodeType, 
-       count(DISTINCT n) as nodes,
-       count(r) as relationships,
-       toFloat(count(r)) / count(DISTINCT n) as avgDegree
-ORDER BY avgDegree DESC
-```
-
-## Schema Evolution
-
-The graph model is managed through migrations in `schema/migrations/common/`:
-
-1. **2025-10-15_000000_init_migration_tracking.up.cypher** - Migration tracking infrastructure
-2. **2025-10-16_100000_create_tech_catalog_schema.up.cypher** - Core schema (nodes, constraints, indexes)
-3. **20251021_191554_add_team_approval_relationships.up.cypher** - Team approval relationships
-4. **20251022_101947_replace_status_with_time.up.cypher** - TIME framework implementation
-
-## Best Practices
-
-### 1. Use Constraints for Data Integrity
-
-Always define unique constraints on identifying properties to prevent duplicates.
-
-### 2. Index Frequently Queried Properties
-
-Create indexes on properties used in WHERE clauses and ORDER BY statements.
-
-### 3. Use Composite Keys When Needed
-
-For nodes like Version and Component, use composite unique constraints to ensure uniqueness across multiple properties.
-
-### 4. Leverage Relationship Properties
-
-Store metadata on relationships (like APPROVES) to capture temporal and contextual information.
-
-### 5. Follow Naming Conventions
-
-- **Nodes**: PascalCase (Technology, System)
-- **Relationships**: UPPER_SNAKE_CASE (OWNS, HAS_VERSION)
-- **Properties**: camelCase (ownerTeam, businessCriticality)
-
-### 6. Use Labels Consistently
-
-Each node should have exactly one primary label representing its type.
-
-### 7. Document Relationship Semantics
-
-Clearly define what each relationship means and its direction.
-
-## References
-
-- [Neo4j Cypher Manual](https://neo4j.com/docs/cypher-manual/current/)
-- [Neo4j Graph Data Modeling](https://neo4j.com/developer/guide-data-modeling/)
-- [TIME Framework Guide](./TIME_FRAMEWORK.md)
-- [Team Approvals Implementation](./TEAM_APPROVALS_IMPLEMENTATION.md)
-
-## Authors
-
-- Schema Design: @jsf, @system
-- Documentation: @system
-- Date: 2025-10-22
+This model enables organizations to maintain governance and compliance while giving teams the autonomy to make technology decisions appropriate for their context.
