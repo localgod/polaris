@@ -126,6 +126,46 @@
       "ownerTeam": "DevOps",
       "riskLevel": "low",
       "lastReviewed": "2025-10-01"
+    },
+    {
+      "name": "jQuery",
+      "category": "library",
+      "vendor": "jQuery Foundation",
+      "status": "deprecated",
+      "approvedVersionRange": ">=3.0.0 <4.0.0",
+      "ownerTeam": "Frontend Platform",
+      "riskLevel": "high",
+      "lastReviewed": "2024-01-01"
+    },
+    {
+      "name": "Lodash",
+      "category": "library",
+      "vendor": "Lodash",
+      "status": "deprecated",
+      "approvedVersionRange": ">=4.17.0 <5.0.0",
+      "ownerTeam": "Frontend Platform",
+      "riskLevel": "medium",
+      "lastReviewed": "2024-06-01"
+    },
+    {
+      "name": "MySQL",
+      "category": "database",
+      "vendor": "Oracle",
+      "status": "experimental",
+      "approvedVersionRange": ">=8.0.0 <9.0.0",
+      "ownerTeam": "Data Platform",
+      "riskLevel": "medium",
+      "lastReviewed": "2025-09-01"
+    },
+    {
+      "name": "Redis",
+      "category": "cache",
+      "vendor": "Redis Ltd.",
+      "status": "approved",
+      "approvedVersionRange": ">=7.0.0 <8.0.0",
+      "ownerTeam": "Backend Platform",
+      "riskLevel": "low",
+      "lastReviewed": "2025-10-01"
     }
   ],
   "versions": [
@@ -198,37 +238,81 @@
       "name": "Frontend Framework Approval",
       "description": "All frontend frameworks must be approved by the Frontend Platform team before use in production",
       "ruleType": "approval",
-      "severity": "error"
+      "severity": "error",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Frontend Platform",
+      "scope": "organization",
+      "status": "active"
     },
     {
       "name": "Database Version Policy",
       "description": "All databases must use versions within the approved range and not approaching EOL",
       "ruleType": "compliance",
-      "severity": "error"
+      "severity": "error",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Data Platform",
+      "scope": "organization",
+      "status": "active"
     },
     {
       "name": "Deprecated Technology Warning",
       "description": "Systems using deprecated technologies must have a migration plan",
       "ruleType": "compliance",
-      "severity": "warning"
+      "severity": "warning",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Security",
+      "scope": "organization",
+      "status": "active"
     },
     {
       "name": "High Risk Technology Review",
       "description": "Technologies with high or critical risk levels require quarterly security reviews",
       "ruleType": "security",
-      "severity": "error"
+      "severity": "error",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Security",
+      "scope": "organization",
+      "status": "active"
     },
     {
       "name": "License Compliance",
       "description": "All components must have approved open source licenses",
       "ruleType": "compliance",
-      "severity": "error"
+      "severity": "error",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Security",
+      "scope": "organization",
+      "status": "active"
     },
     {
       "name": "EOL Warning",
       "description": "Components approaching EOL within 6 months must be flagged for upgrade",
       "ruleType": "compliance",
-      "severity": "warning"
+      "severity": "warning",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "DevOps",
+      "scope": "organization",
+      "status": "active"
+    },
+    {
+      "name": "No Deprecated Libraries",
+      "description": "Teams must not use deprecated libraries without explicit approval",
+      "ruleType": "compliance",
+      "severity": "error",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Security",
+      "scope": "organization",
+      "status": "active"
+    },
+    {
+      "name": "Experimental Technology Restriction",
+      "description": "Experimental technologies require architecture review before production use",
+      "ruleType": "approval",
+      "severity": "warning",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Security",
+      "scope": "organization",
+      "status": "active"
     }
   ],
   "systems": [
@@ -568,6 +652,26 @@
       {
         "policy": "Deprecated Technology Warning",
         "technology": "Angular"
+      },
+      {
+        "policy": "No Deprecated Libraries",
+        "technology": "jQuery"
+      },
+      {
+        "policy": "No Deprecated Libraries",
+        "technology": "Lodash"
+      },
+      {
+        "policy": "Experimental Technology Restriction",
+        "technology": "MySQL"
+      },
+      {
+        "policy": "Experimental Technology Restriction",
+        "technology": "MongoDB"
+      },
+      {
+        "policy": "Database Version Policy",
+        "technology": "MySQL"
       }
     ]
   },

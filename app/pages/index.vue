@@ -55,7 +55,7 @@
       </div>
 
       <!-- Quick Links -->
-      <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Technologies Catalog -->
         <NuxtLink 
           to="/technologies"
@@ -129,6 +129,25 @@
           </p>
           <div class="text-blue-600 font-semibold">
             View Policies →
+          </div>
+        </NuxtLink>
+
+        <!-- Policy Violations -->
+        <NuxtLink 
+          to="/violations"
+          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group border-l-4 border-orange-500"
+        >
+          <div class="text-5xl mb-4">
+            ⚠️
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
+            Policy Violations
+          </h2>
+          <p class="text-gray-600 mb-4">
+            View technologies used without approval
+          </p>
+          <div class="text-orange-600 font-semibold">
+            View Violations →
           </div>
         </NuxtLink>
 
