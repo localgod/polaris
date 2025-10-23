@@ -60,10 +60,9 @@ A **Technology** is a **governed software entity** that requires architectural a
 Technology: React
 - Type: Framework (Foundational)
 - Vendor: Meta
-- Status: Approved
+- TIME Category: Invest
 - Approved Version Range: >=18.0.0 <19.0.0
 - Stewarded By: Frontend Platform
-- Risk Level: Low
 ```
 
 ## Component

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { setup, $fetch } from '@nuxt/test-utils/e2e'
 
 describe('Unmapped Components API', async () => {
@@ -46,8 +46,8 @@ describe('Unmapped Components API', async () => {
       try {
         await $fetch('/api/systems/non-existent-system/unmapped-components')
         expect.fail('Should have thrown an error')
-      } catch (error: any) {
-        expect(error.statusCode).toBe(404)
+      } catch (error) {
+        expect((error as { statusCode: number }).statusCode).toBe(404)
       }
     })
 

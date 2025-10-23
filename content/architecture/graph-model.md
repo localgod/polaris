@@ -85,11 +85,11 @@ Technologies are foundational software choices that:
 - `name` (string, unique) - Technology name (e.g., "React", "PostgreSQL")
 - `category` (string) - Technology type (runtime, database, integration, security, infrastructure, deprecated)
 - `vendor` (string) - Vendor or maintainer (e.g., "Meta", "PostgreSQL Global Development Group")
-- `status` (string) - Lifecycle status (approved, experimental, deprecated, disallowed)
 - `approvedVersionRange` (string) - Semver range (e.g., ">=18.0.0 <19.0.0")
 - `ownerTeam` (string) - Team responsible for governance
-- `riskLevel` (string) - Risk assessment (low, medium, high, critical)
 - `lastReviewed` (date) - Last review date
+
+**Note:** Technologies don't have a single "status" field. Instead, each team approves technologies with a TIME category (invest, migrate, tolerate, eliminate) via the APPROVES relationship. This allows different teams to have different policies for the same technology.
 
 **Indexes:**
 - `technology_name_unique` (constraint)
