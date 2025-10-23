@@ -25,6 +25,10 @@ export default defineConfig({
         '**/*.config.*',
         '**/mockData/**',
         'test/**',
+        'app/pages/**',
+        'app/components/**',
+        'app/plugins/**',
+        'server/api/**',
       ],
     },
     env: {
