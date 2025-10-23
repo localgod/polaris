@@ -1,4 +1,7 @@
-# Polaris Concepts: Technologies vs Components
+---
+title: Core Concepts
+description: Understanding Technologies vs Components in Polaris
+---
 
 ## Overview
 
@@ -190,6 +193,7 @@ Status: ℹ️ Tracked - Not subject to governance, but monitored for security a
 ```
 
 **Important Note:** Not all components map to technologies. Components can exist without an `IS_VERSION_OF` relationship when they are:
+
 - Transitive dependencies (installed automatically by package managers)
 - Utility libraries that don't require governance oversight
 - Internal packages that aren't strategic architectural choices
@@ -206,6 +210,6 @@ These components are still tracked in the SBOM for security vulnerabilities and 
 
 ## See Also
 
-- [Graph Model Documentation](content/architecture/graph-model.md)
-- [TIME Framework](content/features/time-framework.md)
-- [Team Approvals](content/features/team-approvals.md)
+- [Graph Model](/docs/architecture/graph-model)
+- [TIME Framework](/docs/features/time-framework)
+- [Team Approvals](/docs/features/team-approvals)
