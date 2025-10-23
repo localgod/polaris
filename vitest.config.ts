@@ -5,6 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json', 'html'],
