@@ -45,12 +45,47 @@ graph TB
 
 ### 1. Technology
 
-Represents approved technologies in the enterprise catalog.
+Represents **governed software entities** in the enterprise catalog. A Technology is a strategic choice that requires governance oversight, approval processes, and lifecycle management.
+
+**What is a Technology?**
+
+Technologies are foundational software choices that:
+- Require architectural approval and governance
+- Have long-term strategic impact on the organization
+- Need version management and security oversight
+- Are subject to enterprise policies and standards
+
+**Technology Types:**
+
+1. **Foundational Runtime or Framework** - Core execution environments and application frameworks
+   - Examples: Node.js, React, Vue, Angular, Spring Boot
+   - Impact: Defines application architecture and development patterns
+
+2. **Data Platform** - Database systems and data storage technologies
+   - Examples: PostgreSQL, MongoDB, Neo4j, Redis, Elasticsearch
+   - Impact: Determines data architecture and persistence strategies
+
+3. **Integration Platform** - Middleware and integration technologies
+   - Examples: Kafka, RabbitMQ, API Gateway, GraphQL
+   - Impact: Defines system integration patterns and data flow
+
+4. **Security or Identity Tech** - Authentication, authorization, and security tools
+   - Examples: OAuth2, Keycloak, Vault, LDAP
+   - Impact: Determines security architecture and compliance
+
+5. **Infrastructure / Container Tech** - Deployment and infrastructure technologies
+   - Examples: Docker, Kubernetes, Terraform, AWS services
+   - Impact: Defines deployment architecture and operational model
+
+6. **Explicitly Disallowed or Deprecated** - Technologies that are banned or being phased out
+   - Examples: jQuery (deprecated), Flash (disallowed), outdated frameworks
+   - Impact: Prevents technical debt and security risks
 
 **Properties:**
 - `name` (string, unique) - Technology name (e.g., "React", "PostgreSQL")
-- `category` (string) - Technology category (e.g., "framework", "database")
+- `category` (string) - Technology type (runtime, database, integration, security, infrastructure, deprecated)
 - `vendor` (string) - Vendor or maintainer (e.g., "Meta", "PostgreSQL Global Development Group")
+- `status` (string) - Lifecycle status (approved, experimental, deprecated, disallowed)
 - `approvedVersionRange` (string) - Semver range (e.g., ">=18.0.0 <19.0.0")
 - `ownerTeam` (string) - Team responsible for governance
 - `riskLevel` (string) - Risk assessment (low, medium, high, critical)
@@ -109,7 +144,27 @@ CREATE (v:Version {
 
 ### 3. Component
 
-Represents SBOM (Software Bill of Materials) entries - dependencies used in systems.
+Represents **software entities used in systems** - the actual dependencies and packages discovered in SBOM (Software Bill of Materials) scans.
+
+**What is a Component?**
+
+Components are concrete software artifacts that:
+- Are discovered through SBOM scanning and dependency analysis
+- Represent actual usage in one or more systems
+- May or may not map to a governed Technology
+- Include transitive dependencies and third-party libraries
+
+**Component vs Technology:**
+
+| Aspect | Technology | Component |
+|--------|-----------|-----------|
+| **Definition** | Governed strategic choice | Actual software artifact in use |
+| **Governance** | Requires approval and oversight | Tracked for compliance |
+| **Scope** | Enterprise-wide decision | System-specific dependency |
+| **Examples** | "React" (framework choice) | "react@18.2.0" (npm package) |
+| **Lifecycle** | Managed through policies | Discovered through scanning |
+
+A Component may be an instance of a Technology (e.g., `react@18.2.0` is a component that implements the `React` technology), or it may be a transitive dependency that doesn't require governance approval.
 
 **Properties:**
 - `name` (string, composite unique) - Package name
@@ -567,6 +622,98 @@ Polaris uses a **centralized stewardship, decentralized approval** model with cl
 - Backend Platform **approves** Java (time: invest, versionConstraint: ">=17")
 - Data Platform **approves** Java (time: tolerate, versionConstraint: ">=11", notes: "Legacy batch jobs only")
 - Frontend Platform **does not approve** Java (no relationship = eliminate, use TypeScript instead)
+
+## Technology vs Component: Understanding the Distinction
+
+### Conceptual Model
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    GOVERNANCE LAYER                          │
+│  ┌──────────────┐      ┌──────────────┐                    │
+│  │ Technology   │      │ Technology   │                    │
+│  │   React      │      │  PostgreSQL  │                    │
+│  │ (Framework)  │      │  (Database)  │                    │
+│  └──────┬───────┘      └──────┬───────┘                    │
+│         │                     │                             │
+│    Governance                Governance                     │
+│    Approval                  Approval                       │
+│         │                     │                             │
+└─────────┼─────────────────────┼─────────────────────────────┘
+          │                     │
+          │                     │
+┌─────────┼─────────────────────┼─────────────────────────────┐
+│         │                     │        USAGE LAYER          │
+│         ▼                     ▼                             │
+│  ┌──────────────┐      ┌──────────────┐                    │
+│  │ Component    │      │ Component    │                    │
+│  │ react@18.2.0 │      │ pg@8.11.3    │                    │
+│  │ (npm)        │      │ (npm)        │                    │
+│  └──────┬───────┘      └──────┬───────┘                    │
+│         │                     │                             │
+│         └──────────┬──────────┘                             │
+│                    │                                        │
+│                    ▼                                        │
+│             ┌─────────────┐                                 │
+│             │   System    │                                 │
+│             │ API Gateway │                                 │
+│             └─────────────┘                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Differences
+
+**Technology (Governance Layer):**
+- Strategic architectural decision
+- Requires approval and policy compliance
+- Managed through TIME framework (invest, migrate, tolerate, eliminate)
+- Subject to version constraints and security reviews
+- Example: "We approve React as our frontend framework"
+
+**Component (Usage Layer):**
+- Concrete implementation discovered in systems
+- Actual package/dependency in use
+- Tracked through SBOM scanning
+- May include transitive dependencies
+- Example: "System X uses react@18.2.0 from npm"
+
+### Relationship Flow
+
+1. **Governance Decision**: Team approves a Technology (e.g., React)
+2. **Implementation**: Developers use Components that implement that Technology (e.g., react@18.2.0)
+3. **Discovery**: SBOM scanning discovers Components in Systems
+4. **Compliance Check**: Components are validated against approved Technologies
+5. **Violation Detection**: Components without corresponding Technology approval are flagged
+
+### Example Scenarios
+
+**Scenario 1: Compliant Usage**
+```
+Technology: React (approved by Frontend Platform)
+Component: react@18.2.0 (used in Customer Portal)
+Status: ✅ Compliant - Component version within approved range
+```
+
+**Scenario 2: Version Violation**
+```
+Technology: React (approved range: >=18.0.0 <19.0.0)
+Component: react@17.0.2 (used in Legacy App)
+Status: ⚠️ Warning - Component version outside approved range
+```
+
+**Scenario 3: Unapproved Technology**
+```
+Technology: jQuery (deprecated, not approved)
+Component: jquery@3.6.0 (used in Admin Dashboard)
+Status: ❌ Violation - Using deprecated technology without approval
+```
+
+**Scenario 4: Transitive Dependency**
+```
+Technology: N/A (not a governed technology)
+Component: lodash@4.17.21 (transitive dependency)
+Status: ℹ️ Tracked - Not subject to governance, but monitored for security
+```
 
 ## Policy Governance Model
 
