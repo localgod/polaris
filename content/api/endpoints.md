@@ -3,13 +3,16 @@ title: API Endpoints
 description: REST API endpoints for accessing technology catalog data
 ---
 
-Polaris provides REST API endpoints for accessing technology catalog data.
+Polaris provides REST API endpoints for accessing technology catalog data programmatically.
 
 ## Base URL
 
+The API is available at:
 ```
-http://localhost:3000/api
+/api
 ```
+
+Note: The actual host and port depend on your deployment configuration.
 
 ## Endpoints
 
@@ -182,7 +185,7 @@ Get all approvals for a specific team.
 
 #### Check Approval Status
 
-Check approval status for a technology with hierarchy resolution.
+Check approval status for a technology with hierarchy resolution (version-specific > technology-level > default).
 
 **Endpoint:** `GET /api/approvals/check`
 
@@ -191,7 +194,7 @@ Check approval status for a technology with hierarchy resolution.
 - `technology` (required) - Technology name
 - `version` (optional) - Version number
 
-**Example:**
+**Example Request:**
 ```
 GET /api/approvals/check?team=Frontend+Platform&technology=React&version=18.2.0
 ```
@@ -326,26 +329,32 @@ All approval responses include a `time` field with one of these values:
 - `tolerate` - Keep running but minimize investment
 - `eliminate` - Phase out and decommission
 
-## Examples
+## Usage Examples
 
 ### Find Technologies to Migrate
 
+Filter technologies by TIME category to identify those requiring migration:
+
 ```bash
-curl http://localhost:3000/api/technologies | \
+curl /api/technologies | \
   jq '.data[] | select(.approvals[].time == "migrate")'
 ```
 
 ### Check if Team Can Use Technology
 
+Verify approval status for a specific team and technology:
+
 ```bash
-curl 'http://localhost:3000/api/approvals/check?team=Backend+Platform&technology=Node.js' | \
+curl '/api/approvals/check?team=Backend+Platform&technology=Node.js' | \
   jq '.data.approval.time'
 ```
 
 ### Get All Approvals for Team
 
+Retrieve all technology approvals for a team:
+
 ```bash
-curl 'http://localhost:3000/api/teams/Frontend+Platform/approvals' | \
+curl '/api/teams/Frontend+Platform/approvals' | \
   jq '.data.technologyApprovals[] | {technology, time}'
 ```
 

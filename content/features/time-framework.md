@@ -1,11 +1,20 @@
 ---
 title: TIME Framework
-description: Gartner's TIME framework for technology portfolio management
+description: Strategic technology portfolio management with Gartner's TIME framework
 ---
 
 ## Overview
 
-Polaris uses **Gartner's TIME framework** for technology portfolio management. TIME categorizes technologies based on their strategic value and future direction.
+Polaris uses **Gartner's TIME framework** for technology portfolio management. TIME categorizes technologies based on their strategic value and future direction, helping organizations make informed decisions about where to invest, what to migrate away from, what to tolerate temporarily, and what to eliminate.
+
+### Why TIME?
+
+The TIME framework provides:
+- **Strategic Clarity** - Clear categorization of technology investments aligned with business goals
+- **Portfolio Balance** - Visibility into the health of your technology portfolio
+- **Migration Planning** - Structured approach to technology transitions
+- **Risk Management** - Identification of technologies that pose risks
+- **Resource Optimization** - Better allocation of budget and engineering resources
 
 ## TIME Categories
 
@@ -13,318 +22,486 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management. T
 
 **Strategic technologies worth continued investment and enhancement**
 
-- Technologies that are core to the business
-- Modern, well-supported platforms
-- Active development and innovation
+Technologies in the Invest category represent your organization's strategic choices - the platforms and tools you're actively betting on for the future.
+
+**Characteristics:**
+- Core to business operations and strategy
+- Modern, well-supported platforms with active communities
+- Receiving active development and innovation
 - Long-term strategic value
+- Full organizational support and training available
+
+**When to use Invest:**
+- New projects should use these technologies
+- Existing projects should migrate to these when feasible
+- Training and skill development is encouraged
+- Budget is allocated for enhancement and optimization
 
 **Examples:**
-- React (Frontend Platform)
-- TypeScript (Backend & Frontend Platforms)
-- PostgreSQL (Data Platform)
-- Node.js (Backend Platform)
+- React (Frontend Platform) - Primary framework for customer-facing applications
+- TypeScript (Backend & Frontend Platforms) - Required for all new services
+- PostgreSQL (Data Platform) - Standard relational database
+- Kubernetes (Infrastructure Platform) - Container orchestration standard
 
 ### 🔵 Migrate
 
 **Technologies to move to newer platforms**
 
-- Deprecated technologies with migration paths
-- Technologies being replaced
+Technologies in the Migrate category are being actively phased out with clear migration paths to replacement technologies.
+
+**Characteristics:**
+- Deprecated or being replaced
 - Clear migration target defined
-- Active migration planning
+- Active migration planning and execution
+- End-of-life (EOL) date established
+- Migration support and resources available
+
+**When to use Migrate:**
+- No new projects should use these technologies
+- Existing projects should plan migration to the target technology
+- Maintenance only - no new features unless critical
+- Migration timeline and resources are defined
 
 **Examples:**
 - Angular → React (Frontend Platform)
   - EOL: 2025-12-31
   - Migration Target: React
-  - Notes: "Migrating to React for better ecosystem support"
+  - Reason: "Better ecosystem support and team expertise"
+- Java 11 → Java 17 (Backend Platform)
+  - EOL: 2024-09-30
+  - Migration Target: Java 17
+  - Reason: "Security updates and LTS support"
 
 ### 🟡 Tolerate
 
 **Keep running but minimize investment**
 
-- Legacy systems that still work
+Technologies in the Tolerate category are legacy systems that still work but are not strategic. They're kept running with minimal investment while decisions are made about their future.
+
+**Characteristics:**
+- Legacy systems that still function
 - No immediate replacement planned
 - Minimal maintenance mode
-- EOL approaching but no migration target yet
+- EOL may be approaching but no migration target yet
+- Limited or no support for new features
+
+**When to use Tolerate:**
+- No new projects should use these technologies
+- Existing projects continue running but receive minimal investment
+- Bug fixes and security patches only
+- Awaiting decommissioning decision or migration planning
 
 **Examples:**
-- Deprecated technologies without migration targets
-- Legacy systems awaiting decommissioning decisions
+- Legacy batch processing systems awaiting modernization
+- Older framework versions in low-priority applications
+- Technologies used by systems scheduled for retirement
+- Deprecated technologies without clear replacement options yet
 
 ### 🔴 Eliminate
 
 **Phase out and decommission**
 
-- Technologies not approved for use
+Technologies in the Eliminate category are not approved for use and should be removed from the organization.
+
+**Characteristics:**
+- Not approved for any use
 - Security or compliance risks
 - No business value
 - Scheduled for removal
+- No support provided
+
+**When to use Eliminate:**
+- Technologies must not be used in any new or existing projects
+- Active removal from systems is required
+- Violations are flagged as critical
+- No exceptions granted
 
 **Examples:**
 - Technologies with no team approvals
-- Restricted technologies
-- Technologies marked for decommissioning
+- Severely outdated versions with known security vulnerabilities
+- Technologies that violate compliance requirements
+- Restricted technologies (e.g., Flash, jQuery in new projects)
+- Technologies that have been fully replaced
 
-## Schema Implementation
+## How TIME Works in Polaris
 
-### Relationship Property
+### Team-Based Approvals
 
-```cypher
-(Team)-[:APPROVES {time: 'invest|migrate|tolerate|eliminate'}]->(Technology|Version)
-```
+Each team independently assigns TIME categories to technologies based on their needs and strategy. This means:
 
-### Additional Properties
+**Different teams can have different TIME categories for the same technology:**
+- Frontend Platform might categorize Angular as **Migrate** (moving to React)
+- Legacy Systems Team might categorize Angular as **Tolerate** (maintaining existing apps)
+- Mobile Team might categorize Angular as **Eliminate** (never used, not planning to use)
 
-- `approvedAt`: When the TIME category was assigned
-- `deprecatedAt`: When technology was deprecated (for migrate/tolerate)
-- `eolDate`: End-of-life date (for migrate/tolerate)
-- `migrationTarget`: Target technology (for migrate)
-- `notes`: Additional context
-- `approvedBy`: Who made the decision
-- `versionConstraint`: Version requirements (e.g., ">=18")
+**Teams track important information with each approval:**
+- **TIME Category** - invest, migrate, tolerate, or eliminate
+- **Approval Date** - When the decision was made
+- **Approver** - Who made the decision
+- **Notes** - Context and reasoning
+- **Version Constraints** - Specific version requirements (e.g., ">=18.0.0")
+- **EOL Date** - End-of-life date (for migrate/tolerate)
+- **Migration Target** - Target technology (for migrate)
+- **Deprecation Date** - When technology was deprecated (for migrate/tolerate)
 
-### Indexes
+## How TIME Categories Work
 
-```cypher
-CREATE INDEX approves_time FOR ()-[a:APPROVES]-() ON (a.time);
-CREATE INDEX approves_eol_date FOR ()-[a:APPROVES]-() ON (a.eolDate);
-CREATE INDEX approves_approved_at FOR ()-[a:APPROVES]-() ON (a.approvedAt);
-```
+### Approval Information
 
-## Migration from Status
+Each team's approvals include a TIME category that indicates their strategic intent:
 
-The previous `status` field has been replaced with `time`:
+**Example: TypeScript**
+- Frontend Platform: **Invest** (Required for all new frontend projects)
+- Backend Platform: **Invest** (Required for all backend services)
+- Data Platform: **Tolerate** (Legacy batch jobs only)
 
-| Old Status | New TIME | Condition |
-|-----------|----------|-----------|
-| `approved` | `invest` | Strategic technology |
-| `experimental` | `invest` | Evaluating for investment |
-| `deprecated` (with migrationTarget) | `migrate` | Active migration |
-| `deprecated` (without migrationTarget) | `tolerate` | Legacy maintenance |
-| `restricted` | `eliminate` | Not approved |
+This means different teams can have different strategies for the same technology based on their needs.
 
-## API Usage
+### Portfolio Analysis
 
-### Get Technologies with TIME Categories
+The graph model enables analysis of your technology portfolio by TIME category:
 
-```bash
-curl http://localhost:3000/api/technologies | jq '.data[0].approvals'
-```
+**Example Portfolio Distribution:**
+- **Invest** (12 technologies) - React, TypeScript, Next.js, PostgreSQL, etc.
+- **Migrate** (3 technologies) - Angular, Webpack, Jest
+- **Tolerate** (2 technologies) - jQuery (legacy admin), Bower
+- **Eliminate** (0 technologies)
 
-**Response:**
-```json
-{
-  "team": "Frontend Platform",
-  "time": "invest",
-  "approvedBy": "Frontend Lead",
-  "notes": "Primary framework for customer-facing applications"
-}
-```
+### Compliance Detection
 
-### Check TIME Category for Team
+The model supports automatic detection of violations by comparing actual usage against TIME approvals:
 
-```bash
-curl 'http://localhost:3000/api/approvals/check?team=Frontend+Platform&technology=Angular'
-```
+**Violation Types:**
+- ❌ **Using Unapproved Technology** - Team using technology with no approval (Eliminate by default)
+- ⚠️ **Using Deprecated Technology** - Team using technology marked as Migrate or Tolerate
+- ⚠️ **Version Mismatch** - Team using version outside approved constraints
 
-**Response:**
-```json
-{
-  "approval": {
-    "level": "technology",
-    "time": "migrate",
-    "eolDate": "2025-12-31",
-    "migrationTarget": "React",
-    "notes": "Migrating to React for better ecosystem support"
-  }
-}
-```
+## TIME Category Representation
 
-### Get All Approvals for Team
+TIME categories are represented with visual indicators for quick recognition:
 
-```bash
-curl 'http://localhost:3000/api/teams/Frontend+Platform/approvals'
-```
+- **Invest**: 🟢 Strategic technology
+- **Migrate**: 🔵 Active migration
+- **Tolerate**: 🟡 Legacy maintenance
+- **Eliminate**: 🔴 Not approved
 
-## UI Display
+### Approval Details
 
-### Color Coding
+Each team approval includes the TIME category along with supporting information:
 
-- **Invest**: Green badge (`bg-green-100 text-green-800`)
-- **Migrate**: Blue badge (`bg-blue-100 text-blue-800`)
-- **Tolerate**: Yellow badge (`bg-yellow-100 text-yellow-800`)
-- **Eliminate**: Red badge (`bg-red-100 text-red-800`)
+**Example: Angular**
 
-### Technology Card Example
+**Frontend Platform Approval:**
+- TIME: **Migrate** 🔵
+- EOL: 2025-12-31
+- Migrate to: React
+- Notes: "Better ecosystem support and team expertise"
 
-```
-┌─────────────────────────────────────────────────┐
-│ Angular                                         │
-│ Google                                          │
-│                                                 │
-│ [Frontend Platform: Migrate] 🔵                 │
-│                                                 │
-│ Category: framework                             │
-│ Risk Level: medium                              │
-│ EOL: 2025-12-31                                 │
-│ Migrate to: React                               │
-└─────────────────────────────────────────────────┘
-```
+**Legacy Systems Team Approval:**
+- TIME: **Tolerate** 🟡
+- Notes: "Maintaining existing applications only"
 
-## Queries
+## Common Use Cases
 
-### Find All Technologies to Migrate
+### Finding Technologies to Migrate
 
-```cypher
-MATCH (team:Team)-[a:APPROVES {time: 'migrate'}]->(tech:Technology)
-RETURN 
-  team.name as team,
-  tech.name as technology,
-  a.eolDate as eolDate,
-  a.migrationTarget as migrationTarget,
-  a.notes as notes
-ORDER BY a.eolDate
-```
+The graph model enables queries to identify technologies that need migration:
 
-### Find Technologies Approaching EOL
+**What you can find:**
+- All technologies marked as "Migrate"
+- EOL dates and time remaining
+- Migration targets
+- Which teams are affected
 
-```cypher
-MATCH (team:Team)-[a:APPROVES]->(tech:Technology)
-WHERE a.time IN ['migrate', 'tolerate']
-  AND a.eolDate IS NOT NULL
-  AND a.eolDate < date() + duration({days: 90})
-RETURN 
-  team.name as team,
-  tech.name as technology,
-  a.time as timeCategory,
-  a.eolDate as eolDate,
-  duration.between(date(), a.eolDate).days as daysUntilEol
-ORDER BY a.eolDate
-```
+**Example Results:**
 
-### Portfolio Distribution by TIME
+| Technology | Team | EOL Date | Days Left | Migrate To |
+|-----------|------|----------|-----------|------------|
+| Angular | Frontend Platform | 2025-12-31 | 245 | React |
+| Java 11 | Backend Platform | 2024-09-30 | 45 | Java 17 |
 
-```cypher
-MATCH (team:Team)-[a:APPROVES]->(tech:Technology)
-RETURN 
-  a.time as timeCategory,
-  count(DISTINCT tech) as technologyCount,
-  collect(DISTINCT tech.name) as technologies
-ORDER BY timeCategory
-```
+### Tracking Technologies Approaching EOL
 
-### Team-Specific TIME Distribution
+The model supports identifying technologies approaching their end-of-life dates:
 
-```cypher
-MATCH (team:Team {name: 'Frontend Platform'})-[a:APPROVES]->(tech:Technology)
-RETURN 
-  a.time as timeCategory,
-  count(tech) as count,
-  collect(tech.name) as technologies
-ORDER BY timeCategory
-```
+**Example: Technologies with EOL within 90 days:**
+- **Java 11** - EOL in 45 days (Backend Platform)
+- **Node.js 14** - EOL in 67 days (Backend Platform)
+- **Angular 14** - EOL in 89 days (Frontend Platform)
 
-## Benefits
+### Portfolio Health Analysis
+
+The model enables analysis of technology portfolio distribution:
+
+**Organization-Wide TIME Distribution:**
+- **Invest**: 45 technologies (65%)
+- **Migrate**: 12 technologies (17%)
+- **Tolerate**: 10 technologies (14%)
+- **Eliminate**: 3 technologies (4%)
+
+**Team-Specific Distribution:**
+
+**Frontend Platform:**
+- **Invest**: 12 technologies (71%)
+- **Migrate**: 3 technologies (18%)
+- **Tolerate**: 2 technologies (11%)
+- **Eliminate**: 0 technologies (0%)
+
+## Benefits of the TIME Framework
 
 ### 1. Strategic Alignment
 
+**What it provides:**
 - Clear categorization of technology investments
-- Aligns with business strategy
-- Supports portfolio planning
+- Alignment with business strategy
+- Support for portfolio planning and decision-making
+
+**How it helps:**
+- Leadership can see where technology investments are focused
+- Teams understand which technologies are strategic priorities
+- Budget discussions are grounded in strategic categorization
 
 ### 2. Migration Planning
 
-- Explicit migration paths
-- EOL tracking
-- Resource allocation for migrations
+**What it provides:**
+- Explicit migration paths from old to new technologies
+- EOL tracking with automated alerts
+- Resource allocation planning for migrations
+
+**How it helps:**
+- Teams know what to migrate to and when
+- Migration work can be planned and budgeted
+- No surprises when technologies reach end-of-life
 
 ### 3. Risk Management
 
-- Identify technologies to eliminate
-- Track legacy systems (tolerate)
-- Minimize technical debt
+**What it provides:**
+- Identification of technologies to eliminate
+- Tracking of legacy systems (tolerate)
+- Minimization of technical debt
+
+**How it helps:**
+- Security risks from outdated technologies are visible
+- Compliance violations are automatically detected
+- Technical debt is quantified and tracked
 
 ### 4. Budget Optimization
 
-- Focus investment on strategic technologies
-- Minimize spend on legacy systems
-- Plan migration budgets
+**What it provides:**
+- Focus investment on strategic technologies (invest)
+- Minimize spend on legacy systems (tolerate)
+- Plan migration budgets (migrate)
+
+**How it helps:**
+- Engineering time is allocated to strategic work
+- Legacy maintenance costs are minimized
+- Migration costs are predictable and planned
 
 ### 5. Compliance & Governance
 
+**What it provides:**
 - Clear approval policies per team
 - Audit trail of decisions
-- Standardized categorization
+- Standardized categorization across the organization
+
+**How it helps:**
+- Teams know what they're allowed to use
+- Decisions are documented with reasoning
+- Compliance audits are straightforward
 
 ## Best Practices
 
 ### 1. Regular Reviews
 
-- Review TIME categories quarterly
-- Update EOL dates as needed
-- Reassess migration priorities
+**Recommendation:** Review TIME categories quarterly
+
+**Why:** Technology landscapes change rapidly. Regular reviews ensure your categorizations remain accurate and aligned with strategy.
+
+**What to review:**
+- Are Invest technologies still strategic?
+- Are Migrate timelines on track?
+- Should any Tolerate technologies move to Migrate?
+- Are Eliminate technologies actually removed?
 
 ### 2. Migration Strategy
 
-- Always specify `migrationTarget` for migrate category
-- Set realistic EOL dates
-- Document migration notes
+**Recommendation:** Always specify migration targets and realistic EOL dates
 
-### 3. Investment Decisions
+**Why:** Clear migration paths prevent confusion and enable planning.
 
-- Invest category should be < 30% of portfolio
-- Migrate should have clear timelines
-- Tolerate should be temporary
+**Best practices:**
+- **Migrate category must have:** Migration target, EOL date, and migration notes
+- **Set realistic EOL dates:** Consider system complexity and team capacity
+- **Document reasoning:** Explain why the migration is happening
+- **Track progress:** Update status as migration proceeds
+
+**Example:**
+- Technology: Angular
+- TIME: Migrate
+- Migration Target: React
+- EOL: 2025-12-31
+- Notes: "Better ecosystem support, team expertise, and performance"
+
+### 3. Portfolio Balance
+
+**Recommendation:** Maintain healthy portfolio distribution
+
+**Target distribution:**
+- **Invest**: 60-70% - Strategic technologies
+- **Migrate**: 10-20% - Active transitions
+- **Tolerate**: 10-20% - Legacy maintenance
+- **Eliminate**: <5% - Should be removed quickly
+
+**Why:** This balance ensures you're investing in the future while managing legacy systems responsibly.
+
+**Warning signs:**
+- **Too much Invest (>80%):** May indicate lack of focus or too many "strategic" choices
+- **Too much Migrate (>30%):** Migration fatigue, may need to prioritize
+- **Too much Tolerate (>30%):** Accumulating technical debt
+- **Too much Eliminate (>10%):** Compliance issues, technologies not being removed
 
 ### 4. Team Alignment
 
-- Different teams can have different TIME categories for same technology
-- Document reasoning in `notes` field
-- Specify `approvedBy` for accountability
+**Recommendation:** Document decisions and reasoning
+
+**Why:** Different teams may have different needs, but decisions should be transparent and justified.
+
+**Best practices:**
+- **Document reasoning:** Use the notes field to explain why this TIME category was chosen
+- **Specify approver:** Record who made the decision for accountability
+- **Respect team autonomy:** Different teams can have different TIME categories for the same technology
+- **Share learnings:** Teams can learn from each other's migration experiences
+
+**Example:**
+- Frontend Platform: Angular = **Migrate** (moving to React for better ecosystem)
+- Legacy Systems Team: Angular = **Tolerate** (maintaining existing apps, no new development)
 
 ### 5. Version-Specific Policies
 
-- Use version-specific approvals for granular control
-- Specify `versionConstraint` for invest category
-- Track version-specific EOL dates
+**Recommendation:** Use version constraints for precise control
 
-## Reporting
+**Why:** Not all versions of a technology are equal. Version constraints enable granular governance.
 
-### Executive Dashboard Metrics
+**Best practices:**
+- **Invest technologies:** Specify approved version ranges (e.g., ">=18.0.0 <19.0.0")
+- **Migrate technologies:** May have different constraints for different versions
+- **Track version-specific EOL:** Some versions reach EOL before others
 
-1. **Portfolio Health**
-   - % Invest: Target 60-70%
-   - % Migrate: Target 10-20%
-   - % Tolerate: Target 10-20%
-   - % Eliminate: Target < 5%
+**Example:**
+- Technology: Node.js
+- TIME: Invest
+- Version Constraint: ">=18.0.0 <21.0.0"
+- Notes: "LTS versions only, upgrade to 20.x by Q2 2025"
 
-2. **Migration Pipeline**
-   - Technologies in migrate status
-   - EOL dates approaching (< 90 days)
-   - Migration progress tracking
+## Reporting Capabilities
 
-3. **Risk Indicators**
-   - Technologies past EOL
-   - Eliminate category not actioned
-   - Tolerate without migration plan
+The TIME framework in the graph model enables various types of analysis and reporting:
 
-## Migration Script
+### Portfolio Health Metrics
 
-The migration from `status` to `time` is handled by:
+**What the model supports:**
+- Breakdown of technologies by TIME category
+- Percentage distribution across categories
+- Comparison against target ranges
 
-**File:** `schema/migrations/common/20251022_101947_replace_status_with_time.up.cypher`
+**Target Metrics:**
+- **Invest**: 60-70% (Strategic technologies)
+- **Migrate**: 10-20% (Active transitions)
+- **Tolerate**: 10-20% (Legacy maintenance)
+- **Eliminate**: <5% (Should be removed quickly)
 
-**Rollback:** `schema/migrations/common/20251022_101947_replace_status_with_time.down.cypher`
+### Migration Pipeline Tracking
 
-## References
+**What the model supports:**
+- Identification of all technologies in Migrate status
+- EOL dates and time remaining calculations
+- Migration target relationships
+- Team assignments
 
-- [Gartner TIME Framework](https://www.gartner.com/en/information-technology/glossary/time-tolerate-invest-migrate-eliminate)
-- [Team Approvals Implementation](./TEAM_APPROVALS_IMPLEMENTATION.md)
-- [Schema Enhancement Design](./SCHEMA_ENHANCEMENT_TEAM_SPECIFIC_APPROVALS.md)
+**Example Queries:**
+- Technologies with EOL dates within 90 days
+- Technologies sorted by urgency
+- Migration targets and affected systems
 
-## Authors
+### Risk Identification
 
-- Implementation: @system
-- Date: 2025-10-22
-- Ticket: CATALOG-003
+**What the model supports:**
+- Technologies past EOL still in use
+- Eliminate category technologies not removed
+- Tolerate technologies without migration plans
+- Teams using unapproved technologies
+
+**Compliance Analysis:**
+- Systems in compliance vs. violations
+- Violations by severity level
+- Team-specific compliance status
+
+### Team-Specific Analysis
+
+**What the model supports:**
+- Team's technology portfolio by TIME category
+- Team's upcoming EOL dates
+- Team's compliance status
+- Team's usage vs. approvals
+
+## Real-World Example
+
+### Scenario: Frontend Platform Team
+
+**Current Portfolio (Q4 2024):**
+
+**Invest (12 technologies - 71%):**
+- React 18.x - Primary framework
+- TypeScript 5.x - Required for all projects
+- Next.js 14.x - SSR framework
+- Tailwind CSS 3.x - Styling
+- PostgreSQL 15.x - Database
+- And 7 more...
+
+**Migrate (3 technologies - 18%):**
+- Angular 14.x → React (EOL: 2025-12-31)
+  - 5 systems to migrate
+  - Migration plan in progress
+- Webpack 5.x → Vite (EOL: 2025-06-30)
+  - 8 systems to migrate
+  - Migration started
+- Jest 28.x → Vitest (EOL: 2025-09-30)
+  - 12 systems to migrate
+  - Planning phase
+
+**Tolerate (2 technologies - 11%):**
+- jQuery 3.x - Legacy admin panel only
+  - 1 system, scheduled for retirement
+- Bower - Legacy dependency management
+  - 1 system, scheduled for retirement
+
+**Eliminate (0 technologies - 0%):**
+- No violations
+
+**Health Assessment:** ✅ Healthy portfolio
+- Good balance of strategic investments
+- Clear migration plans with realistic timelines
+- Minimal legacy debt
+- No compliance violations
+
+## Summary
+
+The TIME framework in Polaris provides:
+
+1. **Strategic Clarity** - Clear categorization of technology investments aligned with business goals
+2. **Team Autonomy** - Teams can make decisions appropriate for their context while maintaining governance
+3. **Governance** - Organization-wide visibility through the graph model's relationship structure
+4. **Planning** - Structured approach to migrations with explicit targets and timelines
+5. **Risk Management** - Identification and tracking of technical debt and security risks through compliance detection
+
+By using TIME categories consistently, organizations can maintain a healthy technology portfolio while giving teams the flexibility they need to deliver value.
+
+The graph model's support for TIME categories enables:
+- Automatic compliance detection by comparing usage against approvals
+- Portfolio health analysis across teams and the organization
+- Migration planning with EOL tracking
+- Risk identification for technologies past EOL or marked for elimination
+
+## Learn More
+
+- [Graph Model](../architecture/graph-model.md) - Understanding how TIME categories are stored and related in the graph database
