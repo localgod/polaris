@@ -88,7 +88,8 @@ A **Component** is a **software artifact** discovered in systems through SBOM (S
 | **Discovery** | Defined by architecture teams | Discovered through SBOM scanning |
 | **Examples** | "React" (framework choice) | "react@18.2.0" (npm package) |
 | **Lifecycle** | Managed through policies | Discovered and monitored |
-| **Approval** | Requires team approval | Validated against approved technologies |
+| **Approval** | Requires team approval | Validated against approved technologies (if mapped) |
+| **Relationship** | One-to-many with Components | Optional many-to-one with Technology |
 
 ### Example
 
@@ -104,37 +105,44 @@ Component: react@18.2.0
 ## Relationship Flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    GOVERNANCE LAYER                          │
-│  ┌──────────────┐      ┌──────────────┐                    │
-│  │ Technology   │      │ Technology   │                    │
-│  │   React      │      │  PostgreSQL  │                    │
-│  │ (Framework)  │      │  (Database)  │                    │
-│  └──────┬───────┘      └──────┬───────┘                    │
-│         │                     │                             │
-│    Governance                Governance                     │
-│    Approval                  Approval                       │
-│         │                     │                             │
-└─────────┼─────────────────────┼─────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                       GOVERNANCE LAYER                               │
+│  ┌──────────────┐      ┌──────────────┐                            │
+│  │ Technology   │      │ Technology   │                            │
+│  │   React      │      │  PostgreSQL  │                            │
+│  │ (Framework)  │      │  (Database)  │                            │
+│  └──────┬───────┘      └──────┬───────┘                            │
+│         │                     │                                     │
+│    Governance                Governance                             │
+│    Approval                  Approval                               │
+│         │                     │                                     │
+└─────────┼─────────────────────┼─────────────────────────────────────┘
           │                     │
+          │ IS_VERSION_OF       │ IS_VERSION_OF
+          │ (optional)          │ (optional)
           │                     │
-┌─────────┼─────────────────────┼─────────────────────────────┐
-│         │                     │        USAGE LAYER          │
-│         ▼                     ▼                             │
-│  ┌──────────────┐      ┌──────────────┐                    │
-│  │ Component    │      │ Component    │                    │
-│  │ react@18.2.0 │      │ pg@8.11.3    │                    │
-│  │ (npm)        │      │ (npm)        │                    │
-│  └──────┬───────┘      └──────┬───────┘                    │
-│         │                     │                             │
-│         └──────────┬──────────┘                             │
-│                    │                                        │
-│                    ▼                                        │
-│             ┌─────────────┐                                 │
-│             │   System    │                                 │
-│             │ API Gateway │                                 │
-│             └─────────────┘                                 │
-└─────────────────────────────────────────────────────────────┘
+┌─────────┼─────────────────────┼─────────────────────────────────────┐
+│         │                     │           USAGE LAYER               │
+│         ▼                     ▼                                     │
+│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐     │
+│  │ Component    │      │ Component    │      │ Component    │     │
+│  │ react@18.2.0 │      │ pg@8.11.3    │      │loose-envify  │     │
+│  │ (npm)        │      │ (npm)        │      │ @1.4.0 (npm) │     │
+│  │ [Governed]   │      │ [Governed]   │      │ [Transitive] │     │
+│  └──────┬───────┘      └──────┬───────┘      └──────┬───────┘     │
+│         │                     │                     │               │
+│         └──────────┬──────────┴─────────────────────┘               │
+│                    │ USES                                           │
+│                    ▼                                                │
+│             ┌─────────────┐                                         │
+│             │   System    │                                         │
+│             │ API Gateway │                                         │
+│             └─────────────┘                                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+Key:
+- Governed Components: Have IS_VERSION_OF → Technology (subject to policies)
+- Transitive Components: No Technology link (tracked for security only)
 ```
 
 ## Workflow
@@ -176,9 +184,17 @@ Status: ❌ Violation - Using deprecated technology without approval
 
 ```
 Technology: N/A (not a governed technology)
-Component: lodash@4.17.21 (transitive dependency)
-Status: ℹ️ Tracked - Not subject to governance, but monitored for security
+Component: loose-envify@1.4.0 (transitive dependency of React)
+Relationship: No IS_VERSION_OF relationship
+Status: ℹ️ Tracked - Not subject to governance, but monitored for security and licensing
 ```
+
+**Important Note:** Not all components map to technologies. Components can exist without an `IS_VERSION_OF` relationship when they are:
+- Transitive dependencies (installed automatically by package managers)
+- Utility libraries that don't require governance oversight
+- Internal packages that aren't strategic architectural choices
+
+These components are still tracked in the SBOM for security vulnerabilities and license compliance, but they don't trigger policy violations.
 
 ## Key Takeaways
 

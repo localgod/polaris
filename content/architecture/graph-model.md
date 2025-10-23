@@ -500,15 +500,40 @@ CREATE (tech)-[:HAS_VERSION]->(v)
 
 ### 7. IS_VERSION_OF (Component → Technology)
 
-Components are specific versions of technologies.
+**Cardinality:** Many-to-One (Optional - not all components map to technologies)
+
+**Purpose:** Links components that implement governed technologies. This relationship is **optional** because:
+- Not all components are governed technologies (e.g., transitive dependencies)
+- Utility libraries may not require governance oversight
+- Internal packages may not be strategic choices
 
 **Properties:** None
 
+**When this relationship exists:**
+- The component implements a governed technology
+- The component is subject to technology approval policies
+- Version compliance can be validated
+
+**When this relationship is absent:**
+- The component is a transitive dependency
+- The component is a utility library not requiring governance
+- The component is tracked for security/licensing but not governance
+
 **Example:**
 ```cypher
+// Component that maps to a Technology
 MATCH (comp:Component {name: "react", version: "18.2.0", packageManager: "npm"})
 MATCH (tech:Technology {name: "React"})
 CREATE (comp)-[:IS_VERSION_OF]->(tech)
+
+// Component without Technology mapping (transitive dependency)
+CREATE (comp:Component {
+  name: "loose-envify",
+  version: "1.4.0",
+  packageManager: "npm",
+  license: "MIT"
+})
+// No IS_VERSION_OF relationship - this is just tracked for security
 ```
 
 ### 8. USES (System → Component)
