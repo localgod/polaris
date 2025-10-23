@@ -1,238 +1,108 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-center gap-4 mb-4">
-          <NuxtLink to="/" class="text-blue-600 hover:text-blue-800">
-            ← Back to Home
-          </NuxtLink>
-        </div>
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">
-          Policy Violations
-        </h1>
-        <p class="text-gray-600">
-          Technologies used without approval that violate active policies
-        </p>
+  <NuxtLayout name="default">
+    <div class="space-y-6">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Policy Violations</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Technologies used without approval</p>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="pending" class="bg-white rounded-lg shadow p-8 text-center">
-        <div class="text-4xl mb-4">
-          ⏳
+      <UiCard v-if="pending">
+        <div class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"/>
+          <p class="mt-4 text-gray-600 dark:text-gray-300">Loading violations...</p>
         </div>
-        <p class="text-gray-600">
-          Loading violations...
-        </p>
-      </div>
+      </UiCard>
 
-      <!-- Error State -->
-      <div v-else-if="error" class="bg-red-50 border-l-4 border-red-500 rounded-lg shadow p-6">
-        <div class="flex items-center gap-3">
-          <div class="text-3xl">
-            ❌
-          </div>
+      <UiCard v-else-if="error">
+        <div class="flex items-center gap-4 text-error-600 dark:text-error-400">
+          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           <div>
-            <h3 class="text-lg font-semibold text-red-900">
-              Error Loading Violations
-            </h3>
-            <p class="text-sm text-red-700">
-              {{ error.message }}
-            </p>
+            <h3 class="text-lg font-semibold">Error</h3>
+            <p class="text-sm">{{ error.message }}</p>
           </div>
         </div>
-      </div>
+      </UiCard>
 
-      <!-- Content -->
-      <div v-else>
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <!-- Total Violations -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <div class="text-sm text-gray-600 mb-1">Total Violations</div>
-            <div class="text-3xl font-bold text-gray-900">{{ data?.count || 0 }}</div>
-          </div>
-
-          <!-- Critical -->
-          <div class="bg-red-50 rounded-lg shadow p-6 border-l-4 border-red-500">
-            <div class="text-sm text-red-700 mb-1">Critical</div>
-            <div class="text-3xl font-bold text-red-900">{{ data?.summary.critical || 0 }}</div>
-          </div>
-
-          <!-- Error -->
-          <div class="bg-orange-50 rounded-lg shadow p-6 border-l-4 border-orange-500">
-            <div class="text-sm text-orange-700 mb-1">Error</div>
-            <div class="text-3xl font-bold text-orange-900">{{ data?.summary.error || 0 }}</div>
-          </div>
-
-          <!-- Warning -->
-          <div class="bg-yellow-50 rounded-lg shadow p-6 border-l-4 border-yellow-500">
-            <div class="text-sm text-yellow-700 mb-1">Warning</div>
-            <div class="text-3xl font-bold text-yellow-900">{{ data?.summary.warning || 0 }}</div>
-          </div>
-
-          <!-- Info -->
-          <div class="bg-blue-50 rounded-lg shadow p-6 border-l-4 border-blue-500">
-            <div class="text-sm text-blue-700 mb-1">Info</div>
-            <div class="text-3xl font-bold text-blue-900">{{ data?.summary.info || 0 }}</div>
-          </div>
-        </div>
-
-        <!-- No Violations State -->
-        <div v-if="!data?.data || data.data.length === 0" class="bg-green-50 border-l-4 border-green-500 rounded-lg shadow p-6">
-          <div class="flex items-center gap-3">
-            <div class="text-3xl">
-              ✅
+      <template v-else-if="data?.data">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <UiCard>
+            <div class="text-center">
+              <p class="text-sm text-gray-600 dark:text-gray-300">Total Violations</p>
+              <p class="mt-1 text-3xl font-bold text-error-600 dark:text-error-400">{{ data.data.summary.totalViolations }}</p>
             </div>
-            <div>
-              <h3 class="text-lg font-semibold text-green-900">
-                No Policy Violations
-              </h3>
-              <p class="text-sm text-green-700">
-                All teams are compliant with active policies. Great work!
-              </p>
+          </UiCard>
+          <UiCard>
+            <div class="text-center">
+              <p class="text-sm text-gray-600 dark:text-gray-300">Teams Affected</p>
+              <p class="mt-1 text-3xl font-bold text-warning-600 dark:text-warning-400">{{ data.data.summary.teamsAffected }}</p>
             </div>
-          </div>
+          </UiCard>
+          <UiCard>
+            <div class="text-center">
+              <p class="text-sm text-gray-600 dark:text-gray-300">Technologies</p>
+              <p class="mt-1 text-3xl font-bold text-gray-900 dark:text-white">{{ data.data.violations.length }}</p>
+            </div>
+          </UiCard>
         </div>
 
-        <!-- Violations List -->
-        <div v-else class="space-y-4">
-          <div
-            v-for="(violation, index) in data.data"
-            :key="index"
-            class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6"
-          >
-            <!-- Violation Header -->
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex-1">
-                <div class="flex items-center gap-3 mb-2">
-                  <span
-                    :class="[
-                      'px-3 py-1 rounded-full text-xs font-semibold',
-                      violation.policy.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                      violation.policy.severity === 'error' ? 'bg-orange-100 text-orange-800' :
-                      violation.policy.severity === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                      violation.policy.severity === 'info' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    ]"
-                  >
-                    {{ violation.policy.severity }}
-                  </span>
-                  <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                    {{ violation.policy.ruleType }}
+        <UiCard v-if="data.data.summary.totalViolations === 0">
+          <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-success-600 dark:text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">No Violations!</h3>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">All technologies are properly approved.</p>
+          </div>
+        </UiCard>
+
+        <div v-else class="grid grid-cols-1 gap-6">
+          <UiCard v-for="violation in data.data.violations" :key="`${violation.team}-${violation.technology}`">
+            <template #header>
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ violation.technology }}</h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-300">{{ violation.category }}</p>
+                </div>
+                <UiBadge variant="error" size="sm">{{ violation.violationType }}</UiBadge>
+              </div>
+            </template>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-600 dark:text-gray-300">Team:</span>
+                  <span class="ml-2 text-gray-900 dark:text-white font-medium">{{ violation.team }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-600 dark:text-gray-300">Systems Affected:</span>
+                  <span class="ml-2 text-gray-900 dark:text-white font-medium">{{ violation.systemCount }}</span>
+                </div>
+              </div>
+              <div v-if="violation.systems && violation.systems.length > 0" class="text-sm">
+                <span class="text-gray-600 dark:text-gray-300">Systems:</span>
+                <div class="mt-1 flex flex-wrap gap-2">
+                  <span v-for="system in violation.systems" :key="system" class="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs">
+                    {{ system }}
                   </span>
                 </div>
-                <h3 class="text-xl font-bold text-gray-900 mb-1">
-                  {{ violation.policy.name }}
-                </h3>
-                <p class="text-gray-600 text-sm">
-                  {{ violation.policy.description }}
-                </p>
+              </div>
+              <div v-if="violation.notes" class="mt-3 p-3 bg-error-50 dark:bg-error-900/20 rounded-lg">
+                <p class="text-sm text-error-800 dark:text-error-300">{{ violation.notes }}</p>
+              </div>
+              <div v-if="violation.migrationTarget" class="mt-2 text-sm">
+                <span class="text-gray-600 dark:text-gray-300">Migration Target:</span>
+                <span class="ml-2 text-primary-600 dark:text-primary-400 font-medium">{{ violation.migrationTarget }}</span>
               </div>
             </div>
-
-            <!-- Violation Details -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-              <!-- Team -->
-              <div>
-                <div class="text-xs text-gray-500 mb-1">Team</div>
-                <NuxtLink
-                  :to="`/teams/${violation.team}`"
-                  class="text-sm font-medium text-blue-600 hover:text-blue-800"
-                >
-                  {{ violation.team }}
-                </NuxtLink>
-              </div>
-
-              <!-- Technology -->
-              <div>
-                <div class="text-xs text-gray-500 mb-1">Technology</div>
-                <div class="flex items-center gap-2">
-                  <NuxtLink
-                    :to="`/technologies/${violation.technology}`"
-                    class="text-sm font-medium text-blue-600 hover:text-blue-800"
-                  >
-                    {{ violation.technology }}
-                  </NuxtLink>
-                  <span
-                    v-if="violation.riskLevel"
-                    :class="[
-                      'px-2 py-0.5 rounded text-xs font-medium',
-                      violation.riskLevel === 'critical' ? 'bg-red-100 text-red-800' :
-                      violation.riskLevel === 'high' ? 'bg-orange-100 text-orange-800' :
-                      violation.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-green-100 text-green-800'
-                    ]"
-                  >
-                    {{ violation.riskLevel }} risk
-                  </span>
-                </div>
-                <div class="text-xs text-gray-500 mt-1">
-                  {{ violation.technologyCategory }}
-                </div>
-              </div>
-
-              <!-- Enforced By -->
-              <div>
-                <div class="text-xs text-gray-500 mb-1">Enforced By</div>
-                <div class="text-sm font-medium text-gray-900">
-                  {{ violation.policy.enforcedBy }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Action Required -->
-            <div class="mt-4 pt-4 border-t border-gray-200">
-              <div class="flex items-start gap-2">
-                <div class="text-yellow-500 mt-0.5">⚠️</div>
-                <div class="text-sm text-gray-700">
-                  <strong>Action Required:</strong> Team <strong>{{ violation.team }}</strong> must either:
-                  <ul class="list-disc list-inside mt-1 ml-4 space-y-1">
-                    <li>Approve <strong>{{ violation.technology }}</strong> for use (if compliant with policy)</li>
-                    <li>Stop using <strong>{{ violation.technology }}</strong> and migrate to an approved alternative</li>
-                    <li>Request a policy exception from <strong>{{ violation.policy.enforcedBy }}</strong></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
+          </UiCard>
         </div>
-      </div>
+      </template>
     </div>
-  </div>
+  </NuxtLayout>
 </template>
 
 <script setup lang="ts">
-interface PolicyViolation {
-  team: string
-  technology: string
-  technologyCategory: string
-  riskLevel: string
-  policy: {
-    name: string
-    description: string
-    severity: string
-    ruleType: string
-    enforcedBy: string
-  }
-}
-
-interface ViolationsResponse {
-  success: boolean
-  data: PolicyViolation[]
-  count: number
-  summary: {
-    critical: number
-    error: number
-    warning: number
-    info: number
-  }
-  error?: string
-}
-
-const { data, pending, error } = await useFetch<ViolationsResponse>('/api/policies/violations')
-
-useHead({
-  title: 'Policy Violations - Polaris'
-})
+const { data, pending, error } = await useFetch('/api/compliance/violations')
+useHead({ title: 'Violations - Polaris' })
 </script>
