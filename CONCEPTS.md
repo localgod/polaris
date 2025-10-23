@@ -65,11 +65,11 @@ Technology: React
 
 ## Component
 
-### Definition
+### Component Definition
 
 A **Component** is a **software artifact** discovered in systems through SBOM (Software Bill of Materials) scanning.
 
-### Characteristics
+### Component Characteristics
 
 - Concrete software package or dependency
 - Discovered through automated scanning
@@ -91,7 +91,7 @@ A **Component** is a **software artifact** discovered in systems through SBOM (S
 | **Approval** | Requires team approval | Validated against approved technologies (if mapped) |
 | **Relationship** | One-to-many with Components | Optional many-to-one with Technology |
 
-### Example
+### Component Example
 
 ```
 Component: react@18.2.0
