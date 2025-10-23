@@ -211,34 +211,19 @@
 <script setup lang="ts">
 const { data: dbStatus } = await useFetch('/api/db-status')
 
-// Placeholder stats - these would come from actual API calls
-const stats = ref({
-  technologies: '—',
-  systems: '—',
-  components: '—',
-  teams: '—'
-})
+// Fetch stats using useFetch for SSR support
+const { data: techData } = await useFetch('/api/technologies')
+const { data: sysData } = await useFetch('/api/systems')
+const { data: compData } = await useFetch('/api/components')
+const { data: teamData } = await useFetch('/api/teams')
 
-// Fetch actual stats
-onMounted(async () => {
-  try {
-    const [techRes, sysRes, compRes, teamRes] = await Promise.all([
-      $fetch('/api/technologies'),
-      $fetch('/api/systems'),
-      $fetch('/api/components'),
-      $fetch('/api/teams')
-    ])
-    
-    stats.value = {
-      technologies: techRes?.count || 0,
-      systems: sysRes?.count || 0,
-      components: compRes?.count || 0,
-      teams: teamRes?.count || 0
-    }
-  } catch (error) {
-    console.error('Failed to fetch stats:', error)
-  }
-})
+// Compute stats from fetched data
+const stats = computed(() => ({
+  technologies: techData.value?.count ?? 0,
+  systems: sysData.value?.count ?? 0,
+  components: compData.value?.count ?? 0,
+  teams: teamData.value?.count ?? 0
+}))
 
 useHead({
   title: 'Dashboard - Polaris'
