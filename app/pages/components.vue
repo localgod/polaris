@@ -12,8 +12,15 @@
           Components
         </h1>
         <p class="text-gray-600">
-          SBOM entries and dependencies
+          Software artifacts discovered in systems through SBOM scanning
         </p>
+        <div class="mt-4 bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
+          <p class="text-sm text-purple-900">
+            <strong>What is a Component?</strong> Components are actual software packages and dependencies 
+            (e.g., npm packages, Python libraries) discovered in your systems. They may implement governed 
+            Technologies or be transitive dependencies. Components are tracked for compliance, security, and licensing.
+          </p>
+        </div>
       </div>
 
       <!-- Loading State -->

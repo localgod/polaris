@@ -202,7 +202,7 @@ Always include meaningful notes explaining why a technology is approved or restr
 
 ### 2. Set EOL Dates
 
-For technologies in migrate or tolerate status, always set EOL dates:
+For technologies with migrate or tolerate TIME categories, always set EOL dates:
 
 ```json
 {

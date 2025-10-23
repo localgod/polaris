@@ -11,8 +11,15 @@
         </div>
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Technologies</h1>
         <p class="text-gray-600">
-          Enterprise technology catalog
+          Governed software entities requiring architectural approval and lifecycle management
         </p>
+        <div class="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+          <p class="text-sm text-blue-900">
+            <strong>What is a Technology?</strong> Technologies are strategic software choices (frameworks, databases, platforms) 
+            that require governance oversight, approval processes, and policy compliance. They differ from Components, 
+            which are actual software artifacts discovered in systems.
+          </p>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -78,9 +85,9 @@
           </div>
         </div>
 
-        <!-- Filter by Category -->
+        <!-- Filter by Technology Type -->
         <div class="bg-white rounded-lg shadow p-4 mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Category</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Technology Type</label>
           <div class="flex flex-wrap gap-2">
             <button
               :class="[
@@ -104,7 +111,7 @@
               ]"
               @click="selectedCategory = category"
             >
-              {{ category }} ({{ categoryCounts[category] }})
+              {{ getCategoryLabel(category) }} ({{ categoryCounts[category] }})
             </button>
           </div>
         </div>
@@ -120,10 +127,18 @@
             <!-- Header -->
             <div class="mb-4">
               <div class="flex items-start justify-between mb-2">
-                <div>
+                <div class="flex-1">
                   <h3 class="text-xl font-bold text-gray-900">{{ tech.name }}</h3>
                   <p class="text-sm text-gray-500">{{ tech.vendor }}</p>
                 </div>
+                <span
+                  :class="[
+                    'px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2',
+                    getCategoryColor(tech.category)
+                  ]"
+                >
+                  {{ getCategoryLabel(tech.category) }}
+                </span>
               </div>
               
               <!-- Team Approvals -->
@@ -297,6 +312,40 @@ const filteredTechnologies = computed(() => {
 })
 
 // Helper functions
+function getCategoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    'runtime': 'Runtime',
+    'framework': 'Framework',
+    'database': 'Database',
+    'cache': 'Cache',
+    'integration': 'Integration',
+    'security': 'Security',
+    'infrastructure': 'Infrastructure',
+    'container': 'Container',
+    'language': 'Language',
+    'library': 'Library',
+    'deprecated': 'Deprecated'
+  }
+  return labels[category] || category
+}
+
+function getCategoryColor(category: string): string {
+  const colors: Record<string, string> = {
+    'runtime': 'bg-purple-100 text-purple-800',
+    'framework': 'bg-blue-100 text-blue-800',
+    'database': 'bg-green-100 text-green-800',
+    'cache': 'bg-cyan-100 text-cyan-800',
+    'integration': 'bg-indigo-100 text-indigo-800',
+    'security': 'bg-red-100 text-red-800',
+    'infrastructure': 'bg-gray-100 text-gray-800',
+    'container': 'bg-slate-100 text-slate-800',
+    'language': 'bg-amber-100 text-amber-800',
+    'library': 'bg-orange-100 text-orange-800',
+    'deprecated': 'bg-red-100 text-red-800'
+  }
+  return colors[category] || 'bg-gray-100 text-gray-800'
+}
+
 function formatDate(dateString: string): string {
   if (!dateString) return 'N/A'
   try {

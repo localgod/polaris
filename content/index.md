@@ -18,17 +18,19 @@ Polaris helps organizations manage their technology landscape by:
 
 ## Quick Links
 
+### Core Concepts
+
+- [Technologies vs Components](/docs/concepts) - Understanding the key distinction
+
 ### Features
 
-- [TIME Framework](/features/time-framework)
-- [Team Approvals](/features/team-approvals)
-- [Graph Model](/architecture/graph-model)
+- [TIME Framework](/docs/features/time-framework)
+- [Team Approvals](/docs/features/team-approvals)
 
 ### Architecture
 
-- [Graph Model](/architecture/graph-model)
-- [Schema Design](/architecture/schema-design)
-- [API Endpoints](/api/endpoints)
+- [Graph Model](/docs/architecture/graph-model)
+- [API Endpoints](/docs/api/endpoints)
 
 ## TIME Framework
 
