@@ -170,6 +170,25 @@
           </div>
         </NuxtLink>
 
+        <!-- Unmapped Components -->
+        <NuxtLink 
+          to="/components/unmapped"
+          class="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow group border-l-4 border-yellow-500"
+        >
+          <div class="text-5xl mb-4">
+            🔍
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2 group-hover:text-yellow-600 transition-colors">
+            Unmapped Components
+          </h2>
+          <p class="text-gray-600 mb-4">
+            Components not yet mapped to technologies
+          </p>
+          <div class="text-yellow-600 font-semibold">
+            View Unmapped →
+          </div>
+        </NuxtLink>
+
         <!-- Documentation -->
         <NuxtLink 
           to="/docs"

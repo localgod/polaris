@@ -147,6 +147,17 @@
                 <span class="ml-2 font-medium text-gray-900">{{ system.componentCount }} components</span>
               </div>
             </div>
+
+            <!-- Actions -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+              <NuxtLink 
+                :to="`/systems/${encodeURIComponent(system.name)}/unmapped-components`"
+                class="inline-block text-sm text-yellow-600 hover:text-yellow-800 hover:underline font-medium"
+                @click.stop
+              >
+                🔍 View unmapped components
+              </NuxtLink>
+            </div>
           </div>
         </div>
       </div>
