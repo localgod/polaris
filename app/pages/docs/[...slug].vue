@@ -1,109 +1,42 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-center gap-4 mb-4">
-          <NuxtLink to="/" class="text-blue-600 hover:text-blue-800">
-            ← Back to Home
-          </NuxtLink>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <!-- Sidebar Navigation -->
-        <aside class="lg:col-span-1">
-          <div class="bg-white rounded-lg shadow p-6 sticky top-8">
-            <h2 class="text-lg font-bold text-gray-900 mb-4">Documentation</h2>
-            <nav class="space-y-1">
-              <NuxtLink
-                to="/docs"
-                class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100"
-                :class="{ 'bg-blue-50 text-blue-700': $route.path === '/docs' }"
-              >
-                Overview
-              </NuxtLink>
-
-              <div class="mt-4">
-                <h3 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Features
-                </h3>
-                <NuxtLink
-                  to="/docs/features/time-framework"
-                  class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100"
-                >
-                  TIME Framework
-                </NuxtLink>
-                <NuxtLink
-                  to="/docs/features/team-approvals"
-                  class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100"
-                >
-                  Team Approvals
-                </NuxtLink>
-              </div>
-
-              <div class="mt-4">
-                <h3 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Architecture
-                </h3>
-                <NuxtLink
-                  to="/docs/architecture/graph-model"
-                  class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100"
-                >
-                  Graph Model
-                </NuxtLink>
-              </div>
-
-              <div class="mt-4">
-                <h3 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  API
-                </h3>
-                <NuxtLink
-                  to="/docs/api/endpoints"
-                  class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100"
-                >
-                  Endpoints
-                </NuxtLink>
-              </div>
-            </nav>
+  <NuxtLayout name="default">
+    <div class="space-y-6">
+      <UiCard>
+          <!-- Loading State -->
+          <div v-if="pending" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"/>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">Loading documentation...</p>
           </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="lg:col-span-3">
-          <article class="bg-white rounded-lg shadow p-8">
-            <!-- Loading State -->
-            <div v-if="pending" class="text-center py-12">
-              <div class="text-6xl mb-4">⏳</div>
-              <p class="text-gray-600">Loading documentation...</p>
-            </div>
-            
-            <!-- Content -->
-            <div v-else-if="doc" class="prose prose-blue max-w-none">
-              <h1>{{ doc.title || 'Documentation' }}</h1>
-              <p v-if="doc.description" class="lead">{{ doc.description }}</p>
-              <ContentRenderer :value="doc" />
-            </div>
-            
-            <!-- Not Found -->
-            <div v-else class="text-center py-12">
-              <div class="text-6xl mb-4">📄</div>
-              <h2 class="text-2xl font-bold text-gray-900 mb-2">Page Not Found</h2>
-              <p class="text-gray-600 mb-4">
-                The documentation page you're looking for doesn't exist.
-              </p>
-              <NuxtLink
-                to="/docs"
-                class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Back to Documentation
-              </NuxtLink>
-            </div>
-          </article>
-        </main>
-      </div>
+          
+          <!-- Content -->
+          <div v-else-if="doc" class="prose dark:prose-invert max-w-none">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ doc.title || 'Documentation' }}</h1>
+            <p v-if="doc.description" class="text-lg text-gray-600 dark:text-gray-300 mt-2">{{ doc.description }}</p>
+            <ContentRenderer :value="doc" class="mt-6" />
+          </div>
+          
+          <!-- Not Found -->
+          <div v-else class="text-center py-12">
+            <svg class="mx-auto h-16 w-16 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h2 class="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Page Not Found</h2>
+            <p class="mt-2 text-gray-600 dark:text-gray-300">
+              The documentation page you're looking for doesn't exist.
+            </p>
+            <NuxtLink
+              to="/docs"
+              class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Documentation
+            </NuxtLink>
+          </div>
+      </UiCard>
     </div>
-  </div>
+  </NuxtLayout>
 </template>
 
 <script setup lang="ts">
@@ -131,6 +64,10 @@ useHead({
   max-width: 65ch;
 }
 
+.dark .prose {
+  color: #d1d5db;
+}
+
 .prose h1 {
   color: #111827;
   font-weight: 800;
@@ -138,6 +75,10 @@ useHead({
   margin-top: 0;
   margin-bottom: 0.8888889em;
   line-height: 1.1111111;
+}
+
+.dark .prose h1 {
+  color: #f9fafb;
 }
 
 .prose h2 {
@@ -149,6 +90,10 @@ useHead({
   line-height: 1.3333333;
 }
 
+.dark .prose h2 {
+  color: #f3f4f6;
+}
+
 .prose h3 {
   color: #111827;
   font-weight: 600;
@@ -156,6 +101,10 @@ useHead({
   margin-top: 1.6em;
   margin-bottom: 0.6em;
   line-height: 1.6;
+}
+
+.dark .prose h3 {
+  color: #e5e7eb;
 }
 
 .prose p {
@@ -169,8 +118,16 @@ useHead({
   font-weight: 500;
 }
 
+.dark .prose a {
+  color: #60a5fa;
+}
+
 .prose a:hover {
   color: #1d4ed8;
+}
+
+.dark .prose a:hover {
+  color: #93c5fd;
 }
 
 .prose code {
@@ -180,6 +137,11 @@ useHead({
   background-color: #f3f4f6;
   padding: 0.2em 0.4em;
   border-radius: 0.25rem;
+}
+
+.dark .prose code {
+  color: #e5e7eb;
+  background-color: #374151;
 }
 
 .prose pre {
@@ -237,6 +199,11 @@ useHead({
   padding-left: 1em;
 }
 
+.dark .prose blockquote {
+  color: #d1d5db;
+  border-left-color: #4b5563;
+}
+
 .prose table {
   width: 100%;
   table-layout: auto;
@@ -252,6 +219,10 @@ useHead({
   border-bottom-color: #d1d5db;
 }
 
+.dark .prose thead {
+  border-bottom-color: #4b5563;
+}
+
 .prose thead th {
   color: #111827;
   font-weight: 600;
@@ -261,14 +232,26 @@ useHead({
   padding-left: 0.5714286em;
 }
 
+.dark .prose thead th {
+  color: #f3f4f6;
+}
+
 .prose tbody tr {
   border-bottom-width: 1px;
   border-bottom-color: #e5e7eb;
 }
 
+.dark .prose tbody tr {
+  border-bottom-color: #374151;
+}
+
 .prose tbody td {
   vertical-align: baseline;
   padding: 0.5714286em;
+}
+
+.dark .prose tbody td {
+  color: #d1d5db;
 }
 
 .prose .lead {
@@ -277,5 +260,9 @@ useHead({
   line-height: 1.6;
   margin-top: 1.2em;
   margin-bottom: 1.2em;
+}
+
+.dark .prose .lead {
+  color: #9ca3af;
 }
 </style>
