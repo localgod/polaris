@@ -12,8 +12,34 @@
 
       <UiCard>
         <div class="space-y-6">
+          <!-- Setup Required Warning -->
+          <div v-if="!isConfigured" class="rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3 flex-1">
+                <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                  GitHub OAuth Not Configured
+                </h3>
+                <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+                  <p>To enable authentication, you need to:</p>
+                  <ol class="list-decimal list-inside mt-2 space-y-1">
+                    <li>Create a GitHub OAuth app at <a href="https://github.com/settings/developers" target="_blank" class="underline">github.com/settings/developers</a></li>
+                    <li>Set callback URL to: <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">http://localhost:3000/api/auth/callback/github</code></li>
+                    <li>Add credentials to <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">.env</code> file</li>
+                    <li>Restart the development server</li>
+                  </ol>
+                  <p class="mt-2">See <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">docs/SETUP_AUTH.md</code> for detailed instructions.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Info message -->
-          <div class="rounded-md bg-blue-50 dark:bg-blue-900/30 p-4">
+          <div v-else class="rounded-md bg-blue-50 dark:bg-blue-900/30 p-4">
             <div class="flex">
               <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -30,7 +56,7 @@
 
           <!-- GitHub Sign In Button -->
           <button
-            :disabled="loading"
+            :disabled="loading || !isConfigured"
             class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             @click="signInWithGithub"
           >
@@ -78,8 +104,35 @@ const { signIn } = useAuth()
 const route = useRoute()
 const loading = ref(false)
 const error = ref('')
+const isConfigured = ref(true)
+
+// Check if OAuth is configured
+onMounted(async () => {
+  try {
+    const response = await $fetch('/api/auth/providers')
+    // If we can fetch providers but get an error on sign in, OAuth is not configured
+    isConfigured.value = true
+  } catch (e) {
+    isConfigured.value = false
+  }
+  
+  // Check for error in URL
+  if (route.query.error) {
+    if (route.query.error === 'OAuthSignin') {
+      error.value = 'GitHub OAuth is not configured. Please check your environment variables.'
+      isConfigured.value = false
+    } else {
+      error.value = `Authentication error: ${route.query.error}`
+    }
+  }
+})
 
 const signInWithGithub = async () => {
+  if (!isConfigured.value) {
+    error.value = 'GitHub OAuth is not configured. Please set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your .env file.'
+    return
+  }
+  
   loading.value = true
   error.value = ''
   
