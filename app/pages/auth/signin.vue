@@ -114,10 +114,10 @@ onMounted(async () => {
   callbackUrl.value = `${baseUrl}/api/auth/callback/github`
   
   try {
-    const response = await $fetch('/api/auth/providers')
+    await $fetch('/api/auth/providers')
     // If we can fetch providers but get an error on sign in, OAuth is not configured
     isConfigured.value = true
-  } catch (e) {
+  } catch {
     isConfigured.value = false
   }
   
