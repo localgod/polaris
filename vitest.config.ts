@@ -35,6 +35,9 @@ export default defineConfig({
       NEO4J_URI: process.env.NEO4J_URI || 'bolt://localhost:7687',
       NEO4J_USERNAME: process.env.NEO4J_USERNAME || 'neo4j',
       NEO4J_PASSWORD: process.env.NEO4J_PASSWORD || 'devpassword',
+      AUTH_SECRET: process.env.AUTH_SECRET || 'test-secret-for-vitest',
+      GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID || 'test-client-id',
+      GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET || 'test-client-secret',
     },
   },
 })
