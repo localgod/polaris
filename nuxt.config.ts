@@ -10,8 +10,17 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     '@nuxt/content',
     // '@nuxt/ui', // Temporarily disabled - has compatibility issue with Nuxt 4 (@nuxtjs/color-mode@3.5.2)
-    'nuxt-neo4j'
+    'nuxt-neo4j',
+    '@sidebase/nuxt-auth'
   ],
+
+  auth: {
+    baseURL: process.env.AUTH_ORIGIN || 'http://localhost:3000/api/auth',
+    provider: {
+      type: 'authjs'
+    },
+    globalAppMiddleware: false // We'll protect specific routes/actions, not the whole app
+  },
 
   content: {
     highlight: {

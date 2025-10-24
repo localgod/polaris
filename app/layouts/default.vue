@@ -175,6 +175,53 @@
 
         <!-- Footer -->
         <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+          <!-- User Menu / Sign In -->
+          <div v-if="status === 'authenticated' && session" class="space-y-2">
+            <div class="flex items-center gap-3 px-3 py-2">
+              <img 
+                v-if="session.user?.image" 
+                :src="session.user.image" 
+                :alt="session.user.name || 'User'"
+                class="w-8 h-8 rounded-full"
+              >
+              <div v-else class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                <span class="text-sm font-medium text-primary-600 dark:text-primary-400">
+                  {{ (session.user?.name || session.user?.email || 'U')[0].toUpperCase() }}
+                </span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {{ session.user?.name || 'User' }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {{ session.user?.email }}
+                </p>
+              </div>
+            </div>
+            <button
+              class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+              @click="signOut({ callbackUrl: '/' })"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Sign Out</span>
+            </button>
+          </div>
+          <NuxtLink
+            v-else
+            to="/auth/signin"
+            class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span>Sign In</span>
+          </NuxtLink>
+
+          <!-- Divider -->
+          <div class="border-t border-gray-200 dark:border-gray-700 my-2"/>
+
           <!-- Theme Toggle -->
           <button
             class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -214,6 +261,7 @@
 
 <script setup lang="ts">
 const { isDark, initTheme, toggleTheme } = useTheme()
+const { status, data: session, signOut } = useAuth()
 const route = useRoute()
 const docsExpanded = ref(false)
 
