@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
@@ -10,8 +11,19 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     '@nuxt/content',
     // '@nuxt/ui', // Temporarily disabled - has compatibility issue with Nuxt 4 (@nuxtjs/color-mode@3.5.2)
-    'nuxt-neo4j'
+    'nuxt-neo4j',
+    '@sidebase/nuxt-auth'
   ],
+
+  auth: {
+    // baseURL will be auto-detected from request origin if not set
+    // For tests, provide a default baseURL
+    baseURL: process.env.NODE_ENV === 'test' ? 'http://localhost:3000/api/auth' : undefined,
+    provider: {
+      type: 'authjs'
+    },
+    globalAppMiddleware: false // We'll protect specific routes/actions, not the whole app
+  },
 
   content: {
     highlight: {

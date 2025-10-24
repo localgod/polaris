@@ -93,6 +93,19 @@
             <span>Violations</span>
           </NuxtLink>
 
+          <!-- Superuser-only menu items -->
+          <NuxtLink
+            v-if="session?.user?.role === 'superuser'"
+            to="/users"
+            class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+            active-class="bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span>Users</span>
+          </NuxtLink>
+
           <!-- Documentation with expandable tree -->
           <div>
             <button
@@ -175,6 +188,115 @@
 
         <!-- Footer -->
         <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+          <!-- User Menu / Sign In -->
+          <div v-if="status === 'authenticated' && session" class="space-y-2">
+            <!-- User Info Card -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-2">
+              <div class="flex items-center gap-3">
+                <img 
+                  v-if="session.user?.image" 
+                  :src="session.user.image" 
+                  :alt="session.user.name || 'User'"
+                  class="w-10 h-10 rounded-full ring-2 ring-primary-500"
+                >
+                <div v-else class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center ring-2 ring-primary-500">
+                  <span class="text-base font-medium text-primary-600 dark:text-primary-400">
+                    {{ (session.user?.name || session.user?.email || 'U')[0].toUpperCase() }}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    {{ session.user?.name || 'User' }}
+                  </p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {{ session.user?.email }}
+                  </p>
+                </div>
+              </div>
+              
+              <!-- Role Badge -->
+              <div class="flex items-center gap-2">
+                <UiBadge 
+                  :variant="session.user?.role === 'superuser' ? 'error' : 'primary'"
+                  class="text-xs"
+                >
+                  <svg v-if="session.user?.role === 'superuser'" class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                  </svg>
+                  <svg v-else class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                  </svg>
+                  {{ session.user?.role === 'superuser' ? 'Superuser' : 'User' }}
+                </UiBadge>
+                
+                <!-- Team Count -->
+                <span v-if="session.user?.teams?.length" class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ session.user.teams.length }} {{ session.user.teams.length === 1 ? 'team' : 'teams' }}
+                </span>
+                <span v-else class="text-xs text-yellow-600 dark:text-yellow-400">
+                  No teams
+                </span>
+              </div>
+
+              <!-- Teams List (if any) -->
+              <div v-if="session.user?.teams?.length" class="pt-2 border-t border-gray-200 dark:border-gray-600">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Teams:</p>
+                <div class="flex flex-wrap gap-1">
+                  <span 
+                    v-for="team in session.user.teams.slice(0, 3)" 
+                    :key="team.name"
+                    class="text-xs px-2 py-0.5 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                  >
+                    {{ team.name }}
+                  </span>
+                  <span 
+                    v-if="session.user.teams.length > 3"
+                    class="text-xs px-2 py-0.5 text-gray-500 dark:text-gray-400"
+                  >
+                    +{{ session.user.teams.length - 3 }} more
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Profile and Sign Out Buttons -->
+            <div class="space-y-1">
+              <NuxtLink
+                to="/profile"
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+                active-class="bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>Profile</span>
+              </NuxtLink>
+              
+              <button
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+                @click="signOut({ callbackUrl: '/' })"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+          <NuxtLink
+            v-else
+            to="/auth/signin"
+            class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span>Sign In</span>
+          </NuxtLink>
+
+          <!-- Divider -->
+          <div class="border-t border-gray-200 dark:border-gray-700 my-2"/>
+
           <!-- Theme Toggle -->
           <button
             class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -214,6 +336,7 @@
 
 <script setup lang="ts">
 const { isDark, initTheme, toggleTheme } = useTheme()
+const { status, data: session, signOut } = useAuth()
 const route = useRoute()
 const docsExpanded = ref(false)
 
