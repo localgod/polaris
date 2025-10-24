@@ -28,7 +28,7 @@
                   <p>To enable authentication, you need to:</p>
                   <ol class="list-decimal list-inside mt-2 space-y-1">
                     <li>Create a GitHub OAuth app at <a href="https://github.com/settings/developers" target="_blank" class="underline">github.com/settings/developers</a></li>
-                    <li>Set callback URL to: <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">http://localhost:3000/api/auth/callback/github</code></li>
+                    <li>Set callback URL to: <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded text-xs">{{ callbackUrl }}</code></li>
                     <li>Add credentials to <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">.env</code> file</li>
                     <li>Restart the development server</li>
                   </ol>
@@ -105,9 +105,14 @@ const route = useRoute()
 const loading = ref(false)
 const error = ref('')
 const isConfigured = ref(true)
+const callbackUrl = ref('')
 
 // Check if OAuth is configured
 onMounted(async () => {
+  // Get the current URL to show correct callback URL
+  const baseUrl = window.location.origin
+  callbackUrl.value = `${baseUrl}/api/auth/callback/github`
+  
   try {
     const response = await $fetch('/api/auth/providers')
     // If we can fetch providers but get an error on sign in, OAuth is not configured

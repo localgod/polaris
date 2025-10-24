@@ -12,16 +12,22 @@ Quick guide to get authentication working in your local development environment.
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click "New OAuth App"
 3. Fill in the details:
-   - **Application name**: Polaris Local Dev
-   - **Homepage URL**: `http://localhost:3000`
-   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+   - **Application name**: Polaris Local Dev (or Polaris Gitpod)
+   - **Homepage URL**: 
+     - Local: `http://localhost:3000`
+     - Gitpod: Your workspace URL (e.g., `https://3000-yourworkspace.ws-region.gitpod.io`)
+   - **Authorization callback URL**: 
+     - Local: `http://localhost:3000/api/auth/callback/github`
+     - Gitpod: `https://3000-yourworkspace.ws-region.gitpod.io/api/auth/callback/github`
 4. Click "Register application"
 5. Copy the **Client ID**
 6. Click "Generate a new client secret" and copy the **Client Secret**
 
+**Note for Gitpod:** The callback URL is shown on the sign-in page. You can also find your workspace URL in the browser address bar.
+
 ## Step 2: Configure Environment Variables
 
-1. Copy the example environment file:
+1. Copy the example environment file (if not already done):
    ```bash
    cp .env.example .env
    ```
@@ -38,6 +44,8 @@ Quick guide to get authentication working in your local development environment.
    # Add your email as superuser
    SUPERUSER_EMAILS=your.email@example.com
    ```
+
+**Note for Gitpod:** The `AUTH_ORIGIN` is automatically detected from the `GITPOD_WORKSPACE_URL` environment variable. You don't need to set it manually.
 
 ## Step 3: Run Database Migration
 
