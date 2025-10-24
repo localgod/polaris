@@ -1,8 +1,30 @@
 import { NuxtAuthHandler } from '#auth'
 import GithubProvider from 'next-auth/providers/github'
+import neo4j from 'neo4j-driver'
+
+// Create Neo4j driver instance for auth callbacks
+const driver = neo4j.driver(
+  process.env.NEO4J_URI || 'bolt://localhost:7687',
+  neo4j.auth.basic(
+    process.env.NEO4J_USERNAME || 'neo4j',
+    process.env.NEO4J_PASSWORD || 'devpassword'
+  )
+)
 
 export default NuxtAuthHandler({
   secret: process.env.AUTH_SECRET || 'replace-me-in-production',
+  
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
+  },
   
   providers: [
     // @ts-expect-error Use .default here for it to work during SSR
@@ -24,7 +46,6 @@ export default NuxtAuthHandler({
       // Fetch user role and team from database on every token refresh
       if (token.userId) {
         try {
-          const driver = useNeo4jDriver()
           const session = driver.session()
 
           try {
@@ -74,7 +95,6 @@ export default NuxtAuthHandler({
       // Create or update user in Neo4j on sign in
       if (user && account && profile) {
         try {
-          const driver = useNeo4jDriver()
           const session = driver.session()
 
           try {
@@ -90,6 +110,8 @@ export default NuxtAuthHandler({
             await session.run(
               `
               MERGE (u:User {id: $id})
+              ON CREATE SET u.createdAt = datetime(),
+                           u.role = $role
               SET u.email = $email,
                   u.name = $name,
                   u.provider = $provider,
@@ -100,8 +122,6 @@ export default NuxtAuthHandler({
                     WHEN u.role = 'superuser' THEN 'superuser'
                     ELSE u.role
                   END
-              ON CREATE SET u.createdAt = datetime(),
-                           u.role = $role
               RETURN u
               `,
               {

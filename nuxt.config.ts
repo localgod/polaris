@@ -17,7 +17,7 @@ export default defineNuxtConfig({
 
   auth: {
     // baseURL will be auto-detected from request origin if not set
-    baseURL: process.env.AUTH_ORIGIN,
+    // Do NOT set baseURL - let it auto-detect
     provider: {
       type: 'authjs'
     },

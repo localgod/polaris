@@ -13,20 +13,24 @@ Polaris uses OAuth-based authentication with team-scoped authorization.
 ## User Roles
 
 ### Anonymous (Unauthenticated)
+
 - ✅ Read all data (technologies, teams, systems, etc.)
 - ❌ No write access
 
 ### Authenticated User (No Team)
+
 - ✅ Read all data
 - ❌ No write access until assigned to a team
 - Can see their own profile
 
 ### Authorized User (Team Member)
+
 - ✅ Read all data
 - ✅ Write access to resources owned by their team(s)
 - ❌ Cannot modify other teams' resources
 
 ### Superuser
+
 - ✅ Full read/write access to all resources
 - ✅ Can manage users and team assignments
 - ✅ Can assign/remove team memberships
