@@ -1,4 +1,6 @@
-export default defineEventHandler(async () => {
+import type { ApiResponse, Team } from '~~/types/api'
+
+export default defineEventHandler(async (): Promise<ApiResponse<Team>> => {
   try {
     const driver = useDriver()
     
@@ -14,7 +16,7 @@ export default defineEventHandler(async () => {
       ORDER BY t.name
     `)
     
-    const teams = records.map(record => ({
+    const teams: Team[] = records.map(record => ({
       name: record.get('name'),
       email: record.get('email'),
       responsibilityArea: record.get('responsibilityArea'),

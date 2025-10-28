@@ -38,14 +38,8 @@ export default defineEventHandler(async (event) => {
              governedVersions
     `, { name })
     
-    if (records.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `Policy '${name}' not found`
-      })
-    }
+    const record = getFirstRecordOrThrow(records, `Policy '${name}' not found`)
     
-    const record = records[0]
     const policy = {
       name: record.get('name'),
       description: record.get('description'),

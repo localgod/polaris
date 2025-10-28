@@ -29,7 +29,7 @@
         <UiCard>
           <div class="text-center">
             <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Teams</p>
-            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ data.count }}</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ count }}</p>
           </div>
         </UiCard>
 
@@ -56,6 +56,10 @@
 </template>
 
 <script setup lang="ts">
-const { data, pending, error } = await useFetch('/api/teams')
+import type { ApiResponse, Team } from '~~/types/api'
+
+const { data, pending, error } = await useFetch<ApiResponse<Team>>('/api/teams')
+const count = useApiCount(data)
+
 useHead({ title: 'Teams - Polaris' })
 </script>

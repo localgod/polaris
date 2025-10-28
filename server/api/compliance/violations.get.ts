@@ -1,3 +1,14 @@
+interface ComplianceViolation {
+  team: string
+  technology: string
+  category: string
+  systemCount: number
+  systems: string[]
+  violationType: string
+  notes: string | null
+  migrationTarget: string | null
+}
+
 export default defineEventHandler(async () => {
   const driver = useDriver()
   
@@ -25,7 +36,7 @@ export default defineEventHandler(async () => {
       ORDER BY u.systemCount DESC, team.name, tech.name
     `)
     
-    const violations = records.map(record => ({
+    const violations: ComplianceViolation[] = records.map(record => ({
       team: record.get('team'),
       technology: record.get('technology'),
       category: record.get('category'),
@@ -38,12 +49,13 @@ export default defineEventHandler(async () => {
     
     // Group by team for summary
     const byTeam = violations.reduce((acc, v) => {
-      if (!acc[v.team]) {
-        acc[v.team] = []
+      const teamKey = v.team
+      if (!acc[teamKey]) {
+        acc[teamKey] = []
       }
-      acc[v.team].push(v)
+      acc[teamKey]?.push(v)
       return acc
-    }, {} as Record<string, typeof violations>)
+    }, {} as Record<string, ComplianceViolation[]>)
     
     return {
       success: true,

@@ -59,8 +59,7 @@
     "nuxt": "^4.2.0",
     "nuxt-neo4j": "^0.0.4",
     "typescript": "^5.9.3",
-    "vue": "^3.5.22",
-    "vue-router": "^4.6.3"
+    "vue": "^3.5.22"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.2.0",
@@ -72,7 +71,7 @@
     "@vitest/coverage-v8": "^4.0.3",
     "@vitest/ui": "^3.2.4",
     "markdownlint-cli": "^0.45.0",
-    "next-auth": "^4.24.11",
+    "next-auth": "4.21.1",
     "tsx": "^4.19.2",
     "vitest": "^4.0.3"
   }

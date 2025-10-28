@@ -30,7 +30,7 @@
           <UiCard>
             <div class="text-center">
               <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Components</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ data.count }}</p>
+              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ count }}</p>
             </div>
           </UiCard>
           <NuxtLink to="/components/unmapped">
@@ -74,6 +74,10 @@
 </template>
 
 <script setup lang="ts">
-const { data, pending, error } = await useFetch('/api/components')
+import type { ApiResponse, Component } from '~~/types/api'
+
+const { data, pending, error } = await useFetch<ApiResponse<Component>>('/api/components')
+const count = useApiCount(data)
+
 useHead({ title: 'Components - Polaris' })
 </script>

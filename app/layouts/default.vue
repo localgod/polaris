@@ -201,7 +201,7 @@
                 >
                 <div v-else class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center ring-2 ring-primary-500">
                   <span class="text-base font-medium text-primary-600 dark:text-primary-400">
-                    {{ (session.user?.name || session.user?.email || 'U')[0].toUpperCase() }}
+                    {{ ((session.user?.name || session.user?.email || 'U')[0] || 'U').toUpperCase() }}
                   </span>
                 </div>
                 <div class="flex-1 min-w-0">

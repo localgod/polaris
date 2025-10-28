@@ -30,9 +30,9 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600 dark:text-gray-300">Total Unmapped</p>
-              <p class="mt-1 text-3xl font-bold text-warning-600 dark:text-warning-400">{{ data.count }}</p>
+              <p class="mt-1 text-3xl font-bold text-warning-600 dark:text-warning-400">{{ count }}</p>
             </div>
-            <div v-if="data.count === 0" class="flex-shrink-0 w-16 h-16 rounded-full bg-success-100 dark:bg-success-900/30 flex items-center justify-center">
+            <div v-if="count === 0" class="flex-shrink-0 w-16 h-16 rounded-full bg-success-100 dark:bg-success-900/30 flex items-center justify-center">
               <svg class="w-8 h-8 text-success-600 dark:text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
@@ -40,7 +40,7 @@
           </div>
         </UiCard>
 
-        <UiCard v-if="data.count === 0">
+        <UiCard v-if="count === 0">
           <div class="text-center py-8">
             <svg class="mx-auto h-12 w-12 text-success-600 dark:text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -66,7 +66,7 @@
                     <div class="text-sm font-medium text-gray-900 dark:text-white">{{ component.name }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-600 dark:text-gray-300">{{ component.system }}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300">{{ component.systems?.join(', ') || 'None' }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <UiBadge variant="warning" size="sm">Unmapped</UiBadge>
@@ -82,6 +82,10 @@
 </template>
 
 <script setup lang="ts">
-const { data, pending, error } = await useFetch('/api/components/unmapped')
+import type { ApiResponse, UnmappedComponent } from '~~/types/api'
+
+const { data, pending, error } = await useFetch<ApiResponse<UnmappedComponent>>('/api/components/unmapped')
+const count = useApiCount(data)
+
 useHead({ title: 'Unmapped Components - Polaris' })
 </script>

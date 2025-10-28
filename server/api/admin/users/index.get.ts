@@ -1,3 +1,5 @@
+import type { Record as Neo4jRecord } from 'neo4j-driver'
+
 /**
  * List all users with their team memberships
  * Requires: Superuser access
@@ -6,7 +8,7 @@ export default defineEventHandler(async (event) => {
   // Require superuser access
   await requireSuperuser(event)
 
-  const driver = useNeo4jDriver()
+  const driver = useDriver()
   const session = driver.session()
 
   try {
@@ -24,7 +26,7 @@ export default defineEventHandler(async (event) => {
       `
     )
 
-    const users = result.records.map(record => {
+    const users = result.records.map((record: Neo4jRecord) => {
       const user = record.get('user')
       // Filter out null teams
       user.teams = user.teams.filter((t: { name: string | null }) => t.name !== null)

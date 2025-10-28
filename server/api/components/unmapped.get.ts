@@ -1,4 +1,6 @@
-export default defineEventHandler(async () => {
+import type { ApiResponse, UnmappedComponent } from '~~/types/api'
+
+export default defineEventHandler(async (): Promise<ApiResponse<UnmappedComponent>> => {
   try {
     const driver = useDriver()
 
@@ -12,17 +14,21 @@ export default defineEventHandler(async () => {
              c.packageManager as packageManager,
              c.license as license,
              c.sourceRepo as sourceRepo,
+             c.importPath as importPath,
+             c.hash as hash,
              systems,
              size(systems) as systemCount
       ORDER BY size(systems) DESC, c.name
     `)
 
-    const components = records.map(record => ({
+    const components: UnmappedComponent[] = records.map(record => ({
       name: record.get('name'),
       version: record.get('version'),
       packageManager: record.get('packageManager'),
       license: record.get('license'),
       sourceRepo: record.get('sourceRepo'),
+      importPath: record.get('importPath'),
+      hash: record.get('hash'),
       systems: record.get('systems').filter((s: string) => s),
       systemCount: record.get('systemCount').toNumber()
     }))
@@ -37,8 +43,7 @@ export default defineEventHandler(async () => {
     return {
       success: false,
       error: errorMessage,
-      data: [],
-      count: 0
+      data: []
     }
   }
 })

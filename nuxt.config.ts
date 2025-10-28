@@ -26,6 +26,9 @@ export default defineNuxtConfig({
   },
 
   content: {
+    // @ts-expect-error - Nuxt Content v3.7.1 type definitions don't include highlight property
+    // This is a valid configuration option but types are outdated
+    // See: https://content.nuxt.com/get-started/configuration#highlight
     highlight: {
       theme: {
         default: 'github-light',

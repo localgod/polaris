@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const driver = useNeo4jDriver()
+  const driver = useDriver()
   const session = driver.session()
 
   try {
@@ -80,17 +80,11 @@ export default defineEventHandler(async (event) => {
       { userId }
     )
 
-    if (result.records.length === 0) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Not Found',
-        message: 'User not found'
-      })
-    }
+    const record = getFirstRecordOrThrow(result.records, 'User not found')
 
     return {
       success: true,
-      data: result.records[0].get('user')
+      data: record.get('user')
     }
   } finally {
     await session.close()

@@ -48,14 +48,7 @@ export default defineEventHandler(async (event) => {
       { name }
     )
     
-    if (records.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `Team '${name}' not found`
-      })
-    }
-    
-    const record = records[0]
+    const record = getFirstRecordOrThrow(records, `Team '${name}' not found`)
     
     return {
       success: true,

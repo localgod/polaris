@@ -1,3 +1,5 @@
+import type { UnmappedComponent } from '~~/types/api'
+
 export default defineEventHandler(async (event) => {
   try {
     const rawName = getRouterParam(event, 'name')
@@ -39,7 +41,7 @@ export default defineEventHandler(async (event) => {
       ORDER BY c.name
     `, { systemName })
 
-    const components = records.map(record => ({
+    const components: UnmappedComponent[] = records.map(record => ({
       name: record.get('name'),
       version: record.get('version'),
       packageManager: record.get('packageManager'),

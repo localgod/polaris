@@ -137,10 +137,22 @@
 </template>
 
 <script setup lang="ts">
+import type { UnmappedComponent } from '~~/types/api'
+
 const route = useRoute()
 const systemName = route.params.name as string
 
-const { data, pending, error } = await useFetch(`/api/systems/${encodeURIComponent(systemName)}/unmapped-components`)
+interface SystemUnmappedResponse {
+  success: boolean
+  data: {
+    system: string
+    components: UnmappedComponent[]
+    count: number
+  }
+  error?: string
+}
+
+const { data, pending, error } = await useFetch<SystemUnmappedResponse>(`/api/systems/${encodeURIComponent(systemName)}/unmapped-components`)
 
 useHead({
   title: `Unmapped Components - ${systemName} - Polaris`

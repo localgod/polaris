@@ -15,7 +15,12 @@ declare module 'next-auth' {
 
   interface User {
     id: string
-    role?: string
+    provider?: string
+    role?: 'user' | 'superuser'
+    teams?: Array<{
+      name: string
+      email: string
+    }>
   }
 }
 
