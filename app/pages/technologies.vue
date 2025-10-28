@@ -36,7 +36,7 @@
           <UiCard>
             <div class="text-center">
               <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Technologies</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ data.count }}</p>
+              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ count }}</p>
             </div>
           </UiCard>
           <UiCard>
@@ -99,12 +99,10 @@
 </template>
 
 <script setup lang="ts">
-const { data, pending, error } = await useFetch('/api/technologies')
+import type { ApiResponse, Technology } from '~~/types/api'
 
-interface Technology {
-  category?: string
-  vendor?: string
-}
+const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/technologies')
+const count = useApiCount(data)
 
 const uniqueCategories = computed(() => {
   if (!data.value?.data) return []

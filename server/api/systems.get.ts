@@ -1,4 +1,6 @@
-export default defineEventHandler(async () => {
+import type { ApiResponse, System } from '~~/types/api'
+
+export default defineEventHandler(async (): Promise<ApiResponse<System>> => {
   try {
     const driver = useDriver()
     
@@ -16,7 +18,7 @@ export default defineEventHandler(async () => {
       ORDER BY s.businessCriticality DESC, s.name
     `)
     
-    const systems = records.map(record => ({
+    const systems: System[] = records.map(record => ({
       name: record.get('name'),
       domain: record.get('domain'),
       ownerTeam: record.get('ownerTeam'),

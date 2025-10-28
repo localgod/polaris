@@ -1,4 +1,6 @@
-export default defineEventHandler(async () => {
+import type { ApiResponse, Component } from '~~/types/api'
+
+export default defineEventHandler(async (): Promise<ApiResponse<Component>> => {
   try {
     const driver = useDriver()
     
@@ -18,7 +20,7 @@ export default defineEventHandler(async () => {
       ORDER BY c.packageManager, c.name
     `)
     
-    const components = records.map(record => ({
+    const components: Component[] = records.map(record => ({
       name: record.get('name'),
       version: record.get('version'),
       packageManager: record.get('packageManager'),

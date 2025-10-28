@@ -209,20 +209,28 @@
 </template>
 
 <script setup lang="ts">
+import type { ApiResponse, Technology, System, Component, Team } from '~~/types/api'
+
 const { data: dbStatus } = await useFetch('/api/db-status')
 
 // Fetch stats using useFetch for SSR support
-const { data: techData } = await useFetch('/api/technologies')
-const { data: sysData } = await useFetch('/api/systems')
-const { data: compData } = await useFetch('/api/components')
-const { data: teamData } = await useFetch('/api/teams')
+const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
+const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
+const { data: compData } = await useFetch<ApiResponse<Component>>('/api/components')
+const { data: teamData } = await useFetch<ApiResponse<Team>>('/api/teams')
+
+// Extract counts using composable
+const techCount = useApiCount(techData)
+const sysCount = useApiCount(sysData)
+const compCount = useApiCount(compData)
+const teamCount = useApiCount(teamData)
 
 // Compute stats from fetched data
 const stats = computed(() => ({
-  technologies: techData.value?.count ?? 0,
-  systems: sysData.value?.count ?? 0,
-  components: compData.value?.count ?? 0,
-  teams: teamData.value?.count ?? 0
+  technologies: techCount.value,
+  systems: sysCount.value,
+  components: compCount.value,
+  teams: teamCount.value
 }))
 
 useHead({

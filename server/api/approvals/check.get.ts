@@ -59,14 +59,7 @@ export default defineEventHandler(async (event) => {
       { team, technology, version: version || null }
     )
     
-    if (records.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `Team '${team}' or technology '${technology}' not found`
-      })
-    }
-    
-    const record = records[0]
+    const record = getFirstRecordOrThrow(records, `Team '${team}' or technology '${technology}' not found`)
     
     return {
       success: true,

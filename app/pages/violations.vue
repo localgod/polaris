@@ -103,6 +103,33 @@
 </template>
 
 <script setup lang="ts">
-const { data, pending, error } = await useFetch('/api/compliance/violations')
+interface ComplianceViolation {
+  team: string
+  technology: string
+  category: string
+  systemCount: number
+  systems: string[]
+  violationType: string
+  notes: string | null
+  migrationTarget: string | null
+}
+
+interface ViolationsResponse {
+  success: boolean
+  data: {
+    violations: ComplianceViolation[]
+    summary: {
+      totalViolations: number
+      teamsAffected: number
+      byTeam: Array<{
+        team: string
+        violationCount: number
+        systemsAffected: number
+      }>
+    }
+  }
+}
+
+const { data, pending, error } = await useFetch<ViolationsResponse>('/api/compliance/violations')
 useHead({ title: 'Violations - Polaris' })
 </script>

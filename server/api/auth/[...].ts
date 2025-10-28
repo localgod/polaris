@@ -63,8 +63,8 @@ export default NuxtAuthHandler({
               { userId: token.userId }
             )
 
-            if (result.records.length > 0) {
-              const record = result.records[0]
+            const record = result.records[0]
+            if (record) {
               token.role = record.get('role')
               token.email = record.get('email')
               token.teams = record.get('teams').filter((t: { name: string | null }) => t.name !== null)
@@ -85,7 +85,7 @@ export default NuxtAuthHandler({
       if (session.user) {
         session.user.id = token.userId as string
         session.user.provider = token.provider as string
-        session.user.role = token.role as string
+        session.user.role = (token.role as 'user' | 'superuser') || 'user'
         session.user.teams = (token.teams as Array<{ name: string; email: string }>) || []
       }
       return session

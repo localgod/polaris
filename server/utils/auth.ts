@@ -1,5 +1,6 @@
 import { getServerSession } from '#auth'
 import type { H3Event } from 'h3'
+import type { Record as Neo4jRecord } from 'neo4j-driver'
 
 /**
  * Get the current user session from the request
@@ -95,7 +96,7 @@ export async function canManageTeam(event: H3Event, teamName: string) {
   }
   
   // Check if user has CAN_MANAGE relationship with the team
-  const driver = useNeo4jDriver()
+  const driver = useDriver()
   const session = driver.session()
   
   try {
@@ -161,12 +162,12 @@ export async function getUserTeams(event: H3Event): Promise<string[]> {
   
   // Superusers have access to all teams
   if (user.role === 'superuser') {
-    const driver = useNeo4jDriver()
+    const driver = useDriver()
     const session = driver.session()
     
     try {
       const result = await session.run('MATCH (t:Team) RETURN t.name as name')
-      return result.records.map(record => record.get('name'))
+      return result.records.map((record: Neo4jRecord) => record.get('name'))
     } finally {
       await session.close()
     }
@@ -191,7 +192,7 @@ export async function validateTeamOwnership(
     return
   }
   
-  const driver = useNeo4jDriver()
+  const driver = useDriver()
   const session = driver.session()
   
   try {

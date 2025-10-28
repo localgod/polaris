@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const driver = useNeo4jDriver()
+  const driver = useDriver()
   const session = driver.session()
 
   try {
@@ -64,17 +64,11 @@ export default defineEventHandler(async (event) => {
 
     const result = await session.run(query, params)
 
-    if (result.records.length === 0) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Not Found',
-        message: 'System not found'
-      })
-    }
+    const record = getFirstRecordOrThrow(result.records, 'System not found')
 
     return {
       success: true,
-      data: result.records[0].get('system')
+      data: record.get('system')
     }
   } finally {
     await session.close()

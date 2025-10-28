@@ -1,4 +1,6 @@
-export default defineEventHandler(async (event) => {
+import type { ApiResponse, Policy } from '~~/types/api'
+
+export default defineEventHandler(async (event): Promise<ApiResponse<Policy>> => {
   try {
     const query = getQuery(event)
     const scope = query.scope as string | undefined
@@ -66,7 +68,7 @@ export default defineEventHandler(async (event) => {
     
     const { records } = await driver.executeQuery(cypher, params)
     
-    const policies = records.map(record => ({
+    const policies: Policy[] = records.map(record => ({
       name: record.get('name'),
       description: record.get('description'),
       ruleType: record.get('ruleType'),

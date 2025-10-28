@@ -1,4 +1,6 @@
-export default defineEventHandler(async () => {
+import type { ApiResponse, Technology } from '~~/types/api'
+
+export default defineEventHandler(async (): Promise<ApiResponse<Technology>> => {
   try {
     const driver = useDriver()
     
@@ -30,7 +32,7 @@ export default defineEventHandler(async () => {
       ORDER BY t.category, t.name
     `)
     
-    const technologies = records.map(record => ({
+    const technologies: Technology[] = records.map(record => ({
       name: record.get('name'),
       category: record.get('category'),
       vendor: record.get('vendor'),

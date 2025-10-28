@@ -49,7 +49,7 @@
               >
               <div v-else class="w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center ring-4 ring-primary-500">
                 <span class="text-4xl font-medium text-primary-600 dark:text-primary-400">
-                  {{ (session.user.name || session.user.email || 'U')[0].toUpperCase() }}
+                  {{ ((session.user?.name || session.user?.email || 'U')[0] || 'U').toUpperCase() }}
                 </span>
               </div>
 
