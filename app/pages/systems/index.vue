@@ -2,11 +2,22 @@
   <NuxtLayout name="default">
     <div class="space-y-6">
       <!-- Header -->
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Systems</h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          Deployable applications and services
-        </p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Systems</h1>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            Deployable applications and services
+          </p>
+        </div>
+        <NuxtLink 
+          to="/systems/new"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Create System
+        </NuxtLink>
       </div>
 
       <!-- Loading State -->
@@ -108,6 +119,16 @@
                 <span class="text-gray-600 dark:text-gray-300">Components</span>
                 <span class="font-medium text-gray-900 dark:text-white">{{ system.componentCount }}</span>
               </div>
+              
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-600 dark:text-gray-300">Repositories</span>
+                <span class="flex items-center gap-1 font-medium text-gray-900 dark:text-white">
+                  <svg v-if="system.repositoryCount > 0" class="w-4 h-4 text-success-600 dark:text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {{ system.repositoryCount }}
+                </span>
+              </div>
             </div>
 
             <template #footer>
@@ -132,11 +153,11 @@
 interface System {
   name: string
   domain: string
-  ownerTeam: string
+  ownerTeam: string | null
   businessCriticality: string
   environment: string
-  ownerTeamName: string | null
   componentCount: number
+  repositoryCount: number
 }
 
 interface SystemsResponse {
