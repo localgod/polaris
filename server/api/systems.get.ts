@@ -8,13 +8,16 @@ export default defineEventHandler(async (): Promise<ApiResponse<System>> => {
       MATCH (s:System)
       OPTIONAL MATCH (team:Team)-[:OWNS]->(s)
       OPTIONAL MATCH (s)-[:USES]->(c:Component)
+      OPTIONAL MATCH (s)-[:HAS_SOURCE_IN]->(r:Repository)
       RETURN s.name as name,
              s.domain as domain,
-             s.ownerTeam as ownerTeam,
+             team.name as ownerTeam,
              s.businessCriticality as businessCriticality,
              s.environment as environment,
-             team.name as ownerTeamName,
-             count(DISTINCT c) as componentCount
+             s.sourceCodeType as sourceCodeType,
+             s.hasSourceAccess as hasSourceAccess,
+             count(DISTINCT c) as componentCount,
+             count(DISTINCT r) as repositoryCount
       ORDER BY s.businessCriticality DESC, s.name
     `)
     
@@ -24,8 +27,10 @@ export default defineEventHandler(async (): Promise<ApiResponse<System>> => {
       ownerTeam: record.get('ownerTeam'),
       businessCriticality: record.get('businessCriticality'),
       environment: record.get('environment'),
-      ownerTeamName: record.get('ownerTeamName'),
-      componentCount: record.get('componentCount').toNumber()
+      sourceCodeType: record.get('sourceCodeType'),
+      hasSourceAccess: record.get('hasSourceAccess'),
+      componentCount: record.get('componentCount').toNumber(),
+      repositoryCount: record.get('repositoryCount').toNumber()
     }))
     
     return {

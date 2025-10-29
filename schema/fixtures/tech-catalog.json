@@ -235,18 +235,18 @@
   ],
   "policies": [
     {
-      "name": "Frontend Framework Approval",
-      "description": "All frontend frameworks must be approved by the Frontend Platform team before use in production",
+      "name": "Technology Approval Required",
+      "description": "All technologies must be explicitly approved by the responsible team before use in production systems. Verifiable by checking USES relationships against APPROVES relationships.",
       "ruleType": "approval",
       "severity": "error",
       "effectiveDate": "2025-01-01",
-      "enforcedBy": "Frontend Platform",
+      "enforcedBy": "Security",
       "scope": "organization",
       "status": "active"
     },
     {
-      "name": "Database Version Policy",
-      "description": "All databases must use versions within the approved range and not approaching EOL",
+      "name": "Database Version Compliance",
+      "description": "All database technologies must use versions within the approved version range specified in the technology catalog. Verifiable by comparing Component.version against Technology.approvedVersionRange.",
       "ruleType": "compliance",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -255,8 +255,8 @@
       "status": "active"
     },
     {
-      "name": "Deprecated Technology Warning",
-      "description": "Systems using deprecated technologies must have a migration plan",
+      "name": "Migration Target Required",
+      "description": "Technologies marked for migration (TIME status 'migrate') must have a migration target specified. Verifiable by checking APPROVES.migrationTarget property.",
       "ruleType": "compliance",
       "severity": "warning",
       "effectiveDate": "2025-01-01",
@@ -265,8 +265,8 @@
       "status": "active"
     },
     {
-      "name": "High Risk Technology Review",
-      "description": "Technologies with high or critical risk levels require quarterly security reviews",
+      "name": "High Risk Technology Approval",
+      "description": "Technologies with high or critical risk levels require explicit team approval before use. Verifiable by checking riskLevel property and APPROVES relationships.",
       "ruleType": "security",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -276,7 +276,7 @@
     },
     {
       "name": "License Compliance",
-      "description": "All components must have approved open source licenses",
+      "description": "All components must have approved open source licenses (MIT, Apache-2.0, BSD-3-Clause, ISC). Verifiable by checking Component.license property.",
       "ruleType": "compliance",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -286,7 +286,7 @@
     },
     {
       "name": "EOL Warning",
-      "description": "Components approaching EOL within 6 months must be flagged for upgrade",
+      "description": "Technology versions approaching end-of-life within 6 months must be flagged for upgrade. Verifiable by checking Version.eolDate property.",
       "ruleType": "compliance",
       "severity": "warning",
       "effectiveDate": "2025-01-01",
@@ -295,8 +295,8 @@
       "status": "active"
     },
     {
-      "name": "No Deprecated Libraries",
-      "description": "Teams must not use deprecated libraries without explicit approval",
+      "name": "No Unapproved Deprecated Technologies",
+      "description": "Teams must not use technologies marked for migration or elimination without explicit approval. Verifiable by checking APPROVES.time property against USES relationships.",
       "ruleType": "compliance",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -305,13 +305,63 @@
       "status": "active"
     },
     {
-      "name": "Experimental Technology Restriction",
-      "description": "Experimental technologies require architecture review before production use",
+      "name": "Tolerated Technology Approval",
+      "description": "Technologies in 'tolerate' status (experimental/evaluation) require explicit approval before production use. Verifiable by checking APPROVES.time='tolerate' and approval status.",
       "ruleType": "approval",
       "severity": "warning",
       "effectiveDate": "2025-01-01",
       "enforcedBy": "Security",
       "scope": "organization",
+      "status": "active"
+    },
+    {
+      "name": "Component Integrity Verification",
+      "description": "All components must have integrity hash for verification. Verifiable by checking Component.hash property is not null.",
+      "ruleType": "security",
+      "severity": "error",
+      "effectiveDate": "2025-01-15",
+      "enforcedBy": "DevOps",
+      "scope": "team",
+      "status": "active"
+    },
+    {
+      "name": "Semantic Versioning Compliance",
+      "description": "All component versions must follow semantic versioning format (X.Y.Z). Verifiable by regex pattern matching Component.version.",
+      "ruleType": "compliance",
+      "severity": "warning",
+      "effectiveDate": "2025-02-01",
+      "enforcedBy": "Backend Platform",
+      "scope": "team",
+      "status": "active"
+    },
+    {
+      "name": "Frontend Framework Approval",
+      "description": "All frontend framework technologies must be approved by Frontend Platform team. Verifiable by checking category='framework' technologies have Frontend Platform team approval.",
+      "ruleType": "approval",
+      "severity": "error",
+      "effectiveDate": "2025-01-20",
+      "enforcedBy": "Frontend Platform",
+      "scope": "team",
+      "status": "active"
+    },
+    {
+      "name": "Database Technology Governance",
+      "description": "All database technologies must be approved by Data Platform team. Verifiable by checking category='database' technologies have Data Platform team approval.",
+      "ruleType": "compliance",
+      "severity": "error",
+      "effectiveDate": "2025-01-01",
+      "enforcedBy": "Data Platform",
+      "scope": "team",
+      "status": "active"
+    },
+    {
+      "name": "Vulnerability Threshold Compliance",
+      "description": "Components with CVSS score >= 7.0 must not be used in production. Verifiable by checking Version.cvssScore property.",
+      "ruleType": "security",
+      "severity": "error",
+      "effectiveDate": "2025-01-10",
+      "enforcedBy": "Security",
+      "scope": "team",
       "status": "active"
     }
   ],
@@ -321,35 +371,101 @@
       "domain": "customer-experience",
       "ownerTeam": "Frontend Platform",
       "businessCriticality": "high",
-      "environment": "prod"
+      "environment": "prod",
+      "sourceCodeType": "proprietary",
+      "hasSourceAccess": true
     },
     {
       "name": "api-gateway",
       "domain": "platform",
       "ownerTeam": "Backend Platform",
       "businessCriticality": "critical",
-      "environment": "prod"
+      "environment": "prod",
+      "sourceCodeType": "proprietary",
+      "hasSourceAccess": true
     },
     {
       "name": "analytics-service",
       "domain": "data",
       "ownerTeam": "Data Platform",
       "businessCriticality": "medium",
-      "environment": "prod"
+      "environment": "prod",
+      "sourceCodeType": "open-source",
+      "hasSourceAccess": true
     },
     {
       "name": "admin-dashboard",
       "domain": "internal-tools",
       "ownerTeam": "Frontend Platform",
       "businessCriticality": "low",
-      "environment": "prod"
+      "environment": "prod",
+      "sourceCodeType": "proprietary",
+      "hasSourceAccess": true
     },
     {
       "name": "notification-service",
       "domain": "platform",
       "ownerTeam": "Backend Platform",
       "businessCriticality": "high",
-      "environment": "prod"
+      "environment": "prod",
+      "sourceCodeType": "proprietary",
+      "hasSourceAccess": false
+    }
+  ],
+  "repositories": [
+    {
+      "url": "https://github.com/company/customer-portal",
+      "scmType": "git",
+      "name": "customer-portal",
+      "description": "Customer-facing web portal",
+      "isPublic": false,
+      "requiresAuth": true,
+      "defaultBranch": "main"
+    },
+    {
+      "url": "https://github.com/company/customer-portal-api",
+      "scmType": "git",
+      "name": "customer-portal-api",
+      "description": "Backend API for customer portal",
+      "isPublic": false,
+      "requiresAuth": true,
+      "defaultBranch": "main"
+    },
+    {
+      "url": "https://github.com/company/api-gateway",
+      "scmType": "git",
+      "name": "api-gateway",
+      "description": "Central API gateway service",
+      "isPublic": false,
+      "requiresAuth": true,
+      "defaultBranch": "main"
+    },
+    {
+      "url": "https://github.com/company/analytics-service",
+      "scmType": "git",
+      "name": "analytics-service",
+      "description": "Analytics and reporting service",
+      "isPublic": true,
+      "requiresAuth": false,
+      "defaultBranch": "main"
+    },
+    {
+      "url": "https://github.com/company/admin-dashboard",
+      "scmType": "git",
+      "name": "admin-dashboard",
+      "description": "Internal admin dashboard",
+      "isPublic": false,
+      "requiresAuth": true,
+      "defaultBranch": "main"
+    },
+    {
+      "url": "https://svn.company.com/legacy/billing-system",
+      "scmType": "svn",
+      "name": "billing-system",
+      "description": "Legacy billing system",
+      "isPublic": false,
+      "requiresAuth": true,
+      "defaultBranch": "trunk"
     }
   ],
   "components": [
@@ -702,6 +818,50 @@
       {
         "policy": "Database Version Policy",
         "technology": "MySQL"
+      }
+    ],
+    "system_repositories": [
+      {
+        "system": "customer-portal",
+        "repository": "https://github.com/company/customer-portal"
+      },
+      {
+        "system": "customer-portal",
+        "repository": "https://github.com/company/customer-portal-api"
+      },
+      {
+        "system": "api-gateway",
+        "repository": "https://github.com/company/api-gateway"
+      },
+      {
+        "system": "analytics-service",
+        "repository": "https://github.com/company/analytics-service"
+      },
+      {
+        "system": "admin-dashboard",
+        "repository": "https://github.com/company/admin-dashboard"
+      }
+    ],
+    "team_repositories": [
+      {
+        "team": "Frontend Platform",
+        "repository": "https://github.com/company/customer-portal"
+      },
+      {
+        "team": "Backend Platform",
+        "repository": "https://github.com/company/customer-portal-api"
+      },
+      {
+        "team": "Backend Platform",
+        "repository": "https://github.com/company/api-gateway"
+      },
+      {
+        "team": "Data Platform",
+        "repository": "https://github.com/company/analytics-service"
+      },
+      {
+        "team": "Frontend Platform",
+        "repository": "https://github.com/company/admin-dashboard"
       }
     ]
   },

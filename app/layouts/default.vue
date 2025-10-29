@@ -140,6 +140,18 @@
                 Overview
               </NuxtLink>
               
+              <!-- Guides Section -->
+              <div class="mt-2">
+                <div class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Guides</div>
+                <NuxtLink
+                  to="/docs/guides/managing-repositories"
+                  class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  :class="{ 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400': $route.path === '/docs/guides/managing-repositories' }"
+                >
+                  Managing Repositories
+                </NuxtLink>
+              </div>
+              
               <!-- Features Section -->
               <div class="mt-2">
                 <div class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Features</div>

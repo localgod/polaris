@@ -56,8 +56,23 @@ export interface System {
   ownerTeam: string | null
   businessCriticality: string | null
   environment: string | null
-  ownerTeamName: string | null
+  sourceCodeType: string | null
+  hasSourceAccess: boolean | null
   componentCount: number
+  repositoryCount: number
+}
+
+export interface Repository {
+  url: string
+  scmType: string
+  name: string
+  description: string | null
+  isPublic: boolean
+  requiresAuth: boolean
+  defaultBranch: string | null
+  createdAt: string | null
+  lastSyncedAt: string | null
+  systemCount?: number
 }
 
 export interface Team {

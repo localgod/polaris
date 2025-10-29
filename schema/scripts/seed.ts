@@ -61,6 +61,17 @@ interface FixtureData {
     ownerTeam: string
     businessCriticality: string
     environment: string
+    sourceCodeType?: string
+    hasSourceAccess?: boolean
+  }>
+  repositories: Array<{
+    url: string
+    scmType: string
+    name: string
+    description?: string
+    isPublic: boolean
+    requiresAuth: boolean
+    defaultBranch?: string
   }>
   components: Array<{
     name: string
@@ -78,6 +89,8 @@ interface FixtureData {
     system_components: Array<{ system: string; component: string; version: string; packageManager: string }>
     component_technologies: Array<{ component: string; version: string; packageManager: string; technology: string }>
     policy_technologies: Array<{ policy: string; technology: string }>
+    system_repositories: Array<{ system: string; repository: string }>
+    team_repositories: Array<{ team: string; repository: string }>
   }
   approvals: {
     team_technology_approvals: Array<{
@@ -253,17 +266,64 @@ async function seedSystems(driver: neo4j.Driver, systems: FixtureData['systems']
     for (const system of systems) {
       await session.run(
         `
+        MERGE (team:Team {name: $ownerTeam})
         MERGE (s:System {name: $name})
         SET s.domain = $domain,
-            s.ownerTeam = $ownerTeam,
             s.businessCriticality = $businessCriticality,
-            s.environment = $environment
+            s.environment = $environment,
+            s.sourceCodeType = $sourceCodeType,
+            s.hasSourceAccess = $hasSourceAccess
+        MERGE (team)-[:OWNS]->(s)
         `,
-        system
+        {
+          name: system.name,
+          domain: system.domain,
+          ownerTeam: system.ownerTeam,
+          businessCriticality: system.businessCriticality,
+          environment: system.environment,
+          sourceCodeType: system.sourceCodeType || 'unknown',
+          hasSourceAccess: system.hasSourceAccess !== undefined ? system.hasSourceAccess : false
+        }
       )
     }
     
     console.log(`✅ Seeded ${systems.length} systems`)
+  } finally {
+    await session.close()
+  }
+}
+
+async function seedRepositories(driver: neo4j.Driver, repositories: FixtureData['repositories']) {
+  const session = driver.session()
+  try {
+    console.log('📦 Seeding repositories...')
+    
+    for (const repo of repositories) {
+      await session.run(
+        `
+        MERGE (r:Repository {url: $url})
+        SET r.scmType = $scmType,
+            r.name = $name,
+            r.description = $description,
+            r.isPublic = $isPublic,
+            r.requiresAuth = $requiresAuth,
+            r.defaultBranch = $defaultBranch,
+            r.createdAt = COALESCE(r.createdAt, datetime()),
+            r.lastSyncedAt = datetime()
+        `,
+        {
+          url: repo.url,
+          scmType: repo.scmType,
+          name: repo.name,
+          description: repo.description || null,
+          isPublic: repo.isPublic,
+          requiresAuth: repo.requiresAuth,
+          defaultBranch: repo.defaultBranch || null
+        }
+      )
+    }
+    
+    console.log(`✅ Seeded ${repositories.length} repositories`)
   } finally {
     await session.close()
   }
@@ -375,6 +435,40 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
       )
     }
     console.log(`✅ Created ${relationships.policy_technologies.length} policy-technology relationships`)
+    
+    // System -> Repository
+    for (const rel of relationships.system_repositories) {
+      await session.run(
+        `
+        MATCH (sys:System {name: $system})
+        MATCH (repo:Repository {url: $repository})
+        MERGE (sys)-[r:HAS_SOURCE_IN]->(repo)
+        SET r.addedAt = COALESCE(r.addedAt, datetime())
+        `,
+        {
+          system: rel.system,
+          repository: rel.repository
+        }
+      )
+    }
+    console.log(`✅ Created ${relationships.system_repositories.length} system-repository relationships`)
+    
+    // Team -> Repository
+    for (const rel of relationships.team_repositories) {
+      await session.run(
+        `
+        MATCH (team:Team {name: $team})
+        MATCH (repo:Repository {url: $repository})
+        MERGE (team)-[r:MAINTAINS]->(repo)
+        SET r.since = COALESCE(r.since, datetime())
+        `,
+        {
+          team: rel.team,
+          repository: rel.repository
+        }
+      )
+    }
+    console.log(`✅ Created ${relationships.team_repositories.length} team-repository relationships`)
     
   } finally {
     await session.close()
@@ -600,6 +694,7 @@ async function seed(options: { clear?: boolean } = {}) {
     await seedVersions(driver, fixtureData.versions)
     await seedPolicies(driver, fixtureData.policies)
     await seedSystems(driver, fixtureData.systems)
+    await seedRepositories(driver, fixtureData.repositories)
     await seedComponents(driver, fixtureData.components)
     
     console.log('')
@@ -638,8 +733,9 @@ async function seed(options: { clear?: boolean } = {}) {
         MATCH (v:Version) WITH teams, technologies, count(v) as versions
         MATCH (p:Policy) WITH teams, technologies, versions, count(p) as policies
         MATCH (s:System) WITH teams, technologies, versions, policies, count(s) as systems
-        MATCH (c:Component) WITH teams, technologies, versions, policies, systems, count(c) as components
-        RETURN teams, technologies, versions, policies, systems, components
+        MATCH (r:Repository) WITH teams, technologies, versions, policies, systems, count(r) as repositories
+        MATCH (c:Component) WITH teams, technologies, versions, policies, systems, repositories, count(c) as components
+        RETURN teams, technologies, versions, policies, systems, repositories, components
       `)
       
       if (result.records.length > 0) {
@@ -650,6 +746,7 @@ async function seed(options: { clear?: boolean } = {}) {
         console.log(`   Versions: ${record.get('versions')}`)
         console.log(`   Policies: ${record.get('policies')}`)
         console.log(`   Systems: ${record.get('systems')}`)
+        console.log(`   Repositories: ${record.get('repositories')}`)
         console.log(`   Components: ${record.get('components')}`)
         console.log('')
       }
