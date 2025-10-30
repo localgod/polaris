@@ -1,4 +1,4 @@
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
   try {
     const driver = useDriver()
     
@@ -10,20 +10,26 @@ export default defineEventHandler(async () => {
     
     if (records && records.length > 0) {
       return {
-        status: 'online',
-        message: 'Database connection successful'
+        status: 'healthy',
+        database: 'connected',
+        timestamp: new Date().toISOString()
       }
     }
     
+    setResponseStatus(event, 503)
     return {
-      status: 'offline',
-      message: 'Database query returned no results'
+      status: 'unhealthy',
+      database: 'no_results',
+      timestamp: new Date().toISOString()
     }
   } catch (error: unknown) {
+    setResponseStatus(event, 503)
     const errorMessage = error instanceof Error ? error.message : 'Database connection failed'
     return {
-      status: 'offline',
-      message: errorMessage
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: errorMessage,
+      timestamp: new Date().toISOString()
     }
   }
 })

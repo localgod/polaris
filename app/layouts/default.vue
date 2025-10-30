@@ -142,7 +142,7 @@
               
               <!-- Guides Section -->
               <div class="mt-2">
-                <div class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Guides</div>
+                
                 <NuxtLink
                   to="/docs/guides/managing-repositories"
                   class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -154,7 +154,6 @@
               
               <!-- Features Section -->
               <div class="mt-2">
-                <div class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Features</div>
                 <NuxtLink
                   to="/docs/features/time-framework"
                   class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -173,7 +172,6 @@
               
               <!-- Architecture Section -->
               <div class="mt-2">
-                <div class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Architecture</div>
                 <NuxtLink
                   to="/docs/architecture/graph-model"
                   class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -185,13 +183,19 @@
               
               <!-- API Section -->
               <div class="mt-2">
-                <div class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">API</div>
+                <NuxtLink
+                  to="/docs/api/overview"
+                  class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  :class="{ 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400': $route.path === '/docs/api/overview' }"
+                >
+                  API Overview
+                </NuxtLink>
                 <NuxtLink
                   to="/docs/api/endpoints"
                   class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   :class="{ 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400': $route.path === '/docs/api/endpoints' }"
                 >
-                  Endpoints
+                  API Endpoints
                 </NuxtLink>
               </div>
             </div>

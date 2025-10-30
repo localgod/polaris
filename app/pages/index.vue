@@ -14,10 +14,10 @@
         <div class="flex items-center gap-4">
           <div 
             class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
-            :class="dbStatus.status === 'online' ? 'bg-success-100 dark:bg-success-900/30' : 'bg-error-100 dark:bg-error-900/30'"
+            :class="dbStatus.status === 'healthy' ? 'bg-success-100 dark:bg-success-900/30' : 'bg-error-100 dark:bg-error-900/30'"
           >
             <svg 
-              v-if="dbStatus.status === 'online'" 
+              v-if="dbStatus.status === 'healthy'" 
               class="w-6 h-6 text-success-600 dark:text-success-400" 
               fill="none" 
               stroke="currentColor" 
@@ -36,10 +36,10 @@
             </svg>
           </div>
           <div class="flex-1">
-            <h3 class="text-lg font-semibold" :class="dbStatus.status === 'online' ? 'text-success-900 dark:text-success-400' : 'text-error-900 dark:text-error-400'">
-              Database {{ dbStatus.status === 'online' ? 'Connected' : 'Disconnected' }}
+            <h3 class="text-lg font-semibold" :class="dbStatus.status === 'healthy' ? 'text-success-900 dark:text-success-400' : 'text-error-900 dark:text-error-400'">
+              Database {{ dbStatus.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-300">{{ dbStatus.message }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">{{ dbStatus.database }} - {{ dbStatus.timestamp }}</p>
           </div>
         </div>
       </UiCard>
@@ -211,7 +211,7 @@
 <script setup lang="ts">
 import type { ApiResponse, Technology, System, Component, Team } from '~~/types/api'
 
-const { data: dbStatus } = await useFetch('/api/db-status')
+const { data: dbStatus } = await useFetch('/api/health')
 
 // Fetch stats using useFetch for SSR support
 const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')

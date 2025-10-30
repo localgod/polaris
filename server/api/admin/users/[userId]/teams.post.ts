@@ -82,6 +82,7 @@ export default defineEventHandler(async (event) => {
 
     const record = getFirstRecordOrThrow(result.records, 'User not found')
 
+    setResponseStatus(event, 200)
     return {
       success: true,
       data: record.get('user')

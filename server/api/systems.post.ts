@@ -28,31 +28,28 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
     
     // Validate required fields
     if (!body.name || !body.domain || !body.ownerTeam || !body.businessCriticality || !body.environment) {
-      return {
-        success: false,
-        error: 'Missing required fields',
-        data: []
-      }
+      throw createError({
+        statusCode: 400,
+        message: 'Missing required fields'
+      })
     }
 
     // Validate businessCriticality
     const validCriticalities = ['critical', 'high', 'medium', 'low']
     if (!validCriticalities.includes(body.businessCriticality)) {
-      return {
-        success: false,
-        error: 'Invalid business criticality value',
-        data: []
-      }
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
+      })
     }
 
     // Validate environment
     const validEnvironments = ['dev', 'test', 'staging', 'prod']
     if (!validEnvironments.includes(body.environment)) {
-      return {
-        success: false,
-        error: 'Invalid environment value',
-        data: []
-      }
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
+      })
     }
 
     const driver = useDriver()
@@ -64,11 +61,10 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
     `, { name: body.name })
 
     if (checkResult.records.length > 0) {
-      return {
-        success: false,
-        error: 'A system with this name already exists',
-        data: []
-      }
+      throw createError({
+        statusCode: 409,
+        message: `A system with the name '${body.name}' already exists`
+      })
     }
 
     // Derive source code properties from repositories
@@ -132,6 +128,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
       }
     }
 
+    setResponseStatus(event, 201)
     return {
       success: true,
       data: [{
