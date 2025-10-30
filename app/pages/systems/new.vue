@@ -466,8 +466,22 @@ async function handleSubmit() {
       errorMessage.value = response.error || 'Failed to create system'
     }
   } catch (error: unknown) {
-    const err = error as { data?: { error?: string }, message?: string }
-    errorMessage.value = err.data?.error || err.message || 'An unexpected error occurred'
+    const err = error as { 
+      statusCode?: number
+      data?: { message?: string, error?: string }
+      message?: string 
+    }
+    
+    // Handle specific status codes
+    if (err.statusCode === 409) {
+      errorMessage.value = err.data?.message || 'A system with this name already exists'
+    } else if (err.statusCode === 422) {
+      errorMessage.value = err.data?.message || 'Invalid input data. Please check your entries.'
+    } else if (err.statusCode === 400) {
+      errorMessage.value = err.data?.message || 'Missing required fields'
+    } else {
+      errorMessage.value = err.data?.message || err.message || 'An unexpected error occurred'
+    }
   } finally {
     isSubmitting.value = false
   }

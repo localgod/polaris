@@ -11,13 +11,15 @@ import { apiGet, checkServerHealth } from '../helpers/api-client'
  * Alternative: Use exec_preview or start server programmatically in CI
  */
 
-interface DbStatusResponse {
+interface HealthResponse {
   status: string
-  message: string
+  database: string
+  timestamp: string
+  error?: string
 }
 
 Feature('API Health Check', ({ Scenario }) => {
-  let response: DbStatusResponse
+  let response: HealthResponse
   let serverRunning = false
 
   beforeAll(async () => {
@@ -29,7 +31,7 @@ Feature('API Health Check', ({ Scenario }) => {
     }
   })
 
-  Scenario('Database status endpoint returns a response', ({ Given, When, Then, And }) => {
+  Scenario('Health endpoint returns a response', ({ Given, When, Then, And }) => {
     Given('the API server is running', () => {
       // Skip test gracefully if server not running
       if (!serverRunning) {
@@ -39,9 +41,9 @@ Feature('API Health Check', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    When('I request the database status endpoint', async () => {
+    When('I request the health endpoint', async () => {
       if (!serverRunning) return
-      response = await apiGet('/api/db-status')
+      response = await apiGet('/api/health')
     })
 
     Then('I should receive a response', () => {
@@ -54,13 +56,18 @@ Feature('API Health Check', ({ Scenario }) => {
       expect(response).toHaveProperty('status')
     })
 
-    And('the response should have a message field', () => {
+    And('the response should have a database field', () => {
       if (!serverRunning) return
-      expect(response).toHaveProperty('message')
+      expect(response).toHaveProperty('database')
+    })
+
+    And('the response should have a timestamp field', () => {
+      if (!serverRunning) return
+      expect(response).toHaveProperty('timestamp')
     })
   })
 
-  Scenario('Database status endpoint returns valid status', ({ Given, When, Then }) => {
+  Scenario('Health endpoint returns valid status', ({ Given, When, Then }) => {
     Given('the API server is running', () => {
       if (!serverRunning) {
         console.log('   ⏭️  Skipping - server not available')
@@ -69,14 +76,14 @@ Feature('API Health Check', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    When('I request the database status endpoint', async () => {
+    When('I request the health endpoint', async () => {
       if (!serverRunning) return
-      response = await apiGet('/api/db-status')
+      response = await apiGet('/api/health')
     })
 
-    Then('the status field should be either "online" or "offline"', () => {
+    Then('the status field should be either "healthy" or "unhealthy"', () => {
       if (!serverRunning) return
-      expect(['online', 'offline']).toContain(response.status)
+      expect(['healthy', 'unhealthy']).toContain(response.status)
     })
   })
 })
