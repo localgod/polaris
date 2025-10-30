@@ -71,7 +71,7 @@
     "@vitest/coverage-v8": "^4.0.3",
     "@vitest/ui": "^3.2.4",
     "markdownlint-cli": "^0.45.0",
-    "next-auth": "4.21.1",
+    "next-auth": "4.24.12",
     "tsx": "^4.19.2",
     "vitest": "^4.0.3"
   }
