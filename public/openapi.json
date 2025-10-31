@@ -1,0 +1,2880 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Polaris API",
+    "version": "2.0.0",
+    "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "contact": {
+      "name": "Polaris",
+      "url": "https://github.com/localgod/polaris"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "Systems",
+      "description": "System management endpoints"
+    },
+    {
+      "name": "Components",
+      "description": "Component management endpoints"
+    },
+    {
+      "name": "Technologies",
+      "description": "Technology catalog endpoints"
+    },
+    {
+      "name": "Teams",
+      "description": "Team management endpoints"
+    },
+    {
+      "name": "Policies",
+      "description": "Policy and compliance endpoints"
+    },
+    {
+      "name": "Repositories",
+      "description": "Repository management endpoints"
+    },
+    {
+      "name": "Users",
+      "description": "User management endpoints"
+    },
+    {
+      "name": "Approvals",
+      "description": "Technology approval endpoints"
+    },
+    {
+      "name": "Admin",
+      "description": "Administrative endpoints"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session-based authentication using HTTP cookies"
+      }
+    },
+    "schemas": {
+      "ApiSuccessResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "count"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {}
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "error",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          }
+        }
+      },
+      "Component": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "packageManager": {
+            "type": "string",
+            "nullable": true
+          },
+          "license": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceRepo": {
+            "type": "string",
+            "nullable": true
+          },
+          "importPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "hash": {
+            "type": "string"
+          },
+          "technologyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "systemCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "Technology": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedVersionRange": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerTeam": {
+            "type": "string",
+            "nullable": true
+          },
+          "riskLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastReviewed": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerTeamName": {
+            "type": "string",
+            "nullable": true
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "approvals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TechnologyApproval"
+            }
+          }
+        }
+      },
+      "TechnologyApproval": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "approvedAt": {
+            "type": "string"
+          },
+          "deprecatedAt": {
+            "type": "string"
+          },
+          "eolDate": {
+            "type": "string"
+          },
+          "migrationTarget": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "versionConstraint": {
+            "type": "string"
+          }
+        }
+      },
+      "System": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerTeam": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessCriticality": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low"
+            ],
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "dev",
+              "test",
+              "staging",
+              "prod"
+            ],
+            "nullable": true
+          },
+          "sourceCodeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasSourceAccess": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "componentCount": {
+            "type": "integer"
+          },
+          "repositoryCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "Repository": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "scmType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPublic": {
+            "type": "boolean"
+          },
+          "requiresAuth": {
+            "type": "boolean"
+          },
+          "defaultBranch": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "systemCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsibilityArea": {
+            "type": "string",
+            "nullable": true
+          },
+          "technologyCount": {
+            "type": "integer"
+          },
+          "systemCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "Policy": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "ruleType": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "enforcedBy": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "enforcerTeam": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectTeams": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "governedTechnologies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "technologyCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "Violation": {
+        "type": "object",
+        "properties": {
+          "violationId": {
+            "type": "string"
+          },
+          "policyName": {
+            "type": "string"
+          },
+          "systemName": {
+            "type": "string"
+          },
+          "componentName": {
+            "type": "string"
+          },
+          "componentVersion": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "detectedAt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "unhealthy"
+            ]
+          },
+          "database": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/admin/users/{userId}/teams": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Assign user to teams",
+        "description": "Assigns a user to one or more teams, replacing existing team memberships.\n\n**Authorization:** Superuser\n\n**Behavior:**\n- Removes all existing team memberships\n- Creates new memberships for specified teams\n- Optionally grants team management permissions\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "User ID"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "teams"
+                ],
+                "properties": {
+                  "teams": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Array of team names"
+                  },
+                  "canManage": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Array of team names user can manage (optional)"
+                  }
+                }
+              },
+              "example": {
+                "teams": [
+                  "frontend-team",
+                  "platform-team"
+                ],
+                "canManage": [
+                  "frontend-team"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User teams updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "teams": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "canManage": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "User ID or teams array is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List all users",
+        "description": "Retrieves all users with their team memberships and management permissions.\n\n**Authorization:** Superuser\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/User"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "teams": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "email": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "canManage": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": "user123",
+                      "name": "John Doe",
+                      "email": "john@example.com",
+                      "teams": [
+                        {
+                          "name": "frontend-team",
+                          "email": "frontend@example.com"
+                        }
+                      ],
+                      "canManage": [
+                        "frontend-team"
+                      ]
+                    }
+                  ],
+                  "count": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          }
+        }
+      }
+    },
+    "/approvals": {
+      "get": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Check technology approval status",
+        "description": "Checks if a technology (and optionally a specific version) is approved for a team.\n\n**Approval Hierarchy:**\n1. Version-specific approval (highest priority) - `level: \"version\"`\n2. Technology-level approval - `level: \"technology\"`\n3. Default (not approved) - `level: \"default\"`, `time: \"eliminate\"`\n\n**TIME Framework Values:**\n- `adopt` - Recommended for use\n- `trial` - Experimental use allowed\n- `assess` - Under evaluation\n- `hold` - Do not use for new projects\n- `eliminate` - Must be removed\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "team",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Team name",
+            "example": "frontend-team"
+          },
+          {
+            "in": "query",
+            "name": "technology",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name",
+            "example": "react"
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Specific version to check",
+            "example": "18.2.0"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approval status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "team": {
+                          "type": "string"
+                        },
+                        "technology": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        },
+                        "vendor": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "approval": {
+                          "type": "object",
+                          "properties": {
+                            "level": {
+                              "type": "string",
+                              "enum": [
+                                "version",
+                                "technology",
+                                "default"
+                              ]
+                            },
+                            "time": {
+                              "type": "string",
+                              "enum": [
+                                "adopt",
+                                "trial",
+                                "assess",
+                                "hold",
+                                "eliminate"
+                              ]
+                            },
+                            "approvedAt": {
+                              "type": "string"
+                            },
+                            "approvedBy": {
+                              "type": "string"
+                            },
+                            "notes": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "team": "frontend-team",
+                    "technology": "react",
+                    "category": "framework",
+                    "vendor": "Meta",
+                    "version": "18.2.0",
+                    "approval": {
+                      "level": "version",
+                      "time": "adopt",
+                      "approvedAt": "2024-01-15T10:00:00Z",
+                      "approvedBy": "architecture-team",
+                      "notes": "Approved for production use"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Team and technology parameters are required"
+          },
+          "404": {
+            "description": "Team or technology not found"
+          }
+        }
+      }
+    },
+    "/auth/{provider}": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "OAuth authentication endpoints",
+        "description": "NextAuth.js authentication endpoints for OAuth providers.\n\n**Available Providers:**\n- GitHub OAuth\n\n**Endpoints:**\n- `GET /api/auth/signin` - Sign in page\n- `GET /api/auth/signout` - Sign out\n- `GET /api/auth/callback/{provider}` - OAuth callback\n- `GET /api/auth/session` - Get current session\n- `GET /api/auth/csrf` - Get CSRF token\n- `GET /api/auth/providers` - List available providers\n\n**Authorization Levels:**\n- `user` - Default role for authenticated users\n- `superuser` - Admin role (configured via SUPERUSER_EMAILS env var)\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "OAuth provider name (e.g., \"github\")"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authentication response"
+          },
+          "302": {
+            "description": "Redirect to OAuth provider or callback"
+          }
+        }
+      }
+    },
+    "/compliance/violations": {
+      "get": {
+        "tags": [
+          "Compliance"
+        ],
+        "summary": "Get compliance violations",
+        "description": "Retrieves all compliance violations across the organization.\n\nA compliance violation occurs when:\n- A team uses a technology without approval (unapproved)\n- A team uses a technology marked for elimination (eliminated)\n\nResults include affected systems and migration targets where applicable.\n",
+        "responses": {
+          "200": {
+            "description": "Compliance violations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "violations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "team": {
+                                "type": "string"
+                              },
+                              "technology": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "systemCount": {
+                                "type": "integer"
+                              },
+                              "systems": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "violationType": {
+                                "type": "string",
+                                "enum": [
+                                  "unapproved",
+                                  "eliminated"
+                                ]
+                              },
+                              "notes": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "migrationTarget": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "totalViolations": {
+                              "type": "integer"
+                            },
+                            "teamsAffected": {
+                              "type": "integer"
+                            },
+                            "byTeam": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "team": {
+                                    "type": "string"
+                                  },
+                                  "violationCount": {
+                                    "type": "integer"
+                                  },
+                                  "systemsAffected": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "violations": [
+                      {
+                        "team": "frontend-team",
+                        "technology": "jQuery",
+                        "category": "library",
+                        "systemCount": 3,
+                        "systems": [
+                          "web-portal",
+                          "admin-dashboard"
+                        ],
+                        "violationType": "eliminated",
+                        "notes": "Migrate to modern framework",
+                        "migrationTarget": "React"
+                      }
+                    ],
+                    "summary": {
+                      "totalViolations": 1,
+                      "teamsAffected": 1,
+                      "byTeam": [
+                        {
+                          "team": "frontend-team",
+                          "violationCount": 1,
+                          "systemsAffected": 3
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch compliance violations"
+          }
+        }
+      }
+    },
+    "/components": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "List all components",
+        "description": "Retrieves a list of all components with their metadata and system usage counts",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved components",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Component"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch components",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/components/unmapped": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Get all unmapped components",
+        "description": "Retrieves all components across all systems that are not mapped to a known technology.\n\nResults are ordered by system count (most used first) to help prioritize mapping efforts.\n\n**Use Cases:**\n- Identify components that need technology mapping\n- Find widely-used internal libraries\n- Discover shadow IT or unapproved dependencies\n",
+        "responses": {
+          "200": {
+            "description": "Unmapped components retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/UnmappedComponent"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "systems": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "systemCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "name": "@company/internal-ui",
+                      "version": "2.1.0",
+                      "packageManager": "npm",
+                      "license": "proprietary",
+                      "systems": [
+                        "web-portal",
+                        "admin-dashboard",
+                        "mobile-api"
+                      ],
+                      "systemCount": 3
+                    }
+                  ],
+                  "count": 1
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch unmapped components"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check endpoint",
+        "description": "Checks the health of the API and database connectivity",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "healthy",
+                  "database": "connected",
+                  "timestamp": "2025-10-30T13:00:00.000Z"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service is unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "unhealthy",
+                  "database": "disconnected",
+                  "error": "Database connection failed",
+                  "timestamp": "2025-10-30T13:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/policies": {
+      "get": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "List all policies",
+        "description": "Retrieves a list of all policies with optional filtering",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by policy scope"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by policy status"
+          },
+          {
+            "in": "query",
+            "name": "enforcedBy",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by enforcement mechanism"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved policies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Policy"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch policies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/policies/{name}": {
+      "delete": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "Delete a policy",
+        "description": "Deletes a policy and all its relationships.\n\n**Authorization:** Superuser\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Policy name"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Policy deleted successfully"
+          },
+          "400": {
+            "description": "Policy name is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Policy not found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "Get policy details",
+        "description": "Retrieves detailed information about a specific policy including:\n- Policy metadata and rules\n- Enforcing team\n- Teams subject to the policy\n- Technologies and versions governed by the policy\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Policy name",
+            "example": "react-version-policy"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Policy details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Policy"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "enforcerTeam": {
+                              "type": "string"
+                            },
+                            "subjectTeams": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "governedTechnologies": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "governedVersions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "technology": {
+                                    "type": "string"
+                                  },
+                                  "version": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "name": "react-version-policy",
+                    "description": "All React versions must be 18.x or higher",
+                    "ruleType": "version-constraint",
+                    "severity": "high",
+                    "status": "active",
+                    "enforcerTeam": "frontend-platform",
+                    "subjectTeams": [
+                      "frontend-team",
+                      "mobile-team"
+                    ],
+                    "governedTechnologies": [
+                      "React"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Policy name is required"
+          },
+          "404": {
+            "description": "Policy not found"
+          },
+          "500": {
+            "description": "Failed to fetch policy"
+          }
+        }
+      }
+    },
+    "/policies/violations": {
+      "get": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "Get policy violations",
+        "description": "Retrieves all policy violations across the organization.\n\nA violation occurs when:\n- A team uses a technology (USES relationship)\n- The team does not have approval for that technology (no APPROVES relationship)\n- An active policy governs that technology\n- The team is subject to that policy\n\nResults are ordered by severity (critical first) then by team and technology name.\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "critical",
+                "error",
+                "warning",
+                "info"
+              ]
+            },
+            "description": "Filter by policy severity"
+          },
+          {
+            "in": "query",
+            "name": "team",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by team name"
+          },
+          {
+            "in": "query",
+            "name": "technology",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by technology name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Policy violations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "team": {
+                            "type": "string"
+                          },
+                          "technology": {
+                            "type": "string"
+                          },
+                          "technologyCategory": {
+                            "type": "string"
+                          },
+                          "riskLevel": {
+                            "type": "string"
+                          },
+                          "policy": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "severity": {
+                                "type": "string"
+                              },
+                              "ruleType": {
+                                "type": "string"
+                              },
+                              "enforcedBy": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "critical": {
+                          "type": "integer"
+                        },
+                        "error": {
+                          "type": "integer"
+                        },
+                        "warning": {
+                          "type": "integer"
+                        },
+                        "info": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "team": "frontend-team",
+                      "technology": "jQuery",
+                      "technologyCategory": "library",
+                      "riskLevel": "medium",
+                      "policy": {
+                        "name": "deprecated-libraries",
+                        "description": "Deprecated libraries must not be used",
+                        "severity": "error",
+                        "ruleType": "deprecation",
+                        "enforcedBy": "architecture-team"
+                      }
+                    }
+                  ],
+                  "count": 1,
+                  "summary": {
+                    "critical": 0,
+                    "error": 1,
+                    "warning": 0,
+                    "info": 0
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch policy violations"
+          }
+        }
+      }
+    },
+    "/repositories": {
+      "get": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "List all repositories",
+        "description": "Retrieves a list of all repositories with their metadata and system counts",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved repositories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Repository"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch repositories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/systems": {
+      "get": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "List all systems",
+        "description": "Retrieves a list of all systems with their metadata, component counts, and repository counts",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved systems",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/System"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch systems",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Create a new system",
+        "description": "Creates a new system with optional repositories",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "domain",
+                  "ownerTeam",
+                  "businessCriticality",
+                  "environment"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique system name"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "description": "Business domain"
+                  },
+                  "ownerTeam": {
+                    "type": "string",
+                    "description": "Team that owns this system"
+                  },
+                  "businessCriticality": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ],
+                    "description": "Business criticality level"
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "dev",
+                      "test",
+                      "staging",
+                      "prod"
+                    ],
+                    "description": "Environment type"
+                  },
+                  "repositories": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "url",
+                        "scmType",
+                        "name",
+                        "isPublic",
+                        "requiresAuth"
+                      ],
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        },
+                        "scmType": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "isPublic": {
+                          "type": "boolean"
+                        },
+                        "requiresAuth": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "System created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "System already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid field values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/systems/{name}": {
+      "delete": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Delete a system",
+        "description": "Deletes a system and all its relationships (requires authorization and team ownership)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "System deleted successfully"
+          },
+          "400": {
+            "description": "System name is required"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - user's team does not own this system"
+          },
+          "404": {
+            "description": "System not found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Get system by name",
+        "description": "Retrieves detailed information about a specific system",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "System found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/System"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "System name is required"
+          },
+          "404": {
+            "description": "System not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Partially update a system",
+        "description": "Updates specific fields of a system. Only provided fields are updated.\n\n**Authorization:** Team Owner - User must belong to the team that owns the system\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "businessCriticality": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "dev",
+                      "test",
+                      "staging",
+                      "prod"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "description": "Customer-facing web portal",
+                "businessCriticality": "critical",
+                "environment": "prod"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "System updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "System name is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "User does not belong to team that owns this system"
+          },
+          "404": {
+            "description": "System not found"
+          },
+          "422": {
+            "description": "Validation error - invalid field values"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Fully update/replace a system",
+        "description": "Replaces all system fields. All required fields must be provided.\n\n**Authorization:** Team Owner - User must belong to the team that owns the system\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "domain",
+                  "ownerTeam",
+                  "businessCriticality",
+                  "environment"
+                ],
+                "properties": {
+                  "domain": {
+                    "type": "string"
+                  },
+                  "ownerTeam": {
+                    "type": "string"
+                  },
+                  "businessCriticality": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "dev",
+                      "test",
+                      "staging",
+                      "prod"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "domain": "customer-experience",
+                "ownerTeam": "frontend-team",
+                "businessCriticality": "critical",
+                "environment": "prod",
+                "description": "Customer-facing web portal"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "System updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "System name is required or missing required fields"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "User does not belong to team that owns this system"
+          },
+          "404": {
+            "description": "System not found"
+          },
+          "422": {
+            "description": "Validation error - invalid field values"
+          }
+        }
+      }
+    },
+    "/systems/{name}/unmapped-components": {
+      "get": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Get unmapped components for a system",
+        "description": "Retrieves all components used by a system that are not mapped to a known technology.\n\nThese components need manual review to determine if they should be:\n- Mapped to an existing technology\n- Added as a new technology\n- Marked as internal/proprietary\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name",
+            "example": "web-portal"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unmapped components retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "system": {
+                          "type": "string"
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UnmappedComponent"
+                          }
+                        },
+                        "count": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "system": "web-portal",
+                    "components": [
+                      {
+                        "name": "@company/internal-ui",
+                        "version": "2.1.0",
+                        "packageManager": "npm",
+                        "license": "proprietary"
+                      }
+                    ],
+                    "count": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "System name is required"
+          },
+          "404": {
+            "description": "System not found"
+          },
+          "500": {
+            "description": "Failed to fetch unmapped components"
+          }
+        }
+      }
+    },
+    "/teams": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "List all teams",
+        "description": "Retrieves a list of all teams with their technology and system counts",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved teams",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Team"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch teams",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams/{name}": {
+      "delete": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Delete a team",
+        "description": "Deletes a team and all its relationships. Requires superuser access.\n\n**Authorization:** Superuser\n\n**Business Rules:**\n- Team cannot be deleted if it owns any systems\n- All systems must be reassigned or deleted first\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Team name"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Team deleted successfully"
+          },
+          "400": {
+            "description": "Team name is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Team not found"
+          },
+          "409": {
+            "description": "Cannot delete team that owns systems",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 409,
+                  "message": "Cannot delete team 'frontend-team' because it owns 3 system(s). Please reassign or delete the systems first."
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get team details",
+        "description": "Retrieves detailed information about a specific team including technology ownership, system ownership, and member count",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Team name",
+            "example": "frontend-team"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Team"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "usedTechnologyCount": {
+                              "type": "integer"
+                            },
+                            "memberCount": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "name": "frontend-team",
+                    "email": "frontend@example.com",
+                    "responsibilityArea": "Web Applications",
+                    "technologyCount": 15,
+                    "systemCount": 8,
+                    "usedTechnologyCount": 20,
+                    "memberCount": 5
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Team name is required"
+          },
+          "404": {
+            "description": "Team not found"
+          }
+        }
+      }
+    },
+    "/teams/{name}/approvals": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get team approvals",
+        "description": "Retrieves all technology approvals for a specific team.\n\nReturns both technology-level and version-specific approvals with TIME framework values.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Team name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team approvals retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "team": {
+                          "type": "string"
+                        },
+                        "approvals": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "team": "frontend-team",
+                    "approvals": [
+                      {
+                        "technology": "react",
+                        "category": "framework",
+                        "time": "adopt",
+                        "approvedAt": "2024-01-15T10:00:00Z",
+                        "approvedBy": "architecture-team",
+                        "notes": "Approved for all new projects"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Team name is required"
+          },
+          "404": {
+            "description": "Team not found"
+          }
+        }
+      }
+    },
+    "/teams/{name}/policies": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get team policies",
+        "description": "Retrieves policies enforced by and applicable to a specific team.\n\nReturns two categories:\n- **Enforced**: Policies this team is responsible for enforcing\n- **Subject To**: Policies that apply to this team\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Team name",
+            "example": "frontend-team"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team policies retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "team": {
+                          "type": "string"
+                        },
+                        "enforced": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Policy"
+                          }
+                        },
+                        "subjectTo": {
+                          "type": "array",
+                          "items": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/Policy"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "enforcedBy": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "enforcedCount": {
+                          "type": "integer"
+                        },
+                        "subjectToCount": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "team": "frontend-team",
+                    "enforced": [
+                      {
+                        "name": "react-version-policy",
+                        "description": "All React versions must be 18.x or higher",
+                        "ruleType": "version-constraint",
+                        "severity": "high",
+                        "status": "active"
+                      }
+                    ],
+                    "subjectTo": [
+                      {
+                        "name": "security-scanning-policy",
+                        "description": "All systems must have security scanning enabled",
+                        "ruleType": "security",
+                        "severity": "critical",
+                        "status": "active",
+                        "enforcedBy": "security-team"
+                      }
+                    ],
+                    "enforcedCount": 1,
+                    "subjectToCount": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Team name is required"
+          },
+          "500": {
+            "description": "Failed to fetch team policies"
+          }
+        }
+      }
+    },
+    "/teams/{name}/usage": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Get team technology usage",
+        "description": "Retrieves all technologies used by a team with usage statistics and compliance status.\n\n**Compliance Status:**\n- `compliant`: Technology is approved (invest/tolerate)\n- `unapproved`: No approval exists\n- `migration-needed`: Technology is marked for migration\n- `violation`: Technology is marked for elimination\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Team name",
+            "example": "frontend-team"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team usage retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "team": {
+                          "type": "string"
+                        },
+                        "usage": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "technology": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "vendor": {
+                                "type": "string"
+                              },
+                              "systemCount": {
+                                "type": "integer"
+                              },
+                              "firstUsed": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "lastVerified": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "approvalStatus": {
+                                "type": "string",
+                                "enum": [
+                                  "invest",
+                                  "tolerate",
+                                  "migrate",
+                                  "eliminate"
+                                ]
+                              },
+                              "complianceStatus": {
+                                "type": "string",
+                                "enum": [
+                                  "compliant",
+                                  "unapproved",
+                                  "migration-needed",
+                                  "violation",
+                                  "unknown"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "totalTechnologies": {
+                              "type": "integer"
+                            },
+                            "compliant": {
+                              "type": "integer"
+                            },
+                            "unapproved": {
+                              "type": "integer"
+                            },
+                            "violations": {
+                              "type": "integer"
+                            },
+                            "migrationNeeded": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "team": "frontend-team",
+                    "usage": [
+                      {
+                        "technology": "React",
+                        "category": "framework",
+                        "vendor": "Meta",
+                        "systemCount": 8,
+                        "firstUsed": "2023-01-15",
+                        "lastVerified": "2025-10-20",
+                        "approvalStatus": "invest",
+                        "complianceStatus": "compliant"
+                      }
+                    ],
+                    "summary": {
+                      "totalTechnologies": 15,
+                      "compliant": 12,
+                      "unapproved": 2,
+                      "violations": 0,
+                      "migrationNeeded": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Team name is required"
+          },
+          "500": {
+            "description": "Failed to fetch team usage"
+          }
+        }
+      }
+    },
+    "/technologies": {
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "List all technologies",
+        "description": "Retrieves a list of all technologies with their versions and approvals",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved technologies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Technology"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch technologies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/technologies/{name}": {
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Get technology details",
+        "description": "Retrieves detailed information about a specific technology including versions, components, systems, policies, and approvals.\n\nReturns comprehensive data about:\n- Technology metadata (category, vendor, risk level)\n- All versions with release and EOL dates\n- Components using this technology\n- Systems that depend on it\n- Applicable policies\n- Technology-level and version-specific approvals\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name (e.g., \"React\", \"PostgreSQL\")",
+            "example": "React"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Technology details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        },
+                        "vendor": {
+                          "type": "string"
+                        },
+                        "approvedVersionRange": {
+                          "type": "string"
+                        },
+                        "ownerTeam": {
+                          "type": "string"
+                        },
+                        "riskLevel": {
+                          "type": "string"
+                        },
+                        "lastReviewed": {
+                          "type": "string"
+                        },
+                        "ownerTeamName": {
+                          "type": "string"
+                        },
+                        "ownerTeamEmail": {
+                          "type": "string"
+                        },
+                        "versions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "systems": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "policies": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "technologyApprovals": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/TechnologyApproval"
+                          }
+                        },
+                        "versionApprovals": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "name": "React",
+                    "category": "framework",
+                    "vendor": "Meta",
+                    "approvedVersionRange": ">=18.0.0 <19.0.0",
+                    "ownerTeam": "Frontend Platform",
+                    "riskLevel": "low",
+                    "lastReviewed": "2025-10-01",
+                    "ownerTeamName": "Frontend Platform",
+                    "ownerTeamEmail": "frontend-platform@company.com",
+                    "versions": [
+                      "18.2.0",
+                      "18.3.1"
+                    ],
+                    "technologyApprovals": [
+                      {
+                        "team": "Frontend Platform",
+                        "time": "invest",
+                        "approvedAt": "2025-10-21T19:23:55.763Z",
+                        "approvedBy": "Frontend Lead",
+                        "notes": "Primary framework for customer-facing applications"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Technology name is required"
+          },
+          "404": {
+            "description": "Technology not found"
+          },
+          "500": {
+            "description": "Failed to fetch technology"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List all users (superuser only)",
+        "description": "Retrieves a list of all users with their team counts (requires superuser role)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/User"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "teamCount": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - superuser access required"
+          },
+          "500": {
+            "description": "Failed to fetch users"
+          }
+        }
+      }
+    }
+  }
+}

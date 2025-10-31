@@ -1,5 +1,34 @@
 import type { ApiResponse, Repository } from '~~/types/api'
 
+/**
+ * @openapi
+ * /repositories:
+ *   get:
+ *     tags:
+ *       - Repositories
+ *     summary: List all repositories
+ *     description: Retrieves a list of all repositories with their metadata and system counts
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved repositories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Repository'
+ *       500:
+ *         description: Failed to fetch repositories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ */
 export default defineEventHandler(async (): Promise<ApiResponse<Repository>> => {
   try {
     const driver = useDriver()

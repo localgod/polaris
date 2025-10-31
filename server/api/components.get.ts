@@ -1,5 +1,34 @@
 import type { ApiResponse, Component } from '~~/types/api'
 
+/**
+ * @openapi
+ * /components:
+ *   get:
+ *     tags:
+ *       - Components
+ *     summary: List all components
+ *     description: Retrieves a list of all components with their metadata and system usage counts
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved components
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Component'
+ *       500:
+ *         description: Failed to fetch components
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ */
 export default defineEventHandler(async (): Promise<ApiResponse<Component>> => {
   try {
     const driver = useDriver()

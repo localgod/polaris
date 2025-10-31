@@ -1,3 +1,76 @@
+/**
+ * @openapi
+ * /policies/{name}:
+ *   get:
+ *     tags:
+ *       - Policies
+ *     summary: Get policy details
+ *     description: |
+ *       Retrieves detailed information about a specific policy including:
+ *       - Policy metadata and rules
+ *       - Enforcing team
+ *       - Teams subject to the policy
+ *       - Technologies and versions governed by the policy
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Policy name
+ *         example: react-version-policy
+ *     responses:
+ *       200:
+ *         description: Policy details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Policy'
+ *                     - type: object
+ *                       properties:
+ *                         enforcerTeam:
+ *                           type: string
+ *                         subjectTeams:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         governedTechnologies:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         governedVersions:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               technology:
+ *                                 type: string
+ *                               version:
+ *                                 type: string
+ *             example:
+ *               success: true
+ *               data:
+ *                 name: react-version-policy
+ *                 description: All React versions must be 18.x or higher
+ *                 ruleType: version-constraint
+ *                 severity: high
+ *                 status: active
+ *                 enforcerTeam: frontend-platform
+ *                 subjectTeams: ["frontend-team", "mobile-team"]
+ *                 governedTechnologies: ["React"]
+ *       400:
+ *         description: Policy name is required
+ *       404:
+ *         description: Policy not found
+ *       500:
+ *         description: Failed to fetch policy
+ */
 export default defineEventHandler(async (event) => {
   try {
     const rawName = getRouterParam(event, 'name')

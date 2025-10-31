@@ -1,5 +1,50 @@
 import type { ApiResponse, Policy } from '~~/types/api'
 
+/**
+ * @openapi
+ * /policies:
+ *   get:
+ *     tags:
+ *       - Policies
+ *     summary: List all policies
+ *     description: Retrieves a list of all policies with optional filtering
+ *     parameters:
+ *       - in: query
+ *         name: scope
+ *         schema:
+ *           type: string
+ *         description: Filter by policy scope
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by policy status
+ *       - in: query
+ *         name: enforcedBy
+ *         schema:
+ *           type: string
+ *         description: Filter by enforcement mechanism
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved policies
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Policy'
+ *       500:
+ *         description: Failed to fetch policies
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ */
 export default defineEventHandler(async (event): Promise<ApiResponse<Policy>> => {
   try {
     const query = getQuery(event)

@@ -1,3 +1,32 @@
+/**
+ * @openapi
+ * /systems/{name}:
+ *   delete:
+ *     tags:
+ *       - Systems
+ *     summary: Delete a system
+ *     description: Deletes a system and all its relationships (requires authorization and team ownership)
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: System name
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       204:
+ *         description: System deleted successfully
+ *       400:
+ *         description: System name is required
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - user's team does not own this system
+ *       404:
+ *         description: System not found
+ */
 export default defineEventHandler(async (event) => {
   // Require authorization (authenticated + team membership)
   await requireAuthorization(event)

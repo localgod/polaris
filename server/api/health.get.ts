@@ -1,3 +1,34 @@
+/**
+ * @openapi
+ * /health:
+ *   get:
+ *     tags:
+ *       - Health
+ *     summary: Health check endpoint
+ *     description: Checks the health of the API and database connectivity
+ *     responses:
+ *       200:
+ *         description: Service is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ *             example:
+ *               status: healthy
+ *               database: connected
+ *               timestamp: '2025-10-30T13:00:00.000Z'
+ *       503:
+ *         description: Service is unhealthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ *             example:
+ *               status: unhealthy
+ *               database: disconnected
+ *               error: Database connection failed
+ *               timestamp: '2025-10-30T13:00:00.000Z'
+ */
 export default defineEventHandler(async (event) => {
   try {
     const driver = useDriver()

@@ -102,6 +102,46 @@ npm run seed
 
 **For detailed database documentation**, see the [Contributing Guide](CONTRIBUTING.md#database-management).
 
+## API Documentation
+
+Polaris provides comprehensive OpenAPI 3.1 documentation for all REST API endpoints.
+
+### Viewing the Documentation
+
+- **Integrated UI**: Visit `/api-reference` in the app for a fully integrated API reference
+- **Standalone UI**: Visit `/api-docs.html` for a standalone interactive API reference powered by [Scalar](https://scalar.com)
+- **OpenAPI Spec**: Download the raw OpenAPI specification at `/openapi.json`
+
+### Documented Endpoints
+
+The API documentation includes:
+- **Health**: Health check and status endpoints
+- **Systems**: System management and CRUD operations
+- **Components**: Component catalog and dependency tracking
+- **Technologies**: Technology catalog with version management
+- **Teams**: Team management and ownership
+- **Policies**: Policy and compliance management
+- **Repositories**: Source code repository tracking
+- **Users**: User management (admin only)
+
+All endpoints include:
+- Request/response schemas
+- Parameter descriptions
+- Example payloads
+- Authentication requirements
+- Error responses
+
+### Generating Updated Documentation
+
+When you add or modify API endpoints, regenerate the OpenAPI spec:
+
+```bash
+# Generate static OpenAPI spec
+node -e "import('./server/openapi.ts').then(m => require('fs').writeFileSync('public/openapi.json', JSON.stringify(m.openapiSpec, null, 2)))"
+```
+
+The spec is automatically generated from JSDoc comments in the API endpoint files.
+
 ## Development
 
 ### Available Commands
