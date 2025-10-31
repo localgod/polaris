@@ -1,3 +1,40 @@
+/**
+ * @openapi
+ * /auth/{provider}:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: OAuth authentication endpoints
+ *     description: |
+ *       NextAuth.js authentication endpoints for OAuth providers.
+ *       
+ *       **Available Providers:**
+ *       - GitHub OAuth
+ *       
+ *       **Endpoints:**
+ *       - `GET /api/auth/signin` - Sign in page
+ *       - `GET /api/auth/signout` - Sign out
+ *       - `GET /api/auth/callback/{provider}` - OAuth callback
+ *       - `GET /api/auth/session` - Get current session
+ *       - `GET /api/auth/csrf` - Get CSRF token
+ *       - `GET /api/auth/providers` - List available providers
+ *       
+ *       **Authorization Levels:**
+ *       - `user` - Default role for authenticated users
+ *       - `superuser` - Admin role (configured via SUPERUSER_EMAILS env var)
+ *     parameters:
+ *       - in: path
+ *         name: provider
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: OAuth provider name (e.g., "github")
+ *     responses:
+ *       200:
+ *         description: Authentication response
+ *       302:
+ *         description: Redirect to OAuth provider or callback
+ */
 import { NuxtAuthHandler } from '#auth'
 import GithubProvider from 'next-auth/providers/github'
 import neo4j from 'neo4j-driver'

@@ -12,7 +12,8 @@ export default defineNuxtConfig({
     '@nuxt/content',
     // '@nuxt/ui', // Temporarily disabled - has compatibility issue with Nuxt 4 (@nuxtjs/color-mode@3.5.2)
     'nuxt-neo4j',
-    '@sidebase/nuxt-auth'
+    '@sidebase/nuxt-auth',
+    '@scalar/nuxt'
   ],
 
   auth: {
@@ -56,6 +57,17 @@ export default defineNuxtConfig({
   vite: {
     server: {
       allowedHosts: ['.gitpod.dev', '.gitpod.io']
+    }
+  },
+
+  scalar: {
+    url: '/api/openapi.json',
+    pathRouting: {
+      basePath: '/api-docs'
+    },
+    darkMode: true,
+    metaData: {
+      title: 'Polaris API Documentation'
     }
   }
 })

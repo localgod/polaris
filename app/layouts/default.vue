@@ -184,18 +184,14 @@
               <!-- API Section -->
               <div class="mt-2">
                 <NuxtLink
-                  to="/docs/api/overview"
-                  class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  :class="{ 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400': $route.path === '/docs/api/overview' }"
+                  to="/api-reference"
+                  class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  :class="{ 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400': $route.path === '/api-reference' }"
                 >
-                  API Overview
-                </NuxtLink>
-                <NuxtLink
-                  to="/docs/api/endpoints"
-                  class="block px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  :class="{ 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400': $route.path === '/docs/api/endpoints' }"
-                >
-                  API Endpoints
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  API Reference
                 </NuxtLink>
               </div>
             </div>

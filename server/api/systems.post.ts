@@ -1,6 +1,102 @@
 import type { ApiResponse } from '~~/types/api'
 import { normalizeRepoUrl } from '~~/server/utils/repository'
 
+/**
+ * @openapi
+ * /systems:
+ *   post:
+ *     tags:
+ *       - Systems
+ *     summary: Create a new system
+ *     description: Creates a new system with optional repositories
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - domain
+ *               - ownerTeam
+ *               - businessCriticality
+ *               - environment
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Unique system name
+ *               domain:
+ *                 type: string
+ *                 description: Business domain
+ *               ownerTeam:
+ *                 type: string
+ *                 description: Team that owns this system
+ *               businessCriticality:
+ *                 type: string
+ *                 enum: [critical, high, medium, low]
+ *                 description: Business criticality level
+ *               environment:
+ *                 type: string
+ *                 enum: [dev, test, staging, prod]
+ *                 description: Environment type
+ *               repositories:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - url
+ *                     - scmType
+ *                     - name
+ *                     - isPublic
+ *                     - requiresAuth
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     scmType:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     isPublic:
+ *                       type: boolean
+ *                     requiresAuth:
+ *                       type: boolean
+ *     responses:
+ *       201:
+ *         description: System created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       409:
+ *         description: System already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ *       422:
+ *         description: Invalid field values
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
+ */
+
 interface CreateSystemRequest {
   name: string
   domain: string
