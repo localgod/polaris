@@ -473,82 +473,469 @@
       "name": "react",
       "version": "18.2.0",
       "packageManager": "npm",
-      "license": "MIT",
-      "sourceRepo": "https://github.com/facebook/react",
-      "importPath": "react",
-      "hash": "sha256:1f8b5c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b"
+      "purl": "pkg:npm/react@18.2.0",
+      "cpe": "cpe:2.3:a:meta_platforms__inc_:react:18.2.0:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/react@18.2.0",
+      "type": "library",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "1f8b5c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "1f8b5c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b1f8b5c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "MIT",
+          "name": "MIT License",
+          "url": "https://opensource.org/licenses/MIT",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) Meta Platforms, Inc. and affiliates.",
+      "supplier": "Meta Platforms, Inc.",
+      "author": "Meta Platforms, Inc.",
+      "publisher": "npm",
+      "description": "React is a JavaScript library for building user interfaces.",
+      "homepage": "https://reactjs.org/",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/facebook/react"
+        },
+        {
+          "type": "website",
+          "url": "https://reactjs.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/facebook/react/issues"
+        }
+      ],
+      "releaseDate": "2022-06-14T00:00:00Z",
+      "publishedDate": "2022-06-14T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "react-dom",
       "version": "18.2.0",
       "packageManager": "npm",
-      "license": "MIT",
-      "sourceRepo": "https://github.com/facebook/react",
-      "importPath": "react-dom",
-      "hash": "sha256:2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b"
+      "purl": "pkg:npm/react-dom@18.2.0",
+      "cpe": "cpe:2.3:a:meta_platforms__inc_:react-dom:18.2.0:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/react-dom@18.2.0",
+      "type": "library",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "MIT",
+          "name": "MIT License",
+          "url": "https://opensource.org/licenses/MIT",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) Meta Platforms, Inc. and affiliates.",
+      "supplier": "Meta Platforms, Inc.",
+      "author": "Meta Platforms, Inc.",
+      "publisher": "npm",
+      "description": "React package for working with the DOM.",
+      "homepage": "https://reactjs.org/",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/facebook/react"
+        },
+        {
+          "type": "website",
+          "url": "https://reactjs.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/facebook/react/issues"
+        }
+      ],
+      "releaseDate": "2022-06-14T00:00:00Z",
+      "publishedDate": "2022-06-14T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "vue",
       "version": "3.3.4",
       "packageManager": "npm",
-      "license": "MIT",
-      "sourceRepo": "https://github.com/vuejs/core",
-      "importPath": "vue",
-      "hash": "sha256:3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c"
+      "purl": "pkg:npm/vue@3.3.4",
+      "cpe": "cpe:2.3:a:evan_you:vue:3.3.4:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/vue@3.3.4",
+      "type": "framework",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "MIT",
+          "name": "MIT License",
+          "url": "https://opensource.org/licenses/MIT",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) 2013-present, Yuxi (Evan) You",
+      "supplier": "Evan You",
+      "author": "Evan You",
+      "publisher": "npm",
+      "description": "The progressive JavaScript framework for building modern web UI.",
+      "homepage": "https://vuejs.org/",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/vuejs/core"
+        },
+        {
+          "type": "website",
+          "url": "https://vuejs.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/vuejs/core/issues"
+        }
+      ],
+      "releaseDate": "2023-07-28T00:00:00Z",
+      "publishedDate": "2023-07-28T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "express",
       "version": "4.18.2",
       "packageManager": "npm",
-      "license": "MIT",
-      "sourceRepo": "https://github.com/expressjs/express",
-      "importPath": "express",
-      "hash": "sha256:4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d"
+      "purl": "pkg:npm/express@4.18.2",
+      "cpe": "cpe:2.3:a:openjs_foundation:express:4.18.2:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/express@4.18.2",
+      "type": "framework",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "MIT",
+          "name": "MIT License",
+          "url": "https://opensource.org/licenses/MIT",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) 2009-2014 TJ Holowaychuk <tj@vision-media.ca>",
+      "supplier": "OpenJS Foundation",
+      "author": "TJ Holowaychuk",
+      "publisher": "npm",
+      "description": "Fast, unopinionated, minimalist web framework for Node.js",
+      "homepage": "https://expressjs.com/",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/expressjs/express"
+        },
+        {
+          "type": "website",
+          "url": "https://expressjs.com/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/expressjs/express/issues"
+        }
+      ],
+      "releaseDate": "2022-10-08T00:00:00Z",
+      "publishedDate": "2022-10-08T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "typescript",
       "version": "5.3.3",
       "packageManager": "npm",
-      "license": "Apache-2.0",
-      "sourceRepo": "https://github.com/microsoft/TypeScript",
-      "importPath": "typescript",
-      "hash": "sha256:5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e"
+      "purl": "pkg:npm/typescript@5.3.3",
+      "cpe": "cpe:2.3:a:microsoft_corporation:typescript:5.3.3:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/typescript@5.3.3",
+      "type": "library",
+      "group": null,
+      "scope": "dev",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "Apache-2.0",
+          "name": "Apache License 2.0",
+          "url": "https://www.apache.org/licenses/LICENSE-2.0",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) Microsoft Corporation. All rights reserved.",
+      "supplier": "Microsoft Corporation",
+      "author": "Microsoft Corporation",
+      "publisher": "npm",
+      "description": "TypeScript is a language for application scale JavaScript development",
+      "homepage": "https://www.typescriptlang.org/",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/microsoft/TypeScript"
+        },
+        {
+          "type": "website",
+          "url": "https://www.typescriptlang.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/microsoft/TypeScript/issues"
+        }
+      ],
+      "releaseDate": "2023-12-11T00:00:00Z",
+      "publishedDate": "2023-12-11T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "neo4j-driver",
       "version": "5.14.0",
       "packageManager": "npm",
-      "license": "Apache-2.0",
-      "sourceRepo": "https://github.com/neo4j/neo4j-javascript-driver",
-      "importPath": "neo4j-driver",
-      "hash": "sha256:6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f"
+      "purl": "pkg:npm/neo4j-driver@5.14.0",
+      "cpe": "cpe:2.3:a:neo4j__inc_:neo4j-driver:5.14.0:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/neo4j-driver@5.14.0",
+      "type": "library",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "Apache-2.0",
+          "name": "Apache License 2.0",
+          "url": "https://www.apache.org/licenses/LICENSE-2.0",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) 2002-2024 \"Neo4j,\"",
+      "supplier": "Neo4j, Inc.",
+      "author": "Neo4j, Inc.",
+      "publisher": "npm",
+      "description": "Official Neo4j driver for JavaScript",
+      "homepage": "https://neo4j.com/",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/neo4j/neo4j-javascript-driver"
+        },
+        {
+          "type": "website",
+          "url": "https://neo4j.com/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/neo4j/neo4j-javascript-driver/issues"
+        }
+      ],
+      "releaseDate": "2023-11-15T00:00:00Z",
+      "publishedDate": "2023-11-15T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "pg",
       "version": "8.11.3",
       "packageManager": "npm",
-      "license": "MIT",
-      "sourceRepo": "https://github.com/brianc/node-postgres",
-      "importPath": "pg",
-      "hash": "sha256:7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a"
+      "purl": "pkg:npm/pg@8.11.3",
+      "cpe": "cpe:2.3:a:brian_carlson:pg:8.11.3:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/pg@8.11.3",
+      "type": "library",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "MIT",
+          "name": "MIT License",
+          "url": "https://opensource.org/licenses/MIT",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) 2010-2023 Brian Carlson",
+      "supplier": "Brian Carlson",
+      "author": "Brian Carlson",
+      "publisher": "npm",
+      "description": "PostgreSQL client for Node.js - pure JavaScript and native libpq bindings",
+      "homepage": "https://node-postgres.com/",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/brianc/node-postgres"
+        },
+        {
+          "type": "website",
+          "url": "https://node-postgres.com/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/brianc/node-postgres/issues"
+        }
+      ],
+      "releaseDate": "2023-09-14T00:00:00Z",
+      "publishedDate": "2023-09-14T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "loose-envify",
       "version": "1.4.0",
       "packageManager": "npm",
-      "license": "MIT",
-      "sourceRepo": "https://github.com/zertosh/loose-envify",
-      "importPath": "loose-envify",
-      "hash": "sha256:8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b"
+      "purl": "pkg:npm/loose-envify@1.4.0",
+      "cpe": "cpe:2.3:a:andres_suarez:loose-envify:1.4.0:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/loose-envify@1.4.0",
+      "type": "library",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "MIT",
+          "name": "MIT License",
+          "url": "https://opensource.org/licenses/MIT",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) 2015 Andres Suarez <zertosh@gmail.com>",
+      "supplier": "Andres Suarez",
+      "author": "Andres Suarez",
+      "publisher": "npm",
+      "description": "Fast (and loose) selective `process.env` replacer using js-tokens instead of an AST",
+      "homepage": "https://github.com/zertosh/loose-envify",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/zertosh/loose-envify"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/zertosh/loose-envify"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/zertosh/loose-envify/issues"
+        }
+      ],
+      "releaseDate": "2015-11-02T00:00:00Z",
+      "publishedDate": "2015-11-02T00:00:00Z",
+      "modifiedDate": null
     },
     {
       "name": "js-tokens",
       "version": "4.0.0",
       "packageManager": "npm",
-      "license": "MIT",
-      "sourceRepo": "https://github.com/lydell/js-tokens",
-      "importPath": "js-tokens",
-      "hash": "sha256:9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c"
+      "purl": "pkg:npm/js-tokens@4.0.0",
+      "cpe": "cpe:2.3:a:simon_lydell:js-tokens:4.0.0:*:*:*:*:*:*:*",
+      "bomRef": "pkg:npm/js-tokens@4.0.0",
+      "type": "library",
+      "group": null,
+      "scope": "required",
+      "hashes": [
+        {
+          "algorithm": "SHA-256",
+          "value": "9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c"
+        },
+        {
+          "algorithm": "SHA-512",
+          "value": "9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c"
+        }
+      ],
+      "licenses": [
+        {
+          "id": "MIT",
+          "name": "MIT License",
+          "url": "https://opensource.org/licenses/MIT",
+          "text": null
+        }
+      ],
+      "copyright": "Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell",
+      "supplier": "Simon Lydell",
+      "author": "Simon Lydell",
+      "publisher": "npm",
+      "description": "A regex that tokenizes JavaScript.",
+      "homepage": "https://github.com/lydell/js-tokens",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/lydell/js-tokens"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/lydell/js-tokens"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/lydell/js-tokens/issues"
+        }
+      ],
+      "releaseDate": "2018-01-28T00:00:00Z",
+      "publishedDate": "2018-01-28T00:00:00Z",
+      "modifiedDate": null
     }
   ],
   "relationships": {

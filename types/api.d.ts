@@ -1,26 +1,115 @@
 // Shared API Response Types
 // Used by both server and client code
 
+// ============================================================================
+// COMPONENT TYPES
+// ============================================================================
+
+export type ComponentType = 
+  | 'application'
+  | 'framework'
+  | 'library'
+  | 'container'
+  | 'platform'
+  | 'operating-system'
+  | 'device'
+  | 'device-driver'
+  | 'firmware'
+  | 'file'
+  | 'machine-learning-model'
+  | 'data'
+
+export type DependencyScope = 
+  | 'required'
+  | 'optional'
+  | 'excluded'
+  | 'dev'
+  | 'test'
+  | 'runtime'
+  | 'provided'
+
+export interface Hash {
+  algorithm: string  // SHA256, SHA512, BLAKE3, etc.
+  value: string
+}
+
+export interface License {
+  id?: string        // SPDX license ID (e.g., "MIT", "Apache-2.0")
+  name?: string      // License name
+  url?: string       // License URL
+  text?: string      // License text
+}
+
+export interface ExternalReference {
+  type: string       // vcs, website, documentation, issue-tracker, etc.
+  url: string
+}
+
 export interface Component {
+  // === CORE IDENTIFICATION ===
   name: string
   version: string
-  packageManager: string | null
-  license: string | null
-  sourceRepo: string | null
-  importPath: string | null
-  hash: string
-  technologyName: string | null
-  systemCount: number
+  packageManager: string | null  // npm, maven, pypi, cargo, etc.
+  
+  // === UNIVERSAL IDENTIFIERS ===
+  purl: string | null            // Package URL (e.g., "pkg:npm/react@18.2.0")
+  cpe: string | null             // Common Platform Enumeration
+  bomRef: string | null          // Unique identifier within SBOM
+  
+  // === CLASSIFICATION ===
+  type: ComponentType | null     // library, framework, application, etc.
+  group: string | null           // Maven groupId, npm scope, etc.
+  scope: DependencyScope | null  // required, optional, dev, test, etc.
+  
+  // === HASHES ===
+  hashes: Hash[]                 // Multiple hashes with algorithms
+  
+  // === LICENSES ===
+  licenses: License[]            // Multiple licenses
+  copyright: string | null       // Copyright text
+  
+  // === SUPPLIER/AUTHOR ===
+  supplier: string | null        // Organization/person who supplied
+  author: string | null          // Original author
+  publisher: string | null       // Publisher
+  
+  // === REFERENCES ===
+  homepage: string | null        // Project homepage
+  externalReferences: ExternalReference[]  // VCS, docs, issues, etc.
+  
+  // === METADATA ===
+  description: string | null     // Component description
+  releaseDate: string | null     // ISO 8601 timestamp
+  publishedDate: string | null   // When published to registry
+  modifiedDate: string | null    // Last modification
+  
+  // === RELATIONSHIPS (computed) ===
+  technologyName: string | null  // Linked Technology name
+  systemCount: number            // Number of systems using this
+  vulnerabilityCount?: number    // Number of known vulnerabilities
 }
 
 export interface UnmappedComponent {
+  // === CORE IDENTIFICATION ===
   name: string
   version: string
   packageManager: string | null
-  license: string | null
-  sourceRepo: string | null
-  importPath: string | null
-  hash: string
+  
+  // === UNIVERSAL IDENTIFIERS ===
+  purl: string | null
+  cpe: string | null
+  
+  // === CLASSIFICATION ===
+  type: ComponentType | null
+  group: string | null
+  
+  // === HASHES ===
+  hashes: Hash[]
+  
+  // === LICENSES ===
+  licenses: License[]
+  
+  // === RELATIONSHIPS (computed) ===
   systems?: string[]
   systemCount?: number
 }
@@ -110,6 +199,73 @@ export interface Violation {
   status: string
   resolvedAt: string | null
   notes: string | null
+}
+
+// ============================================================================
+// VULNERABILITY TYPES
+// ============================================================================
+
+export type VulnerabilitySeverity = 
+  | 'critical'
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'info'
+  | 'none'
+  | 'unknown'
+
+export type VulnerabilityAnalysisState = 
+  | 'exploitable'
+  | 'in_triage'
+  | 'false_positive'
+  | 'not_affected'
+  | 'resolved'
+
+export type VulnerabilityResponse = 
+  | 'can_not_fix'
+  | 'will_not_fix'
+  | 'update'
+  | 'rollback'
+  | 'workaround_available'
+
+export interface VulnerabilityRating {
+  score: number              // CVSS score (0-10)
+  severity: VulnerabilitySeverity
+  method: string             // CVSSv2, CVSSv3, CVSSv31, OWASP, etc.
+  vector: string | null      // CVSS vector string
+}
+
+export interface VulnerabilityAnalysis {
+  state: VulnerabilityAnalysisState
+  justification: string | null
+  response: VulnerabilityResponse | null
+  detail: string | null
+}
+
+export interface Vulnerability {
+  id: string                 // CVE-2024-1234, GHSA-xxxx-xxxx-xxxx
+  source: string             // NVD, GitHub, OSV, etc.
+  description: string | null
+  recommendation: string | null
+  
+  // Ratings
+  ratings: VulnerabilityRating[]
+  cwes: number[]             // CWE IDs
+  
+  // Temporal
+  createdDate: string | null
+  publishedDate: string | null
+  updatedDate: string | null
+  
+  // Analysis
+  analysis: VulnerabilityAnalysis | null
+  
+  // References
+  advisories: string[]       // URLs to advisories
+  
+  // Relationships (computed)
+  affectedComponents: string[]  // Component purls
+  affectedSystemCount: number
 }
 
 export interface User {

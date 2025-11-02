@@ -91,13 +91,20 @@ export default defineEventHandler(async (event) => {
     const { records } = await driver.executeQuery(`
       MATCH (sys:System {name: $systemName})-[:USES]->(c:Component)
       WHERE NOT (c)-[:IS_VERSION_OF]->(:Technology)
+      OPTIONAL MATCH (c)-[:HAS_HASH]->(h:Hash)
+      OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
+      WITH c,
+           collect(DISTINCT {algorithm: h.algorithm, value: h.value}) as hashes,
+           collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses
       RETURN c.name as name,
              c.version as version,
              c.packageManager as packageManager,
-             c.license as license,
-             c.sourceRepo as sourceRepo,
-             c.importPath as importPath,
-             c.hash as hash
+             c.purl as purl,
+             c.cpe as cpe,
+             c.type as type,
+             c.group as group,
+             hashes,
+             licenses
       ORDER BY c.name
     `, { systemName })
 
@@ -105,10 +112,12 @@ export default defineEventHandler(async (event) => {
       name: record.get('name'),
       version: record.get('version'),
       packageManager: record.get('packageManager'),
-      license: record.get('license'),
-      sourceRepo: record.get('sourceRepo'),
-      importPath: record.get('importPath'),
-      hash: record.get('hash')
+      purl: record.get('purl'),
+      cpe: record.get('cpe'),
+      type: record.get('type'),
+      group: record.get('group'),
+      hashes: record.get('hashes').filter((h: any) => h.algorithm),
+      licenses: record.get('licenses').filter((l: any) => l.id || l.name)
     }))
 
     return {

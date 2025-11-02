@@ -6,6 +6,8 @@ export default defineConfig({
     environment: 'node',
     include: ['test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     fileParallelism: false,
+    testTimeout: 60000, // 60 seconds for e2e tests
+    hookTimeout: 60000, // 60 seconds for beforeAll/afterAll
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json', 'html'],

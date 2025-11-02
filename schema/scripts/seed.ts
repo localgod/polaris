@@ -77,10 +77,24 @@ interface FixtureData {
     name: string
     version: string
     packageManager: string
-    license: string
-    sourceRepo: string
-    importPath: string
-    hash: string
+    purl: string
+    cpe?: string
+    bomRef?: string
+    type?: string
+    group?: string
+    scope?: string
+    hashes: Array<{ algorithm: string; value: string }>
+    licenses: Array<{ id?: string; name?: string; url?: string; text?: string }>
+    copyright?: string
+    supplier?: string
+    author?: string
+    publisher?: string
+    description?: string
+    homepage?: string
+    externalReferences: Array<{ type: string; url: string }>
+    releaseDate?: string
+    publishedDate?: string
+    modifiedDate?: string
   }>
   relationships: {
     technology_versions: Array<{ technology: string; version: string }>
@@ -335,19 +349,116 @@ async function seedComponents(driver: neo4j.Driver, components: FixtureData['com
     console.log('📚 Seeding components...')
     
     for (const component of components) {
+      // Create component node with new SBOM schema
       await session.run(
         `
         MERGE (c:Component {name: $name, version: $version, packageManager: $packageManager})
-        SET c.license = $license,
-            c.sourceRepo = $sourceRepo,
-            c.importPath = $importPath,
-            c.hash = $hash
+        SET c.purl = $purl,
+            c.cpe = $cpe,
+            c.bomRef = $bomRef,
+            c.type = $type,
+            c.group = $group,
+            c.scope = $scope,
+            c.supplier = $supplier,
+            c.author = $author,
+            c.publisher = $publisher,
+            c.description = $description,
+            c.copyright = $copyright,
+            c.homepage = $homepage,
+            c.releaseDate = datetime($releaseDate),
+            c.publishedDate = datetime($publishedDate),
+            c.modifiedDate = CASE WHEN $modifiedDate IS NOT NULL THEN datetime($modifiedDate) ELSE NULL END
         `,
-        component
+        {
+          name: component.name,
+          version: component.version,
+          packageManager: component.packageManager,
+          purl: component.purl,
+          cpe: component.cpe || null,
+          bomRef: component.bomRef || null,
+          type: component.type || null,
+          group: component.group || null,
+          scope: component.scope || null,
+          supplier: component.supplier || null,
+          author: component.author || null,
+          publisher: component.publisher || null,
+          description: component.description || null,
+          copyright: component.copyright || null,
+          homepage: component.homepage || null,
+          releaseDate: component.releaseDate || null,
+          publishedDate: component.publishedDate || null,
+          modifiedDate: component.modifiedDate || null
+        }
       )
+      
+      // Create Hash nodes
+      if (component.hashes && component.hashes.length > 0) {
+        for (const hash of component.hashes) {
+          await session.run(
+            `
+            MATCH (c:Component {name: $name, version: $version, packageManager: $packageManager})
+            MERGE (h:Hash {componentPurl: c.purl, algorithm: $algorithm})
+            SET h.value = $value
+            MERGE (c)-[:HAS_HASH]->(h)
+            `,
+            {
+              name: component.name,
+              version: component.version,
+              packageManager: component.packageManager,
+              algorithm: hash.algorithm,
+              value: hash.value
+            }
+          )
+        }
+      }
+      
+      // Create License nodes
+      if (component.licenses && component.licenses.length > 0) {
+        for (const license of component.licenses) {
+          await session.run(
+            `
+            MATCH (c:Component {name: $name, version: $version, packageManager: $packageManager})
+            MERGE (l:License {id: $id})
+            SET l.name = $licenseName,
+                l.url = $url,
+                l.text = $text
+            MERGE (c)-[:HAS_LICENSE]->(l)
+            `,
+            {
+              name: component.name,
+              version: component.version,
+              packageManager: component.packageManager,
+              id: license.id || license.name || 'UNKNOWN',
+              licenseName: license.name || null,
+              url: license.url || null,
+              text: license.text || null
+            }
+          )
+        }
+      }
+      
+      // Create ExternalReference nodes
+      if (component.externalReferences && component.externalReferences.length > 0) {
+        for (const ref of component.externalReferences) {
+          await session.run(
+            `
+            MATCH (c:Component {name: $name, version: $version, packageManager: $packageManager})
+            CREATE (e:ExternalReference {type: $type, url: $url})
+            CREATE (c)-[:HAS_REFERENCE]->(e)
+            `,
+            {
+              name: component.name,
+              version: component.version,
+              packageManager: component.packageManager,
+              type: ref.type,
+              url: ref.url
+            }
+          )
+        }
+      }
     }
     
-    console.log(`✅ Seeded ${components.length} components`)
+    console.log(`✅ Seeded ${components.length} components with SBOM metadata`)
   } finally {
     await session.close()
   }

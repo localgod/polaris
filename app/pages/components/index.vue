@@ -53,16 +53,30 @@
                 <tr>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Version</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Package Manager</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">License</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Type</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Package URL</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Licenses</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-for="comp in data.data.slice(0, 10)" :key="comp.hash" class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <tr v-for="comp in data.data.slice(0, 10)" :key="comp.purl || comp.name" class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ comp.name }}</td>
                   <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{{ comp.version }}</td>
-                  <td class="px-6 py-4"><UiBadge v-if="comp.packageManager" variant="neutral" size="sm">{{ comp.packageManager }}</UiBadge></td>
-                  <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{{ comp.license || 'N/A' }}</td>
+                  <td class="px-6 py-4">
+                    <UiBadge v-if="comp.type" variant="neutral" size="sm">{{ comp.type }}</UiBadge>
+                    <span v-else class="text-xs text-gray-400">N/A</span>
+                  </td>
+                  <td class="px-6 py-4 text-xs text-gray-600 dark:text-gray-300 font-mono">
+                    {{ comp.purl || 'N/A' }}
+                  </td>
+                  <td class="px-6 py-4">
+                    <div v-if="comp.licenses && comp.licenses.length > 0" class="flex flex-wrap gap-1">
+                      <UiBadge v-for="license in comp.licenses" :key="license.id || license.name" variant="success" size="sm">
+                        {{ license.id || license.name }}
+                      </UiBadge>
+                    </div>
+                    <span v-else class="text-xs text-gray-400">N/A</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
