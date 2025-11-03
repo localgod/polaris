@@ -62,14 +62,20 @@ export default defineEventHandler(async (): Promise<ApiResponse<UnmappedComponen
       MATCH (c:Component)
       WHERE NOT (c)-[:IS_VERSION_OF]->(:Technology)
       OPTIONAL MATCH (sys:System)-[:USES]->(c)
-      WITH c, collect(DISTINCT sys.name) as systems
+      OPTIONAL MATCH (c)-[:HAS_HASH]->(h:Hash)
+      OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
+      WITH c, collect(DISTINCT sys.name) as systems,
+           collect(DISTINCT {algorithm: h.algorithm, value: h.value}) as hashes,
+           collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses
       RETURN c.name as name,
              c.version as version,
              c.packageManager as packageManager,
-             c.license as license,
-             c.sourceRepo as sourceRepo,
-             c.importPath as importPath,
-             c.hash as hash,
+             c.purl as purl,
+             c.cpe as cpe,
+             c.type as type,
+             c.group as group,
+             hashes,
+             licenses,
              systems,
              size(systems) as systemCount
       ORDER BY size(systems) DESC, c.name
@@ -79,10 +85,12 @@ export default defineEventHandler(async (): Promise<ApiResponse<UnmappedComponen
       name: record.get('name'),
       version: record.get('version'),
       packageManager: record.get('packageManager'),
-      license: record.get('license'),
-      sourceRepo: record.get('sourceRepo'),
-      importPath: record.get('importPath'),
-      hash: record.get('hash'),
+      purl: record.get('purl'),
+      cpe: record.get('cpe'),
+      type: record.get('type'),
+      group: record.get('group'),
+      hashes: record.get('hashes').filter((h: { algorithm?: string; value?: string }) => h.algorithm),
+      licenses: record.get('licenses').filter((l: { id?: string; name?: string }) => l.id || l.name),
       systems: record.get('systems').filter((s: string) => s),
       systemCount: record.get('systemCount').toNumber()
     }))

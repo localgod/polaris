@@ -46,7 +46,8 @@
     "test:coverage": "vitest run --coverage",
     "test:migrations": "vitest run test/schema",
     "seed": "tsx schema/scripts/seed.ts",
-    "seed:clear": "tsx schema/scripts/seed.ts --clear"
+    "seed:clear": "tsx schema/scripts/seed.ts --clear",
+    "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@nuxt/content": "^3.7.1",

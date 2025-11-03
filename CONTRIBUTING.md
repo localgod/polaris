@@ -54,6 +54,45 @@ npm run migrate:up
 npm run dev
 ```
 
+### Authentication Setup (Optional)
+
+Authentication is optional for development. All data is publicly readable without authentication.
+
+**To enable authentication:**
+
+1. **Create GitHub OAuth App:**
+   - Go to [GitHub Developer Settings](https://github.com/settings/developers)
+   - Create new OAuth App
+   - Set callback URL: `http://localhost:3000/api/auth/callback/github`
+   - Copy Client ID and Client Secret
+
+2. **Configure environment variables:**
+   ```bash
+   # Generate auth secret
+   AUTH_SECRET=$(openssl rand -base64 32)
+   
+   # Add to .env
+   GITHUB_CLIENT_ID=your_client_id
+   GITHUB_CLIENT_SECRET=your_client_secret
+   SUPERUSER_EMAILS=your.email@example.com
+   ```
+
+3. **Restart dev server:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Sign in:**
+   - Visit http://localhost:3000
+   - Click "Sign In" and authenticate with GitHub
+   - Your email (if in SUPERUSER_EMAILS) grants full access
+
+**Authentication features:**
+- Public read access (no auth required)
+- OAuth-based write access (GitHub)
+- Team-scoped permissions
+- Superuser role for full access
+
 ## Project Structure
 
 ```
@@ -351,12 +390,18 @@ npm run seed:clear
 ```
 
 **What Gets Seeded:**
-- 5 Teams (Frontend, Backend, Data, DevOps, Security)
+- 5 Teams (Frontend Platform, Backend Platform, Data Platform, DevOps, Security)
 - 10 Technologies (React, Vue, Node.js, PostgreSQL, Neo4j, etc.)
 - 7 Versions with approval status and EOL dates
 - 6 Policies (governance rules)
-- 5 Systems (example applications)
-- 7 Components (SBOM entries)
+- 5 Systems (Customer Portal, API Gateway, Analytics Dashboard, etc.)
+- 9 Components with SBOM data (react@18.2.0, vue@3.3.4, etc.)
+  - Package URLs (purl) for universal identification
+  - Multiple cryptographic hashes (SHA-256, SHA-512)
+  - SPDX license identifiers
+  - External references (source code, docs, issues)
+  - Supplier and provenance information
+- 1 Repository (github.com/company/monorepo)
 
 The seeding system is idempotent - you can run it multiple times without creating duplicates.
 
@@ -386,6 +431,21 @@ The Neo4j connection is available throughout your Nuxt application via the `useN
 npm run dev              # Start dev server
 npm run build            # Build for production
 npm run preview          # Preview production build
+
+# Database
+npm run migrate:up       # Apply migrations
+npm run migrate:down     # Rollback last migration
+npm run migrate:status   # Check migration status
+npm run migrate:create   # Create new migration
+npm run seed             # Seed database with test data
+npm run seed:clear       # Clear and reseed database
+
+# Testing
+npm test                 # Run all tests
+npm run test:run         # Run tests once (CI mode)
+npm run test:coverage    # Run with coverage
+npm run test:ui          # Run with UI
+npm run test:migrations  # Run migration tests only
 
 # Code Quality
 npm run lint             # Run ESLint
@@ -586,17 +646,12 @@ When contributing, update relevant documentation:
 - `README.md` - Project overview and quick start
 - `CONTRIBUTING.md` - This file (contribution guidelines)
 
-**Database Documentation:**
-- `schema/README.md` - Schema management overview
-- `docs/DATABASE_MIGRATIONS.md` - Detailed migration guide
-- `docs/MIGRATION_RUNBOOK.md` - Operational procedures
-- `docs/SEEDING_GUIDE.md` - Database seeding guide
-- `docs/TECH_CATALOG_SCHEMA.md` - Data model documentation
+**Architecture Documentation:**
+- `content/architecture/graph-model.md` - Complete graph model and concepts
+- `docs/sbom-schema-design.md` - SBOM schema design and standards
+- `docs/sbom-schema-migration-summary.md` - SBOM migration details
 
 **Development Documentation:**
-- `tests/README.md` - Testing guide
-- `docs/NUXT_NEO4J_USAGE.md` - Using Neo4j in Nuxt
-- `docs/PAGES.md` - Pages and routing
 - `.devcontainer/README.md` - Dev container setup
 
 **Code Comments:**
@@ -618,26 +673,262 @@ Before submitting your PR, ensure:
 - [ ] Commit messages are clear
 - [ ] No console errors or warnings
 
+## Authentication & Authorization
+
+Polaris uses OAuth-based authentication with team-scoped authorization.
+
+### Access Model
+
+**Public Read Access:**
+- All data is publicly viewable without authentication
+- No login required for browsing technologies, teams, systems
+
+**Authenticated Write Access:**
+- Users authenticate via GitHub OAuth
+- Write access requires team membership
+- Users can only modify resources owned by their teams
+
+**Superuser Access:**
+- Designated users (via SUPERUSER_EMAILS) have full access
+- Can manage user permissions and team assignments
+
+### User Roles
+
+**Anonymous (Unauthenticated):**
+- Read all data
+- No write access
+
+**Authenticated User (No Team):**
+- Read all data
+- No write access until assigned to a team
+
+**Authorized User (Team Member):**
+- Read all data
+- Write access to resources owned by their team(s)
+- Cannot modify other teams' resources
+
+**Superuser:**
+- Full read/write access
+- Can manage users and team assignments
+- Can grant team management permissions
+
+### Configuration
+
+**Environment Variables:**
+```bash
+# Required for authentication
+AUTH_SECRET=<generate with: openssl rand -base64 32>
+GITHUB_CLIENT_ID=<from GitHub OAuth app>
+GITHUB_CLIENT_SECRET=<from GitHub OAuth app>
+
+# Superuser configuration
+SUPERUSER_EMAILS=admin@company.com,lead@company.com
+
+# Optional (auto-detected in Gitpod)
+AUTH_ORIGIN=https://your-domain.com/api/auth
+```
+
+### GitHub OAuth Setup
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Create new OAuth App
+3. Set Authorization callback URL:
+   - Local: `http://localhost:3000/api/auth/callback/github`
+   - Gitpod: `https://3000-yourworkspace.ws-region.gitpod.io/api/auth/callback/github`
+4. Copy Client ID and Client Secret to `.env`
+
+### Protected API Endpoints
+
+Use server-side utilities to protect endpoints:
+
+```typescript
+// Require authentication
+const user = await requireAuth(event)
+
+// Require authorization (auth + team membership)
+const user = await requireAuthorization(event)
+
+// Require superuser access
+const user = await requireSuperuser(event)
+
+// Require access to specific team
+const user = await requireTeamAccess(event, 'Frontend Platform')
+
+// Validate team ownership of resource
+await validateTeamOwnership(event, 'System', 'Customer Portal')
+```
+
+**Example protected endpoint:**
+```typescript
+// server/api/systems/[name]/update.post.ts
+export default defineEventHandler(async (event) => {
+  const systemName = getRouterParam(event, 'name')
+  
+  // Require authorization
+  await requireAuthorization(event)
+  
+  // Validate team ownership
+  await validateTeamOwnership(event, 'System', systemName)
+  
+  // Proceed with update...
+})
+```
+
+### Client-Side Usage
+
+**Check authentication status:**
+```vue
+<script setup>
+const { status, data: session } = useAuth()
+</script>
+
+<template>
+  <div v-if="status === 'authenticated'">
+    <p>Welcome, {{ session.user.name }}!</p>
+    <p>Teams: {{ session.user.teams.map(t => t.name).join(', ') }}</p>
+  </div>
+</template>
+```
+
+**Sign in/out:**
+```vue
+<script setup>
+const { signIn, signOut } = useAuth()
+</script>
+
+<template>
+  <button @click="signIn('github')">Sign In with GitHub</button>
+  <button @click="signOut()">Sign Out</button>
+</template>
+```
+
+### User Management (Superuser Only)
+
+**List all users:**
+```bash
+GET /api/admin/users
+```
+
+**Assign user to teams:**
+```bash
+POST /api/admin/users/{userId}/teams
+Content-Type: application/json
+
+{
+  "teams": ["Frontend Platform", "Backend Platform"],
+  "canManage": ["Frontend Platform"]
+}
+```
+
+### Troubleshooting
+
+**"Team membership required" error:**
+- User is authenticated but not assigned to any team
+- Superuser must assign user to a team via `/api/admin/users/{userId}/teams`
+
+**"Access denied" error:**
+- User trying to modify resource owned by another team
+- Verify resource ownership or assign user to correct team
+
+**User not showing as superuser:**
+- Check email is in SUPERUSER_EMAILS (case-insensitive)
+- Restart server after changing .env
+- User must sign out and sign in again
+
 ## Data Model
 
-The project implements a Technology Catalog with the following entities:
+The project implements a Technology Catalog with SBOM support.
 
-**Core Entities:**
-- **Technology** - Software technologies (React, Node.js, PostgreSQL, etc.)
-- **Version** - Specific versions with approval status and EOL dates
-- **Team** - Engineering teams that own technologies
-- **Policy** - Governance rules and compliance checks
-- **System** - Applications and services
-- **Component** - SBOM entries (npm packages, dependencies)
+### Core Entities
 
-**Relationships:**
-- `OWNS` - Team owns Technology
-- `HAS_VERSION` - Technology has Version
-- `USES` - System uses Technology/Component
-- `DEPENDS_ON` - Component depends on Component
-- `ENFORCES` - Policy enforces rules on Technology
+**Technology** - Governed software entities requiring approval
+- Strategic architectural decisions
+- Subject to policies and TIME framework
+- Examples: React, Node.js, PostgreSQL
 
-See `docs/TECH_CATALOG_SCHEMA.md` for detailed data model documentation and `schema/fixtures/example-queries.cypher` for query examples.
+**Version** - Specific versions with approval status
+- Version numbers and release dates
+- End-of-life tracking
+- Security vulnerability scores (CVSS)
+
+**Team** - Engineering teams with governance responsibilities
+- Stewardship (technical governance)
+- Ownership (operational responsibility)
+- Approval (usage decisions)
+
+**Policy** - Governance rules and compliance checks
+- Severity levels (info, warning, error, critical)
+- Effective date ranges
+- Scoped enforcement (organization, domain, team)
+
+**System** - Deployable applications and services
+- Business domain and criticality
+- Source code location
+- Owned by teams
+
+**Component** - Software artifacts discovered via SBOM scanning
+- Concrete dependencies (npm packages, Maven artifacts)
+- Package URLs (purl) for universal identification
+- Multiple hashes, licenses, vulnerabilities
+- May or may not map to governed Technologies
+
+**Repository** - Source code repositories
+- Links to multiple systems (monorepo support)
+- SBOM ingestion updates all systems in repository
+
+**User** - Authenticated users
+- OAuth provider integration (GitHub)
+- Team memberships
+- Role-based access (user, superuser)
+
+### SBOM-Related Entities
+
+**Hash** - Cryptographic hashes for integrity verification
+- Multiple algorithms per component (SHA-256, SHA-512)
+
+**License** - Software licenses with SPDX identifiers
+- License compliance tracking
+- Multiple licenses per component (dual-licensed)
+
+**External Reference** - External resources
+- Source code, documentation, issue trackers
+- Quick navigation to component information
+
+**Vulnerability** - Known security vulnerabilities
+- CVE, GHSA, OSV identifiers
+- Severity ratings and CVSS scores
+- Analysis state tracking
+
+### Key Relationships
+
+**Governance:**
+- `(Team)-[:STEWARDED_BY]->(Technology)` - Technical governance
+- `(Team)-[:OWNS]->(System)` - Operational ownership
+- `(Team)-[:APPROVES]->(Technology|Version)` - Usage approval with TIME category
+- `(Team)-[:USES]->(Technology)` - Actual usage (auto-inferred)
+- `(Policy)-[:APPLIES_TO]->(Technology)` - Policy enforcement
+
+**Structure:**
+- `(Technology)-[:HAS_VERSION]->(Version)` - Version tracking
+- `(Component)-[:IS_VERSION_OF]->(Technology)` - Component to Technology mapping
+- `(System)-[:USES]->(Component)` - System dependencies
+- `(System)-[:HAS_SOURCE_IN]->(Repository)` - Source code location
+
+**SBOM:**
+- `(Component)-[:HAS_HASH]->(Hash)` - Integrity verification
+- `(Component)-[:HAS_LICENSE]->(License)` - License tracking
+- `(Component)-[:HAS_REFERENCE]->(ExternalReference)` - External resources
+- `(Component)-[:HAS_VULNERABILITY]->(Vulnerability)` - Security tracking
+
+**Authorization:**
+- `(User)-[:MEMBER_OF]->(Team)` - Team membership
+- `(User)-[:CAN_MANAGE]->(Team)` - Team management permission
+
+### Documentation
+
+- `content/architecture/graph-model.md` - Complete graph model documentation
+- `docs/sbom-schema-design.md` - SBOM schema design
+- `schema/fixtures/example-queries.cypher` - Query examples
 
 ## Architecture Principles
 

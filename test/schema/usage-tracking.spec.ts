@@ -39,7 +39,13 @@ Feature('Technology Usage Tracking', ({ Scenario }) => {
       await session.run(`
         MERGE (team:Team {name: 'Frontend Platform Test', testData: true})
         MERGE (sys:System {name: 'Customer Portal Test', testData: true})
-        MERGE (comp:Component {name: 'react-test', version: '18.2.0', packageManager: 'npm', testData: true})
+        MERGE (comp:Component {
+          name: 'react-test', 
+          version: '18.2.0', 
+          packageManager: 'npm',
+          purl: 'pkg:npm/react-test@18.2.0',
+          testData: true
+        })
         MERGE (tech:Technology {name: 'React Test', testData: true})
         MERGE (team)-[:OWNS]->(sys)
         MERGE (sys)-[:USES]->(comp)
@@ -112,8 +118,20 @@ Feature('Technology Usage Tracking', ({ Scenario }) => {
       await session.run(`
         MATCH (sys1:System {name: 'API Gateway Test', testData: true})
         MATCH (sys2:System {name: 'Auth Service Test', testData: true})
-        MERGE (comp1:Component {name: 'node-test', version: '20.0.0', packageManager: 'system', testData: true})
-        MERGE (comp2:Component {name: 'node-test', version: '20.1.0', packageManager: 'system', testData: true})
+        MERGE (comp1:Component {
+          name: 'node-test', 
+          version: '20.0.0', 
+          packageManager: 'system',
+          purl: 'pkg:generic/node-test@20.0.0',
+          testData: true
+        })
+        MERGE (comp2:Component {
+          name: 'node-test', 
+          version: '20.1.0', 
+          packageManager: 'system',
+          purl: 'pkg:generic/node-test@20.1.0',
+          testData: true
+        })
         MERGE (tech:Technology {name: 'Node.js Test', testData: true})
         MERGE (sys1)-[:USES]->(comp1)
         MERGE (sys2)-[:USES]->(comp2)

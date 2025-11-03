@@ -32,7 +32,7 @@
                     <li>Add credentials to <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">.env</code> file</li>
                     <li>Restart the development server</li>
                   </ol>
-                  <p class="mt-2">See <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">docs/SETUP_AUTH.md</code> for detailed instructions.</p>
+                  <p class="mt-2">See <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">CONTRIBUTING.md</code> for detailed instructions.</p>
                 </div>
               </div>
             </div>

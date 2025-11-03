@@ -29,9 +29,14 @@ graph TB
     Version[(Version)]
     Component[(Component)]
     System[(System)]
+    Repository[(Repository)]
     Policy[(Policy)]
+    Hash[(Hash)]
+    License[(License)]
+    ExtRef[(External<br/>Reference)]
+    Vuln[(Vulnerability)]
     
-    %% Relationships
+    %% Core Relationships
     Team -->|STEWARDED_BY<br/>Governance| Technology
     Team -->|OWNS<br/>Operations| System
     Team -->|USES<br/>Actual Usage| Technology
@@ -43,13 +48,22 @@ graph TB
     Component -->|IS_VERSION_OF| Technology
     
     System -->|USES| Component
+    System -->|HAS_SOURCE_IN| Repository
     
     Policy -->|APPLIES_TO| Technology
     
-    %% Styling
-    classDef nodeStyle fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    %% Component SBOM Relationships
+    Component -.->|HAS_HASH| Hash
+    Component -.->|HAS_LICENSE| License
+    Component -.->|HAS_REFERENCE| ExtRef
+    Component -.->|HAS_VULNERABILITY| Vuln
     
-    class Team,Technology,Version,Component,System,Policy nodeStyle
+    %% Styling
+    classDef coreNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef sbomNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    
+    class Team,Technology,Version,Component,System,Repository,Policy coreNode
+    class Hash,License,ExtRef,Vuln sbomNode
 ```
 
 ## Core Entities
@@ -142,12 +156,31 @@ Components are concrete software artifacts that:
 A Component may be an instance of a Technology (e.g., `react@18.2.0` is a component that implements the `React` technology), or it may be a transitive dependency that doesn't require governance approval.
 
 **Key Information Tracked:**
+
+*Core Identity:*
 - Package name and version
-- Package manager (npm, pip, maven, etc.)
-- License type
-- Source repository URL
-- Import path in code
-- Package integrity hash
+- Package manager (npm, pip, maven, cargo, etc.)
+- Package URL (purl) - universal identifier across ecosystems
+- Component type (library, framework, application, etc.)
+- Group/scope (e.g., `@company` for npm, `org.apache` for Maven)
+
+*Security & Compliance:*
+- Multiple cryptographic hashes (SHA-256, SHA-512) for integrity verification
+- License information with SPDX identifiers
+- Known security vulnerabilities with severity ratings
+- Common Platform Enumeration (CPE) for vulnerability matching
+
+*Provenance & Metadata:*
+- Supplier, author, and publisher information
+- Description and copyright details
+- Homepage and documentation links
+- Source repository and issue tracker URLs
+- Release and publication dates
+
+*Dependency Context:*
+- Dependency scope (required, optional, dev, test)
+- Whether it's a direct or transitive dependency
+- Which systems are using this component
 
 ### System
 
@@ -190,6 +223,68 @@ Represents a governance rule for technology usage.
 - Status (active, draft, archived)
 
 **Why it matters:** Policies define your governance rules. They can require approval before using certain technologies, mark technologies as deprecated, enforce security standards, or implement other organizational requirements.
+
+### Repository
+
+Represents a source code repository where systems are developed.
+
+**What it tracks:**
+- Repository URL (e.g., GitHub, GitLab, Bitbucket)
+- Repository type (git, svn, etc.)
+- Default branch
+- Visibility (public, private, internal)
+
+**Why it matters:** Repositories are the source of truth for SBOM data. When you push an SBOM to Polaris with a repository URL, it automatically updates all systems that have their source code in that repository. This enables centralized dependency tracking across multiple systems from a single SBOM scan.
+
+### SBOM-Related Entities
+
+Polaris tracks additional information about components to support comprehensive Software Bill of Materials (SBOM) management:
+
+#### Hash
+
+Represents cryptographic hashes for verifying component integrity.
+
+**What it tracks:**
+- Hash algorithm (SHA-256, SHA-512, BLAKE3, etc.)
+- Hash value (hex-encoded)
+
+**Why it matters:** Hashes ensure that the component you're using hasn't been tampered with. Multiple hash algorithms provide defense-in-depth security. When you download a package, you can verify its integrity by comparing the hash.
+
+#### License
+
+Represents software licenses associated with components.
+
+**What it tracks:**
+- SPDX license identifier (e.g., MIT, Apache-2.0, GPL-3.0)
+- License name and URL
+- Full license text (optional)
+
+**Why it matters:** License tracking helps you understand your legal obligations and ensure compliance. You can identify components with incompatible licenses, track copyleft requirements, and generate license reports for your products.
+
+#### External Reference
+
+Represents external resources related to components.
+
+**What it tracks:**
+- Reference type (vcs, website, documentation, issue-tracker, etc.)
+- URL to the resource
+- Optional description
+
+**Why it matters:** External references help you find more information about components. You can quickly navigate to the source code repository, read documentation, report issues, or visit the project website.
+
+#### Vulnerability
+
+Represents known security vulnerabilities affecting components.
+
+**What it tracks:**
+- Vulnerability ID (CVE, GHSA, OSV, etc.)
+- Source (NVD, GitHub Security Advisories, OSV database)
+- Description and remediation recommendations
+- Severity rating (critical, high, medium, low)
+- CVSS score (0-10 scale)
+- Analysis state (exploitable, in_triage, false_positive, not_affected)
+
+**Why it matters:** Vulnerability tracking helps you identify and remediate security issues in your dependencies. You can prioritize fixes based on severity, track remediation progress, and ensure your systems are protected against known threats.
 
 ## Relationships
 
@@ -270,6 +365,35 @@ These four relationship types represent different aspects of team responsibility
 **APPLIES_TO (Policy → Technology)**
 - Links policies to the technologies they govern
 - Enables technology-specific governance rules
+
+**HAS_SOURCE_IN (System → Repository)**
+- Links systems to their source code repositories
+- Enables automatic SBOM updates for all systems in a repository
+- Supports many-to-many relationships (monorepos can contain multiple systems)
+
+### SBOM Relationships
+
+These relationships connect components to their detailed metadata:
+
+**HAS_HASH (Component → Hash)**
+- Links components to their cryptographic hashes
+- Multiple hashes per component (SHA-256, SHA-512, etc.)
+- Enables integrity verification
+
+**HAS_LICENSE (Component → License)**
+- Links components to their software licenses
+- Multiple licenses per component (dual-licensed software)
+- Enables license compliance tracking
+
+**HAS_REFERENCE (Component → External Reference)**
+- Links components to external resources
+- Multiple references per component (source code, docs, issues)
+- Enables quick navigation to component information
+
+**HAS_VULNERABILITY (Component → Vulnerability)**
+- Links components to known security vulnerabilities
+- Multiple vulnerabilities per component
+- Enables security risk assessment and remediation tracking
 
 ## Governance Models
 
@@ -415,6 +539,55 @@ Component: lodash@4.17.21 (transitive dependency)
 Status: ℹ️ Tracked - Not subject to governance, but monitored for security
 ```
 
+### SBOM Data Flow
+
+Understanding how SBOM data flows through Polaris helps you see the complete picture from code to compliance:
+
+**1. Development & Build**
+- Developers write code and declare dependencies
+- Build tools create SBOM files (SPDX or CycloneDX format)
+- SBOM includes all direct and transitive dependencies
+
+**2. SBOM Ingestion**
+- CI/CD pipeline pushes SBOM to Polaris with repository URL
+- Polaris identifies all systems with source code in that repository
+- Components are created or updated with rich metadata:
+  - Package URLs (purl) for universal identification
+  - Multiple cryptographic hashes for integrity
+  - License information with SPDX identifiers
+  - External references (source code, docs, issues)
+  - Supplier and provenance information
+
+**3. Relationship Building**
+- Components are linked to all systems in the repository
+- Components are matched to governed Technologies (when applicable)
+- Hashes, licenses, and references are linked to components
+- Vulnerabilities are matched using CPE identifiers
+
+**4. Compliance Analysis**
+- Components are checked against team approvals
+- Version constraints are validated
+- License compatibility is assessed
+- Security vulnerabilities are identified
+
+**5. Reporting & Action**
+- Violations are surfaced to teams
+- Security alerts are generated for critical vulnerabilities
+- License compliance reports are available
+- Remediation guidance is provided
+
+**Example Flow:**
+```
+Repository: github.com/company/api-gateway
+Systems: API Gateway, Auth Service, Rate Limiter
+
+SBOM Pushed → 3 Systems Updated → 150 Components Discovered
+  ├─ 45 Components mapped to approved Technologies ✅
+  ├─ 100 Components are transitive dependencies ℹ️
+  ├─ 3 Components have known vulnerabilities ⚠️
+  └─ 2 Components use unapproved Technologies ❌
+```
+
 ## Policy Governance Model
 
 ### Policy Enforcement Architecture
@@ -546,6 +719,59 @@ The Polaris UI provides visibility into:
 - Migration progress tracking
 - Security vulnerability exposure
 
+## Universal Component Identification
+
+### Package URLs (purl)
+
+Polaris uses **Package URLs (purl)** as the universal identifier for components across all package ecosystems.
+
+**What is a purl?**
+
+A Package URL is a standardized way to identify software packages regardless of where they come from. It has a simple format:
+
+```
+pkg:type/namespace/name@version
+```
+
+**Examples:**
+- npm: `pkg:npm/react@18.2.0`
+- Maven: `pkg:maven/org.springframework.boot/spring-boot-starter-web@3.1.0`
+- PyPI: `pkg:pypi/django@4.2.0`
+- Docker: `pkg:docker/library/nginx@1.25.0`
+- Generic: `pkg:generic/openssl@3.0.0`
+
+**Why purl matters:**
+
+1. **Universal Deduplication** - The same component from different SBOMs is recognized as identical
+2. **Cross-Ecosystem Tracking** - Track components consistently across npm, Maven, PyPI, etc.
+3. **Vulnerability Matching** - Security databases use purl for precise vulnerability identification
+4. **License Compliance** - Identify the exact package for license obligations
+5. **Supply Chain Security** - Track component provenance across your entire organization
+
+**How Polaris uses purl:**
+- Primary identifier for all components
+- Enables automatic merging of SBOM data from multiple sources
+- Links components to vulnerability databases
+- Supports dependency graph analysis across ecosystems
+
+### Common Platform Enumeration (CPE)
+
+In addition to purl, Polaris tracks **CPE identifiers** for components when available.
+
+**What is CPE?**
+
+CPE is a standardized naming scheme for IT systems, software, and packages used by security databases like the National Vulnerability Database (NVD).
+
+**Example:**
+```
+cpe:2.3:a:facebook:react:18.2.0:*:*:*:*:*:*:*
+```
+
+**Why CPE matters:**
+- Used by NVD and other vulnerability databases
+- Enables automatic vulnerability matching
+- Provides additional security context
+
 ## Summary
 
 The Polaris graph model provides:
@@ -574,5 +800,11 @@ The Polaris graph model provides:
    - Team-based enforcement model
    - Scoped policies (organization, domain, team)
    - Severity-based prioritization
+
+6. **Comprehensive SBOM Support**
+   - Standards-compliant (SPDX 2.3, CycloneDX 1.5)
+   - Universal component identification (purl, CPE)
+   - Rich metadata (hashes, licenses, vulnerabilities)
+   - Automatic repository-to-system mapping
 
 This model enables organizations to maintain governance and compliance while giving teams the autonomy to make technology decisions appropriate for their context.

@@ -4,6 +4,8 @@ import { setup, $fetch } from '@nuxt/test-utils/e2e'
 describe('Unmapped Components API', async () => {
   await setup({
     server: true,
+    browser: false,
+    setupTimeout: 120000, // 2 minutes for server startup
   })
 
   describe('GET /api/components/unmapped', () => {
@@ -21,11 +23,23 @@ describe('Unmapped Components API', async () => {
       
       if (response.data.length > 0) {
         const component = response.data[0]
+        // Core identification fields
         expect(component).toHaveProperty('name')
         expect(component).toHaveProperty('version')
         expect(component).toHaveProperty('packageManager')
+        
+        // New SBOM fields
+        expect(component).toHaveProperty('purl')
+        expect(component).toHaveProperty('hashes')
+        expect(component).toHaveProperty('licenses')
+        expect(component.hashes).toBeInstanceOf(Array)
+        expect(component.licenses).toBeInstanceOf(Array)
+        
+        // Relationship fields
         expect(component).toHaveProperty('systems')
         expect(component).toHaveProperty('systemCount')
+        expect(component.systems).toBeInstanceOf(Array)
+        expect(typeof component.systemCount).toBe('number')
       }
     })
   })
@@ -75,10 +89,17 @@ describe('Unmapped Components API', async () => {
       
       if (response.data.components.length > 0) {
         const component = response.data.components[0]
+        // Core identification fields
         expect(component).toHaveProperty('name')
         expect(component).toHaveProperty('version')
         expect(component).toHaveProperty('packageManager')
-        expect(component).toHaveProperty('hash')
+        
+        // New SBOM fields
+        expect(component).toHaveProperty('purl')
+        expect(component).toHaveProperty('hashes')
+        expect(component).toHaveProperty('licenses')
+        expect(component.hashes).toBeInstanceOf(Array)
+        expect(component.licenses).toBeInstanceOf(Array)
       }
     })
 

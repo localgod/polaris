@@ -37,15 +37,37 @@ export default defineEventHandler(async (): Promise<ApiResponse<Component>> => {
       MATCH (c:Component)
       OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(tech:Technology)
       OPTIONAL MATCH (sys:System)-[:USES]->(c)
+      OPTIONAL MATCH (c)-[:HAS_HASH]->(h:Hash)
+      OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
+      OPTIONAL MATCH (c)-[:HAS_REFERENCE]->(ref:ExternalReference)
+      WITH c, tech,
+           count(DISTINCT sys) as systemCount,
+           collect(DISTINCT {algorithm: h.algorithm, value: h.value}) as hashes,
+           collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses,
+           collect(DISTINCT {type: ref.type, url: ref.url}) as externalReferences
       RETURN c.name as name,
              c.version as version,
              c.packageManager as packageManager,
-             c.license as license,
-             c.sourceRepo as sourceRepo,
-             c.importPath as importPath,
-             c.hash as hash,
+             c.purl as purl,
+             c.cpe as cpe,
+             c.bomRef as bomRef,
+             c.type as type,
+             c.group as group,
+             c.scope as scope,
+             hashes,
+             licenses,
+             c.copyright as copyright,
+             c.supplier as supplier,
+             c.author as author,
+             c.publisher as publisher,
+             c.description as description,
+             c.homepage as homepage,
+             externalReferences,
+             c.releaseDate as releaseDate,
+             c.publishedDate as publishedDate,
+             c.modifiedDate as modifiedDate,
              tech.name as technologyName,
-             count(DISTINCT sys) as systemCount
+             systemCount
       ORDER BY c.packageManager, c.name
     `)
     
@@ -53,12 +75,26 @@ export default defineEventHandler(async (): Promise<ApiResponse<Component>> => {
       name: record.get('name'),
       version: record.get('version'),
       packageManager: record.get('packageManager'),
-      license: record.get('license'),
-      sourceRepo: record.get('sourceRepo'),
-      importPath: record.get('importPath'),
-      hash: record.get('hash'),
+      purl: record.get('purl'),
+      cpe: record.get('cpe'),
+      bomRef: record.get('bomRef'),
+      type: record.get('type'),
+      group: record.get('group'),
+      scope: record.get('scope'),
+      hashes: record.get('hashes').filter((h: { algorithm?: string; value?: string }) => h.algorithm),
+      licenses: record.get('licenses').filter((l: { id?: string; name?: string }) => l.id || l.name),
+      copyright: record.get('copyright'),
+      supplier: record.get('supplier'),
+      author: record.get('author'),
+      publisher: record.get('publisher'),
+      description: record.get('description'),
+      homepage: record.get('homepage'),
+      externalReferences: record.get('externalReferences').filter((r: { type?: string; url?: string }) => r.type),
+      releaseDate: record.get('releaseDate')?.toString(),
+      publishedDate: record.get('publishedDate')?.toString(),
+      modifiedDate: record.get('modifiedDate')?.toString(),
       technologyName: record.get('technologyName'),
-      systemCount: record.get('systemCount').toNumber()
+      systemCount: record.get('systemCount')
     }))
     
     return {
