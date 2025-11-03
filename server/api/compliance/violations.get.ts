@@ -19,57 +19,57 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
  *                   properties:
- *                     violations:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           team:
- *                             type: string
- *                           technology:
- *                             type: string
- *                           category:
- *                             type: string
- *                           systemCount:
- *                             type: integer
- *                           systems:
- *                             type: array
- *                             items:
- *                               type: string
- *                           violationType:
- *                             type: string
- *                             enum: [unapproved, eliminated]
- *                           notes:
- *                             type: string
- *                             nullable: true
- *                           migrationTarget:
- *                             type: string
- *                             nullable: true
- *                     summary:
+ *                     data:
  *                       type: object
  *                       properties:
- *                         totalViolations:
- *                           type: integer
- *                         teamsAffected:
- *                           type: integer
- *                         byTeam:
+ *                         violations:
  *                           type: array
  *                           items:
  *                             type: object
  *                             properties:
  *                               team:
  *                                 type: string
- *                               violationCount:
+ *                               technology:
+ *                                 type: string
+ *                               category:
+ *                                 type: string
+ *                               systemCount:
  *                                 type: integer
- *                               systemsAffected:
- *                                 type: integer
+ *                               systems:
+ *                                 type: array
+ *                                 items:
+ *                                   type: string
+ *                               violationType:
+ *                                 type: string
+ *                                 enum: [unapproved, eliminated]
+ *                               notes:
+ *                                 type: string
+ *                                 nullable: true
+ *                               migrationTarget:
+ *                                 type: string
+ *                                 nullable: true
+ *                         summary:
+ *                           type: object
+ *                           properties:
+ *                             totalViolations:
+ *                               type: integer
+ *                             teamsAffected:
+ *                               type: integer
+ *                             byTeam:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   team:
+ *                                     type: string
+ *                                   violationCount:
+ *                                     type: integer
+ *                                   systemsAffected:
+ *                                     type: integer
  *             example:
  *               success: true
  *               data:

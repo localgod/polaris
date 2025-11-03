@@ -6,7 +6,7 @@ import { writeFileSync, mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
 import { Feature } from '../helpers/gherkin'
 
-Feature('Database Migration Runner', ({ Scenario }) => {
+Feature('Database Migration Runner @model @unit', ({ Scenario }) => {
   let driver: Driver
   let runner: MigrationRunner
   const testMigrationsDir = join(process.cwd(), 'test-migrations')
@@ -54,7 +54,7 @@ Feature('Database Migration Runner', ({ Scenario }) => {
     runner = new MigrationRunner(driver, testMigrationsDir)
   })
 
-  Scenario('Calculate consistent checksums', ({ Given, When, Then, And }) => {
+  Scenario('Calculate consistent checksums @smoke', ({ Given, When, Then, And }) => {
     Given('a migration file with content "CREATE (n:Test)"', () => {
       migrationContent = 'CREATE (n:Test)'
       expect(migrationContent).toBeDefined()

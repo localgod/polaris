@@ -16,7 +16,7 @@ import { Feature } from '../helpers/gherkin'
  * Implementation requires the approval resolution algorithm.
  */
 
-Feature('Approval Resolution Logic', ({ Scenario }) => {
+Feature('Approval Resolution Logic @model @integration', ({ Scenario }) => {
   let driver: Driver
   let serverRunning = false
 

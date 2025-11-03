@@ -47,38 +47,38 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
  *                   properties:
- *                     team:
- *                       type: string
- *                     technology:
- *                       type: string
- *                     category:
- *                       type: string
- *                     vendor:
- *                       type: string
- *                     version:
- *                       type: string
- *                     approval:
+ *                     data:
  *                       type: object
  *                       properties:
- *                         level:
+ *                         team:
  *                           type: string
- *                           enum: [version, technology, default]
- *                         time:
+ *                         technology:
  *                           type: string
- *                           enum: [adopt, trial, assess, hold, eliminate]
- *                         approvedAt:
+ *                         category:
  *                           type: string
- *                         approvedBy:
+ *                         vendor:
  *                           type: string
- *                         notes:
+ *                         version:
  *                           type: string
+ *                         approval:
+ *                           type: object
+ *                           properties:
+ *                             level:
+ *                               type: string
+ *                               enum: [version, technology, default]
+ *                             time:
+ *                               type: string
+ *                               enum: [adopt, trial, assess, hold, eliminate]
+ *                             approvedAt:
+ *                               type: string
+ *                             approvedBy:
+ *                               type: string
+ *                             notes:
+ *                               type: string
  *             example:
  *               success: true
  *               data:

@@ -19,12 +19,12 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/System'
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/System'
  *       400:
  *         description: System name is required
  *       404:
@@ -48,11 +48,12 @@ export default defineEventHandler(async (event) => {
     OPTIONAL MATCH (team:Team)-[:OWNS]->(s)
     OPTIONAL MATCH (s)-[:USES]->(c:Component)
     OPTIONAL MATCH (s)-[:HAS_SOURCE_IN]->(r:Repository)
+    WITH s, team.name as ownerTeam, count(DISTINCT c) as componentCount, count(DISTINCT r) as repositoryCount
     RETURN s {
       .*,
-      ownerTeam: team.name,
-      componentCount: count(DISTINCT c),
-      repositoryCount: count(DISTINCT r)
+      ownerTeam: ownerTeam,
+      componentCount: componentCount,
+      repositoryCount: repositoryCount
     } as system
   `, { name })
   
@@ -63,8 +64,18 @@ export default defineEventHandler(async (event) => {
     })
   }
   
+  const system = records[0].get('system')
+  
+  // Convert Neo4j Integer objects to regular numbers
+  if (system.componentCount && typeof system.componentCount === 'object' && 'low' in system.componentCount) {
+    system.componentCount = system.componentCount.toNumber ? system.componentCount.toNumber() : system.componentCount.low
+  }
+  if (system.repositoryCount && typeof system.repositoryCount === 'object' && 'low' in system.repositoryCount) {
+    system.repositoryCount = system.repositoryCount.toNumber ? system.repositoryCount.toNumber() : system.repositoryCount.low
+  }
+  
   return {
     success: true,
-    data: records[0].get('system')
+    data: system
   }
 })

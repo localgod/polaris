@@ -18,7 +18,7 @@ const driver = neo4j.driver(
  *     summary: List all users (superuser only)
  *     description: Retrieves a list of all users with their team counts (requires superuser role)
  *     security:
- *       - bearerAuth: []
+ *       - sessionAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved users

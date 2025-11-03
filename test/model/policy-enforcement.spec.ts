@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { expect, beforeAll, afterAll } from 'vitest'
 import neo4j, { type Driver } from 'neo4j-driver'
+import { Feature } from '../helpers/gherkin'
 
-describe('Policy Enforcement', () => {
+Feature('Policy Enforcement @model @schema', ({ Scenario }) => {
   let driver: Driver
   const testPrefix = 'policy_test_'
 
@@ -109,11 +110,17 @@ describe('Policy Enforcement', () => {
     }
   })
 
-  describe('Policy Properties', () => {
-    it('should create policy with all enhanced properties', async () => {
+  Scenario('Create policy with all enhanced properties', ({ Given, When, Then, And }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    let policyResult: { records: unknown[] }
+
+    When('I query for a policy with all properties', async () => {
       const session = driver.session()
       try {
-        const result = await session.run(`
+        policyResult = await session.run(`
           MATCH (p:Policy {name: $name})
           RETURN p.name as name,
                  p.description as description,
@@ -125,23 +132,34 @@ describe('Policy Enforcement', () => {
                  p.scope as scope,
                  p.status as status
         `, { name: `${testPrefix}OrgPolicy` })
-
-        expect(result.records).toHaveLength(1)
-        const policy = result.records[0]
-        expect(policy.get('name')).toBe(`${testPrefix}OrgPolicy`)
-        expect(policy.get('ruleType')).toBe('security')
-        expect(policy.get('severity')).toBe('error')
-        expect(policy.get('enforcedBy')).toBe(`${testPrefix}Security`)
-        expect(policy.get('scope')).toBe('organization')
-        expect(policy.get('status')).toBe('active')
-        expect(policy.get('effectiveDate')).toBeTruthy()
-        expect(policy.get('expiryDate')).toBeNull()
       } finally {
         await session.close()
       }
     })
 
-    it('should handle expired policies', async () => {
+    Then('the policy should exist', () => {
+      expect(policyResult.records).toHaveLength(1)
+    })
+
+    And('all properties should be set correctly', () => {
+      const policy = policyResult.records[0]
+      expect(policy.get('name')).toBe(`${testPrefix}OrgPolicy`)
+      expect(policy.get('ruleType')).toBe('security')
+      expect(policy.get('severity')).toBe('error')
+      expect(policy.get('enforcedBy')).toBe(`${testPrefix}Security`)
+      expect(policy.get('scope')).toBe('organization')
+      expect(policy.get('status')).toBe('active')
+      expect(policy.get('effectiveDate')).toBeTruthy()
+      expect(policy.get('expiryDate')).toBeNull()
+    })
+  })
+
+  Scenario('Handle expired policies', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I query for an expired policy', async () => {
       const session = driver.session()
       try {
         const result = await session.run(`
@@ -151,6 +169,20 @@ describe('Policy Enforcement', () => {
         `, { name: `${testPrefix}ExpiredPolicy` })
 
         expect(result.records).toHaveLength(1)
+      } finally {
+        await session.close()
+      }
+    })
+
+    Then('the policy should be archived with an expiry date', async () => {
+      const session = driver.session()
+      try {
+        const result = await session.run(`
+          MATCH (p:Policy {name: $name})
+          RETURN p.expiryDate as expiryDate,
+                 p.status as status
+        `, { name: `${testPrefix}ExpiredPolicy` })
+
         const policy = result.records[0]
         expect(policy.get('expiryDate')).toBeTruthy()
         expect(policy.get('status')).toBe('archived')
@@ -160,8 +192,12 @@ describe('Policy Enforcement', () => {
     })
   })
 
-  describe('ENFORCES Relationship', () => {
-    it('should create ENFORCES relationship', async () => {
+  Scenario('Create ENFORCES relationship', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create an ENFORCES relationship between team and policy', async () => {
       const session = driver.session()
       try {
         await session.run(`
@@ -172,7 +208,14 @@ describe('Policy Enforcement', () => {
           teamName: `${testPrefix}Security`,
           policyName: `${testPrefix}OrgPolicy`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('the ENFORCES relationship should exist', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (team:Team {name: $teamName})-[:ENFORCES]->(policy:Policy {name: $policyName})
           RETURN count(*) as count
@@ -186,11 +229,16 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should find all policies enforced by a team', async () => {
+  Scenario('Find all policies enforced by a team', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create enforcement relationships for multiple policies', async () => {
       const session = driver.session()
       try {
-        // Create enforcement relationships
         await session.run(`
           MATCH (team:Team {name: $teamName})
           MATCH (policy:Policy)
@@ -201,7 +249,14 @@ describe('Policy Enforcement', () => {
           policy1: `${testPrefix}OrgPolicy`,
           policy2: `${testPrefix}ExpiredPolicy`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('I should find all policies enforced by the team', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (team:Team {name: $teamName})-[:ENFORCES]->(policy:Policy)
           RETURN collect(policy.name) as policies
@@ -216,8 +271,12 @@ describe('Policy Enforcement', () => {
     })
   })
 
-  describe('SUBJECT_TO Relationship', () => {
-    it('should create SUBJECT_TO relationship', async () => {
+  Scenario('Create SUBJECT_TO relationship', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create a SUBJECT_TO relationship between team and policy', async () => {
       const session = driver.session()
       try {
         await session.run(`
@@ -228,7 +287,14 @@ describe('Policy Enforcement', () => {
           teamName: `${testPrefix}Frontend`,
           policyName: `${testPrefix}OrgPolicy`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('the SUBJECT_TO relationship should exist', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (team:Team {name: $teamName})-[:SUBJECT_TO]->(policy:Policy {name: $policyName})
           RETURN count(*) as count
@@ -242,11 +308,16 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should apply organization-wide policies to all teams', async () => {
+  Scenario('Apply organization-wide policies to all teams', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I apply an organization-wide policy to all teams', async () => {
       const session = driver.session()
       try {
-        // Create SUBJECT_TO relationships for organization policy
         await session.run(`
           MATCH (policy:Policy {name: $policyName, scope: 'organization'})
           MATCH (team:Team)
@@ -256,7 +327,14 @@ describe('Policy Enforcement', () => {
           policyName: `${testPrefix}OrgPolicy`,
           prefix: testPrefix
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('all teams should be subject to the policy', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (team:Team)-[:SUBJECT_TO]->(policy:Policy {name: $policyName})
           WHERE team.name STARTS WITH $prefix
@@ -271,11 +349,16 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should apply domain-specific policies only to teams in that domain', async () => {
+  Scenario('Apply domain-specific policies only to teams in that domain', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I apply a domain-specific policy to frontend teams', async () => {
       const session = driver.session()
       try {
-        // Create SUBJECT_TO relationships for domain policy
         await session.run(`
           MATCH (policy:Policy {name: $policyName})
           MATCH (team:Team {responsibilityArea: 'frontend'})
@@ -285,7 +368,14 @@ describe('Policy Enforcement', () => {
           policyName: `${testPrefix}DomainPolicy`,
           prefix: testPrefix
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('only frontend teams should be subject to the policy', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (team:Team)-[:SUBJECT_TO]->(policy:Policy {name: $policyName})
           WHERE team.name STARTS WITH $prefix
@@ -304,8 +394,12 @@ describe('Policy Enforcement', () => {
     })
   })
 
-  describe('GOVERNS Relationship', () => {
-    it('should create GOVERNS relationship to technology', async () => {
+  Scenario('Create GOVERNS relationship to technology', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create a GOVERNS relationship between policy and technology', async () => {
       const session = driver.session()
       try {
         await session.run(`
@@ -316,7 +410,14 @@ describe('Policy Enforcement', () => {
           policyName: `${testPrefix}OrgPolicy`,
           techName: `${testPrefix}React`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('the GOVERNS relationship should exist', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (policy:Policy {name: $policyName})-[:GOVERNS]->(tech:Technology {name: $techName})
           RETURN count(*) as count
@@ -330,11 +431,16 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should find all technologies governed by a policy', async () => {
+  Scenario('Find all technologies governed by a policy', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create GOVERNS relationships for multiple technologies', async () => {
       const session = driver.session()
       try {
-        // Create GOVERNS relationships
         await session.run(`
           MATCH (policy:Policy {name: $policyName})
           MATCH (tech:Technology)
@@ -345,7 +451,14 @@ describe('Policy Enforcement', () => {
           tech1: `${testPrefix}React`,
           tech2: `${testPrefix}OldLib`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('I should find all technologies governed by the policy', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (policy:Policy {name: $policyName})-[:GOVERNS]->(tech:Technology)
           RETURN collect(tech.name) as technologies
@@ -358,11 +471,16 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should find policies governing high-risk technologies', async () => {
+  Scenario('Find policies governing high-risk technologies', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create a GOVERNS relationship for a high-risk technology', async () => {
       const session = driver.session()
       try {
-        // Create GOVERNS relationship for high-risk tech
         await session.run(`
           MATCH (policy:Policy {name: $policyName})
           MATCH (tech:Technology {name: $techName})
@@ -371,7 +489,14 @@ describe('Policy Enforcement', () => {
           policyName: `${testPrefix}OrgPolicy`,
           techName: `${testPrefix}OldLib`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('I should find policies governing high-risk technologies', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (policy:Policy)-[:GOVERNS]->(tech:Technology)
           WHERE tech.riskLevel IN ['high', 'critical']
@@ -390,8 +515,16 @@ describe('Policy Enforcement', () => {
     })
   })
 
-  describe('Policy Queries', () => {
-    it('should find active policies', async () => {
+  Scenario('Find active policies', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I query for active policies', async () => {
+      // Query happens in Then step
+    })
+
+    Then('I should find at least two active policies', async () => {
       const session = driver.session()
       try {
         const result = await session.run(`
@@ -405,8 +538,18 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should find policies by scope', async () => {
+  Scenario('Find policies by scope', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I query for organization-scoped policies', async () => {
+      // Query happens in Then step
+    })
+
+    Then('I should find the organization policy', async () => {
       const session = driver.session()
       try {
         const result = await session.run(`
@@ -421,26 +564,16 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should find policies enforced by a specific team', async () => {
+  Scenario('Find policies enforced by a specific team', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create enforcement relationships and query for them', async () => {
       const session = driver.session()
       try {
-        // Verify team and policy exist first
-        const checkResult = await session.run(`
-          MATCH (team:Team {name: $teamName})
-          MATCH (policy:Policy {name: $policyName})
-          RETURN team.name as teamName, policy.name as policyName
-        `, {
-          teamName: `${testPrefix}Security`,
-          policyName: `${testPrefix}OrgPolicy`
-        })
-        
-        if (checkResult.records.length === 0) {
-          console.warn('Team or Policy not found, skipping test')
-          return
-        }
-
-        // Ensure enforcement relationship exists
         await session.run(`
           MATCH (team:Team {name: $teamName})
           MATCH (policy:Policy {name: $policyName})
@@ -449,7 +582,14 @@ describe('Policy Enforcement', () => {
           teamName: `${testPrefix}Security`,
           policyName: `${testPrefix}OrgPolicy`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('I should find policies enforced by the team', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (team:Team {name: $teamName})-[:ENFORCES]->(policy:Policy)
           RETURN collect(policy.name) as policies
@@ -461,22 +601,16 @@ describe('Policy Enforcement', () => {
         await session.close()
       }
     })
+  })
 
-    it('should find all compliance requirements for a team', async () => {
+  Scenario('Find all compliance requirements for a team', ({ Given, When, Then }) => {
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create SUBJECT_TO relationships for a team', async () => {
       const session = driver.session()
       try {
-        // Verify team exists
-        const teamCheck = await session.run(`
-          MATCH (team:Team {name: $teamName})
-          RETURN team.name as teamName
-        `, { teamName: `${testPrefix}Frontend` })
-        
-        if (teamCheck.records.length === 0) {
-          console.warn('Team not found, skipping test')
-          return
-        }
-
-        // Setup relationships
         await session.run(`
           MATCH (team:Team {name: $teamName})
           MATCH (policy:Policy)
@@ -487,7 +621,14 @@ describe('Policy Enforcement', () => {
           policy1: `${testPrefix}OrgPolicy`,
           policy2: `${testPrefix}DomainPolicy`
         })
+      } finally {
+        await session.close()
+      }
+    })
 
+    Then('I should find all compliance requirements for the team', async () => {
+      const session = driver.session()
+      try {
         const result = await session.run(`
           MATCH (team:Team {name: $teamName})-[:SUBJECT_TO]->(policy:Policy {status: 'active'})
           OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(policy)

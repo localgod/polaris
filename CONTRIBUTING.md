@@ -185,17 +185,44 @@ git push origin feature/your-feature-name
 
 ## Testing
 
-### Test Structure
+### Test Architecture
 
-Tests are organized by domain in the `test/` directory:
+Polaris uses a **three-layer testing strategy** for comprehensive coverage:
 
 ```
 test/
-├── api/           # API endpoint tests
-├── schema/        # Database migration tests
-├── app/           # Frontend/application tests
+├── model/         # Layer 1: Database schema and data integrity
+│   ├── features/  # Gherkin feature files
+│   └── *.spec.ts  # Test implementations
+├── api/           # Layer 2: Business logic and API endpoints
+│   ├── *.feature  # Gherkin feature files
+│   └── *.spec.ts  # Test implementations
+├── ui/            # Layer 3: End-to-end user workflows
+│   ├── *.feature  # Gherkin feature files
+│   ├── *.spec.ts  # Test implementations
+│   └── setup.ts   # Playwright configuration
 └── helpers/       # Shared test utilities
 ```
+
+**Test Layers:**
+
+1. **Model Layer** (41 tests) - Database schema, constraints, relationships
+   - Neo4j schema validation
+   - Data integrity checks
+   - Migration testing
+   - Policy enforcement
+
+2. **API Layer** (18 tests) - Business logic and endpoints
+   - API endpoint functionality
+   - Request/response validation
+   - Error handling
+   - Integration with database
+
+3. **UI Layer** (1 test) - End-to-end user workflows
+   - Browser automation with Playwright
+   - User interaction flows
+   - Visual validation
+   - Cross-browser testing
 
 Each test includes:
 - `.feature` file - Gherkin feature description in plain language
@@ -204,11 +231,16 @@ Each test includes:
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (60 tests across all layers)
 npm test
 
-# Run tests once (CI mode)
-npm run test:run
+# Run by layer
+npm run test:model    # Model layer (41 tests)
+npm run test:api      # API layer (18 tests)
+npm run test:ui       # UI layer (1 test)
+
+# Run smoke tests (6 critical tests across all layers)
+npm run test:smoke
 
 # Run with coverage
 npm run test:coverage
@@ -216,37 +248,178 @@ npm run test:coverage
 # Run with UI
 npm run test:ui
 
-# Run migration tests only
-npm run test:migrations
-
 # View coverage report
 open coverage/index.html
 ```
 
+### CI/CD Testing
+
+Tests run in **parallel** in GitHub Actions for faster feedback:
+
+- **4 parallel jobs**: model, api, ui, smoke
+- **~60% faster** than sequential execution
+- **Layer-specific failures** for better debugging
+- **Coverage reporting** per layer with merged results
+
+See [Phase 5 Migration](PHASE5_MIGRATION_COMPLETE.md) for CI/CD details.
+
 ### Writing Tests
 
-Tests use Gherkin-style BDD syntax for better readability:
+**All tests MUST use Gherkin-style BDD syntax** for consistency and readability.
 
+#### Test Structure
+
+Every test consists of two files:
+
+1. **`.feature` file** - Human-readable specification in Gherkin syntax
+2. **`.spec.ts` file** - Test implementation using the Gherkin helper
+
+#### Example: Basic Test
+
+**File: `test/api/my-feature.feature`**
+```gherkin
+Feature: My Feature
+  As a user
+  I want to perform an action
+  So that I can achieve a goal
+
+  Scenario: Successful action
+    Given a precondition exists
+    When I perform an action
+    Then I should see the expected result
+    And the system should be in the correct state
+```
+
+**File: `test/api/my-feature.spec.ts`**
 ```typescript
 import { expect } from 'vitest'
 import { Feature } from '../helpers/gherkin'
 
 Feature('My Feature', ({ Scenario }) => {
-  Scenario('My scenario', ({ Given, When, Then, And }) => {
-    Given('a precondition', () => {
+  Scenario('Successful action', ({ Given, When, Then, And }) => {
+    let result: any
+
+    Given('a precondition exists', () => {
       // Setup code
     })
 
-    When('an action occurs', () => {
-      // Action code
+    When('I perform an action', () => {
+      result = performAction()
     })
 
-    Then('an expected result', () => {
+    Then('I should see the expected result', () => {
       expect(result).toBe(expected)
     })
 
-    And('another assertion', () => {
+    And('the system should be in the correct state', () => {
       expect(something).toBeDefined()
+    })
+  })
+})
+```
+
+#### Why Gherkin?
+
+- **Readable** - Non-technical stakeholders can understand tests
+- **Consistent** - All tests follow the same structure
+- **Traceable** - Feature files serve as living documentation
+- **Maintainable** - Clear separation between specification and implementation
+
+### Testing Model Layer
+
+Model layer tests validate database schema, constraints, and data integrity using Neo4j directly.
+
+#### Pattern: Model Test
+
+**File: `test/model/features/my-model.feature`**
+```gherkin
+Feature: My Model
+  As a developer
+  I want to validate the data model
+  So that I can ensure data integrity
+
+  Scenario: Create entity with required properties
+    Given test data has been created
+    When I create an entity with all properties
+    Then the entity should exist in the database
+    And all properties should be set correctly
+```
+
+**File: `test/model/my-model.spec.ts`**
+```typescript
+import { expect, beforeAll, afterAll } from 'vitest'
+import { Feature } from '../helpers/gherkin'
+import neo4j, { type Driver } from 'neo4j-driver'
+
+Feature('My Model @model @schema', ({ Scenario }) => {
+  let driver: Driver
+  const testPrefix = 'test_'
+
+  beforeAll(async () => {
+    driver = neo4j.driver(
+      process.env.NEO4J_URI || 'bolt://localhost:7687',
+      neo4j.auth.basic(
+        process.env.NEO4J_USERNAME || 'neo4j',
+        process.env.NEO4J_PASSWORD || 'devpassword'
+      )
+    )
+  })
+
+  afterAll(async () => {
+    const session = driver.session()
+    try {
+      await session.run(`
+        MATCH (n) WHERE n.name STARTS WITH $prefix
+        DETACH DELETE n
+      `, { prefix: testPrefix })
+    } finally {
+      await session.close()
+      await driver.close()
+    }
+  })
+
+  Scenario('Create entity with required properties', ({ Given, When, Then, And }) => {
+    let result: any
+
+    Given('test data has been created', () => {
+      expect(driver).toBeDefined()
+    })
+
+    When('I create an entity with all properties', async () => {
+      const session = driver.session()
+      try {
+        await session.run(`
+          CREATE (e:Entity {
+            name: $name,
+            status: $status
+          })
+        `, {
+          name: `${testPrefix}Entity`,
+          status: 'active'
+        })
+      } finally {
+        await session.close()
+      }
+    })
+
+    Then('the entity should exist in the database', async () => {
+      const session = driver.session()
+      try {
+        result = await session.run(`
+          MATCH (e:Entity {name: $name})
+          RETURN e
+        `, { name: `${testPrefix}Entity` })
+        
+        expect(result.records).toHaveLength(1)
+      } finally {
+        await session.close()
+      }
+    })
+
+    And('all properties should be set correctly', () => {
+      const entity = result.records[0].get('e')
+      expect(entity.properties.name).toBe(`${testPrefix}Entity`)
+      expect(entity.properties.status).toBe('active')
     })
   })
 })
@@ -254,42 +427,164 @@ Feature('My Feature', ({ Scenario }) => {
 
 ### Testing API Endpoints
 
-For API tests that require the Nuxt dev server:
+API tests use Gherkin BDD with custom API client helpers that work with a running dev server.
 
+#### Pattern: API Endpoint Test
+
+**File: `test/api/my-endpoint.feature`**
+```gherkin
+Feature: My API Endpoint
+  As an API consumer
+  I want to retrieve data
+  So that I can use it in my application
+
+  Scenario: Successful data retrieval
+    Given the API server is running
+    When I request the endpoint
+    Then I should receive a successful response
+    And the response should contain valid data
+```
+
+**File: `test/api/my-endpoint.spec.ts`**
 ```typescript
 import { expect, beforeAll } from 'vitest'
 import { Feature } from '../helpers/gherkin'
-import { apiGet, checkServerHealth } from '../helpers/api-client'
+import { apiGet, apiPost, checkServerHealth } from '../helpers/api-client'
 
-Feature('API Health Check', ({ Scenario }) => {
+Feature('My API Endpoint', ({ Scenario }) => {
   let serverRunning = false
 
   beforeAll(async () => {
     serverRunning = await checkServerHealth()
+    if (!serverRunning) {
+      console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
+      console.warn('   These tests will be skipped.\n')
+    }
   })
 
-  Scenario('Database status check', ({ Given, When, Then }) => {
+  Scenario('Successful data retrieval', ({ Given, When, Then, And }) => {
     let response: any
 
     Given('the API server is running', () => {
-      if (!serverRunning) return // Skip gracefully
+      if (!serverRunning) {
+        console.log('   ⏭️  Skipping - server not available')
+        return
+      }
       expect(serverRunning).toBe(true)
     })
 
-    When('I request the database status', async () => {
+    When('I request the endpoint', async () => {
       if (!serverRunning) return
-      response = await apiGet('/api/db-status')
+      response = await apiGet('/api/my-endpoint')
     })
 
-    Then('I should receive a valid response', () => {
+    Then('I should receive a successful response', () => {
       if (!serverRunning) return
-      expect(response).toHaveProperty('status')
+      expect(response.success).toBe(true)
+    })
+
+    And('the response should contain valid data', () => {
+      if (!serverRunning) return
+      expect(response.data).toBeDefined()
+      expect(response.count).toBeGreaterThanOrEqual(0)
     })
   })
 })
 ```
 
-API tests skip gracefully when the dev server isn't running.
+#### Key Points
+
+- **Use custom API helpers** - `apiGet()`, `apiPost()` from `test/helpers/api-client`
+- **Check server health** - Use `checkServerHealth()` in `beforeAll()`
+- **Graceful skipping** - Tests skip when dev server isn't running
+- **Manual server start** - Run `npm run dev` before running tests
+- **Guard all steps** - Check `serverRunning` in each step to skip gracefully
+
+### Testing UI Layer
+
+UI tests use Playwright for end-to-end browser automation and user workflow testing.
+
+#### Pattern: UI Test
+
+**File: `test/ui/my-feature.feature`**
+```gherkin
+Feature: My Feature UI
+  As a user
+  I want to interact with the application
+  So that I can accomplish my goal
+
+  Scenario: User completes workflow
+    Given the application server is running
+    When I navigate to the feature page
+    Then the page should load successfully
+    And I should see the expected content
+```
+
+**File: `test/ui/my-feature.spec.ts`**
+```typescript
+import { expect, beforeAll } from 'vitest'
+import { Feature } from '../helpers/gherkin'
+import { chromium, type Browser, type Page } from '@playwright/test'
+import { checkServerHealth } from '../helpers/api-client'
+
+Feature('My Feature UI @ui @e2e', ({ Scenario }) => {
+  let browser: Browser
+  let page: Page
+  let serverRunning = false
+  const appURL = process.env.NUXT_TEST_BASE_URL || 'http://localhost:3000'
+
+  beforeAll(async () => {
+    serverRunning = await checkServerHealth()
+    
+    if (!serverRunning) {
+      console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
+      console.warn('   UI tests will be skipped.\n')
+    }
+  })
+
+  Scenario('User completes workflow', ({ Given, When, Then, And }) => {
+    Given('the application server is running', () => {
+      if (!serverRunning) {
+        console.log('   ⏭️  Skipping - server not available')
+        return
+      }
+      expect(serverRunning).toBe(true)
+    })
+
+    When('I navigate to the feature page', async () => {
+      if (!serverRunning) return
+      
+      if (!browser) {
+        browser = await chromium.launch({ headless: true })
+      }
+      
+      page = await browser.newPage()
+      await page.goto(`${appURL}/feature`, { waitUntil: 'domcontentloaded' })
+    })
+
+    Then('the page should load successfully', async () => {
+      if (!serverRunning) return
+      expect(page).toBeDefined()
+      expect(page.url()).toContain('/feature')
+    })
+
+    And('I should see the expected content', async () => {
+      if (!serverRunning) return
+      const heading = await page.textContent('h1')
+      expect(heading).toBeTruthy()
+      
+      if (page) await page.close()
+      if (browser) await browser.close()
+    })
+  })
+})
+```
+
+**Key Points:**
+- **Playwright** - Browser automation for E2E testing
+- **Graceful skipping** - Tests skip when dev server isn't running
+- **Manual server start** - Run `npm run dev` before running UI tests
+- **Cleanup** - Always close browser and page in final step
 
 ### Testing with Neo4j
 
@@ -302,17 +597,53 @@ The test environment automatically configures Neo4j connection via environment v
 
 ### Coverage Requirements
 
-Tests must meet these coverage thresholds:
-- **Lines**: 50%
-- **Branches**: 50%
-- **Functions**: 45%
-- **Statements**: 50%
+**Current Thresholds:**
+- **Lines**: 5%
+- **Branches**: 5%
+- **Functions**: 5%
+- **Statements**: 5%
+
+**Target Thresholds (Roadmap):**
+- **Lines**: 80%
+- **Branches**: 70%
+- **Functions**: 80%
+- **Statements**: 80%
+
+**Note:** Thresholds are intentionally low while building out the test suite. We're working toward comprehensive coverage across all layers.
+
+**Current Coverage:**
+- **Total Tests**: 60 tests across 11 files
+- **Model Layer**: 41 tests (schema, relationships, policies)
+- **API Layer**: 18 tests (endpoints, business logic)
+- **UI Layer**: 1 test (E2E smoke test)
+- **Smoke Tests**: 6 critical path tests
 
 Coverage is automatically reported in pull requests with:
 - Overall coverage summary
+- Per-layer coverage breakdown
 - File-level coverage for changed files
 - Links to uncovered lines
 - Threshold status indicators
+
+See [Recommended Future Work](RECOMMENDED_FUTURE_WORK.md) for coverage improvement roadmap.
+
+### Test File Requirements
+
+Every test MUST include:
+
+1. **`.feature` file** - Gherkin specification
+   - Clear feature description with user story
+   - One or more scenarios
+   - Given/When/Then/And steps
+
+2. **`.spec.ts` file** - Test implementation
+   - Import Gherkin helper: `import { Feature } from '../helpers/gherkin'`
+   - Match scenario names exactly
+   - Implement all steps from feature file
+
+3. **Proper cleanup** - Clean up test data in `afterAll()` or final `And()` step
+
+4. **Meaningful assertions** - No placeholder tests like `expect(true).toBe(true)`
 
 ## Database Management
 

@@ -45,6 +45,10 @@
       "description": "Policy and compliance endpoints"
     },
     {
+      "name": "Compliance",
+      "description": "Compliance violation and audit endpoints"
+    },
+    {
       "name": "Repositories",
       "description": "Repository management endpoints"
     },
@@ -95,6 +99,25 @@
           }
         }
       },
+      "ApiSingleResourceResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "description": "Single resource object"
+          }
+        }
+      },
       "ApiErrorResponse": {
         "type": "object",
         "required": [
@@ -119,40 +142,311 @@
           }
         }
       },
-      "Component": {
+      "Hash": {
+        "type": "object",
+        "required": [
+          "algorithm",
+          "value"
+        ],
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "description": "Hash algorithm (SHA256, SHA512, BLAKE3, etc.)",
+            "example": "SHA-256"
+          },
+          "value": {
+            "type": "string",
+            "description": "Hash value",
+            "example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        }
+      },
+      "License": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true,
+            "description": "SPDX license ID",
+            "example": "MIT"
+          },
           "name": {
-            "type": "string"
+            "type": "string",
+            "nullable": true,
+            "description": "License name",
+            "example": "MIT License"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true,
+            "description": "License URL",
+            "example": "https://opensource.org/licenses/MIT"
+          },
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "Full license text"
+          }
+        }
+      },
+      "ExternalReference": {
+        "type": "object",
+        "required": [
+          "type",
+          "url"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Reference type (vcs, website, documentation, issue-tracker, etc.)",
+            "example": "vcs"
+          },
+          "url": {
+            "type": "string",
+            "description": "Reference URL",
+            "example": "https://github.com/facebook/react"
+          }
+        }
+      },
+      "Component": {
+        "type": "object",
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Component name"
           },
           "version": {
-            "type": "string"
+            "type": "string",
+            "description": "Component version"
           },
           "packageManager": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Package manager (npm, maven, pypi, cargo, etc.)",
+            "example": "npm"
           },
-          "license": {
+          "purl": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Package URL",
+            "example": "pkg:npm/react@18.2.0"
           },
-          "sourceRepo": {
+          "cpe": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Common Platform Enumeration"
           },
-          "importPath": {
+          "bomRef": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Unique identifier within SBOM"
           },
-          "hash": {
-            "type": "string"
+          "type": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "application",
+              "framework",
+              "library",
+              "container",
+              "platform",
+              "operating-system",
+              "device",
+              "device-driver",
+              "firmware",
+              "file",
+              "machine-learning-model",
+              "data"
+            ],
+            "description": "Component type"
+          },
+          "group": {
+            "type": "string",
+            "nullable": true,
+            "description": "Maven groupId, npm scope, etc.",
+            "example": "@facebook"
+          },
+          "scope": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "required",
+              "optional",
+              "excluded",
+              "dev",
+              "test",
+              "runtime",
+              "provided"
+            ],
+            "description": "Dependency scope"
+          },
+          "hashes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Hash"
+            },
+            "description": "Component hashes"
+          },
+          "licenses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/License"
+            },
+            "description": "Component licenses"
+          },
+          "copyright": {
+            "type": "string",
+            "nullable": true,
+            "description": "Copyright text"
+          },
+          "supplier": {
+            "type": "string",
+            "nullable": true,
+            "description": "Organization/person who supplied the component"
+          },
+          "author": {
+            "type": "string",
+            "nullable": true,
+            "description": "Original author"
+          },
+          "publisher": {
+            "type": "string",
+            "nullable": true,
+            "description": "Publisher"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Component description"
+          },
+          "homepage": {
+            "type": "string",
+            "nullable": true,
+            "description": "Project homepage URL"
+          },
+          "externalReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalReference"
+            },
+            "description": "External references (VCS, docs, issues, etc.)"
+          },
+          "releaseDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "Release date"
+          },
+          "publishedDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "When published to registry"
+          },
+          "modifiedDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "Last modification date"
           },
           "technologyName": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Linked Technology name"
           },
           "systemCount": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Number of systems using this component"
+          },
+          "vulnerabilityCount": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Number of known vulnerabilities"
+          }
+        }
+      },
+      "UnmappedComponent": {
+        "type": "object",
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Component name"
+          },
+          "version": {
+            "type": "string",
+            "description": "Component version"
+          },
+          "packageManager": {
+            "type": "string",
+            "nullable": true,
+            "description": "Package manager (npm, maven, pypi, cargo, etc.)"
+          },
+          "purl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Package URL"
+          },
+          "cpe": {
+            "type": "string",
+            "nullable": true,
+            "description": "Common Platform Enumeration"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "application",
+              "framework",
+              "library",
+              "container",
+              "platform",
+              "operating-system",
+              "device",
+              "device-driver",
+              "firmware",
+              "file",
+              "machine-learning-model",
+              "data"
+            ],
+            "description": "Component type"
+          },
+          "group": {
+            "type": "string",
+            "nullable": true,
+            "description": "Maven groupId, npm scope, etc."
+          },
+          "hashes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Hash"
+            },
+            "description": "Component hashes"
+          },
+          "licenses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/License"
+            },
+            "description": "Component licenses"
+          },
+          "systems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Systems using this component"
+          },
+          "systemCount": {
+            "type": "integer",
+            "description": "Number of systems using this component"
           }
         }
       },
@@ -767,64 +1061,68 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
                     },
-                    "data": {
+                    {
                       "type": "object",
                       "properties": {
-                        "team": {
-                          "type": "string"
-                        },
-                        "technology": {
-                          "type": "string"
-                        },
-                        "category": {
-                          "type": "string"
-                        },
-                        "vendor": {
-                          "type": "string"
-                        },
-                        "version": {
-                          "type": "string"
-                        },
-                        "approval": {
+                        "data": {
                           "type": "object",
                           "properties": {
-                            "level": {
-                              "type": "string",
-                              "enum": [
-                                "version",
-                                "technology",
-                                "default"
-                              ]
-                            },
-                            "time": {
-                              "type": "string",
-                              "enum": [
-                                "adopt",
-                                "trial",
-                                "assess",
-                                "hold",
-                                "eliminate"
-                              ]
-                            },
-                            "approvedAt": {
+                            "team": {
                               "type": "string"
                             },
-                            "approvedBy": {
+                            "technology": {
                               "type": "string"
                             },
-                            "notes": {
+                            "category": {
                               "type": "string"
+                            },
+                            "vendor": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "string"
+                            },
+                            "approval": {
+                              "type": "object",
+                              "properties": {
+                                "level": {
+                                  "type": "string",
+                                  "enum": [
+                                    "version",
+                                    "technology",
+                                    "default"
+                                  ]
+                                },
+                                "time": {
+                                  "type": "string",
+                                  "enum": [
+                                    "adopt",
+                                    "trial",
+                                    "assess",
+                                    "hold",
+                                    "eliminate"
+                                  ]
+                                },
+                                "approvedAt": {
+                                  "type": "string"
+                                },
+                                "approvedBy": {
+                                  "type": "string"
+                                },
+                                "notes": {
+                                  "type": "string"
+                                }
+                              }
                             }
                           }
                         }
                       }
                     }
-                  }
+                  ]
                 },
                 "example": {
                   "success": true,
@@ -896,65 +1194,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
                     },
-                    "data": {
+                    {
                       "type": "object",
                       "properties": {
-                        "violations": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "team": {
-                                "type": "string"
-                              },
-                              "technology": {
-                                "type": "string"
-                              },
-                              "category": {
-                                "type": "string"
-                              },
-                              "systemCount": {
-                                "type": "integer"
-                              },
-                              "systems": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "violationType": {
-                                "type": "string",
-                                "enum": [
-                                  "unapproved",
-                                  "eliminated"
-                                ]
-                              },
-                              "notes": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "migrationTarget": {
-                                "type": "string",
-                                "nullable": true
-                              }
-                            }
-                          }
-                        },
-                        "summary": {
+                        "data": {
                           "type": "object",
                           "properties": {
-                            "totalViolations": {
-                              "type": "integer"
-                            },
-                            "teamsAffected": {
-                              "type": "integer"
-                            },
-                            "byTeam": {
+                            "violations": {
                               "type": "array",
                               "items": {
                                 "type": "object",
@@ -962,11 +1212,63 @@
                                   "team": {
                                     "type": "string"
                                   },
-                                  "violationCount": {
+                                  "technology": {
+                                    "type": "string"
+                                  },
+                                  "category": {
+                                    "type": "string"
+                                  },
+                                  "systemCount": {
                                     "type": "integer"
                                   },
-                                  "systemsAffected": {
-                                    "type": "integer"
+                                  "systems": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "violationType": {
+                                    "type": "string",
+                                    "enum": [
+                                      "unapproved",
+                                      "eliminated"
+                                    ]
+                                  },
+                                  "notes": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "migrationTarget": {
+                                    "type": "string",
+                                    "nullable": true
+                                  }
+                                }
+                              }
+                            },
+                            "summary": {
+                              "type": "object",
+                              "properties": {
+                                "totalViolations": {
+                                  "type": "integer"
+                                },
+                                "teamsAffected": {
+                                  "type": "integer"
+                                },
+                                "byTeam": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "team": {
+                                        "type": "string"
+                                      },
+                                      "violationCount": {
+                                        "type": "integer"
+                                      },
+                                      "systemsAffected": {
+                                        "type": "integer"
+                                      }
+                                    }
                                   }
                                 }
                               }
@@ -975,7 +1277,7 @@
                         }
                       }
                     }
-                  }
+                  ]
                 },
                 "example": {
                   "success": true,
@@ -1316,53 +1618,42 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
                     },
-                    "data": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/Policy"
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "enforcerTeam": {
-                              "type": "string"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/Policy"
                             },
-                            "subjectTeams": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "governedTechnologies": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "governedVersions": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "technology": {
-                                    "type": "string"
-                                  },
-                                  "version": {
-                                    "type": "string"
+                            {
+                              "type": "object",
+                              "properties": {
+                                "governedVersions": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "technology": {
+                                        "type": "string"
+                                      },
+                                      "version": {
+                                        "type": "string"
+                                      }
+                                    }
                                   }
                                 }
                               }
                             }
-                          }
+                          ]
                         }
-                      ]
+                      }
                     }
-                  }
+                  ]
                 },
                 "example": {
                   "success": true,
@@ -1808,7 +2099,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
+            "sessionAuth": []
           }
         ],
         "responses": {
@@ -1852,15 +2143,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
                     },
-                    "data": {
-                      "$ref": "#/components/schemas/System"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/System"
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -2089,29 +2384,33 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
                     },
-                    "data": {
+                    {
                       "type": "object",
                       "properties": {
-                        "system": {
-                          "type": "string"
-                        },
-                        "components": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/UnmappedComponent"
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "system": {
+                              "type": "string"
+                            },
+                            "components": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/UnmappedComponent"
+                              }
+                            },
+                            "count": {
+                              "type": "integer"
+                            }
                           }
-                        },
-                        "count": {
-                          "type": "integer"
                         }
                       }
                     }
-                  }
+                  ]
                 },
                 "example": {
                   "success": true,
@@ -2265,30 +2564,34 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
                     },
-                    "data": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/Team"
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "usedTechnologyCount": {
-                              "type": "integer"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/Team"
                             },
-                            "memberCount": {
-                              "type": "integer"
+                            {
+                              "type": "object",
+                              "properties": {
+                                "usedTechnologyCount": {
+                                  "type": "integer"
+                                },
+                                "memberCount": {
+                                  "type": "integer"
+                                }
+                              }
                             }
-                          }
+                          ]
                         }
-                      ]
+                      }
                     }
-                  }
+                  ]
                 },
                 "example": {
                   "success": true,
@@ -2711,81 +3014,55 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
                     },
-                    "data": {
+                    {
                       "type": "object",
                       "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "category": {
-                          "type": "string"
-                        },
-                        "vendor": {
-                          "type": "string"
-                        },
-                        "approvedVersionRange": {
-                          "type": "string"
-                        },
-                        "ownerTeam": {
-                          "type": "string"
-                        },
-                        "riskLevel": {
-                          "type": "string"
-                        },
-                        "lastReviewed": {
-                          "type": "string"
-                        },
-                        "ownerTeamName": {
-                          "type": "string"
-                        },
-                        "ownerTeamEmail": {
-                          "type": "string"
-                        },
-                        "versions": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
-                        },
-                        "components": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
-                        },
-                        "systems": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "policies": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
-                        },
-                        "technologyApprovals": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/TechnologyApproval"
-                          }
-                        },
-                        "versionApprovals": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/Technology"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "ownerTeamEmail": {
+                                  "type": "string"
+                                },
+                                "components": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object"
+                                  }
+                                },
+                                "systems": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "policies": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object"
+                                  }
+                                },
+                                "versionApprovals": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object"
+                                  }
+                                }
+                              }
+                            }
+                          ]
                         }
                       }
                     }
-                  }
+                  ]
                 },
                 "example": {
                   "success": true,
@@ -2838,7 +3115,7 @@
         "description": "Retrieves a list of all users with their team counts (requires superuser role)",
         "security": [
           {
-            "bearerAuth": []
+            "sessionAuth": []
           }
         ],
         "responses": {
