@@ -10,8 +10,10 @@ export default defineConfig({
     hookTimeout: 60000, // 60 seconds for beforeAll/afterAll
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json-summary', 'json', 'html'],
+      reporter: ['text', 'json-summary', 'json', 'html', 'lcov'],
       reportOnFailure: true,
+      reportsDirectory: './coverage',
+      all: true,
       thresholds: {
         lines: 5,
         branches: 5,
@@ -31,6 +33,8 @@ export default defineConfig({
         'app/components/**',
         'app/plugins/**',
         'server/api/**',
+        'schema/scripts/**',
+        'server/scripts/**',
       ],
     },
     env: {

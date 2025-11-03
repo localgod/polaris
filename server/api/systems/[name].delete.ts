@@ -14,7 +14,7 @@
  *           type: string
  *         description: System name
  *     security:
- *       - bearerAuth: []
+ *       - sessionAuth: []
  *     responses:
  *       204:
  *         description: System deleted successfully

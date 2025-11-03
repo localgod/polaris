@@ -22,7 +22,9 @@ export async function apiGet<T = unknown>(path: string): Promise<T> {
   const response = await fetch(url)
   
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+    const errorBody = await response.json().catch(() => ({}))
+    const message = errorBody.message || response.statusText
+    throw new Error(message)
   }
   
   return response.json()
@@ -41,7 +43,9 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
   })
   
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+    const errorBody = await response.json().catch(() => ({}))
+    const message = errorBody.message || response.statusText
+    throw new Error(message)
   }
   
   return response.json()

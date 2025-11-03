@@ -28,21 +28,21 @@ import type { UnmappedComponent } from '~~/types/api'
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
  *                   properties:
- *                     system:
- *                       type: string
- *                     components:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/UnmappedComponent'
- *                     count:
- *                       type: integer
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         system:
+ *                           type: string
+ *                         components:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/UnmappedComponent'
+ *                         count:
+ *                           type: integer
  *             example:
  *               success: true
  *               data:

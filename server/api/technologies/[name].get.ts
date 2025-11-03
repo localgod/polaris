@@ -29,56 +29,33 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
  *                   properties:
- *                     name:
- *                       type: string
- *                     category:
- *                       type: string
- *                     vendor:
- *                       type: string
- *                     approvedVersionRange:
- *                       type: string
- *                     ownerTeam:
- *                       type: string
- *                     riskLevel:
- *                       type: string
- *                     lastReviewed:
- *                       type: string
- *                     ownerTeamName:
- *                       type: string
- *                     ownerTeamEmail:
- *                       type: string
- *                     versions:
- *                       type: array
- *                       items:
- *                         type: object
- *                     components:
- *                       type: array
- *                       items:
- *                         type: object
- *                     systems:
- *                       type: array
- *                       items:
- *                         type: string
- *                     policies:
- *                       type: array
- *                       items:
- *                         type: object
- *                     technologyApprovals:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/TechnologyApproval'
- *                     versionApprovals:
- *                       type: array
- *                       items:
- *                         type: object
+ *                     data:
+ *                       allOf:
+ *                         - $ref: '#/components/schemas/Technology'
+ *                         - type: object
+ *                           properties:
+ *                             ownerTeamEmail:
+ *                               type: string
+ *                             components:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                             systems:
+ *                               type: array
+ *                               items:
+ *                                 type: string
+ *                             policies:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                             versionApprovals:
+ *                               type: array
+ *                               items:
+ *                                 type: object
  *             example:
  *               success: true
  *               data:

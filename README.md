@@ -157,7 +157,11 @@ npm run migrate:up       # Apply migrations
 npm run seed             # Seed sample data
 
 # Testing
-npm test                 # Run tests
+npm test                 # Run all tests (60 tests)
+npm run test:model       # Model layer tests (41 tests)
+npm run test:api         # API layer tests (18 tests)
+npm run test:ui          # UI layer tests (1 test)
+npm run test:smoke       # Smoke tests (6 tests)
 npm run test:coverage    # Run with coverage
 
 # Code Quality
@@ -176,16 +180,44 @@ See [Dev Container README](.devcontainer/README.md) and [Gitpod Automations](.on
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) with Gherkin-style BDD syntax.
+This project uses [Vitest](https://vitest.dev/) with Gherkin-style BDD syntax and a **three-layer testing strategy**.
+
+### Test Architecture
+
+**60 tests across 3 layers:**
+
+1. **Model Layer** (41 tests) - Database schema and data integrity
+   - Neo4j schema validation
+   - Relationship constraints
+   - Policy enforcement
+   - Migration testing
+
+2. **API Layer** (18 tests) - Business logic and endpoints
+   - API endpoint functionality
+   - Request/response validation
+   - Error handling
+   - Integration testing
+
+3. **UI Layer** (1 test) - End-to-end user workflows
+   - Browser automation with Playwright
+   - User interaction flows
+   - Visual validation
 
 ### Test Organization
 
 ```
 test/
-├── api/           # API endpoint tests
-├── schema/        # Database migration tests
-├── app/           # Frontend tests
-└── helpers/       # Test utilities
+├── model/         # Layer 1: Database schema (41 tests)
+│   ├── features/  # Gherkin feature files
+│   └── *.spec.ts  # Test implementations
+├── api/           # Layer 2: API endpoints (18 tests)
+│   ├── *.feature  # Gherkin feature files
+│   └── *.spec.ts  # Test implementations
+├── ui/            # Layer 3: E2E workflows (1 test)
+│   ├── *.feature  # Gherkin feature files
+│   ├── *.spec.ts  # Test implementations
+│   └── setup.ts   # Playwright configuration
+└── helpers/       # Shared test utilities
 ```
 
 Each test includes a `.feature` file (Gherkin scenarios) and `.spec.ts` file (implementation).
@@ -224,11 +256,28 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management wi
 ### Running Tests
 
 ```bash
-npm test                 # Run all tests (watch mode)
-npm run test:run         # Run once (CI mode)
-npm run test:coverage    # Run with coverage
-npm run test:migrations  # Run migration tests only
+# Run all tests (60 tests)
+npm test
+
+# Run by layer
+npm run test:model       # Model layer (41 tests)
+npm run test:api         # API layer (18 tests)
+npm run test:ui          # UI layer (1 test)
+
+# Run smoke tests (6 critical tests)
+npm run test:smoke
+
+# Run with coverage
+npm run test:coverage
 ```
+
+### CI/CD Testing
+
+Tests run in **parallel** in GitHub Actions:
+- **4 parallel jobs**: model, api, ui, smoke
+- **~60% faster** than sequential execution
+- **Layer-specific failures** for better debugging
+- **Coverage reporting** per layer with merged results
 
 **For testing guidelines and examples**, see the [Contributing Guide](CONTRIBUTING.md#testing).
 

@@ -25,34 +25,24 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   allOf:
- *                     - $ref: '#/components/schemas/Policy'
- *                     - type: object
- *                       properties:
- *                         enforcerTeam:
- *                           type: string
- *                         subjectTeams:
- *                           type: array
- *                           items:
- *                             type: string
- *                         governedTechnologies:
- *                           type: array
- *                           items:
- *                             type: string
- *                         governedVersions:
- *                           type: array
- *                           items:
- *                             type: object
- *                             properties:
- *                               technology:
- *                                 type: string
- *                               version:
- *                                 type: string
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       allOf:
+ *                         - $ref: '#/components/schemas/Policy'
+ *                         - type: object
+ *                           properties:
+ *                             governedVersions:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   technology:
+ *                                     type: string
+ *                                   version:
+ *                                     type: string
  *             example:
  *               success: true
  *               data:

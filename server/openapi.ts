@@ -71,6 +71,7 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
       { name: 'Technologies', description: 'Technology catalog endpoints' },
       { name: 'Teams', description: 'Team management endpoints' },
       { name: 'Policies', description: 'Policy and compliance endpoints' },
+      { name: 'Compliance', description: 'Compliance violation and audit endpoints' },
       { name: 'Repositories', description: 'Repository management endpoints' },
       { name: 'Users', description: 'User management endpoints' },
       { name: 'Approvals', description: 'Technology approval endpoints' },
@@ -104,36 +105,297 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             }
           }
         },
-        ApiErrorResponse: {
+        ApiSingleResourceResponse: {
           type: 'object',
-          required: ['success', 'error', 'data'],
+          required: ['success', 'data'],
           properties: {
             success: {
               type: 'boolean',
-              enum: [false]
-            },
-            error: {
-              type: 'string'
+              enum: [true]
             },
             data: {
+              type: 'object',
+              description: 'Single resource object'
+            }
+          }
+        },
+        ApiErrorResponse: {
+          type: 'object',
+          required: ['statusCode', 'statusMessage', 'message'],
+          properties: {
+            statusCode: {
+              type: 'integer',
+              description: 'HTTP status code'
+            },
+            statusMessage: {
+              type: 'string',
+              description: 'HTTP status message'
+            },
+            message: {
+              type: 'string',
+              description: 'Error message'
+            },
+            url: {
+              type: 'string',
+              description: 'Request URL'
+            },
+            stack: {
               type: 'array',
-              items: {},
-              maxItems: 0
+              items: {
+                type: 'string'
+              },
+              description: 'Error stack trace (development only)'
+            }
+          }
+        },
+        Hash: {
+          type: 'object',
+          required: ['algorithm', 'value'],
+          properties: {
+            algorithm: { 
+              type: 'string',
+              description: 'Hash algorithm (SHA256, SHA512, BLAKE3, etc.)',
+              example: 'SHA-256'
+            },
+            value: { 
+              type: 'string',
+              description: 'Hash value',
+              example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+            }
+          }
+        },
+        License: {
+          type: 'object',
+          properties: {
+            id: { 
+              type: 'string',
+              nullable: true,
+              description: 'SPDX license ID',
+              example: 'MIT'
+            },
+            name: { 
+              type: 'string',
+              nullable: true,
+              description: 'License name',
+              example: 'MIT License'
+            },
+            url: { 
+              type: 'string',
+              nullable: true,
+              description: 'License URL',
+              example: 'https://opensource.org/licenses/MIT'
+            },
+            text: { 
+              type: 'string',
+              nullable: true,
+              description: 'Full license text'
+            }
+          }
+        },
+        ExternalReference: {
+          type: 'object',
+          required: ['type', 'url'],
+          properties: {
+            type: { 
+              type: 'string',
+              description: 'Reference type (vcs, website, documentation, issue-tracker, etc.)',
+              example: 'vcs'
+            },
+            url: { 
+              type: 'string',
+              description: 'Reference URL',
+              example: 'https://github.com/facebook/react'
             }
           }
         },
         Component: {
           type: 'object',
+          required: ['name', 'version'],
           properties: {
-            name: { type: 'string' },
-            version: { type: 'string' },
-            packageManager: { type: 'string', nullable: true },
-            license: { type: 'string', nullable: true },
-            sourceRepo: { type: 'string', nullable: true },
-            importPath: { type: 'string', nullable: true },
-            hash: { type: 'string' },
-            technologyName: { type: 'string', nullable: true },
-            systemCount: { type: 'integer' }
+            name: { 
+              type: 'string',
+              description: 'Component name'
+            },
+            version: { 
+              type: 'string',
+              description: 'Component version'
+            },
+            packageManager: { 
+              type: 'string',
+              nullable: true,
+              description: 'Package manager (npm, maven, pypi, cargo, etc.)',
+              example: 'npm'
+            },
+            purl: { 
+              type: 'string',
+              nullable: true,
+              description: 'Package URL',
+              example: 'pkg:npm/react@18.2.0'
+            },
+            cpe: { 
+              type: 'string',
+              nullable: true,
+              description: 'Common Platform Enumeration'
+            },
+            bomRef: { 
+              type: 'string',
+              nullable: true,
+              description: 'Unique identifier within SBOM'
+            },
+            type: { 
+              type: 'string',
+              nullable: true,
+              enum: ['application', 'framework', 'library', 'container', 'platform', 'operating-system', 'device', 'device-driver', 'firmware', 'file', 'machine-learning-model', 'data'],
+              description: 'Component type'
+            },
+            group: { 
+              type: 'string',
+              nullable: true,
+              description: 'Maven groupId, npm scope, etc.',
+              example: '@facebook'
+            },
+            scope: { 
+              type: 'string',
+              nullable: true,
+              enum: ['required', 'optional', 'excluded', 'dev', 'test', 'runtime', 'provided'],
+              description: 'Dependency scope'
+            },
+            hashes: { 
+              type: 'array',
+              items: { $ref: '#/components/schemas/Hash' },
+              description: 'Component hashes'
+            },
+            licenses: { 
+              type: 'array',
+              items: { $ref: '#/components/schemas/License' },
+              description: 'Component licenses'
+            },
+            copyright: { 
+              type: 'string',
+              nullable: true,
+              description: 'Copyright text'
+            },
+            supplier: { 
+              type: 'string',
+              nullable: true,
+              description: 'Organization/person who supplied the component'
+            },
+            author: { 
+              type: 'string',
+              nullable: true,
+              description: 'Original author'
+            },
+            publisher: { 
+              type: 'string',
+              nullable: true,
+              description: 'Publisher'
+            },
+            description: { 
+              type: 'string',
+              nullable: true,
+              description: 'Component description'
+            },
+            homepage: { 
+              type: 'string',
+              nullable: true,
+              description: 'Project homepage URL'
+            },
+            externalReferences: { 
+              type: 'array',
+              items: { $ref: '#/components/schemas/ExternalReference' },
+              description: 'External references (VCS, docs, issues, etc.)'
+            },
+            releaseDate: { 
+              type: 'string',
+              nullable: true,
+              format: 'date-time',
+              description: 'Release date'
+            },
+            publishedDate: { 
+              type: 'string',
+              nullable: true,
+              format: 'date-time',
+              description: 'When published to registry'
+            },
+            modifiedDate: { 
+              type: 'string',
+              nullable: true,
+              format: 'date-time',
+              description: 'Last modification date'
+            },
+            technologyName: { 
+              type: 'string',
+              nullable: true,
+              description: 'Linked Technology name'
+            },
+            systemCount: { 
+              type: 'integer',
+              description: 'Number of systems using this component'
+            },
+            vulnerabilityCount: { 
+              type: 'integer',
+              nullable: true,
+              description: 'Number of known vulnerabilities'
+            }
+          }
+        },
+        UnmappedComponent: {
+          type: 'object',
+          required: ['name', 'version'],
+          properties: {
+            name: { 
+              type: 'string',
+              description: 'Component name'
+            },
+            version: { 
+              type: 'string',
+              description: 'Component version'
+            },
+            packageManager: { 
+              type: 'string',
+              nullable: true,
+              description: 'Package manager (npm, maven, pypi, cargo, etc.)'
+            },
+            purl: { 
+              type: 'string',
+              nullable: true,
+              description: 'Package URL'
+            },
+            cpe: { 
+              type: 'string',
+              nullable: true,
+              description: 'Common Platform Enumeration'
+            },
+            type: { 
+              type: 'string',
+              nullable: true,
+              enum: ['application', 'framework', 'library', 'container', 'platform', 'operating-system', 'device', 'device-driver', 'firmware', 'file', 'machine-learning-model', 'data'],
+              description: 'Component type'
+            },
+            group: { 
+              type: 'string',
+              nullable: true,
+              description: 'Maven groupId, npm scope, etc.'
+            },
+            hashes: { 
+              type: 'array',
+              items: { $ref: '#/components/schemas/Hash' },
+              description: 'Component hashes'
+            },
+            licenses: { 
+              type: 'array',
+              items: { $ref: '#/components/schemas/License' },
+              description: 'Component licenses'
+            },
+            systems: { 
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Systems using this component'
+            },
+            systemCount: { 
+              type: 'integer',
+              description: 'Number of systems using this component'
+            }
           }
         },
         Technology: {

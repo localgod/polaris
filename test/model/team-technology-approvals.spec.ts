@@ -14,7 +14,7 @@ import { Feature } from '../helpers/gherkin'
  * Implementation requires migration to add APPROVES relationships.
  */
 
-Feature('Team-Specific Technology Approvals', ({ Scenario }) => {
+Feature('Team-Specific Technology Approvals @model @integration', ({ Scenario }) => {
   let driver: Driver
   let serverRunning = false
 

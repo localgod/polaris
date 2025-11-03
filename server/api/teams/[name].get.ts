@@ -20,19 +20,19 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   allOf:
- *                     - $ref: '#/components/schemas/Team'
- *                     - type: object
- *                       properties:
- *                         usedTechnologyCount:
- *                           type: integer
- *                         memberCount:
- *                           type: integer
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       allOf:
+ *                         - $ref: '#/components/schemas/Team'
+ *                         - type: object
+ *                           properties:
+ *                             usedTechnologyCount:
+ *                               type: integer
+ *                             memberCount:
+ *                               type: integer
  *             example:
  *               success: true
  *               data:

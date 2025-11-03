@@ -19,7 +19,7 @@ beforeAll(async () => {
   }
 })
 
-Feature('Technology Usage Tracking', ({ Scenario }) => {
+Feature('Technology Usage Tracking @model @integration', ({ Scenario }) => {
   Scenario('Team USES relationship is created from system ownership', ({ Given, When, Then, And }) => {
     let session: neo4j.Session | null = null
 

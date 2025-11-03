@@ -119,37 +119,37 @@ interface CreateSystemResponse {
 }
 
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateSystemResponse>> => {
+  const body = await readBody<CreateSystemRequest>(event)
+  
+  // Validate required fields
+  if (!body.name || !body.domain || !body.ownerTeam || !body.businessCriticality || !body.environment) {
+    throw createError({
+      statusCode: 400,
+      message: 'Missing required fields'
+    })
+  }
+
+  // Validate businessCriticality
+  const validCriticalities = ['critical', 'high', 'medium', 'low']
+  if (!validCriticalities.includes(body.businessCriticality)) {
+    throw createError({
+      statusCode: 422,
+      message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
+    })
+  }
+
+  // Validate environment
+  const validEnvironments = ['dev', 'test', 'staging', 'prod']
+  if (!validEnvironments.includes(body.environment)) {
+    throw createError({
+      statusCode: 422,
+      message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
+    })
+  }
+
+  const driver = useDriver()
+  
   try {
-    const body = await readBody<CreateSystemRequest>(event)
-    
-    // Validate required fields
-    if (!body.name || !body.domain || !body.ownerTeam || !body.businessCriticality || !body.environment) {
-      throw createError({
-        statusCode: 400,
-        message: 'Missing required fields'
-      })
-    }
-
-    // Validate businessCriticality
-    const validCriticalities = ['critical', 'high', 'medium', 'low']
-    if (!validCriticalities.includes(body.businessCriticality)) {
-      throw createError({
-        statusCode: 422,
-        message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
-      })
-    }
-
-    // Validate environment
-    const validEnvironments = ['dev', 'test', 'staging', 'prod']
-    if (!validEnvironments.includes(body.environment)) {
-      throw createError({
-        statusCode: 422,
-        message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
-      })
-    }
-
-    const driver = useDriver()
-    
     // Check if system already exists
     const checkResult = await driver.executeQuery(`
       MATCH (s:System {name: $name})
@@ -165,7 +165,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
 
     // Derive source code properties from repositories
     const hasRepositories = body.repositories && body.repositories.length > 0
-    const hasSourceAccess = hasRepositories
+    const hasSourceAccess = Boolean(hasRepositories)
     const sourceCodeType = hasRepositories
       ? (body.repositories!.some(r => r.isPublic) ? 'open-source' : 'proprietary')
       : 'unknown'
@@ -189,22 +189,22 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
       })
       CREATE (team)-[:OWNS]->(s)
       
-      WITH s, team
-      UNWIND $repositories AS repo
-      MERGE (r:Repository {url: repo.url})
-      SET r.scmType = repo.scmType,
-          r.name = repo.name,
-          r.isPublic = repo.isPublic,
-          r.requiresAuth = repo.requiresAuth,
-          r.createdAt = COALESCE(r.createdAt, datetime()),
-          r.lastSyncedAt = datetime()
-      MERGE (s)-[rel1:HAS_SOURCE_IN]->(r)
-        SET rel1.addedAt = COALESCE(rel1.addedAt, datetime())
-      MERGE (team)-[rel2:MAINTAINS]->(r)
-        SET rel2.since = COALESCE(rel2.since, datetime())
+      WITH s, team, $repositories AS repos
+      FOREACH (repo IN CASE WHEN size(repos) > 0 THEN repos ELSE [] END |
+        MERGE (r:Repository {url: repo.url})
+        SET r.scmType = repo.scmType,
+            r.name = repo.name,
+            r.isPublic = repo.isPublic,
+            r.requiresAuth = repo.requiresAuth,
+            r.createdAt = COALESCE(r.createdAt, datetime()),
+            r.lastSyncedAt = datetime()
+        MERGE (s)-[rel1:HAS_SOURCE_IN]->(r)
+          SET rel1.addedAt = COALESCE(rel1.addedAt, datetime())
+        MERGE (team)-[rel2:MAINTAINS]->(r)
+          SET rel2.since = COALESCE(rel2.since, datetime())
+      )
       
-      WITH s, count(r) as repoCount
-      RETURN s.name as name, repoCount
+      RETURN s.name as name
     `, {
       name: body.name,
       domain: body.domain,
@@ -213,15 +213,14 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
       environment: body.environment,
       sourceCodeType: sourceCodeType,
       hasSourceAccess: hasSourceAccess,
-      repositories: repositories.length > 0 ? repositories : [{ url: '', scmType: '', name: '', isPublic: false, requiresAuth: false }]
+      repositories: repositories
     })
 
     if (result.records.length === 0) {
-      return {
-        success: false,
-        error: 'Failed to create system',
-        data: []
-      }
+      throw createError({
+        statusCode: 500,
+        message: 'Failed to create system'
+      })
     }
 
     setResponseStatus(event, 201)
@@ -233,11 +232,15 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
       count: 1
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create system'
-    return {
-      success: false,
-      error: errorMessage,
-      data: []
+    // Re-throw createError exceptions to preserve HTTP status codes
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error
     }
+    
+    // Handle unexpected errors
+    throw createError({
+      statusCode: 500,
+      message: error instanceof Error ? error.message : 'Failed to create system'
+    })
   }
 })

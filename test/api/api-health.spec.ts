@@ -18,7 +18,7 @@ interface HealthResponse {
   error?: string
 }
 
-Feature('API Health Check', ({ Scenario }) => {
+Feature('API Health Check @api @smoke', ({ Scenario }) => {
   let response: HealthResponse
   let serverRunning = false
 
