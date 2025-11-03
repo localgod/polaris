@@ -116,8 +116,8 @@ export default defineEventHandler(async (event) => {
       cpe: record.get('cpe'),
       type: record.get('type'),
       group: record.get('group'),
-      hashes: record.get('hashes').filter((h: any) => h.algorithm),
-      licenses: record.get('licenses').filter((l: any) => l.id || l.name)
+      hashes: record.get('hashes').filter((h: { algorithm?: string; value?: string }) => h.algorithm),
+      licenses: record.get('licenses').filter((l: { id?: string; name?: string }) => l.id || l.name)
     }))
 
     return {
