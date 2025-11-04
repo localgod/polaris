@@ -44,4 +44,20 @@ else
     echo "✅ Dependencies already installed"
 fi
 
+# Run migrations and clear seeds
+echo "⚙️ Running database migrations..."
+(cd /workspaces/polaris && npm run migrate:up) || echo "⚠️ npm run migrate:up failed, continuing..."
+echo "⚙️ Clearing seeds..."
+(cd /workspaces/polaris && npm run seed:clear) || echo "⚠️ npm run seed:clear failed, continuing..."
+
+# Install Playwright system dependencies and browsers (if npx is available)
+if command -v npx >/dev/null 2>&1; then
+    echo "📦 Installing Playwright system dependencies..."
+    (cd /workspaces/polaris && npx playwright install-deps) || echo "⚠️ playwright install-deps failed, continuing..."
+    echo "📥 Installing Playwright browsers..."
+    (cd /workspaces/polaris && npx playwright install) || echo "⚠️ playwright install failed, continuing..."
+else
+    echo "⚠️ npx not found; skipping Playwright installation"
+fi
+
 echo "🎉 Post-create setup complete!"

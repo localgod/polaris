@@ -1,9 +1,5 @@
 {
 	"name": "Ona",
-	"build": {
-		"context": ".",
-		"dockerfile": "Dockerfile"
-	},
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker": {
 			"moby": false
@@ -29,7 +25,10 @@
 	"runServices": ["neo4j"],
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
-	"workspaceFolder": "/workspaces/polaris",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"mounts": [
+		"source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached"
+	],
 	"postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
 	"forwardPorts": [7474, 7687],
 	"portsAttributes": {
