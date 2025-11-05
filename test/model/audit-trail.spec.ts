@@ -105,7 +105,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
       const session = driver.session()
       try {
-        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
             id: $id,
@@ -150,7 +150,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
       const session = driver.session()
       try {
-        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
             id: $id,
@@ -212,7 +212,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
     When('I create an audit log performed by "user123"', async () => {
       const session = driver.session()
       try {
-        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
             id: $id,
@@ -431,7 +431,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
       const session = driver.session()
       try {
-        auditLogId = `audit-${Date.now()}`
+        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
             id: $id,
@@ -474,7 +474,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
       const session = driver.session()
       try {
-        auditLogId = `audit-${Date.now()}`
+        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
             id: $id,
@@ -517,7 +517,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
       const session = driver.session()
       try {
-        auditLogId = `audit-${Date.now()}`
+        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
             id: $id,
@@ -654,7 +654,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
       const session = driver.session()
       try {
-        auditLogId = `audit-${Date.now()}`
+        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
             id: $id,
