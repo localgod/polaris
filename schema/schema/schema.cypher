@@ -6,11 +6,13 @@
  * 
  * Node Labels:
  * - Migration: Tracks applied database migrations
+ * - AuditLog: Tracks all data changes for compliance and debugging
  * 
  * Relationship Types:
- * (None yet)
+ * - PERFORMED_BY: Links audit log entries to users who performed the action
+ * - AUDITS: Links audit log entries to the entities they track
  * 
- * Last Updated: 2025-10-15
+ * Last Updated: 2025-11-05
  */
 
 // Migration tracking node
@@ -24,3 +26,42 @@
 //   - status: String (required) - SUCCESS, FAILED, ROLLED_BACK
 //   - description: String (optional) - Human-readable description
 (:Migration)
+
+// AuditLog node
+// Properties:
+//   Core Identity:
+//   - id: String (UUID, required) - Unique identifier for the audit entry
+//   - timestamp: DateTime (required) - When the change occurred
+//   - operation: String (required) - Type of operation (CREATE, UPDATE, DELETE, APPROVE, etc.)
+//
+//   Entity Information:
+//   - entityType: String (required) - Type of entity that changed (Technology, System, Team, etc.)
+//   - entityId: String (required) - Unique identifier of the entity
+//   - entityLabel: String (optional) - Human-readable label for the entity
+//
+//   Change Details:
+//   - changes: Map (optional) - Field-level changes as key-value pairs
+//   - changedFields: List<String> (optional) - List of field names that changed
+//   - previousState: Map (optional) - Complete state before the change
+//   - currentState: Map (optional) - Complete state after the change
+//
+//   Actor Information:
+//   - userId: String (required) - ID of the user who performed the action
+//   - userName: String (optional) - Name of the user at time of action
+//   - userEmail: String (optional) - Email of the user at time of action
+//
+//   Context & Metadata:
+//   - reason: String (optional) - User-provided reason for the change
+//   - source: String (required) - Source of the change (UI, API, SBOM, MIGRATION, SYSTEM)
+//   - ipAddress: String (optional) - IP address of the client
+//   - userAgent: String (optional) - User agent string of the client
+//   - sessionId: String (optional) - Session identifier for grouping related changes
+//   - correlationId: String (optional) - For tracking changes across multiple entities
+//   - requestId: String (optional) - API request identifier
+//   - metadata: Map (optional) - Additional context-specific information
+//   - tags: List<String> (optional) - Tags for categorization and filtering
+//
+// Relationships:
+//   - (AuditLog)-[:PERFORMED_BY]->(User) - Links to user who performed the action
+//   - (AuditLog)-[:AUDITS]->(Entity) - Links to the entity that was changed (optional)
+(:AuditLog)

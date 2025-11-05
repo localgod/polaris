@@ -13,3 +13,8 @@ REQUIRE m.filename IS UNIQUE;
 CREATE CONSTRAINT migration_version_unique IF NOT EXISTS
 FOR (m:Migration)
 REQUIRE m.version IS UNIQUE;
+
+// Audit log constraints
+CREATE CONSTRAINT audit_log_id_unique IF NOT EXISTS
+FOR (a:AuditLog)
+REQUIRE a.id IS UNIQUE;
