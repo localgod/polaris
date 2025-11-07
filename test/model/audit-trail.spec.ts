@@ -1,5 +1,5 @@
-import { expect, beforeAll, afterAll, beforeEach, describe, it } from 'vitest'
-import type { Driver } from 'neo4j-driver'
+import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import type { Driver, Record } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { Feature } from '../helpers/gherkin'
 import { readFileSync } from 'fs'
@@ -8,9 +8,9 @@ import { join } from 'path'
 Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
   let driver: Driver
   let auditLogId: string
-  let auditLog: any
-  let auditLogs: any[]
-  let user: any
+  let auditLog: Record | null
+  let auditLogs: Record[]
+  let _user: Record | null
 
   beforeAll(async () => {
     const uri = process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'neo4j://neo4j:7687'
@@ -27,15 +27,38 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
         'utf-8'
       )
       
-      // Execute migration (skip comments and empty lines)
-      const statements = migrationUp
+      // Remove multi-line comments
+      const cleanedMigration = migrationUp.replace(/\/\*[\s\S]*?\*\//g, '')
+      
+      // Execute migration (skip single-line comments and empty lines)
+      const statements = cleanedMigration
         .split(';')
         .map(s => s.trim())
-        .filter(s => s && !s.startsWith('//') && !s.startsWith('/*'))
+        .filter(s => {
+          if (!s) return false
+          // Remove single-line comments
+          const lines = s.split('\n').filter(line => {
+            const trimmed = line.trim()
+            return trimmed && !trimmed.startsWith('//')
+          })
+          return lines.length > 0
+        })
       
       for (const statement of statements) {
         if (statement) {
-          await session.run(statement)
+          // Remove inline comments from the statement
+          const cleanStatement = statement
+            .split('\n')
+            .map(line => {
+              const commentIndex = line.indexOf('//')
+              return commentIndex >= 0 ? line.substring(0, commentIndex) : line
+            })
+            .join('\n')
+            .trim()
+          
+          if (cleanStatement) {
+            await session.run(cleanStatement)
+          }
         }
       }
     } finally {
@@ -56,17 +79,38 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
         'utf-8'
       )
       
-      const statements = migrationDown
+      // Remove multi-line comments
+      const cleanedMigration = migrationDown.replace(/\/\*[\s\S]*?\*\//g, '')
+      
+      const statements = cleanedMigration
         .split(';')
         .map(s => s.trim())
-        .filter(s => s && !s.startsWith('//') && !s.startsWith('/*'))
+        .filter(s => {
+          if (!s) return false
+          const lines = s.split('\n').filter(line => {
+            const trimmed = line.trim()
+            return trimmed && !trimmed.startsWith('//')
+          })
+          return lines.length > 0
+        })
       
       for (const statement of statements) {
         if (statement) {
-          try {
-            await session.run(statement)
-          } catch (e) {
-            // Ignore errors during cleanup
+          const cleanStatement = statement
+            .split('\n')
+            .map(line => {
+              const commentIndex = line.indexOf('//')
+              return commentIndex >= 0 ? line.substring(0, commentIndex) : line
+            })
+            .join('\n')
+            .trim()
+          
+          if (cleanStatement) {
+            try {
+              await session.run(cleanStatement)
+            } catch {
+              // Ignore errors during cleanup
+            }
           }
         }
       }
@@ -97,12 +141,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
       // Already applied in beforeAll
     })
 
-    When('I create an audit log with:', async (table) => {
-      const data = table.reduce((acc: any, row: any) => {
-        acc[row.field] = row.value
-        return acc
-      }, {})
-
+    When('I create an audit log with:', async () => {
       const session = driver.session()
       try {
         auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
@@ -119,7 +158,11 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
           RETURN a
         `, {
           id: auditLogId,
-          ...data
+          operation: 'CREATE',
+          entityType: 'Technology',
+          entityId: 'React',
+          userId: 'user123',
+          source: 'UI'
         })
 
         auditLog = result.records[0].get('a').properties
@@ -142,11 +185,11 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
   })
 
   Scenario('Tracking field changes', ({ When, Then }) => {
-    When('I create an audit log with field changes:', async (table) => {
-      const changes: Record<string, { before: string; after: string }> = {}
-      table.forEach((row: any) => {
-        changes[row.field] = { before: row.before, after: row.after }
-      })
+    When('I create an audit log with field changes:', async () => {
+      const changes: Record<string, { before: string; after: string }> = {
+        status: { before: 'draft', after: 'active' },
+        ownerTeam: { before: 'Frontend', after: 'Platform' }
+      }
 
       const session = driver.session()
       try {
@@ -166,7 +209,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
           RETURN a
         `, {
           id: auditLogId,
-          changes,
+          changes: JSON.stringify(changes),
           changedFields: Object.keys(changes)
         })
 
@@ -178,7 +221,8 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
     Then('the audit log should contain the field changes', () => {
       expect(auditLog.changes).toBeDefined()
-      expect(auditLog.changes.status).toEqual({ before: 'draft', after: 'active' })
+      const changes = JSON.parse(auditLog.changes)
+      expect(changes.status).toEqual({ before: 'draft', after: 'active' })
     })
 
     Then('the changedFields list should contain "status" and "ownerTeam"', () => {
@@ -203,7 +247,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
           })
           RETURN u
         `)
-        user = result.records[0].get('u').properties
+        _user = result.records[0].get('u').properties
       } finally {
         await session.close()
       }
@@ -423,12 +467,7 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
   })
 
   Scenario('Recording approval operations', ({ When, Then }) => {
-    When('I create an audit log for an approval:', async (table) => {
-      const data = table.reduce((acc: any, row: any) => {
-        acc[row.field] = row.value
-        return acc
-      }, {})
-
+    When('I create an audit log for an approval:', async () => {
       const session = driver.session()
       try {
         auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
@@ -441,12 +480,16 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
             entityId: $entityId,
             userId: $userId,
             source: 'UI',
-            metadata: {timeCategory: $timeCategory}
+            metadata: $metadata
           })
           RETURN a
         `, {
           id: auditLogId,
-          ...data
+          operation: 'APPROVE',
+          entityType: 'Technology',
+          entityId: 'React',
+          userId: 'user123',
+          metadata: JSON.stringify({ timeCategory: 'invest' })
         })
 
         auditLog = result.records[0].get('a').properties
@@ -461,17 +504,13 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
     })
 
     Then('the metadata should include the TIME category', () => {
-      expect(auditLog.metadata.timeCategory).toBe('invest')
+      const metadata = JSON.parse(auditLog.metadata)
+      expect(metadata.timeCategory).toBe('invest')
     })
   })
 
   Scenario('Recording SBOM operations', ({ When, Then }) => {
-    When('I create an audit log for SBOM upload:', async (table) => {
-      const data = table.reduce((acc: any, row: any) => {
-        acc[row.field] = row.value
-        return acc
-      }, {})
-
+    When('I create an audit log for SBOM upload:', async () => {
       const session = driver.session()
       try {
         auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
@@ -484,12 +523,17 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
             entityId: $entityId,
             userId: $userId,
             source: $source,
-            metadata: {componentCount: toInteger($componentCount)}
+            metadata: $metadata
           })
           RETURN a
         `, {
           id: auditLogId,
-          ...data
+          operation: 'SBOM_UPLOAD',
+          entityType: 'System',
+          entityId: 'payment-service',
+          userId: 'user123',
+          source: 'SBOM',
+          metadata: JSON.stringify({ componentCount: 150 })
         })
 
         auditLog = result.records[0].get('a').properties
@@ -504,17 +548,13 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
     })
 
     Then('the metadata should include component count', () => {
-      expect(auditLog.metadata.componentCount.toNumber()).toBe(150)
+      const metadata = JSON.parse(auditLog.metadata)
+      expect(metadata.componentCount).toBe(150)
     })
   })
 
   Scenario('Tracking vulnerability detection', ({ When, Then }) => {
-    When('I create an audit log for vulnerability detection:', async (table) => {
-      const data = table.reduce((acc: any, row: any) => {
-        acc[row.field] = row.value
-        return acc
-      }, {})
-
+    When('I create an audit log for vulnerability detection:', async () => {
       const session = driver.session()
       try {
         auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
@@ -527,15 +567,18 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
             entityId: $entityId,
             userId: 'system',
             source: 'SYSTEM',
-            metadata: {
-              vulnerabilityId: $vulnerabilityId,
-              severity: $severity
-            }
+            metadata: $metadata
           })
           RETURN a
         `, {
           id: auditLogId,
-          ...data
+          operation: 'VULNERABILITY_DETECTED',
+          entityType: 'Component',
+          entityId: 'lodash@4.17.20',
+          metadata: JSON.stringify({
+            vulnerabilityId: 'CVE-2024-12345',
+            severity: 'HIGH'
+          })
         })
 
         auditLog = result.records[0].get('a').properties
@@ -546,8 +589,9 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
 
     Then('the audit log should capture the vulnerability details', () => {
       expect(auditLog.operation).toBe('VULNERABILITY_DETECTED')
-      expect(auditLog.metadata.vulnerabilityId).toBe('CVE-2024-12345')
-      expect(auditLog.metadata.severity).toBe('HIGH')
+      const metadata = JSON.parse(auditLog.metadata)
+      expect(metadata.vulnerabilityId).toBe('CVE-2024-12345')
+      expect(metadata.severity).toBe('HIGH')
     })
   })
 
@@ -649,8 +693,8 @@ Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
   })
 
   Scenario('Tagging audit logs', ({ When, Then }) => {
-    When('I create an audit log with tags:', async (table) => {
-      const tags = table.map((row: any) => row.tag)
+    When('I create an audit log with tags:', async () => {
+      const tags = ['security', 'critical', 'compliance']
 
       const session = driver.session()
       try {
