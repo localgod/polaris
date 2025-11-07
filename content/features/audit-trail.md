@@ -22,29 +22,34 @@ Audit trails are essential for:
 All data modifications are tracked including:
 
 ### CRUD Operations
+
 - Creating new technologies, systems, teams, policies
 - Updating entity properties and configurations
 - Deleting entities (with complete historical record)
 - Restoring previously deleted entities
 
 ### Approval Operations
+
 - Technology approvals with TIME framework categorization
 - Version-specific approvals and rejections
 - Approval revocations with reasons
 
 ### Relationship Changes
+
 - Team ownership assignments
 - Technology stewardship assignments
 - System-component dependencies
 - Policy applications
 
 ### SBOM Operations
+
 - SBOM file uploads with metadata
 - Component discovery from SBOM scanning
 - Vulnerability detection and resolution
 - License compliance updates
 
 ### User Activities
+
 - Login and logout events
 - Role changes and permission updates
 - Team membership changes
@@ -54,6 +59,7 @@ All data modifications are tracked including:
 Each audit entry captures comprehensive information:
 
 ### What Changed
+
 - **Entity Type**: Technology, System, Team, Component, Policy, User, etc.
 - **Entity ID**: Unique identifier of the entity
 - **Operation**: CREATE, UPDATE, DELETE, APPROVE, REJECT, etc.
@@ -61,22 +67,26 @@ Each audit entry captures comprehensive information:
 - **Before/After Values**: Field-level changes showing old and new values
 
 ### Who Changed It
+
 - **User ID**: Unique identifier of the user
 - **User Name**: Display name at time of change
 - **User Email**: Contact information
 - **Role**: User's role when change was made
 
 ### When It Changed
+
 - **Timestamp**: High-precision date and time
 - **Session ID**: Groups related changes in same session
 - **Correlation ID**: Links changes across multiple entities
 
 ### Why It Changed
+
 - **Reason**: User-provided explanation for the change
 - **Source**: Where the change originated (UI, API, SBOM, System)
 - **Tags**: Categorization labels (security, compliance, critical)
 
 ### Where It Came From
+
 - **IP Address**: Client IP address
 - **User Agent**: Browser or tool information
 - **Request ID**: API request identifier

@@ -99,31 +99,37 @@ FOR (a:AuditLog) ON (a.entityType, a.entityId, a.timestamp);
 The system will track the following operation types:
 
 ### Standard CRUD
+
 - `CREATE` - Entity creation
 - `UPDATE` - Entity modification
 - `DELETE` - Entity deletion
 - `RESTORE` - Entity restoration
 
 ### Approvals
+
 - `APPROVE` - Technology/Version approval
 - `REJECT` - Technology/Version rejection
 - `REVOKE` - Approval revocation
 
 ### Relationships
+
 - `LINK` - Relationship creation
 - `UNLINK` - Relationship removal
 
 ### Status Changes
+
 - `ACTIVATE` - Entity activation
 - `DEACTIVATE` - Entity deactivation
 - `ARCHIVE` - Entity archival
 
 ### User Operations
+
 - `LOGIN` - User login
 - `LOGOUT` - User logout
 - `ROLE_CHANGE` - Role modification
 
 ### SBOM Operations
+
 - `SBOM_UPLOAD` - SBOM file upload
 - `COMPONENT_DISCOVERED` - Component discovery
 - `VULNERABILITY_DETECTED` - Vulnerability detection
@@ -205,6 +211,7 @@ LIMIT 10
 ## Documentation Delivered
 
 ### Technical Documentation
+
 - **Schema Definition**: `/schema/schema/schema.cypher`
 - **Constraints**: `/schema/schema/constraints.cypher`
 - **Indexes**: `/schema/schema/indexes.cypher`
@@ -213,15 +220,18 @@ LIMIT 10
 - **Technical Guide**: `/schema/schema/README_AUDIT_TRAIL.md`
 
 ### Example Queries
+
 - **Query Examples**: `/schema/fixtures/audit-trail-examples.cypher`
 - Over 50 example queries covering common use cases
 
 ### User Documentation
+
 - **Feature Guide**: `/content/features/audit-trail.md`
 - **Graph Model**: `/content/architecture/graph-model.md` (updated)
 - **README**: Updated with audit trail section
 
 ### Test Suite
+
 - **Feature File**: `/test/model/features/audit-trail.feature`
 - **Test Implementation**: `/test/model/audit-trail.spec.ts`
 - 15+ test scenarios covering all functionality
@@ -229,12 +239,14 @@ LIMIT 10
 ## Benefits
 
 ### Immediate Benefits
+
 ✅ **Compliance Ready**: Meet regulatory requirements immediately
 ✅ **Security Enhanced**: Detect and investigate unauthorized access
 ✅ **Debugging Aid**: Understand what changed before incidents
 ✅ **Accountability**: Know who made each decision and why
 
 ### Long-Term Benefits
+
 ✅ **Usage Analytics**: Understand system usage patterns
 ✅ **Risk Management**: Identify high-risk changes quickly
 ✅ **Process Improvement**: Analyze workflows and bottlenecks

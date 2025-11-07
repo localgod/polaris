@@ -69,31 +69,37 @@ Every audit log entry contains:
 ## Operation Types
 
 ### Standard CRUD Operations
+
 - `CREATE` - Entity was created
 - `UPDATE` - Entity was modified
 - `DELETE` - Entity was deleted
 - `RESTORE` - Entity was restored from deleted state
 
 ### Approval Operations
+
 - `APPROVE` - Technology/Version approved by team
 - `REJECT` - Technology/Version rejected by team
 - `REVOKE` - Approval was revoked
 
 ### Relationship Operations
+
 - `LINK` - Relationship was created
 - `UNLINK` - Relationship was removed
 
 ### Status Changes
+
 - `ACTIVATE` - Entity was activated
 - `DEACTIVATE` - Entity was deactivated
 - `ARCHIVE` - Entity was archived
 
 ### User Operations
+
 - `LOGIN` - User logged in
 - `LOGOUT` - User logged out
 - `ROLE_CHANGE` - User role was changed
 
 ### SBOM Operations
+
 - `SBOM_UPLOAD` - SBOM file was uploaded
 - `COMPONENT_DISCOVERED` - Component was discovered in SBOM
 - `VULNERABILITY_DETECTED` - Vulnerability was detected
