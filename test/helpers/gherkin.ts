@@ -1,10 +1,14 @@
 import { describe, it } from 'vitest'
 
+type StepFunction<T = undefined> = T extends undefined
+  ? (() => void | Promise<void>) 
+  : ((data: T) => void | Promise<void>)
+
 interface StepDefinitions {
-  Given: (description: string, fn: () => void | Promise<void>) => void
-  When: (description: string, fn: () => void | Promise<void>) => void
-  Then: (description: string, fn: () => void | Promise<void>) => void
-  And: (description: string, fn: () => void | Promise<void>) => void
+  Given: <T = undefined>(description: string, fn: StepFunction<T>) => void
+  When: <T = undefined>(description: string, fn: StepFunction<T>) => void
+  Then: <T = undefined>(description: string, fn: StepFunction<T>) => void
+  And: <T = undefined>(description: string, fn: StepFunction<T>) => void
 }
 
 interface FeatureContext {
@@ -16,10 +20,10 @@ export function Feature(description: string, fn: (context: FeatureContext) => vo
     fn({
       Scenario: (scenarioDescription: string, scenarioFn: (steps: StepDefinitions) => void) => {
         it(`Scenario: ${scenarioDescription}`, async () => {
-          const steps: Array<{ type: string; description: string; fn: () => void | Promise<void> }> = []
+          const steps: Array<{ type: string; description: string; fn: StepFunction<unknown> }> = []
           
-          const createStep = (type: string) => (description: string, fn: () => void | Promise<void>) => {
-            steps.push({ type, description, fn })
+          const createStep = (type: string) => <T = undefined>(description: string, fn: StepFunction<T>) => {
+            steps.push({ type, description, fn: fn as StepFunction<unknown> })
           }
 
           const stepDefs: StepDefinitions = {

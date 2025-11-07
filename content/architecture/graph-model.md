@@ -25,6 +25,7 @@ The graph structure is ideal for technology catalogs because:
 graph TB
     %% Node Definitions
     Team[(Team)]
+    User[(User)]
     Technology[(Technology)]
     Version[(Version)]
     Component[(Component)]
@@ -35,6 +36,7 @@ graph TB
     License[(License)]
     ExtRef[(External<br/>Reference)]
     Vuln[(Vulnerability)]
+    AuditLog[(Audit<br/>Log)]
     
     %% Core Relationships
     Team -->|STEWARDED_BY<br/>Governance| Technology
@@ -42,6 +44,8 @@ graph TB
     Team -->|USES<br/>Actual Usage| Technology
     Team -->|APPROVES<br/>TIME Framework| Technology
     Team -->|APPROVES<br/>TIME Framework| Version
+    
+    User -->|MEMBER_OF| Team
     
     Technology -->|HAS_VERSION| Version
     
@@ -58,12 +62,18 @@ graph TB
     Component -.->|HAS_REFERENCE| ExtRef
     Component -.->|HAS_VULNERABILITY| Vuln
     
+    %% Audit Relationships
+    AuditLog -.->|PERFORMED_BY| User
+    AuditLog -.->|AUDITS| Technology
+    
     %% Styling
     classDef coreNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef sbomNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef auditNode fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
     
-    class Team,Technology,Version,Component,System,Repository,Policy coreNode
+    class Team,User,Technology,Version,Component,System,Repository,Policy coreNode
     class Hash,License,ExtRef,Vuln sbomNode
+    class AuditLog auditNode
 ```
 
 ## Core Entities
@@ -772,6 +782,108 @@ cpe:2.3:a:facebook:react:18.2.0:*:*:*:*:*:*:*
 - Enables automatic vulnerability matching
 - Provides additional security context
 
+## Audit Trail System
+
+Polaris includes a comprehensive audit trail system that tracks all data changes across the platform. This enables compliance, security auditing, and understanding how your technology catalog evolves over time.
+
+### AuditLog Entity
+
+Represents a record of a data change in the system.
+
+**What it tracks:**
+- **Identity**: Unique ID and timestamp
+- **Operation**: Type of operation (CREATE, UPDATE, DELETE, APPROVE, etc.)
+- **Entity**: What was changed (type and ID)
+- **Actor**: Who made the change (user information)
+- **Changes**: Field-level before/after values
+- **Context**: Source, IP address, session, reason
+
+**Why it matters:** Audit logs provide accountability and traceability for all data modifications. They help answer questions like "Who approved this technology?", "What changed before the system broke?", and "When was this vulnerability detected?"
+
+### User Entity
+
+Represents authenticated users who interact with the system.
+
+**What it tracks:**
+- User identity (ID, email, name)
+- Authentication provider (GitHub, Google, etc.)
+- Role (user, admin, superuser)
+- Login history
+
+**Why it matters:** Users are the actors in the audit trail. Understanding who made changes and when they last logged in is essential for security and compliance.
+
+### Audit Relationships
+
+**PERFORMED_BY**
+- Links audit logs to the users who performed the actions
+- Direction: `(AuditLog)-[:PERFORMED_BY]->(User)`
+- Enables querying all actions by a specific user
+
+**AUDITS** (optional)
+- Links audit logs directly to the entities they track
+- Direction: `(AuditLog)-[:AUDITS]->(Entity)`
+- Enables direct navigation from entity to its complete audit history
+
+**MEMBER_OF**
+- Links users to their teams
+- Direction: `(User)-[:MEMBER_OF]->(Team)`
+- Enables team-based access control
+
+### Audit Operation Types
+
+**Standard Operations:**
+- `CREATE`, `UPDATE`, `DELETE`, `RESTORE` - CRUD operations
+- `APPROVE`, `REJECT`, `REVOKE` - Approval operations
+- `LINK`, `UNLINK` - Relationship operations
+- `ACTIVATE`, `DEACTIVATE`, `ARCHIVE` - Status changes
+
+**User Operations:**
+- `LOGIN`, `LOGOUT`, `ROLE_CHANGE` - User activity
+
+**SBOM Operations:**
+- `SBOM_UPLOAD`, `COMPONENT_DISCOVERED`, `VULNERABILITY_DETECTED`, `VULNERABILITY_RESOLVED`
+
+### Common Audit Queries
+
+**Who approved this technology?**
+```cypher
+MATCH (a:AuditLog)-[:PERFORMED_BY]->(u:User)
+WHERE a.entityType = 'Technology' 
+  AND a.entityId = 'React'
+  AND a.operation = 'APPROVE'
+RETURN a.timestamp, u.name, a.reason
+ORDER BY a.timestamp DESC
+```
+
+**What changed recently?**
+```cypher
+MATCH (a:AuditLog)
+WHERE a.timestamp >= datetime() - duration('P7D')
+RETURN a
+ORDER BY a.timestamp DESC
+```
+
+**Track system ownership changes:**
+```cypher
+MATCH (a:AuditLog)
+WHERE a.entityType = 'System' 
+  AND 'ownerTeam' IN a.changedFields
+RETURN a.timestamp, 
+       a.changes.ownerTeam.before as oldOwner,
+       a.changes.ownerTeam.after as newOwner
+ORDER BY a.timestamp DESC
+```
+
+### Audit Trail Benefits
+
+1. **Compliance**: Maintain detailed records for SOC 2, GDPR, HIPAA, PCI DSS
+2. **Security**: Track unauthorized access attempts and suspicious changes
+3. **Debugging**: Understand what changed before an incident occurred
+4. **Analytics**: Analyze user behavior and system usage patterns
+5. **Accountability**: Know who made each change and why
+
+For more detailed information, see the [Audit Trail Documentation](/schema/schema/README_AUDIT_TRAIL.md).
+
 ## Summary
 
 The Polaris graph model provides:
@@ -806,5 +918,11 @@ The Polaris graph model provides:
    - Universal component identification (purl, CPE)
    - Rich metadata (hashes, licenses, vulnerabilities)
    - Automatic repository-to-system mapping
+
+7. **Complete Audit Trail**
+   - Track all data changes with detailed context
+   - User-level accountability for compliance
+   - Field-level change tracking with before/after values
+   - Comprehensive operation logging (CRUD, approvals, SBOM)
 
 This model enables organizations to maintain governance and compliance while giving teams the autonomy to make technology decisions appropriate for their context.

@@ -15,6 +15,7 @@ Polaris helps organizations manage their technology landscape by:
 - **Team Ownership**: Link technologies and systems to responsible teams
 - **Policy Compliance**: Define and track governance policies
 - **Dependency Visualization**: Understand relationships through graph queries
+- **Audit Trail**: Comprehensive tracking of all data changes for compliance and security
 
 ## Architecture
 
@@ -252,6 +253,36 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management wi
 - `GET /api/technologies/{name}` - Technology details with approvals
 - `GET /api/teams/{name}/approvals` - All approvals for a team
 - `GET /api/approvals/check` - Check TIME category with hierarchy resolution
+
+### Comprehensive Audit Trail
+
+Polaris tracks all data changes with complete context for compliance, security, and debugging:
+
+- **Complete History**: Every create, update, delete, and approval operation is logged
+- **User Accountability**: Know who made each change and when
+- **Field-Level Tracking**: See exactly what changed with before/after values
+- **Compliance Ready**: Support for SOC 2, GDPR, HIPAA, PCI DSS requirements
+- **Security Monitoring**: Detect unauthorized access and suspicious activities
+- **Rich Context**: Capture IP address, session, reason, and metadata
+
+**What Gets Audited:**
+- CRUD operations on all entities (Technology, System, Team, Policy, Component, User)
+- Approval operations with TIME framework decisions
+- SBOM uploads and vulnerability detection
+- Relationship changes (ownership, stewardship)
+- User activities (login, role changes)
+
+**Example Use Case:** Track who approved React for the Frontend Team on 2025-11-05, why it was changed from "tolerate" to "invest", and what the previous approval settings were.
+
+**Documentation:**
+- [Audit Trail Guide](/content/features/audit-trail.md)
+- [Schema Documentation](/schema/schema/README_AUDIT_TRAIL.md)
+- [Example Queries](/schema/fixtures/audit-trail-examples.cypher)
+
+**API Endpoints:**
+- `GET /api/audit/entity/{type}/{id}` - Get audit trail for specific entity
+- `GET /api/audit/user/{userId}` - Get all actions by a user
+- `GET /api/audit` - Query audit logs with filters (operation, date range, source)
 
 ### Running Tests
 
