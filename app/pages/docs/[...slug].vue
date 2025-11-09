@@ -42,13 +42,18 @@
 <script setup lang="ts">
 const route = useRoute()
 
-// Remove /docs prefix from route path to match content paths
-const contentPath = route.path.replace(/^\/docs/, '') || '/'
+// Get the slug from route params
+const slug = route.params.slug as string[] || []
 
-// Fetch documentation content based on route
+// Build content path from slug
+// URL: /docs/architecture/graph-model -> slug: ['architecture', 'graph-model']
+// Content paths are stored with leading slash: /architecture/graph-model
+const contentPath = slug.length > 0 ? `/${slug.join('/')}` : '/index'
+
+// Fetch documentation content using queryCollection (Nuxt Content v3 API)
 const { data: doc, pending } = await useAsyncData(
-  `docs-${route.path}`,
-  () => queryCollection('content').where('path', '=', contentPath).first()
+  `docs-${contentPath}`,
+  () => queryCollection('content').path(contentPath).first()
 )
 
 // Page metadata
