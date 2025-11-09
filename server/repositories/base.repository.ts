@@ -1,0 +1,35 @@
+import type { Driver, QueryResult } from 'neo4j-driver'
+
+/**
+ * Base repository class providing common database operations
+ * All repositories should extend this class
+ */
+export abstract class BaseRepository {
+  protected driver: Driver
+
+  constructor() {
+    this.driver = useDriver() // Singleton driver from nuxt-neo4j
+  }
+
+  /**
+   * Execute a Cypher query with parameters
+   * 
+   * @param query - Cypher query string
+   * @param params - Query parameters
+   * @returns Query result with records
+   */
+  protected async executeQuery(
+    query: string,
+    params: Record<string, unknown> = {}
+  ): Promise<QueryResult> {
+    return await this.driver.executeQuery(query, params)
+  }
+
+  /**
+   * Close the driver connection
+   * Only used in testing - production uses singleton
+   */
+  async close(): Promise<void> {
+    await this.driver.close()
+  }
+}
