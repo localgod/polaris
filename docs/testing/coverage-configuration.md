@@ -6,12 +6,7 @@ The test suite is configured to measure coverage of the service and repository l
 
 ## What's Covered
 
-### ✅ Included in Coverage
-
-- **Services** (`server/services/**/*.ts`) - Business logic layer
-- **Repositories** (`server/repositories/**/*.ts`) - Data access layer
-- **Utils** (`server/utils/**/*.ts`) - Shared utilities
-- **Plugins** (`server/plugins/**/*.ts`) - Server plugins
+Coverage is collected from all source files except those explicitly excluded.
 
 ### ❌ Excluded from Coverage
 
@@ -50,23 +45,25 @@ Repository tests verify that queries execute correctly and return expected resul
 
 ## Coverage Thresholds
 
-Current thresholds are intentionally low while building out the test suite:
+**No thresholds are currently enforced.** Coverage is collected and reported for informational purposes, but does not block CI/CD pipelines.
 
-```typescript
-thresholds: {
-  lines: 5,
-  branches: 5,
-  functions: 5,
-  statements: 5,
-}
-```
+### Rationale
 
-### Target Thresholds (Roadmap)
+The current test suite focuses on:
+- **Integration tests** - Testing full request/response cycles
+- **Model tests** - Testing database schema and relationships
+- **UI tests** - Testing user workflows
 
-- **Lines**: 80%
-- **Branches**: 70%
-- **Functions**: 80%
-- **Statements**: 80%
+These tests provide high confidence in system behavior but don't directly exercise service/repository code in isolation, resulting in low coverage percentages.
+
+### Future Considerations
+
+As the test suite evolves to include more unit tests of service and repository layers, coverage thresholds may be introduced:
+
+- **Lines**: 70-80%
+- **Branches**: 60-70%
+- **Functions**: 70-80%
+- **Statements**: 70-80%
 
 ## Running Coverage
 
