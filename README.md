@@ -194,9 +194,21 @@ See [Dev Container README](.devcontainer/README.md) and [Gitpod Automations](.on
 
 This project uses [Vitest](https://vitest.dev/) with Gherkin-style BDD syntax and a **three-layer testing strategy**.
 
+### Test Data Isolation
+
+Tests use **namespace-based isolation** to prevent corrupting development data:
+
+- All test data is prefixed with `test_` or `test-` (both patterns supported)
+- Automatic cleanup in test hooks
+- Global setup clears test data before runs
+
+**Note**: The Neo4j Community Edition instance doesn't support multiple databases. Tests share the same database as development but use prefixed data for isolation.
+
+See [Test Isolation Guide](docs/testing/test-isolation.md) for detailed information.
+
 ### Test Architecture
 
-**60 tests across 3 layers:**
+**75 tests across 3 layers:**
 
 1. **Model Layer** (41 tests) - Database schema and data integrity
    - Neo4j schema validation
