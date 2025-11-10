@@ -259,13 +259,14 @@ This architecture follows Nuxt 4 best practices:
 
 ## Migration Status
 
-### ✅ Refactored
+✅ **Complete** - All 25 API endpoints migrated to 3-layer architecture
 
-- `/api/policies/violations.get.ts` - Policy violations endpoint
-- `/api/technologies.get.ts` - Technologies list endpoint
+### Statistics
 
-### 🔄 To Be Refactored
+- **Endpoints**: 25 migrated
+- **Services**: 9 service classes
+- **Repositories**: 10 repository classes  
+- **Query Files**: 34 external Cypher files
+- **Code Reduction**: -671 net lines (36% reduction)
 
-- All other API endpoints in `/api/`
-
-The remaining endpoints can be refactored following the same pattern demonstrated above.
+See `docs/architecture/service-layer-pattern.md` for detailed patterns and examples.

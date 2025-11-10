@@ -1,4 +1,4 @@
-import { TechnologyRepository } from '../repositories/technology.repository'
+import { TechnologyRepository, type TechnologyDetail } from '../repositories/technology.repository'
 import type { Technology } from '~~/types/api'
 
 /**
@@ -23,5 +23,17 @@ export class TechnologyService {
       data: technologies,
       count: technologies.length
     }
+  }
+
+  /**
+   * Get a technology by name with detailed information
+   * 
+   * Includes versions, components, systems, policies, and approvals.
+   * 
+   * @param name - Technology name
+   * @returns Technology detail or null if not found
+   */
+  async findByName(name: string): Promise<TechnologyDetail | null> {
+    return await this.techRepo.findByName(name)
   }
 }

@@ -1,5 +1,5 @@
 import { PolicyRepository } from '../repositories/policy.repository'
-import type { ViolationFilters, PolicyViolation } from '../repositories/policy.repository'
+import type { Policy, ViolationFilters, PolicyFilters, PolicyViolation } from '../repositories/policy.repository'
 
 export interface ViolationResult {
   data: PolicyViolation[]
@@ -20,6 +20,21 @@ export class PolicyService {
 
   constructor() {
     this.policyRepo = new PolicyRepository()
+  }
+
+  /**
+   * Get all policies with optional filters
+   * 
+   * @param filters - Optional filters for scope, status, and enforcedBy
+   * @returns Array of policies with count
+   */
+  async findAll(filters: PolicyFilters = {}): Promise<{ data: Policy[]; count: number }> {
+    const policies = await this.policyRepo.findAll(filters)
+    
+    return {
+      data: policies,
+      count: policies.length
+    }
   }
 
   /**
@@ -44,6 +59,41 @@ export class PolicyService {
       count: violations.length,
       summary
     }
+  }
+
+  /**
+   * Get a policy by name
+   * 
+   * @param name - Policy name
+   * @returns Policy or null if not found
+   */
+  async findByName(name: string): Promise<Policy | null> {
+    return await this.policyRepo.findByName(name)
+  }
+
+  /**
+   * Delete a policy
+   * 
+   * Business rules:
+   * - Policy must exist before deletion
+   * - All relationships are automatically removed (DETACH DELETE)
+   * 
+   * @param name - Policy name
+   * @throws Error if policy not found
+   */
+  async delete(name: string): Promise<void> {
+    // Business logic: check if policy exists
+    const exists = await this.policyRepo.exists(name)
+    
+    if (!exists) {
+      throw createError({
+        statusCode: 404,
+        message: `Policy '${name}' not found`
+      })
+    }
+    
+    // Delete the policy
+    await this.policyRepo.delete(name)
   }
 
   /**

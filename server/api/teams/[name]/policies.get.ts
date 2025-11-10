@@ -75,6 +75,8 @@
  *       500:
  *         description: Failed to fetch team policies
  */
+import { TeamService } from '../../../services/team.service'
+
 export default defineEventHandler(async (event) => {
   try {
     const teamName = getRouterParam(event, 'name')
@@ -86,78 +88,12 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    const driver = useDriver()
-    
-    // Get policies enforced by this team
-    const { records: enforcedRecords } = await driver.executeQuery(`
-      MATCH (team:Team {name: $teamName})-[:ENFORCES]->(p:Policy)
-      OPTIONAL MATCH (p)-[:GOVERNS]->(tech:Technology)
-      WITH p, collect(DISTINCT tech.name) as governedTechnologies
-      RETURN p.name as name,
-             p.description as description,
-             p.ruleType as ruleType,
-             p.severity as severity,
-             p.effectiveDate as effectiveDate,
-             p.expiryDate as expiryDate,
-             p.scope as scope,
-             p.status as status,
-             governedTechnologies
-      ORDER BY p.effectiveDate DESC
-    `, { teamName })
-    
-    const enforcedPolicies = enforcedRecords.map(record => ({
-      name: record.get('name'),
-      description: record.get('description'),
-      ruleType: record.get('ruleType'),
-      severity: record.get('severity'),
-      effectiveDate: record.get('effectiveDate')?.toString(),
-      expiryDate: record.get('expiryDate')?.toString(),
-      scope: record.get('scope'),
-      status: record.get('status'),
-      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t)
-    }))
-    
-    // Get policies this team is subject to
-    const { records: subjectRecords } = await driver.executeQuery(`
-      MATCH (team:Team {name: $teamName})-[:SUBJECT_TO]->(p:Policy)
-      OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(p)
-      OPTIONAL MATCH (p)-[:GOVERNS]->(tech:Technology)
-      WITH p, enforcer, collect(DISTINCT tech.name) as governedTechnologies
-      RETURN p.name as name,
-             p.description as description,
-             p.ruleType as ruleType,
-             p.severity as severity,
-             p.effectiveDate as effectiveDate,
-             p.expiryDate as expiryDate,
-             p.scope as scope,
-             p.status as status,
-             enforcer.name as enforcedBy,
-             governedTechnologies
-      ORDER BY p.effectiveDate DESC
-    `, { teamName })
-    
-    const subjectToPolicies = subjectRecords.map(record => ({
-      name: record.get('name'),
-      description: record.get('description'),
-      ruleType: record.get('ruleType'),
-      severity: record.get('severity'),
-      effectiveDate: record.get('effectiveDate')?.toString(),
-      expiryDate: record.get('expiryDate')?.toString(),
-      scope: record.get('scope'),
-      status: record.get('status'),
-      enforcedBy: record.get('enforcedBy'),
-      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t)
-    }))
+    const teamService = new TeamService()
+    const result = await teamService.findPolicies(teamName)
     
     return {
       success: true,
-      data: {
-        team: teamName,
-        enforced: enforcedPolicies,
-        subjectTo: subjectToPolicies,
-        enforcedCount: enforcedPolicies.length,
-        subjectToCount: subjectToPolicies.length
-      }
+      data: result
     }
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) {

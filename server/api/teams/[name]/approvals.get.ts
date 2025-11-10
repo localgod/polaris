@@ -1,3 +1,5 @@
+import { TeamService } from '../../../services/team.service'
+
 /**
  * @openapi
  * /teams/{name}/approvals:
@@ -62,54 +64,12 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    const driver = useDriver()
-    
-    const { records } = await driver.executeQuery(
-      `
-      MATCH (team:Team {name: $name})
-      OPTIONAL MATCH (team)-[techApproval:APPROVES]->(tech:Technology)
-      OPTIONAL MATCH (team)-[versionApproval:APPROVES]->(v:Version)
-      OPTIONAL MATCH (versionTech:Technology)-[:HAS_VERSION]->(v)
-      RETURN team.name as teamName,
-             collect(DISTINCT {
-               technology: tech.name,
-               category: tech.category,
-               vendor: tech.vendor,
-               time: techApproval.time,
-               approvedAt: techApproval.approvedAt,
-               deprecatedAt: techApproval.deprecatedAt,
-               eolDate: techApproval.eolDate,
-               migrationTarget: techApproval.migrationTarget,
-               notes: techApproval.notes,
-               approvedBy: techApproval.approvedBy,
-               versionConstraint: techApproval.versionConstraint
-             }) as technologyApprovals,
-             collect(DISTINCT {
-               technology: versionTech.name,
-               version: v.version,
-               category: versionTech.category,
-               vendor: versionTech.vendor,
-               time: versionApproval.time,
-               approvedAt: versionApproval.approvedAt,
-               deprecatedAt: versionApproval.deprecatedAt,
-               eolDate: versionApproval.eolDate,
-               migrationTarget: versionApproval.migrationTarget,
-               notes: versionApproval.notes,
-               approvedBy: versionApproval.approvedBy
-             }) as versionApprovals
-      `,
-      { name }
-    )
-    
-    const record = getFirstRecordOrThrow(records, `Team '${name}' not found`)
+    const teamService = new TeamService()
+    const result = await teamService.findApprovals(name)
     
     return {
       success: true,
-      data: {
-        team: record.get('teamName'),
-        technologyApprovals: record.get('technologyApprovals').filter((a: { technology?: string }) => a.technology),
-        versionApprovals: record.get('versionApprovals').filter((a: { technology?: string }) => a.technology)
-      }
+      data: result
     }
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) {

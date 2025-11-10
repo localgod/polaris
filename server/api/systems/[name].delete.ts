@@ -1,3 +1,5 @@
+import { SystemService } from '../../services/system.service'
+
 /**
  * @openapi
  * /systems/{name}:
@@ -45,26 +47,8 @@ export default defineEventHandler(async (event) => {
   // Validate that user's team owns this system
   await validateTeamOwnership(event, 'System', name)
   
-  const driver = useDriver()
-  
-  // Check if system exists
-  const { records: checkRecords } = await driver.executeQuery(`
-    MATCH (s:System {name: $name})
-    RETURN s
-  `, { name })
-  
-  if (checkRecords.length === 0) {
-    throw createError({
-      statusCode: 404,
-      message: `System '${name}' not found`
-    })
-  }
-  
-  // Delete system and all its relationships
-  await driver.executeQuery(`
-    MATCH (s:System {name: $name})
-    DETACH DELETE s
-  `, { name })
+  const systemService = new SystemService()
+  await systemService.delete(name)
   
   setResponseStatus(event, 204)
   return null

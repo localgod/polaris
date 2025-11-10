@@ -7,6 +7,12 @@ export interface ViolationFilters {
   technology?: string
 }
 
+export interface PolicyFilters {
+  scope?: string
+  status?: string
+  enforcedBy?: string
+}
+
 export interface PolicyViolation {
   team: string
   technology: string
@@ -21,10 +27,100 @@ export interface PolicyViolation {
   }
 }
 
+export interface GovernedVersion {
+  technology: string
+  version: string
+}
+
+export interface Policy {
+  name: string
+  description: string | null
+  ruleType: string
+  severity: string
+  effectiveDate: string | null
+  expiryDate: string | null
+  enforcedBy: string
+  scope: string
+  status: string
+  enforcerTeam: string | null
+  subjectTeams: string[]
+  governedTechnologies: string[]
+  governedVersions: GovernedVersion[]
+}
+
 /**
  * Repository for policy-related data access
  */
 export class PolicyRepository extends BaseRepository {
+  /**
+   * Find all policies with optional filters
+   * 
+   * @param filters - Optional filters for scope, status, and enforcedBy
+   * @returns Array of policies
+   */
+  async findAll(filters: PolicyFilters = {}): Promise<Policy[]> {
+    let cypher = `
+      MATCH (p:Policy)
+    `
+    
+    const conditions: string[] = []
+    const params: Record<string, string> = {}
+    
+    if (filters.scope) {
+      conditions.push('p.scope = $scope')
+      params.scope = filters.scope
+    }
+    
+    if (filters.status) {
+      conditions.push('p.status = $status')
+      params.status = filters.status
+    }
+    
+    if (filters.enforcedBy) {
+      conditions.push('p.enforcedBy = $enforcedBy')
+      params.enforcedBy = filters.enforcedBy
+    }
+    
+    if (conditions.length > 0) {
+      cypher += ' WHERE ' + conditions.join(' AND ')
+    }
+    
+    cypher += `
+      OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(p)
+      OPTIONAL MATCH (subject:Team)-[:SUBJECT_TO]->(p)
+      OPTIONAL MATCH (p)-[:GOVERNS]->(tech:Technology)
+      WITH p, enforcer, 
+           collect(DISTINCT subject.name) as subjectTeams,
+           collect(DISTINCT tech.name) as governedTechnologies
+      RETURN p.name as name,
+             p.description as description,
+             p.ruleType as ruleType,
+             p.severity as severity,
+             p.effectiveDate as effectiveDate,
+             p.expiryDate as expiryDate,
+             p.enforcedBy as enforcedBy,
+             p.scope as scope,
+             p.status as status,
+             enforcer.name as enforcerTeam,
+             subjectTeams,
+             governedTechnologies,
+             size(governedTechnologies) as technologyCount
+      ORDER BY 
+        CASE p.severity
+          WHEN 'critical' THEN 1
+          WHEN 'error' THEN 2
+          WHEN 'warning' THEN 3
+          WHEN 'info' THEN 4
+        END,
+        p.effectiveDate DESC,
+        p.name
+    `
+    
+    const { records } = await this.executeQuery(cypher, params)
+    
+    return records.map(record => this.mapToPolicyList(record))
+  }
+
   /**
    * Find policy violations with optional filters
    * 
@@ -61,6 +157,46 @@ export class PolicyRepository extends BaseRepository {
   }
 
   /**
+   * Find a policy by name
+   * 
+   * @param name - Policy name
+   * @returns Policy or null if not found
+   */
+  async findByName(name: string): Promise<Policy | null> {
+    const query = await loadQuery('policies/find-by-name.cypher')
+    const { records } = await this.executeQuery(query, { name })
+    
+    if (records.length === 0) {
+      return null
+    }
+    
+    return this.mapToPolicy(records[0])
+  }
+
+  /**
+   * Check if a policy exists
+   * 
+   * @param name - Policy name
+   * @returns True if policy exists
+   */
+  async exists(name: string): Promise<boolean> {
+    const query = await loadQuery('policies/check-exists.cypher')
+    const { records } = await this.executeQuery(query, { name })
+    
+    return records.length > 0
+  }
+
+  /**
+   * Delete a policy and all its relationships
+   * 
+   * @param name - Policy name
+   */
+  async delete(name: string): Promise<void> {
+    const query = await loadQuery('policies/delete.cypher')
+    await this.executeQuery(query, { name })
+  }
+
+  /**
    * Map Neo4j record to PolicyViolation domain object
    */
   private mapToViolation(record: Neo4jRecord): PolicyViolation {
@@ -76,6 +212,48 @@ export class PolicyRepository extends BaseRepository {
         ruleType: record.get('ruleType'),
         enforcedBy: record.get('enforcedBy')
       }
+    }
+  }
+
+  /**
+   * Map Neo4j record to Policy domain object (for findByName)
+   */
+  private mapToPolicy(record: Neo4jRecord): Policy {
+    return {
+      name: record.get('name'),
+      description: record.get('description'),
+      ruleType: record.get('ruleType'),
+      severity: record.get('severity'),
+      effectiveDate: record.get('effectiveDate')?.toString(),
+      expiryDate: record.get('expiryDate')?.toString(),
+      enforcedBy: record.get('enforcedBy'),
+      scope: record.get('scope'),
+      status: record.get('status'),
+      enforcerTeam: record.get('enforcerTeam'),
+      subjectTeams: record.get('subjectTeams').filter((t: string) => t),
+      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
+      governedVersions: record.get('governedVersions').filter((v: GovernedVersion) => v.technology)
+    }
+  }
+
+  /**
+   * Map Neo4j record to Policy domain object (for findAll)
+   */
+  private mapToPolicyList(record: Neo4jRecord): Policy {
+    return {
+      name: record.get('name'),
+      description: record.get('description'),
+      ruleType: record.get('ruleType'),
+      severity: record.get('severity'),
+      effectiveDate: record.get('effectiveDate')?.toString(),
+      expiryDate: record.get('expiryDate')?.toString(),
+      enforcedBy: record.get('enforcedBy'),
+      scope: record.get('scope'),
+      status: record.get('status'),
+      enforcerTeam: record.get('enforcerTeam'),
+      subjectTeams: record.get('subjectTeams').filter((t: string) => t),
+      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
+      governedVersions: [] // Not included in list view
     }
   }
 }

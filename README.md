@@ -19,14 +19,20 @@ Polaris helps organizations manage their technology landscape by:
 
 ## Architecture
 
-This project follows a **separation of concerns** architecture:
+This project follows a **3-layer architecture** pattern:
 
 - **Nuxt 4 Frontend**: Modern Vue 3 application with server-side rendering
 - **Neo4j Graph Database**: Stores relationships between technologies, systems, teams, and policies
 - **Standalone Migrations**: Database schema managed via CLI tools
-- **API Layer**: Server endpoints for data access with Neo4j integration
+- **3-Layer API**: Endpoints → Services → Repositories for clean separation of concerns
 
-The application uses the `nuxt-neo4j` module for seamless database connectivity.
+The server uses a consistent pattern across all 25 endpoints:
+- **Endpoints** (`server/api/`) - HTTP request/response handling
+- **Services** (`server/services/`) - Business logic and orchestration
+- **Repositories** (`server/repositories/`) - Data access and query execution
+- **Queries** (`server/database/queries/`) - Reusable Cypher query files
+
+See `docs/architecture/service-layer-pattern.md` for detailed patterns.
 
 ## Project Structure
 
@@ -35,8 +41,11 @@ polaris/
 ├── app/                    # Nuxt application
 │   ├── pages/             # Vue pages
 │   └── app.vue            # Root component
-├── server/                # Server-side code
-│   └── api/               # API endpoints
+├── server/                # Server-side code (3-layer architecture)
+│   ├── api/               # API endpoints (HTTP layer)
+│   ├── services/          # Business logic layer
+│   ├── repositories/      # Data access layer
+│   └── database/queries/  # Cypher query files
 ├── schema/                # Database management
 │   ├── migrations/        # Cypher migration files
 │   ├── scripts/           # Migration CLI tools
@@ -46,6 +55,8 @@ polaris/
 │   ├── schema/            # Database migration tests
 │   ├── app/               # Frontend/application tests
 │   └── helpers/           # Test utilities
+├── docs/                  # Documentation
+│   └── architecture/      # Architecture decision records
 ├── .devcontainer/         # Dev container configuration
 └── .ona/                  # Gitpod automations
 ```

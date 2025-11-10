@@ -1,5 +1,5 @@
 import type { ApiResponse } from '~~/types/api'
-import { normalizeRepoUrl } from '~~/server/utils/repository'
+import { SystemService } from '../services/system.service'
 
 /**
  * @openapi
@@ -121,114 +121,14 @@ interface CreateSystemResponse {
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateSystemResponse>> => {
   const body = await readBody<CreateSystemRequest>(event)
   
-  // Validate required fields
-  if (!body.name || !body.domain || !body.ownerTeam || !body.businessCriticality || !body.environment) {
-    throw createError({
-      statusCode: 400,
-      message: 'Missing required fields'
-    })
-  }
-
-  // Validate businessCriticality
-  const validCriticalities = ['critical', 'high', 'medium', 'low']
-  if (!validCriticalities.includes(body.businessCriticality)) {
-    throw createError({
-      statusCode: 422,
-      message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
-    })
-  }
-
-  // Validate environment
-  const validEnvironments = ['dev', 'test', 'staging', 'prod']
-  if (!validEnvironments.includes(body.environment)) {
-    throw createError({
-      statusCode: 422,
-      message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
-    })
-  }
-
-  const driver = useDriver()
-  
   try {
-    // Check if system already exists
-    const checkResult = await driver.executeQuery(`
-      MATCH (s:System {name: $name})
-      RETURN s
-    `, { name: body.name })
-
-    if (checkResult.records.length > 0) {
-      throw createError({
-        statusCode: 409,
-        message: `A system with the name '${body.name}' already exists`
-      })
-    }
-
-    // Derive source code properties from repositories
-    const hasRepositories = body.repositories && body.repositories.length > 0
-    const hasSourceAccess = Boolean(hasRepositories)
-    const sourceCodeType = hasRepositories
-      ? (body.repositories!.some(r => r.isPublic) ? 'open-source' : 'proprietary')
-      : 'unknown'
-
-    // Normalize repository URLs
-    const repositories = (body.repositories || []).map(repo => ({
-      ...repo,
-      url: normalizeRepoUrl(repo.url)
-    }))
-
-    // Create system and all repositories in a single query
-    const result = await driver.executeQuery(`
-      MERGE (team:Team {name: $ownerTeam})
-      CREATE (s:System {
-        name: $name,
-        domain: $domain,
-        businessCriticality: $businessCriticality,
-        environment: $environment,
-        sourceCodeType: $sourceCodeType,
-        hasSourceAccess: $hasSourceAccess
-      })
-      CREATE (team)-[:OWNS]->(s)
-      
-      WITH s, team, $repositories AS repos
-      FOREACH (repo IN CASE WHEN size(repos) > 0 THEN repos ELSE [] END |
-        MERGE (r:Repository {url: repo.url})
-        SET r.scmType = repo.scmType,
-            r.name = repo.name,
-            r.isPublic = repo.isPublic,
-            r.requiresAuth = repo.requiresAuth,
-            r.createdAt = COALESCE(r.createdAt, datetime()),
-            r.lastSyncedAt = datetime()
-        MERGE (s)-[rel1:HAS_SOURCE_IN]->(r)
-          SET rel1.addedAt = COALESCE(rel1.addedAt, datetime())
-        MERGE (team)-[rel2:MAINTAINS]->(r)
-          SET rel2.since = COALESCE(rel2.since, datetime())
-      )
-      
-      RETURN s.name as name
-    `, {
-      name: body.name,
-      domain: body.domain,
-      ownerTeam: body.ownerTeam,
-      businessCriticality: body.businessCriticality,
-      environment: body.environment,
-      sourceCodeType: sourceCodeType,
-      hasSourceAccess: hasSourceAccess,
-      repositories: repositories
-    })
-
-    if (result.records.length === 0) {
-      throw createError({
-        statusCode: 500,
-        message: 'Failed to create system'
-      })
-    }
+    const systemService = new SystemService()
+    const name = await systemService.create(body)
 
     setResponseStatus(event, 201)
     return {
       success: true,
-      data: [{
-        name: result.records[0].get('name')
-      }],
+      data: [{ name }],
       count: 1
     }
   } catch (error: unknown) {

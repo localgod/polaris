@@ -1,3 +1,5 @@
+import { UserService } from '../../../../services/user.service'
+
 /**
  * @openapi
  * /admin/users/{userId}/teams:
@@ -110,68 +112,24 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const driver = useDriver()
-  const session = driver.session()
-
   try {
-    // Remove existing team memberships
-    await session.run(
-      `
-      MATCH (u:User {id: $userId})-[r:MEMBER_OF]->(:Team)
-      DELETE r
-      `,
-      { userId }
-    )
-
-    // Add new team memberships
-    if (body.teams.length > 0) {
-      await session.run(
-        `
-        MATCH (u:User {id: $userId})
-        UNWIND $teamNames as teamName
-        MATCH (t:Team {name: teamName})
-        MERGE (u)-[:MEMBER_OF]->(t)
-        `,
-        { userId, teamNames: body.teams }
-      )
-    }
-
-    // Optionally set team management permissions
-    if (body.canManage && Array.isArray(body.canManage) && body.canManage.length > 0) {
-      await session.run(
-        `
-        MATCH (u:User {id: $userId})
-        UNWIND $teamNames as teamName
-        MATCH (t:Team {name: teamName})
-        MERGE (u)-[:CAN_MANAGE]->(t)
-        `,
-        { userId, teamNames: body.canManage }
-      )
-    }
-
-    // Fetch updated user with teams
-    const result = await session.run(
-      `
-      MATCH (u:User {id: $userId})
-      OPTIONAL MATCH (u)-[:MEMBER_OF]->(t:Team)
-      OPTIONAL MATCH (u)-[:CAN_MANAGE]->(mt:Team)
-      RETURN u {
-        .*,
-        teams: collect(DISTINCT {name: t.name, email: t.email}),
-        canManage: collect(DISTINCT mt.name)
-      } as user
-      `,
-      { userId }
-    )
-
-    const record = getFirstRecordOrThrow(result.records, 'User not found')
+    const userService = new UserService()
+    const user = await userService.assignTeams({
+      userId,
+      teams: body.teams,
+      canManage: body.canManage
+    })
 
     setResponseStatus(event, 200)
     return {
       success: true,
-      data: record.get('user')
+      data: user
     }
-  } finally {
-    await session.close()
+  } catch (error) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Not Found',
+      message: error instanceof Error ? error.message : 'User not found'
+    })
   }
 })

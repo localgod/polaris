@@ -1,4 +1,4 @@
-import type { UnmappedComponent } from '~~/types/api'
+import { SystemService } from '../../../services/system.service'
 
 /**
  * @openapi
@@ -72,61 +72,13 @@ export default defineEventHandler(async (event) => {
     }
     
     const systemName = decodeURIComponent(rawName)
-    const driver = useDriver()
-
-    // First check if system exists
-    const { records: systemCheck } = await driver.executeQuery(`
-      MATCH (s:System {name: $systemName})
-      RETURN s.name as name
-    `, { systemName })
-
-    if (systemCheck.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `System '${systemName}' not found`
-      })
-    }
-
-    // Get unmapped components for this system
-    const { records } = await driver.executeQuery(`
-      MATCH (sys:System {name: $systemName})-[:USES]->(c:Component)
-      WHERE NOT (c)-[:IS_VERSION_OF]->(:Technology)
-      OPTIONAL MATCH (c)-[:HAS_HASH]->(h:Hash)
-      OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
-      WITH c,
-           collect(DISTINCT {algorithm: h.algorithm, value: h.value}) as hashes,
-           collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses
-      RETURN c.name as name,
-             c.version as version,
-             c.packageManager as packageManager,
-             c.purl as purl,
-             c.cpe as cpe,
-             c.type as type,
-             c.group as group,
-             hashes,
-             licenses
-      ORDER BY c.name
-    `, { systemName })
-
-    const components: UnmappedComponent[] = records.map(record => ({
-      name: record.get('name'),
-      version: record.get('version'),
-      packageManager: record.get('packageManager'),
-      purl: record.get('purl'),
-      cpe: record.get('cpe'),
-      type: record.get('type'),
-      group: record.get('group'),
-      hashes: record.get('hashes').filter((h: { algorithm?: string; value?: string }) => h.algorithm),
-      licenses: record.get('licenses').filter((l: { id?: string; name?: string }) => l.id || l.name)
-    }))
+    
+    const systemService = new SystemService()
+    const result = await systemService.findUnmappedComponents(systemName)
 
     return {
       success: true,
-      data: {
-        system: systemName,
-        components,
-        count: components.length
-      }
+      data: result
     }
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
