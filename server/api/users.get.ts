@@ -1,13 +1,5 @@
 import { getServerSession } from '#auth'
-import neo4j from 'neo4j-driver'
-
-const driver = neo4j.driver(
-  process.env.NEO4J_URI || 'bolt://localhost:7687',
-  neo4j.auth.basic(
-    process.env.NEO4J_USERNAME || 'neo4j',
-    process.env.NEO4J_PASSWORD || 'devpassword'
-  )
-)
+import { UserService } from '../services/user.service'
 
 /**
  * @openapi
@@ -48,44 +40,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const neo4jSession = driver.session()
-
   try {
-    const result = await neo4jSession.run(
-      `
-      MATCH (u:User)
-      OPTIONAL MATCH (u)-[:MEMBER_OF]->(t:Team)
-      WITH u, count(t) as teamCount
-      RETURN u.id as id,
-             u.email as email,
-             u.name as name,
-             u.provider as provider,
-             u.role as role,
-             u.avatarUrl as avatarUrl,
-             u.lastLogin as lastLogin,
-             u.createdAt as createdAt,
-             teamCount
-      ORDER BY u.createdAt DESC
-      `
-    )
-
-    const users = result.records.map(record => {
-      const lastLogin = record.get('lastLogin')
-      const createdAt = record.get('createdAt')
-      
-      return {
-        id: record.get('id'),
-        email: record.get('email'),
-        name: record.get('name'),
-        provider: record.get('provider'),
-        role: record.get('role') || 'user',
-        avatarUrl: record.get('avatarUrl'),
-        teamCount: record.get('teamCount').toNumber(),
-        lastLogin: lastLogin ? lastLogin.toString() : null,
-        createdAt: createdAt ? createdAt.toString() : null
-      }
-    })
-
+    const userService = new UserService()
+    const users = await userService.findAllSummary()
+    
     return users
   } catch (error) {
     console.error('Error fetching users:', error)
@@ -93,7 +51,5 @@ export default defineEventHandler(async (event) => {
       statusCode: 500,
       statusMessage: 'Failed to fetch users'
     })
-  } finally {
-    await neo4jSession.close()
   }
 })

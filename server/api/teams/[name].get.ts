@@ -1,3 +1,5 @@
+import { TeamService } from '../../services/team.service'
+
 /**
  * @openapi
  * /teams/{name}:
@@ -59,24 +61,11 @@ export default defineEventHandler(async (event) => {
   }
   
   const name = decodeURIComponent(rawName)
-  const driver = useDriver()
   
-  const { records } = await driver.executeQuery(`
-    MATCH (t:Team {name: $name})
-    OPTIONAL MATCH (t)-[:STEWARDED_BY]->(tech:Technology)
-    OPTIONAL MATCH (t)-[:OWNS]->(sys:System)
-    OPTIONAL MATCH (t)-[:USES]->(usedTech:Technology)
-    OPTIONAL MATCH (u:User)-[:MEMBER_OF]->(t)
-    RETURN t {
-      .*,
-      technologyCount: count(DISTINCT tech),
-      systemCount: count(DISTINCT sys),
-      usedTechnologyCount: count(DISTINCT usedTech),
-      memberCount: count(DISTINCT u)
-    } as team
-  `, { name })
+  const teamService = new TeamService()
+  const team = await teamService.findByName(name)
   
-  if (records.length === 0) {
+  if (!team) {
     throw createError({
       statusCode: 404,
       message: `Team '${name}' not found`
@@ -85,6 +74,6 @@ export default defineEventHandler(async (event) => {
   
   return {
     success: true,
-    data: records[0].get('team')
+    data: team
   }
 })

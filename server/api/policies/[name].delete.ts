@@ -1,3 +1,5 @@
+import { PolicyService } from '../../services/policy.service'
+
 /**
  * @openapi
  * /policies/{name}:
@@ -44,26 +46,9 @@ export default defineEventHandler(async (event) => {
   }
   
   const name = decodeURIComponent(rawName)
-  const driver = useDriver()
   
-  // Check if policy exists
-  const { records: checkRecords } = await driver.executeQuery(`
-    MATCH (p:Policy {name: $name})
-    RETURN p
-  `, { name })
-  
-  if (checkRecords.length === 0) {
-    throw createError({
-      statusCode: 404,
-      message: `Policy '${name}' not found`
-    })
-  }
-  
-  // Delete policy and all its relationships
-  await driver.executeQuery(`
-    MATCH (p:Policy {name: $name})
-    DETACH DELETE p
-  `, { name })
+  const policyService = new PolicyService()
+  await policyService.delete(name)
   
   setResponseStatus(event, 204)
   return null

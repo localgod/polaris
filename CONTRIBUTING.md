@@ -100,8 +100,11 @@ polaris/
 ├── app/                    # Nuxt application
 │   ├── pages/             # Vue pages
 │   └── app.vue            # Root component
-├── server/                # Server-side code
-│   └── api/               # API endpoints
+├── server/                # Server-side code (3-layer architecture)
+│   ├── api/               # API endpoints (HTTP layer)
+│   ├── services/          # Business logic layer
+│   ├── repositories/      # Data access layer
+│   └── database/queries/  # Cypher query files
 ├── schema/                # Database management (standalone)
 │   ├── migrations/        # Cypher migration files
 │   ├── scripts/          # Migration CLI tools
@@ -111,6 +114,8 @@ polaris/
 │   ├── schema/           # Database migration tests
 │   ├── app/              # Frontend/application tests
 │   └── helpers/          # Test utilities
+├── docs/                  # Documentation
+│   └── architecture/     # Architecture decision records
 └── .devcontainer/         # Dev container configuration
 ```
 

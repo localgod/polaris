@@ -1,3 +1,5 @@
+import { SystemService } from '../../services/system.service'
+
 /**
  * @openapi
  * /systems/{name}:
@@ -41,37 +43,15 @@ export default defineEventHandler(async (event) => {
   }
   
   const name = decodeURIComponent(rawName)
-  const driver = useDriver()
   
-  const { records } = await driver.executeQuery(`
-    MATCH (s:System {name: $name})
-    OPTIONAL MATCH (team:Team)-[:OWNS]->(s)
-    OPTIONAL MATCH (s)-[:USES]->(c:Component)
-    OPTIONAL MATCH (s)-[:HAS_SOURCE_IN]->(r:Repository)
-    WITH s, team.name as ownerTeam, count(DISTINCT c) as componentCount, count(DISTINCT r) as repositoryCount
-    RETURN s {
-      .*,
-      ownerTeam: ownerTeam,
-      componentCount: componentCount,
-      repositoryCount: repositoryCount
-    } as system
-  `, { name })
+  const systemService = new SystemService()
+  const system = await systemService.findByName(name)
   
-  if (records.length === 0) {
+  if (!system) {
     throw createError({
       statusCode: 404,
       message: `System '${name}' not found`
     })
-  }
-  
-  const system = records[0].get('system')
-  
-  // Convert Neo4j Integer objects to regular numbers
-  if (system.componentCount && typeof system.componentCount === 'object' && 'low' in system.componentCount) {
-    system.componentCount = system.componentCount.toNumber ? system.componentCount.toNumber() : system.componentCount.low
-  }
-  if (system.repositoryCount && typeof system.repositoryCount === 'object' && 'low' in system.repositoryCount) {
-    system.repositoryCount = system.repositoryCount.toNumber ? system.repositoryCount.toNumber() : system.repositoryCount.low
   }
   
   return {

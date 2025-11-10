@@ -1,3 +1,5 @@
+import { PolicyService } from '../../services/policy.service'
+
 /**
  * @openapi
  * /policies/{name}:
@@ -74,49 +76,14 @@ export default defineEventHandler(async (event) => {
     
     const name = decodeURIComponent(rawName)
     
-    const driver = useDriver()
+    const policyService = new PolicyService()
+    const policy = await policyService.findByName(name)
     
-    const { records } = await driver.executeQuery(`
-      MATCH (p:Policy {name: $name})
-      OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(p)
-      OPTIONAL MATCH (subject:Team)-[:SUBJECT_TO]->(p)
-      OPTIONAL MATCH (p)-[:GOVERNS]->(tech:Technology)
-      OPTIONAL MATCH (p)-[:GOVERNS]->(v:Version)
-      WITH p, enforcer,
-           collect(DISTINCT subject.name) as subjectTeams,
-           collect(DISTINCT tech.name) as governedTechnologies,
-           collect(DISTINCT {technology: v.technologyName, version: v.version}) as governedVersions
-      RETURN p.name as name,
-             p.description as description,
-             p.ruleType as ruleType,
-             p.severity as severity,
-             p.effectiveDate as effectiveDate,
-             p.expiryDate as expiryDate,
-             p.enforcedBy as enforcedBy,
-             p.scope as scope,
-             p.status as status,
-             enforcer.name as enforcerTeam,
-             subjectTeams,
-             governedTechnologies,
-             governedVersions
-    `, { name })
-    
-    const record = getFirstRecordOrThrow(records, `Policy '${name}' not found`)
-    
-    const policy = {
-      name: record.get('name'),
-      description: record.get('description'),
-      ruleType: record.get('ruleType'),
-      severity: record.get('severity'),
-      effectiveDate: record.get('effectiveDate')?.toString(),
-      expiryDate: record.get('expiryDate')?.toString(),
-      enforcedBy: record.get('enforcedBy'),
-      scope: record.get('scope'),
-      status: record.get('status'),
-      enforcerTeam: record.get('enforcerTeam'),
-      subjectTeams: record.get('subjectTeams').filter((t: string) => t),
-      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
-      governedVersions: record.get('governedVersions').filter((v: { technology: string }) => v.technology)
+    if (!policy) {
+      throw createError({
+        statusCode: 404,
+        message: `Policy '${name}' not found`
+      })
     }
     
     return {
