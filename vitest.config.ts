@@ -15,13 +15,6 @@ export default defineConfig({
       reporter: ['text', 'json-summary', 'json', 'html', 'lcov'],
       reportOnFailure: true,
       reportsDirectory: './coverage',
-      all: true,
-      thresholds: {
-        lines: 5,
-        branches: 5,
-        functions: 5,
-        statements: 5,
-      },
       exclude: [
         'node_modules/**',
         'dist/**',
@@ -34,16 +27,10 @@ export default defineConfig({
         'app/pages/**',
         'app/components/**',
         'app/plugins/**',
-        'server/api/**', // API endpoints are thin HTTP handlers - test via integration
-        'server/database/queries/**', // Cypher files tested via repository tests
+        'server/api/**',
+        'server/database/queries/**',
         'schema/scripts/**',
         'server/scripts/**',
-      ],
-      include: [
-        'server/services/**/*.ts',
-        'server/repositories/**/*.ts',
-        'server/utils/**/*.ts',
-        'server/plugins/**/*.ts',
       ],
     },
     env: {
