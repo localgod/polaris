@@ -1,11 +1,43 @@
 import { getServerSession } from '#auth'
 import type { H3Event } from 'h3'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import { TokenService } from '../services/token.service'
 
 /**
- * Get the current user session from the request
+ * Get the current user from session OR Bearer token
+ * 
+ * Authentication flow:
+ * 1. Check for Authorization: Bearer <token> header
+ * 2. If token present, resolve to user
+ * 3. Otherwise, fall back to session authentication
  */
 export async function getCurrentUser(event: H3Event) {
+  // Check for Bearer token first
+  const authHeader = getHeader(event, 'authorization')
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+    
+    try {
+      const tokenService = new TokenService()
+      const resolved = await tokenService.resolveToken(token)
+      
+      if (resolved) {
+        // Return user in same format as session
+        return {
+          id: resolved.user.id,
+          email: resolved.user.email,
+          role: resolved.user.role,
+          teams: resolved.user.teams || []
+        }
+      }
+    } catch (error) {
+      // Invalid token - fall through to session check
+      console.error('Token resolution failed:', error)
+    }
+  }
+  
+  // Fall back to session authentication
   const session = await getServerSession(event)
   return session?.user || null
 }
