@@ -65,9 +65,17 @@ export class SbomValidator {
       
       const cyclonedxSchemaPath = join(schemaDir, 'cyclonedx-1.6.schema.json')
       const spdxSchemaPath = join(schemaDir, 'spdx-2.3.schema.json')
+      const spdxRefSchemaPath = join(schemaDir, 'spdx.schema.json') // Referenced by CycloneDX
+      const jsfSchemaPath = join(schemaDir, 'jsf-0.82.schema.json') // Referenced by CycloneDX
       
       const cyclonedxSchema = JSON.parse(readFileSync(cyclonedxSchemaPath, 'utf-8'))
       const spdxSchema = JSON.parse(readFileSync(spdxSchemaPath, 'utf-8'))
+      const spdxRefSchema = JSON.parse(readFileSync(spdxRefSchemaPath, 'utf-8'))
+      const jsfSchema = JSON.parse(readFileSync(jsfSchemaPath, 'utf-8'))
+      
+      // Add referenced schemas to Ajv
+      this.ajv.addSchema(spdxRefSchema, 'http://cyclonedx.org/schema/spdx.schema.json')
+      this.ajv.addSchema(jsfSchema, 'http://cyclonedx.org/schema/jsf-0.82.schema.json')
       
       // Compile validators
       this.cyclonedxValidator = this.ajv.compile(cyclonedxSchema)

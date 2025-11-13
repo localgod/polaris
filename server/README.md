@@ -270,3 +270,263 @@ This architecture follows Nuxt 4 best practices:
 - **Code Reduction**: -671 net lines (36% reduction)
 
 See `docs/architecture/service-layer-pattern.md` for detailed patterns and examples.
+
+## API Authentication
+
+### Session-based Authentication
+
+The API supports session-based authentication using NextAuth.js:
+
+```typescript
+// Authenticated endpoint example
+export default defineEventHandler(async (event) => {
+  const user = await requireAuth(event) // Throws 401 if not authenticated
+  // ... handle request
+})
+```
+
+### API Token Authentication
+
+API tokens provide an alternative authentication method for programmatic access.
+
+#### Token Features
+
+- **SHA-256 Hashing**: Only token hashes are stored in the database
+- **One-time Display**: Plaintext tokens are shown only once on creation
+- **Expiration**: Tokens can have optional expiration dates
+- **Revocation**: Tokens can be revoked at any time
+- **Bearer Authentication**: Use `Authorization: Bearer <token>` header
+
+#### Creating API Tokens
+
+Use the seed script to create a token for a user:
+
+```bash
+# Create token for a user by email
+tsx schema/scripts/seed-api-token.ts user@example.com
+```
+
+The script will:
+1. Verify the user exists
+2. Generate a secure random token
+3. Store the SHA-256 hash in the database
+4. Display the plaintext token (one time only)
+
+**⚠️ Important**: Save the token immediately - it cannot be retrieved again!
+
+#### Using API Tokens
+
+Include the token in the `Authorization` header:
+
+```bash
+# Example: Submit an SBOM
+curl -X POST https://api.example.com/api/sboms \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repositoryUrl": "https://github.com/org/repo",
+    "sbom": { ... }
+  }'
+```
+
+#### Token Management
+
+**List Tokens** (programmatically):
+```typescript
+import { TokenService } from '../server/services/token.service'
+
+const tokenService = new TokenService()
+const tokens = await tokenService.listTokens(userId)
+```
+
+**Revoke Token**:
+```typescript
+const tokenService = new TokenService()
+await tokenService.revokeToken(tokenId)
+```
+
+#### Security Best Practices
+
+- ✅ Store tokens securely (e.g., environment variables, secrets managers)
+- ✅ Use HTTPS in production
+- ✅ Rotate tokens regularly
+- ✅ Revoke tokens when no longer needed
+- ✅ Never commit tokens to source control
+- ✅ Use different tokens for different environments
+
+## SBOM Validation Endpoint
+
+### POST /api/sboms
+
+Validates and accepts Software Bill of Materials (SBOM) documents.
+
+#### Authentication
+
+Requires authentication via:
+- Session cookie (web UI), OR
+- API token (programmatic access)
+
+#### Request Format
+
+```json
+POST /api/sboms
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "repositoryUrl": "https://github.com/org/repo",
+  "sbom": {
+    // CycloneDX or SPDX SBOM document
+  }
+}
+```
+
+#### Supported SBOM Formats
+
+- **CycloneDX 1.6**: Industry standard SBOM format
+- **SPDX 2.3**: Linux Foundation standard SBOM format
+
+Format is auto-detected from the document structure.
+
+#### Response Codes
+
+- **200 OK**: SBOM is valid
+  ```json
+  {
+    "success": true,
+    "format": "cyclonedx",
+    "message": "Valid SBOM"
+  }
+  ```
+
+- **400 Bad Request**: Invalid request body
+  ```json
+  {
+    "success": false,
+    "error": "invalid_request",
+    "message": "repositoryUrl is required"
+  }
+  ```
+
+- **401 Unauthorized**: Authentication required
+  ```json
+  {
+    "success": false,
+    "error": "unauthenticated",
+    "message": "Authentication required"
+  }
+  ```
+
+- **415 Unsupported Media Type**: Content-Type must be application/json
+  ```json
+  {
+    "success": false,
+    "error": "unsupported_media_type",
+    "required": "application/json"
+  }
+  ```
+
+- **422 Unprocessable Entity**: SBOM validation failed
+  ```json
+  {
+    "success": false,
+    "error": "invalid_sbom",
+    "format": "cyclonedx",
+    "validationErrors": [
+      {
+        "instancePath": "/specVersion",
+        "message": "must be string"
+      }
+    ]
+  }
+  ```
+
+- **500 Internal Server Error**: Server error during validation
+  ```json
+  {
+    "success": false,
+    "error": "internal_error",
+    "message": "Error details..."
+  }
+  ```
+
+#### Example: Valid CycloneDX SBOM
+
+```json
+{
+  "repositoryUrl": "https://github.com/myorg/myapp",
+  "sbom": {
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.6",
+    "version": 1,
+    "metadata": {
+      "timestamp": "2024-01-01T00:00:00Z",
+      "component": {
+        "type": "application",
+        "name": "my-app",
+        "version": "1.0.0"
+      }
+    },
+    "components": [
+      {
+        "type": "library",
+        "name": "lodash",
+        "version": "4.17.21",
+        "purl": "pkg:npm/lodash@4.17.21"
+      }
+    ]
+  }
+}
+```
+
+#### Example: Valid SPDX SBOM
+
+```json
+{
+  "repositoryUrl": "https://github.com/myorg/myapp",
+  "sbom": {
+    "spdxVersion": "SPDX-2.3",
+    "dataLicense": "CC0-1.0",
+    "SPDXID": "SPDXRef-DOCUMENT",
+    "name": "my-app-sbom",
+    "documentNamespace": "https://example.com/sbom-1234",
+    "creationInfo": {
+      "created": "2024-01-01T00:00:00Z",
+      "creators": ["Tool: my-sbom-tool"]
+    },
+    "packages": [
+      {
+        "SPDXID": "SPDXRef-Package",
+        "name": "lodash",
+        "versionInfo": "4.17.21",
+        "downloadLocation": "NOASSERTION",
+        "filesAnalyzed": false
+      }
+    ]
+  }
+}
+```
+
+#### Implementation Details
+
+- **Schema Validation**: Uses Ajv JSON Schema validator
+- **Schema Compilation**: Schemas are compiled at server startup for performance
+- **Error Reporting**: Detailed validation errors with instance paths
+- **Security**: Authentication is checked before validation (performance optimization)
+
+#### SBOM Validator Initialization
+
+The SBOM validator is initialized at server startup via a Nitro plugin:
+
+```typescript
+// server/plugins/sbom-validator.ts
+export default defineNitroPlugin(async () => {
+  await initializeSbomValidator()
+})
+```
+
+Schemas are located in `server/schemas/`:
+- `cyclonedx-1.6.schema.json`
+- `spdx-2.3.schema.json`
+- `spdx.schema.json` (referenced by CycloneDX)
+- `jsf-0.82.schema.json` (referenced by CycloneDX)

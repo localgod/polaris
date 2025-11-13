@@ -1,4 +1,3 @@
-import type { ApiResponse } from '~~/types/api'
 import { getSbomValidator } from '../utils/sbom-validator'
 
 /**
@@ -164,7 +163,7 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
   // 2. Authenticate (token or session)
   try {
     await requireAuth(event)
-  } catch (error) {
+  } catch {
     setResponseStatus(event, 401)
     return {
       success: false,
@@ -178,7 +177,7 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
   
   try {
     body = await readBody<SbomRequest>(event)
-  } catch (error) {
+  } catch {
     setResponseStatus(event, 400)
     return {
       success: false,
