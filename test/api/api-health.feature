@@ -1,16 +1,17 @@
 Feature: API Health Check
   As a system administrator
-  I want to check the database status
+  I want to check the health endpoint
   So that I can ensure the system is operational
 
-  Scenario: Database status endpoint returns a response
+  Scenario: Health endpoint returns a response
     Given the API server is running
-    When I request the database status endpoint
+    When I request the health endpoint
     Then I should receive a response
     And the response should have a status field
-    And the response should have a message field
+    And the response should have a database field
+    And the response should have a timestamp field
 
-  Scenario: Database status endpoint returns valid status
+  Scenario: Health endpoint returns valid status
     Given the API server is running
-    When I request the database status endpoint
-    Then the status field should be either "online" or "offline"
+    When I request the health endpoint
+    Then the status field should be either "healthy" or "unhealthy"

@@ -1,5 +1,5 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { apiGet, checkServerHealth } from '../helpers/api-client'
 
 /**
@@ -18,7 +18,9 @@ interface HealthResponse {
   error?: string
 }
 
-Feature('API Health Check @api @smoke', ({ Scenario }) => {
+const feature = await loadFeature('./test/api/api-health.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let response: HealthResponse
   let serverRunning = false
 

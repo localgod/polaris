@@ -1,5 +1,5 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { apiGet, checkServerHealth } from '../helpers/api-client'
 
 interface ComponentResponse {
@@ -13,7 +13,9 @@ interface UnmappedComponentsResponse {
   count: number
 }
 
-Feature('Unmapped Components API @api @integration', ({ Scenario }) => {
+const feature = await loadFeature('./test/api/unmapped-components.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let serverRunning = false
 
   beforeAll(async () => {
@@ -69,7 +71,7 @@ Feature('Unmapped Components API @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('there are unmapped components in the database', async () => {
+    And('there are unmapped components in the database', async () => {
       if (!serverRunning) return
       response = await apiGet('/api/components/unmapped')
       if (response.data.length === 0) {
@@ -129,7 +131,7 @@ Feature('Unmapped Components API @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('there is at least one system in the database', async () => {
+    And('there is at least one system in the database', async () => {
       if (!serverRunning) return
       systemsResponse = await apiGet('/api/systems')
       if (!systemsResponse.success || systemsResponse.data.length === 0) {
@@ -207,7 +209,7 @@ Feature('Unmapped Components API @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('there is at least one system in the database', async () => {
+    And('there is at least one system in the database', async () => {
       if (!serverRunning) return
       systemsResponse = await apiGet('/api/systems')
       if (!systemsResponse.success || systemsResponse.data.length === 0) {
@@ -248,7 +250,7 @@ Feature('Unmapped Components API @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('there is a system with unmapped components', async () => {
+    And('there is a system with unmapped components', async () => {
       if (!serverRunning) return
       systemsResponse = await apiGet('/api/systems')
       if (!systemsResponse.success || systemsResponse.data.length === 0) {

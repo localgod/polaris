@@ -1,8 +1,10 @@
 import { expect, beforeAll, afterAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { getBaseURL, checkServerHealth } from '../helpers/api-client'
 
-Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
+const feature = await loadFeature('./test/api/sboms-integration.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   const baseURL = getBaseURL()
   const apiPath = '/api/sboms'
   let serverRunning = false
@@ -158,7 +160,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('I have a valid SBOM payload', () => {
+    And('I have a valid SBOM payload', () => {
       if (!serverRunning) return
       sbomPayload = validCycloneDXSbom
       expect(sbomPayload).toBeDefined()
@@ -204,7 +206,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('I have a valid SBOM payload', () => {
+    And('I have a valid SBOM payload', () => {
       if (!serverRunning) return
       sbomPayload = validCycloneDXSbom
       expect(sbomPayload).toBeDefined()
@@ -249,7 +251,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('I have a valid API token', () => {
+    And('I have a valid API token', () => {
       if (!serverRunning) return
       if (!validToken) {
         console.log('   ⏭️  Skipping - no valid token available (TODO: implement token creation)')
@@ -258,7 +260,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(validToken).toBeDefined()
     })
 
-    Given('I have a valid CycloneDX 1.6 SBOM', () => {
+    And('I have a valid CycloneDX 1.6 SBOM', () => {
       if (!serverRunning || !validToken) return
       sbomPayload = validCycloneDXSbom
       expect(sbomPayload.bomFormat).toBe('CycloneDX')
@@ -309,7 +311,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('I have a valid API token', () => {
+    And('I have a valid API token', () => {
       if (!serverRunning) return
       if (!validToken) {
         console.log('   ⏭️  Skipping - no valid token available (TODO: implement token creation)')
@@ -318,7 +320,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(validToken).toBeDefined()
     })
 
-    Given('I have a valid SPDX 2.3 SBOM', () => {
+    And('I have a valid SPDX 2.3 SBOM', () => {
       if (!serverRunning || !validToken) return
       sbomPayload = validSpdxSbom
       expect(sbomPayload.spdxVersion).toBe('SPDX-2.3')
@@ -369,7 +371,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('I have a valid API token', () => {
+    And('I have a valid API token', () => {
       if (!serverRunning) return
       if (!validToken) {
         console.log('   ⏭️  Skipping - no valid token available (TODO: implement token creation)')
@@ -378,7 +380,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(validToken).toBeDefined()
     })
 
-    Given('I have an invalid CycloneDX SBOM missing required fields', () => {
+    And('I have an invalid CycloneDX SBOM missing required fields', () => {
       if (!serverRunning || !validToken) return
       sbomPayload = invalidCycloneDXSbom
       expect(sbomPayload.bomFormat).toBe('CycloneDX')
@@ -431,7 +433,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('I have a valid API token', () => {
+    And('I have a valid API token', () => {
       if (!serverRunning) return
       if (!validToken) {
         console.log('   ⏭️  Skipping - no valid token available (TODO: implement token creation)')
@@ -440,7 +442,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(validToken).toBeDefined()
     })
 
-    Given('I have an unrecognized SBOM format', () => {
+    And('I have an unrecognized SBOM format', () => {
       if (!serverRunning || !validToken) return
       sbomPayload = unknownFormatSbom
       expect(sbomPayload.someField).toBe('value')
@@ -487,7 +489,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('I have a large SBOM payload', () => {
+    And('I have a large SBOM payload', () => {
       if (!serverRunning) return
       largeSbom = {
         bomFormat: 'CycloneDX',
