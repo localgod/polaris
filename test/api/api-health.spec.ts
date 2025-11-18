@@ -20,18 +20,19 @@ interface HealthResponse {
 
 const feature = await loadFeature('./test/api/api-health.feature')
 
+let serverRunning = false
+
+beforeAll(async () => {
+  // Check if server is accessible
+  serverRunning = await checkServerHealth()
+  if (!serverRunning) {
+    console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
+    console.warn('   These tests will be skipped.\n')
+  }
+})
+
 describeFeature(feature, ({ Scenario }) => {
   let response: HealthResponse
-  let serverRunning = false
-
-  beforeAll(async () => {
-    // Check if server is accessible
-    serverRunning = await checkServerHealth()
-    if (!serverRunning) {
-      console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
-      console.warn('   These tests will be skipped.\n')
-    }
-  })
 
   Scenario('Health endpoint returns a response', ({ Given, When, Then, And }) => {
     Given('the API server is running', () => {

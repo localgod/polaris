@@ -8,7 +8,7 @@ describeFeature(feature, ({ Scenario }) => {
   const baseURL = getBaseURL()
   const apiPath = '/api/sboms'
   let serverRunning = false
-  let validToken: string | null = null
+  const validToken: string | null = null
   
   // Sample SBOMs for testing
   const validCycloneDXSbom = {
@@ -71,7 +71,7 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Reject requests without Content-Type header', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
 
     Given('the API server is running', () => {
       if (!serverRunning) {
@@ -111,7 +111,7 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Reject requests with wrong Content-Type', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
 
     Given('the API server is running', () => {
       if (!serverRunning) {
@@ -149,7 +149,7 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Reject unauthenticated requests', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
     let sbomPayload: typeof validCycloneDXSbom
 
     Given('the API server is running', () => {
@@ -195,7 +195,7 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Reject requests with invalid Bearer token', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
     let sbomPayload: typeof validCycloneDXSbom
 
     Given('the API server is running', () => {

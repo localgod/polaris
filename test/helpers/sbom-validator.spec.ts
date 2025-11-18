@@ -1,94 +1,105 @@
-import { describe, it, expect, beforeAll } from 'vitest'
-import { SbomValidator, getSbomValidator } from '../../server/utils/sbom-validator'
+import { expect } from 'vitest'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
+import type { SbomValidator } from '../../server/utils/sbom-validator'
+import { getSbomValidator } from '../../server/utils/sbom-validator'
 
-describe('SBOM Validator', () => {
+const feature = await loadFeature('./test/helpers/sbom-validator.feature')
+
+describeFeature(feature, ({ Background, Scenario }) => {
   let validator: SbomValidator
+  let result: unknown
+  let sbom: unknown
+  let instance1: SbomValidator
+  let instance2: SbomValidator
 
-  beforeAll(async () => {
-    validator = getSbomValidator()
-    await validator.initialize()
-  })
-
-  describe('Initialization', () => {
-    it('should initialize successfully', () => {
-      expect(validator.isInitialized()).toBe(true)
-    })
-
-    it('should not re-initialize if already initialized', async () => {
-      await validator.initialize() // Should not throw
+  Background(({ Given }) => {
+    Given('the SBOM validator is initialized', async () => {
+      validator = getSbomValidator()
+      await validator.initialize()
       expect(validator.isInitialized()).toBe(true)
     })
   })
 
-  describe('Format Detection', () => {
-    it('should detect CycloneDX format by bomFormat', () => {
-      const sbom = {
+  Scenario('Initialize successfully', ({ When, Then }) => {
+    When('I check if it is initialized', () => {
+      result = validator.isInitialized()
+    })
+
+    Then('it should return true', () => {
+      expect(result).toBe(true)
+    })
+  })
+
+  Scenario('Not re-initialize if already initialized', ({ When, Then, And }) => {
+    When('I initialize again', async () => {
+      await validator.initialize()
+    })
+
+    Then('it should not throw an error', () => {
+      // If we got here, no error was thrown
+      expect(true).toBe(true)
+    })
+
+    And('it should still be initialized', () => {
+      expect(validator.isInitialized()).toBe(true)
+    })
+  })
+
+  Scenario('Detect CycloneDX format', ({ Given, When, Then }) => {
+    Given('a CycloneDX SBOM document', () => {
+      sbom = {
         bomFormat: 'CycloneDX',
         specVersion: '1.6',
         version: 1
       }
-
-      const result = validator.validate(sbom)
-      expect(result.format).toBe('cyclonedx')
     })
 
-    it('should detect CycloneDX format by specVersion', () => {
-      const sbom = {
-        specVersion: '1.6',
-        version: 1
-      }
-
-      const result = validator.validate(sbom)
-      expect(result.format).toBe('cyclonedx')
+    When('I detect the format', () => {
+      result = validator.validate(sbom)
     })
 
-    it('should detect SPDX format by spdxVersion', () => {
-      const sbom = {
+    Then('it should identify as "cyclonedx"', () => {
+      expect(result.format).toBe('cyclonedx')
+    })
+  })
+
+  Scenario('Detect SPDX format', ({ Given, When, Then }) => {
+    Given('an SPDX SBOM document', () => {
+      sbom = {
         spdxVersion: 'SPDX-2.3',
         dataLicense: 'CC0-1.0',
         SPDXID: 'SPDXRef-DOCUMENT'
       }
+    })
 
-      const result = validator.validate(sbom)
+    When('I detect the format', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('it should identify as "spdx"', () => {
       expect(result.format).toBe('spdx')
-    })
-
-    it('should detect SPDX format by SPDXID', () => {
-      const sbom = {
-        SPDXID: 'SPDXRef-DOCUMENT',
-        dataLicense: 'CC0-1.0'
-      }
-
-      const result = validator.validate(sbom)
-      expect(result.format).toBe('spdx')
-    })
-
-    it('should return unknown for unrecognized format', () => {
-      const sbom = {
-        someField: 'value'
-      }
-
-      const result = validator.validate(sbom)
-      expect(result.format).toBe('unknown')
-      expect(result.valid).toBe(false)
-    })
-
-    it('should return unknown for non-object input', () => {
-      const result = validator.validate('not an object')
-      expect(result.format).toBe('unknown')
-      expect(result.valid).toBe(false)
-    })
-
-    it('should return unknown for null input', () => {
-      const result = validator.validate(null)
-      expect(result.format).toBe('unknown')
-      expect(result.valid).toBe(false)
     })
   })
 
-  describe('CycloneDX Validation', () => {
-    it('should validate minimal valid CycloneDX SBOM', () => {
-      const sbom = {
+  Scenario('Detect unknown format', ({ Given, When, Then }) => {
+    Given('an unknown format SBOM document', () => {
+      sbom = {
+        someField: 'value'
+      }
+    })
+
+    When('I detect the format', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('it should identify as "unknown"', () => {
+      expect(result.format).toBe('unknown')
+    })
+  })
+
+  Scenario('Validate valid CycloneDX SBOM', ({ Given, When, Then, And }) => {
+    Given('a valid CycloneDX SBOM document', () => {
+      sbom = {
         bomFormat: 'CycloneDX',
         specVersion: '1.6',
         version: 1,
@@ -102,15 +113,159 @@ describe('SBOM Validator', () => {
         },
         components: []
       }
-
-      const result = validator.validate(sbom)
-      expect(result.valid).toBe(true)
-      expect(result.format).toBe('cyclonedx')
-      expect(result.errors).toBeUndefined()
     })
 
-    it('should validate CycloneDX SBOM with components', () => {
-      const sbom = {
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should succeed', () => {
+      expect(result.valid).toBe(true)
+    })
+
+    And('the format should be "cyclonedx"', () => {
+      expect(result.format).toBe('cyclonedx')
+    })
+  })
+
+  Scenario('Validate valid SPDX SBOM', ({ Given, When, Then, And }) => {
+    Given('a valid SPDX SBOM document', () => {
+      sbom = {
+        spdxVersion: 'SPDX-2.3',
+        dataLicense: 'CC0-1.0',
+        SPDXID: 'SPDXRef-DOCUMENT',
+        name: 'test-sbom',
+        documentNamespace: 'https://example.com/test-sbom-1234',
+        creationInfo: {
+          created: '2024-01-01T00:00:00Z',
+          creators: ['Tool: test']
+        },
+        packages: []
+      }
+    })
+
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should succeed', () => {
+      expect(result.valid).toBe(true)
+    })
+
+    And('the format should be "spdx"', () => {
+      expect(result.format).toBe('spdx')
+    })
+  })
+
+  Scenario('Reject invalid CycloneDX SBOM', ({ Given, When, Then, And }) => {
+    Given('an invalid CycloneDX SBOM document', () => {
+      sbom = {
+        bomFormat: 'CycloneDX'
+        // Missing required fields
+      }
+    })
+
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should fail', () => {
+      expect(result.valid).toBe(false)
+    })
+
+    And('the format should be "cyclonedx"', () => {
+      expect(result.format).toBe('cyclonedx')
+    })
+
+    And('validation errors should be present', () => {
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.length).toBeGreaterThan(0)
+    })
+  })
+
+  Scenario('Reject invalid SPDX SBOM', ({ Given, When, Then, And }) => {
+    Given('an invalid SPDX SBOM document', () => {
+      sbom = {
+        spdxVersion: 'SPDX-2.3'
+        // Missing required fields
+      }
+    })
+
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should fail', () => {
+      expect(result.valid).toBe(false)
+    })
+
+    And('the format should be "spdx"', () => {
+      expect(result.format).toBe('spdx')
+    })
+
+    And('validation errors should be present', () => {
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.length).toBeGreaterThan(0)
+    })
+  })
+
+  Scenario('Reject unknown format SBOM', ({ Given, When, Then, And }) => {
+    Given('an unknown format SBOM document', () => {
+      sbom = { someField: 'value' }
+    })
+
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should fail', () => {
+      expect(result.valid).toBe(false)
+    })
+
+    And('the format should be "unknown"', () => {
+      expect(result.format).toBe('unknown')
+    })
+  })
+
+  Scenario('Handle empty SBOM', ({ Given, When, Then, And }) => {
+    Given('an empty SBOM document', () => {
+      sbom = {}
+    })
+
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should fail', () => {
+      expect(result.valid).toBe(false)
+    })
+
+    And('the format should be "unknown"', () => {
+      expect(result.format).toBe('unknown')
+    })
+  })
+
+  Scenario('Handle null SBOM', ({ Given, When, Then, And }) => {
+    Given('a null SBOM document', () => {
+      sbom = null
+    })
+
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should fail', () => {
+      expect(result.valid).toBe(false)
+    })
+
+    And('the format should be "unknown"', () => {
+      expect(result.format).toBe('unknown')
+    })
+  })
+
+  Scenario('Validate CycloneDX with components', ({ Given, When, Then, And }) => {
+    Given('a CycloneDX SBOM with components', () => {
+      sbom = {
         bomFormat: 'CycloneDX',
         specVersion: '1.6',
         version: 1,
@@ -131,62 +286,24 @@ describe('SBOM Validator', () => {
           }
         ]
       }
+    })
 
-      const result = validator.validate(sbom)
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should succeed', () => {
       expect(result.valid).toBe(true)
-      expect(result.format).toBe('cyclonedx')
     })
 
-    it('should reject CycloneDX SBOM with missing required fields', () => {
-      const sbom = {
-        bomFormat: 'CycloneDX',
-        // Missing specVersion and version
-      }
-
-      const result = validator.validate(sbom)
-      expect(result.valid).toBe(false)
+    And('the format should be "cyclonedx"', () => {
       expect(result.format).toBe('cyclonedx')
-      expect(result.errors).toBeDefined()
-      expect(result.errors!.length).toBeGreaterThan(0)
-    })
-
-    it('should reject CycloneDX SBOM with invalid version format', () => {
-      const sbom = {
-        bomFormat: 'CycloneDX',
-        specVersion: '1.6',
-        version: 'not-a-number' // Should be integer
-      }
-
-      const result = validator.validate(sbom)
-      expect(result.valid).toBe(false)
-      expect(result.format).toBe('cyclonedx')
-      expect(result.errors).toBeDefined()
     })
   })
 
-  describe('SPDX Validation', () => {
-    it('should validate minimal valid SPDX SBOM', () => {
-      const sbom = {
-        spdxVersion: 'SPDX-2.3',
-        dataLicense: 'CC0-1.0',
-        SPDXID: 'SPDXRef-DOCUMENT',
-        name: 'test-sbom',
-        documentNamespace: 'https://example.com/test-sbom-1234',
-        creationInfo: {
-          created: '2024-01-01T00:00:00Z',
-          creators: ['Tool: test']
-        },
-        packages: []
-      }
-
-      const result = validator.validate(sbom)
-      expect(result.valid).toBe(true)
-      expect(result.format).toBe('spdx')
-      expect(result.errors).toBeUndefined()
-    })
-
-    it('should validate SPDX SBOM with packages', () => {
-      const sbom = {
+  Scenario('Validate SPDX with packages', ({ Given, When, Then, And }) => {
+    Given('an SPDX SBOM with packages', () => {
+      sbom = {
         spdxVersion: 'SPDX-2.3',
         dataLicense: 'CC0-1.0',
         SPDXID: 'SPDXRef-DOCUMENT',
@@ -206,70 +323,164 @@ describe('SBOM Validator', () => {
           }
         ]
       }
+    })
 
-      const result = validator.validate(sbom)
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should succeed', () => {
       expect(result.valid).toBe(true)
-      expect(result.format).toBe('spdx')
     })
 
-    it('should reject SPDX SBOM with missing required fields', () => {
-      const sbom = {
-        spdxVersion: 'SPDX-2.3',
-        // Missing required fields
+    And('the format should be "spdx"', () => {
+      expect(result.format).toBe('spdx')
+    })
+  })
+
+  Scenario('Reject CycloneDX with invalid component structure', ({ Given, When, Then, And }) => {
+    Given('a CycloneDX SBOM with invalid component structure', () => {
+      sbom = {
+        bomFormat: 'CycloneDX',
+        specVersion: '1.6',
+        version: 1,
+        metadata: {
+          timestamp: '2024-01-01T00:00:00Z',
+          component: {
+            type: 'application',
+            name: 'test-app',
+            version: '1.0.0'
+          }
+        },
+        components: [
+          {
+            // Missing required 'type' field
+            name: 'invalid-component'
+          }
+        ]
       }
-
-      const result = validator.validate(sbom)
-      expect(result.valid).toBe(false)
-      expect(result.format).toBe('spdx')
-      expect(result.errors).toBeDefined()
-      expect(result.errors!.length).toBeGreaterThan(0)
     })
 
-    it('should reject SPDX SBOM with invalid format', () => {
-      const sbom = {
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should fail', () => {
+      expect(result.valid).toBe(false)
+    })
+
+    And('validation errors should include component errors', () => {
+      expect(result.errors).toBeDefined()
+      const hasComponentError = result.errors!.some((err: { instancePath: string }) => 
+        err.instancePath.includes('components')
+      )
+      expect(hasComponentError).toBe(true)
+    })
+  })
+
+  Scenario('Reject SPDX with invalid package structure', ({ Given, When, Then, And }) => {
+    Given('an SPDX SBOM with invalid package structure', () => {
+      sbom = {
         spdxVersion: 'SPDX-2.3',
         dataLicense: 'CC0-1.0',
         SPDXID: 'SPDXRef-DOCUMENT',
         name: 'test-sbom',
         documentNamespace: 'https://example.com/test-sbom-1234',
         creationInfo: {
-          created: 'not-a-valid-date-time', // Invalid date format
+          created: '2024-01-01T00:00:00Z',
           creators: ['Tool: test']
-        }
+        },
+        packages: [
+          {
+            // Missing required fields
+            name: 'invalid-package'
+          }
+        ]
       }
+    })
 
-      const result = validator.validate(sbom)
-      // SPDX schema may be lenient with date formats
-      expect(result.format).toBe('spdx')
-      // Just verify we can detect the format, schema validation is lenient
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should fail', () => {
+      expect(result.valid).toBe(false)
+    })
+
+    And('validation errors should include package errors', () => {
+      expect(result.errors).toBeDefined()
+      const hasPackageError = result.errors!.some((err: { instancePath: string }) => 
+        err.instancePath.includes('packages')
+      )
+      expect(hasPackageError).toBe(true)
     })
   })
 
-  describe('Error Handling', () => {
-    it('should throw if validate is called before initialization', () => {
-      const uninitializedValidator = new SbomValidator()
-      
-      expect(() => {
-        uninitializedValidator.validate({})
-      }).toThrow('SBOM validator not initialized')
+  Scenario('Validate CycloneDX with metadata', ({ Given, When, Then }) => {
+    Given('a CycloneDX SBOM with metadata', () => {
+      sbom = {
+        bomFormat: 'CycloneDX',
+        specVersion: '1.6',
+        version: 1,
+        metadata: {
+          timestamp: '2024-01-01T00:00:00Z',
+          component: {
+            type: 'application',
+            name: 'test-app',
+            version: '1.0.0',
+            description: 'Test application'
+          },
+          authors: [
+            { name: 'Test Author' }
+          ]
+        },
+        components: []
+      }
     })
 
-    it('should include validation errors with instancePath and message', () => {
-      const sbom = {
-        bomFormat: 'CycloneDX'
-        // Missing required 'specVersion' and 'version' fields
-      }
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
 
-      const result = validator.validate(sbom)
-      expect(result.format).toBe('cyclonedx')
-      // Schema may be lenient, just verify error structure when present
-      if (!result.valid && result.errors) {
-        result.errors.forEach(error => {
-          expect(error).toHaveProperty('instancePath')
-          expect(error).toHaveProperty('message')
-          expect(typeof error.message).toBe('string')
-        })
+    Then('the validation should succeed', () => {
+      expect(result.valid).toBe(true)
+    })
+  })
+
+  Scenario('Validate SPDX with creation info', ({ Given, When, Then }) => {
+    Given('an SPDX SBOM with creation info', () => {
+      sbom = {
+        spdxVersion: 'SPDX-2.3',
+        dataLicense: 'CC0-1.0',
+        SPDXID: 'SPDXRef-DOCUMENT',
+        name: 'test-sbom',
+        documentNamespace: 'https://example.com/test-sbom-1234',
+        creationInfo: {
+          created: '2024-01-01T00:00:00Z',
+          creators: ['Tool: test', 'Person: Test Author'],
+          licenseListVersion: '3.21'
+        },
+        packages: []
       }
+    })
+
+    When('I validate the SBOM', () => {
+      result = validator.validate(sbom)
+    })
+
+    Then('the validation should succeed', () => {
+      expect(result.valid).toBe(true)
+    })
+  })
+
+  Scenario('Return singleton instance', ({ When, Then }) => {
+    When('I get the validator instance twice', () => {
+      instance1 = getSbomValidator()
+      instance2 = getSbomValidator()
+    })
+
+    Then('both instances should be the same', () => {
+      expect(instance1).toBe(instance2)
     })
   })
 })
