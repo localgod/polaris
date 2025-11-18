@@ -6,7 +6,7 @@ export default defineNitroPlugin((nitroApp) => {
   const driver = useDriver()
   
   // Verify connection at startup
-  driver.verifyConnectivity()
+  driver.verifyAuthentication()
     .then(() => {
       console.log('✅ Neo4j connected successfully')
     })
