@@ -1,4 +1,5 @@
 import { getSbomValidator } from '../utils/sbom-validator'
+import { validateSbomRequest, type SbomRequest as ValidatorSbomRequest } from '../utils/sbom-request-validator'
 
 /**
  * @openapi
@@ -172,11 +173,11 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     }
   }
 
-  // 3. Parse and validate request body
-  let body: SbomRequest
+  // 3. Parse request body
+  let body: unknown
   
   try {
-    body = await readBody<SbomRequest>(event)
+    body = await readBody(event)
   } catch {
     setResponseStatus(event, 400)
     return {
@@ -186,60 +187,24 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     }
   }
 
-  // Validate repositoryUrl
-  if (!body.repositoryUrl) {
+  // 4. Validate request structure using extracted validator
+  const validationResult = validateSbomRequest(body as ValidatorSbomRequest)
+  if (!validationResult.valid) {
     setResponseStatus(event, 400)
     return {
       success: false,
-      error: 'invalid_request',
-      message: 'repositoryUrl is required'
+      error: validationResult.error!.code,
+      message: validationResult.error!.message
     }
   }
 
-  if (typeof body.repositoryUrl !== 'string') {
-    setResponseStatus(event, 400)
-    return {
-      success: false,
-      error: 'invalid_request',
-      message: 'repositoryUrl must be a string'
-    }
-  }
+  // Cast to typed request after validation
+  const validatedBody = body as SbomRequest
 
-  // Validate repositoryUrl is a valid URL
-  try {
-    new URL(body.repositoryUrl)
-  } catch {
-    setResponseStatus(event, 400)
-    return {
-      success: false,
-      error: 'invalid_request',
-      message: 'repositoryUrl must be a valid URL'
-    }
-  }
-
-  // Validate sbom exists and is an object
-  if (!body.sbom) {
-    setResponseStatus(event, 400)
-    return {
-      success: false,
-      error: 'invalid_request',
-      message: 'sbom is required'
-    }
-  }
-
-  if (typeof body.sbom !== 'object' || body.sbom === null) {
-    setResponseStatus(event, 400)
-    return {
-      success: false,
-      error: 'invalid_request',
-      message: 'sbom must be an object'
-    }
-  }
-
-  // 4. Validate SBOM
+  // 5. Validate SBOM schema
   try {
     const validator = getSbomValidator()
-    const result = validator.validate(body.sbom)
+    const result = validator.validate(validatedBody.sbom)
 
     if (result.valid) {
       setResponseStatus(event, 200)
