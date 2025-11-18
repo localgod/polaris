@@ -1,5 +1,5 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import neo4j from 'neo4j-driver'
 
 const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687'
@@ -19,7 +19,9 @@ beforeAll(async () => {
   }
 })
 
-Feature('Technology Usage Tracking @model @integration', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/usage-tracking.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   Scenario('Team USES relationship is created from system ownership', ({ Given, When, Then, And }) => {
     let session: neo4j.Session | null = null
 

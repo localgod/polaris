@@ -1,7 +1,7 @@
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 
 /**
  * Approval Resolution Logic Tests
@@ -16,7 +16,9 @@ import { Feature } from '../helpers/gherkin'
  * Implementation requires the approval resolution algorithm.
  */
 
-Feature('Approval Resolution Logic @model @integration', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/approval-resolution.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
   let serverRunning = false
 

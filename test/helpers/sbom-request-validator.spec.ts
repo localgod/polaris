@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import {
   validateRepositoryUrl,
   validateSbomStructure,
@@ -8,7 +8,9 @@ import {
   type SbomRequest
 } from '../../server/utils/sbom-request-validator'
 
-Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/sbom-request-validation.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let validationResult: ValidationResult
   let requestBody: Partial<SbomRequest>
 

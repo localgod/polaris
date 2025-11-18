@@ -1,8 +1,10 @@
 import { expect, beforeAll, afterAll } from 'vitest'
 import neo4j, { type Driver } from 'neo4j-driver'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 
-Feature('Policy Enforcement @model @schema', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/policy-enforcement.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
   const testPrefix = 'policy_test_'
 
