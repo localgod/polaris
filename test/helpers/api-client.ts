@@ -54,7 +54,15 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
 export async function checkServerHealth(): Promise<boolean> {
   try {
     const baseURL = getBaseURL()
-    const response = await fetch(baseURL, { method: 'HEAD' })
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 2000) // 2 second timeout
+    
+    const response = await fetch(baseURL, { 
+      method: 'HEAD',
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeoutId)
     return response.ok
   } catch {
     return false

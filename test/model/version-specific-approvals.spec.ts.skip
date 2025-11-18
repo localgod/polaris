@@ -1,7 +1,7 @@
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 
 /**
  * Version-Specific Technology Approvals Tests
@@ -14,7 +14,9 @@ import { Feature } from '../helpers/gherkin'
  * Implementation requires migration to add version-level APPROVES relationships.
  */
 
-Feature('Version-Specific Technology Approvals @model @integration', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/version-specific-approvals.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
   let serverRunning = false
 

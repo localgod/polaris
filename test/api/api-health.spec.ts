@@ -1,5 +1,5 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { apiGet, checkServerHealth } from '../helpers/api-client'
 
 /**
@@ -18,18 +18,21 @@ interface HealthResponse {
   error?: string
 }
 
-Feature('API Health Check @api @smoke', ({ Scenario }) => {
-  let response: HealthResponse
-  let serverRunning = false
+const feature = await loadFeature('./test/api/api-health.feature')
 
-  beforeAll(async () => {
-    // Check if server is accessible
-    serverRunning = await checkServerHealth()
-    if (!serverRunning) {
-      console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
-      console.warn('   These tests will be skipped.\n')
-    }
-  })
+let serverRunning = false
+
+beforeAll(async () => {
+  // Check if server is accessible
+  serverRunning = await checkServerHealth()
+  if (!serverRunning) {
+    console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
+    console.warn('   These tests will be skipped.\n')
+  }
+})
+
+describeFeature(feature, ({ Scenario }) => {
+  let response: HealthResponse
 
   Scenario('Health endpoint returns a response', ({ Given, When, Then, And }) => {
     Given('the API server is running', () => {

@@ -4,9 +4,11 @@ import neo4j from 'neo4j-driver'
 import { MigrationRunner } from '../../schema/scripts/migrationRunner'
 import { writeFileSync, mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 
-Feature('Database Migration Runner @model @unit', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/migration-runner.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
   let runner: MigrationRunner
   const testMigrationsDir = join(process.cwd(), 'test-migrations')

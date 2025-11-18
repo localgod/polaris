@@ -6,12 +6,14 @@
  */
 
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { cleanupTestData, createCleanup, verifyCleanDatabase } from '../helpers/db-cleanup'
 
-Feature('Example: Proper Database Cleanup @example', ({ Scenario }) => {
+const feature = await loadFeature('./test/examples/proper-cleanup.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
   let serverRunning = false
   const TEST_PREFIX = 'test_example_'

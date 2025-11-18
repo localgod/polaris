@@ -1,5 +1,5 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { chromium, type Browser, type Page } from '@playwright/test'
 import { checkServerHealth } from '../helpers/api-client'
 
@@ -12,7 +12,9 @@ import { checkServerHealth } from '../helpers/api-client'
  * Alternative: Use exec_preview or start server programmatically in CI
  */
 
-Feature('Homepage UI @ui @e2e @smoke', ({ Scenario }) => {
+const feature = await loadFeature('./test/ui/homepage.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let browser: Browser
   let page: Page
   let serverRunning = false

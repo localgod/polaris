@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import {
   validateRepositoryUrl,
   validateSbomStructure,
@@ -8,16 +8,20 @@ import {
   type SbomRequest
 } from '../../server/utils/sbom-request-validator'
 
-Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/sbom-request-validation.feature')
+
+describeFeature(feature, ({ Background, Scenario }) => {
   let validationResult: ValidationResult
   let requestBody: Partial<SbomRequest>
 
-  Scenario('Validate missing repositoryUrl', ({ Given, When, Then, And }) => {
+  Background(({ Given }) => {
     Given('the SBOM request validator is initialized', () => {
       // Validator is stateless, no initialization needed
       expect(validateSbomRequest).toBeDefined()
     })
+  })
 
+  Scenario('Validate missing repositoryUrl', ({ Given, When, Then, And }) => {
     Given('a request body without repositoryUrl', () => {
       requestBody = { sbom: {} }
     })
@@ -36,10 +40,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate non-string repositoryUrl', ({ Given, When, Then, And }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateSbomRequest).toBeDefined()
-    })
-
     Given('a request body with repositoryUrl as a number', () => {
       requestBody = { repositoryUrl: 123, sbom: {} }
     })
@@ -58,10 +58,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate invalid URL format', ({ Given, When, Then, And }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateSbomRequest).toBeDefined()
-    })
-
     Given('a request body with repositoryUrl "not-a-valid-url"', () => {
       requestBody = { repositoryUrl: 'not-a-valid-url', sbom: {} }
     })
@@ -80,10 +76,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate valid repositoryUrl', ({ Given, When, Then }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateRepositoryUrl).toBeDefined()
-    })
-
     Given('a request body with repositoryUrl "https://github.com/test/repo"', () => {
       requestBody = { repositoryUrl: 'https://github.com/test/repo' }
     })
@@ -99,10 +91,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate missing SBOM', ({ Given, When, Then, And }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateSbomRequest).toBeDefined()
-    })
-
     Given('a request body without sbom field', () => {
       requestBody = { repositoryUrl: 'https://github.com/test/repo' }
     })
@@ -121,10 +109,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate non-object SBOM', ({ Given, When, Then, And }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateSbomRequest).toBeDefined()
-    })
-
     Given('a request body with sbom as a string', () => {
       requestBody = { 
         repositoryUrl: 'https://github.com/test/repo',
@@ -146,10 +130,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate null SBOM', ({ Given, When, Then, And }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateSbomRequest).toBeDefined()
-    })
-
     Given('a request body with sbom as null', () => {
       requestBody = { 
         repositoryUrl: 'https://github.com/test/repo',
@@ -171,10 +151,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate valid SBOM structure', ({ Given, When, Then }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateSbomStructure).toBeDefined()
-    })
-
     Given('a request body with a valid SBOM object', () => {
       requestBody = { 
         sbom: { bomFormat: 'CycloneDX', specVersion: '1.6' }
@@ -192,10 +168,6 @@ Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   })
 
   Scenario('Validate complete valid request', ({ Given, When, Then, And }) => {
-    Given('the SBOM request validator is initialized', () => {
-      expect(validateSbomRequest).toBeDefined()
-    })
-
     Given('a request body with valid repositoryUrl and SBOM', () => {
       requestBody = {
         repositoryUrl: 'https://github.com/test/repo',

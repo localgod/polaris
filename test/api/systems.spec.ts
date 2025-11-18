@@ -1,5 +1,5 @@
 import { expect, beforeAll, afterAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { apiGet, apiPost, checkServerHealth } from '../helpers/api-client'
 
 interface SystemResponse {
@@ -15,7 +15,9 @@ interface SystemsListResponse {
   count: number
 }
 
-Feature('Systems API @api @integration', ({ Scenario }) => {
+const feature = await loadFeature('./test/api/systems.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let serverRunning = false
   let testSystemName: string
 
@@ -85,7 +87,7 @@ Feature('Systems API @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('there are systems in the database', async () => {
+    And('there are systems in the database', async () => {
       if (!serverRunning) return
       response = await apiGet('/api/systems')
       if (response.data.length === 0) {
@@ -130,7 +132,7 @@ Feature('Systems API @api @integration', ({ Scenario }) => {
     })
   })
 
-  Scenario('Create a new system @smoke', ({ Given, When, Then, And }) => {
+  Scenario('Create a new system', ({ Given, When, Then, And }) => {
     let response: { success: boolean; data?: SystemResponse; error?: string }
     const newSystem = {
       name: `test-system-${Date.now()}`,
@@ -175,7 +177,7 @@ Feature('Systems API @api @integration', ({ Scenario }) => {
     })
   })
 
-  Scenario('Prevent duplicate system creation', ({ Given, When, Then }) => {
+  Scenario('Prevent duplicate system creation', ({ Given, When, Then, And }) => {
     let existingSystem: SystemResponse | undefined
     let error: { success: boolean; error: string } | undefined
 
@@ -187,7 +189,7 @@ Feature('Systems API @api @integration', ({ Scenario }) => {
       expect(serverRunning).toBe(true)
     })
 
-    Given('a system already exists', async () => {
+    And('a system already exists', async () => {
       if (!serverRunning) return
       const systemsResponse = await apiGet('/api/systems')
       if (systemsResponse.data.length === 0) {

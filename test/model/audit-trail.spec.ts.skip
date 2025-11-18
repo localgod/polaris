@@ -1,11 +1,13 @@
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver, Record } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
-Feature('Audit Trail Schema @model @unit', ({ Scenario }) => {
+const feature = await loadFeature('./test/model/features/audit-trail.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
   let auditLogId: string
   let auditLog: Record | null

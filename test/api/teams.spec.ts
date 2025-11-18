@@ -1,5 +1,5 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { apiGet, checkServerHealth } from '../helpers/api-client'
 
 interface TeamResponse {
@@ -14,7 +14,9 @@ interface TeamsListResponse {
   count: number
 }
 
-Feature('Teams API @api @integration', ({ Scenario }) => {
+const feature = await loadFeature('./test/api/teams.feature')
+
+describeFeature(feature, ({ Scenario }) => {
   let serverRunning = false
 
   beforeAll(async () => {
@@ -85,7 +87,7 @@ Feature('Teams API @api @integration', ({ Scenario }) => {
     })
   })
 
-  Scenario('Get team technology usage @smoke', ({ Given, When, Then, And }) => {
+  Scenario('Get team technology usage', ({ Given, When, Then, And }) => {
     let response: { technologies: unknown[]; count: number }
     let teamName: string
 
