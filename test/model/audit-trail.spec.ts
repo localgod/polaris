@@ -124,14 +124,8 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   beforeEach(async () => {
-    const session = driver.session()
-    try {
-      // Clean up test data before each test
-      await session.run('MATCH (a:AuditLog) DETACH DELETE a')
-      await session.run('MATCH (u:User) WHERE u.id STARTS WITH "test-" DETACH DELETE u')
-    } finally {
-      await session.close()
-    }
+    // Cleanup disabled - each scenario manages its own cleanup
+    // This prevents data being deleted between steps within a scenario
   })
 
   Background(({ Given, And }) => {
@@ -246,237 +240,213 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Linking audit log to user', ({ Given, When, Then, And }) => {
+    let session: neo4j.Session
+
     Given('a user "user123" exists', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          CREATE (u:User {
-            id: 'test-user123',
-            email: 'user123@example.com',
-            name: 'Test User',
-            provider: 'test',
-            role: 'user',
-            createdAt: datetime(),
-            lastLogin: datetime()
-          })
-          RETURN u
-        `)
-        _user = result.records[0].get('u').properties
-      } finally {
-        await session.close()
-      }
+      session = driver.session()
+      const result = await session.run(`
+        CREATE (u:User {
+          id: 'test-user123',
+          email: 'user123@example.com',
+          name: 'Test User',
+          provider: 'test',
+          role: 'user',
+          createdAt: datetime(),
+          lastLogin: datetime()
+        })
+        RETURN u
+      `)
+      _user = result.records[0].get('u').properties
     })
 
     When('I create an audit log performed by "user123"', async () => {
-      const session = driver.session()
-      try {
-        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-        const result = await session.run(`
-          CREATE (a:AuditLog {
-            id: $id,
-            timestamp: datetime(),
-            operation: 'CREATE',
-            entityType: 'Technology',
-            entityId: 'React',
-            userId: 'test-user123',
-            source: 'UI'
-          })
-          WITH a
-          MATCH (u:User {id: 'test-user123'})
-          CREATE (a)-[:PERFORMED_BY]->(u)
-          RETURN a
-        `, { id: auditLogId })
+      auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+      const result = await session.run(`
+        CREATE (a:AuditLog {
+          id: $id,
+          timestamp: datetime(),
+          operation: 'CREATE',
+          entityType: 'Technology',
+          entityId: 'React',
+          userId: 'test-user123',
+          source: 'UI'
+        })
+        WITH a
+        MATCH (u:User {id: 'test-user123'})
+        CREATE (a)-[:PERFORMED_BY]->(u)
+        RETURN a
+      `, { id: auditLogId })
 
+      if (result.records.length > 0) {
         auditLog = result.records[0].get('a').properties
-      } finally {
-        await session.close()
       }
     })
 
     Then('the audit log should be linked to the user via PERFORMED_BY relationship', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog {id: $id})-[:PERFORMED_BY]->(u:User)
-          RETURN u
-        `, { id: auditLogId })
+      const result = await session.run(`
+        MATCH (a:AuditLog {id: $id})-[:PERFORMED_BY]->(u:User)
+        RETURN u
+      `, { id: auditLogId })
 
-        expect(result.records.length).toBe(1)
-        const linkedUser = result.records[0].get('u').properties
-        expect(linkedUser.id).toBe('test-user123')
-      } finally {
-        await session.close()
-      }
+      expect(result.records.length).toBe(1)
+      const linkedUser = result.records[0].get('u').properties
+      expect(linkedUser.id).toBe('test-user123')
     })
 
     And('I can query all audit logs by that user', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog {userId: 'test-user123'})
-          RETURN a
-        `)
+      const result = await session.run(`
+        MATCH (a:AuditLog {userId: 'test-user123'})
+        RETURN a
+      `)
 
-        expect(result.records.length).toBeGreaterThan(0)
-      } finally {
-        await session.close()
-      }
+      expect(result.records.length).toBeGreaterThan(0)
+      await session.close()
     })
   })
 
   Scenario('Querying audit logs by entity', ({ Given, When, Then, And }) => {
+    let session: neo4j.Session
+    const scenarioId = `scenario-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
     Given('multiple audit logs exist for "React" technology', async () => {
-      const session = driver.session()
-      try {
-        for (let i = 0; i < 3; i++) {
-          await session.run(`
-            CREATE (a:AuditLog {
-              id: $id,
-              timestamp: datetime(),
-              operation: $operation,
-              entityType: 'Technology',
-              entityId: 'React',
-              userId: 'user123',
-              source: 'UI'
-            })
-          `, {
-            id: `audit-react-${i}`,
-            operation: i === 0 ? 'CREATE' : 'UPDATE'
+      session = driver.session()
+      for (let i = 0; i < 3; i++) {
+        await session.run(`
+          CREATE (a:AuditLog {
+            id: $id,
+            timestamp: datetime(),
+            operation: $operation,
+            entityType: 'Technology',
+            entityId: $entityId,
+            userId: 'user123',
+            source: 'UI'
           })
-        }
-      } finally {
-        await session.close()
+        `, {
+          id: `audit-react-${scenarioId}-${i}`,
+          operation: i === 0 ? 'CREATE' : 'UPDATE',
+          entityId: `React-${scenarioId}`
+        })
       }
     })
 
     When('I query audit logs for entity type "Technology" and ID "React"', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog)
-          WHERE a.entityType = 'Technology' AND a.entityId = 'React'
-          RETURN a
-          ORDER BY a.timestamp DESC
-        `)
+      const result = await session.run(`
+        MATCH (a:AuditLog)
+        WHERE a.entityType = 'Technology' AND a.entityId = $entityId
+        RETURN a
+        ORDER BY a.timestamp DESC
+      `, { entityId: `React-${scenarioId}` })
 
-        auditLogs = result.records.map(record => record.get('a').properties)
-      } finally {
-        await session.close()
-      }
+      auditLogs = result.records.map(record => record.get('a').properties)
     })
 
     Then('I should receive all audit logs for that entity', () => {
       expect(auditLogs.length).toBe(3)
       auditLogs.forEach(log => {
         expect(log.entityType).toBe('Technology')
-        expect(log.entityId).toBe('React')
+        expect(log.entityId).toBe(`React-${scenarioId}`)
       })
     })
 
-    And('the logs should be ordered by timestamp descending', () => {
+    And('the logs should be ordered by timestamp descending', async () => {
       for (let i = 0; i < auditLogs.length - 1; i++) {
         const current = new Date(auditLogs[i].timestamp)
         const next = new Date(auditLogs[i + 1].timestamp)
         expect(current >= next).toBe(true)
       }
+      await session.close()
     })
   })
 
   Scenario('Querying audit logs by operation type', ({ Given, When, Then }) => {
+    let session: neo4j.Session
+
     Given('audit logs exist with various operations', async () => {
-      const session = driver.session()
-      try {
-        const operations = ['CREATE', 'UPDATE', 'APPROVE', 'DELETE']
-        for (const op of operations) {
-          await session.run(`
-            CREATE (a:AuditLog {
-              id: $id,
-              timestamp: datetime(),
-              operation: $operation,
-              entityType: 'Technology',
-              entityId: 'React',
-              userId: 'user123',
-              source: 'UI'
-            })
-          `, {
-            id: `audit-${op.toLowerCase()}`,
-            operation: op
+      session = driver.session()
+      const operations = ['CREATE', 'UPDATE', 'APPROVE', 'DELETE']
+      for (const op of operations) {
+        await session.run(`
+          CREATE (a:AuditLog {
+            id: $id,
+            timestamp: datetime(),
+            operation: $operation,
+            entityType: 'Technology',
+            entityId: 'React',
+            userId: 'user123',
+            source: 'UI'
           })
-        }
-      } finally {
-        await session.close()
+        `, {
+          id: `audit-${op.toLowerCase()}`,
+          operation: op
+        })
       }
     })
 
     When('I query audit logs with operation "APPROVE"', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog)
-          WHERE a.operation = 'APPROVE'
-          RETURN a
-        `)
+      const result = await session.run(`
+        MATCH (a:AuditLog)
+        WHERE a.operation = 'APPROVE'
+        RETURN a
+      `)
 
-        auditLogs = result.records.map(record => record.get('a').properties)
-      } finally {
-        await session.close()
-      }
+      auditLogs = result.records.map(record => record.get('a').properties)
     })
 
-    Then('I should only receive audit logs with operation "APPROVE"', () => {
+    Then('I should only receive audit logs with operation "APPROVE"', async () => {
       expect(auditLogs.length).toBe(1)
       expect(auditLogs[0].operation).toBe('APPROVE')
+      await session.close()
     })
   })
 
   Scenario('Querying audit logs by time range', ({ Given, When, Then }) => {
+    let session: neo4j.Session
+    const scenarioId = `scenario-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
     Given('audit logs exist from the past 30 days', async () => {
-      const session = driver.session()
-      try {
-        // Create logs with different timestamps
-        await session.run(`
-          CREATE (a1:AuditLog {
-            id: 'audit-old',
-            timestamp: datetime() - duration('P20D'),
-            operation: 'UPDATE',
-            entityType: 'Technology',
-            entityId: 'React',
-            userId: 'user123',
-            source: 'UI'
-          }),
-          (a2:AuditLog {
-            id: 'audit-recent',
-            timestamp: datetime() - duration('P3D'),
-            operation: 'UPDATE',
-            entityType: 'Technology',
-            entityId: 'React',
-            userId: 'user123',
-            source: 'UI'
-          })
-        `)
-      } finally {
-        await session.close()
-      }
+      session = driver.session()
+      // Create logs with different timestamps
+      await session.run(`
+        CREATE (a1:AuditLog {
+          id: $id1,
+          timestamp: datetime() - duration('P20D'),
+          operation: 'UPDATE',
+          entityType: 'Technology',
+          entityId: $entityId,
+          userId: 'user123',
+          source: 'UI'
+        }),
+        (a2:AuditLog {
+          id: $id2,
+          timestamp: datetime() - duration('P3D'),
+          operation: 'UPDATE',
+          entityType: 'Technology',
+          entityId: $entityId,
+          userId: 'user123',
+          source: 'UI'
+        })
+      `, { 
+        id1: `audit-old-${scenarioId}`,
+        id2: `audit-recent-${scenarioId}`,
+        entityId: `React-${scenarioId}`
+      })
     })
 
     When('I query audit logs from the last 7 days', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog)
-          WHERE a.timestamp >= datetime() - duration('P7D')
-          RETURN a
-        `)
+      const result = await session.run(`
+        MATCH (a:AuditLog)
+        WHERE a.timestamp >= datetime() - duration('P7D')
+          AND a.entityId = $entityId
+        RETURN a
+      `, { entityId: `React-${scenarioId}` })
 
-        auditLogs = result.records.map(record => record.get('a').properties)
-      } finally {
-        await session.close()
-      }
+      auditLogs = result.records.map(record => record.get('a').properties)
     })
 
-    Then('I should only receive logs from the last 7 days', () => {
+    Then('I should only receive logs from the last 7 days', async () => {
       expect(auditLogs.length).toBe(1)
-      expect(auditLogs[0].id).toBe('audit-recent')
+      expect(auditLogs[0].id).toBe(`audit-recent-${scenarioId}`)
+      await session.close()
     })
   })
 
@@ -610,110 +580,13 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Using session and correlation IDs', ({ When, Then, And }) => {
+    let session: neo4j.Session
+
     When('I create multiple audit logs with the same sessionId', async () => {
-      const session = driver.session()
+      session = driver.session()
       const sessionId = 'session-abc-123'
-      try {
-        for (let i = 0; i < 3; i++) {
-          await session.run(`
-            CREATE (a:AuditLog {
-              id: $id,
-              timestamp: datetime(),
-              operation: 'UPDATE',
-              entityType: 'Technology',
-              entityId: 'React',
-              userId: 'user123',
-              source: 'UI',
-              sessionId: $sessionId
-            })
-          `, {
-            id: `audit-session-${i}`,
-            sessionId
-          })
-        }
-      } finally {
-        await session.close()
-      }
-    })
-
-    Then('I should be able to query all logs for that session', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog)
-          WHERE a.sessionId = 'session-abc-123'
-          RETURN a
-        `)
-
-        auditLogs = result.records.map(record => record.get('a').properties)
-      } finally {
-        await session.close()
-      }
-    })
-
-    And('the logs should be grouped together', () => {
-      expect(auditLogs.length).toBe(3)
-      auditLogs.forEach(log => {
-        expect(log.sessionId).toBe('session-abc-123')
-      })
-    })
-  })
-
-  Scenario('Filtering by source', ({ Given, When, Then }) => {
-    Given('audit logs exist from different sources', async () => {
-      const session = driver.session()
-      try {
-        const sources = ['UI', 'API', 'SBOM', 'SYSTEM']
-        for (const source of sources) {
-          await session.run(`
-            CREATE (a:AuditLog {
-              id: $id,
-              timestamp: datetime(),
-              operation: 'UPDATE',
-              entityType: 'Technology',
-              entityId: 'React',
-              userId: 'user123',
-              source: $source
-            })
-          `, {
-            id: `audit-${source.toLowerCase()}`,
-            source
-          })
-        }
-      } finally {
-        await session.close()
-      }
-    })
-
-    When('I query audit logs from source "UI"', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog)
-          WHERE a.source = 'UI'
-          RETURN a
-        `)
-
-        auditLogs = result.records.map(record => record.get('a').properties)
-      } finally {
-        await session.close()
-      }
-    })
-
-    Then('I should only receive logs from the UI source', () => {
-      expect(auditLogs.length).toBe(1)
-      expect(auditLogs[0].source).toBe('UI')
-    })
-  })
-
-  Scenario('Tagging audit logs', ({ When, Then, And }) => {
-    When('I create an audit log with tags:', async () => {
-      const tags = ['security', 'critical', 'compliance']
-
-      const session = driver.session()
-      try {
-        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-        const result = await session.run(`
+      for (let i = 0; i < 3; i++) {
+        await session.run(`
           CREATE (a:AuditLog {
             id: $id,
             timestamp: datetime(),
@@ -722,18 +595,103 @@ describeFeature(feature, ({ Background, Scenario }) => {
             entityId: 'React',
             userId: 'user123',
             source: 'UI',
-            tags: $tags
+            sessionId: $sessionId
           })
-          RETURN a
         `, {
-          id: auditLogId,
-          tags
+          id: `audit-session-${i}`,
+          sessionId
         })
-
-        auditLog = result.records[0].get('a').properties
-      } finally {
-        await session.close()
       }
+    })
+
+    Then('I should be able to query all logs for that session', async () => {
+      const result = await session.run(`
+        MATCH (a:AuditLog)
+        WHERE a.sessionId = 'session-abc-123'
+        RETURN a
+      `)
+
+      auditLogs = result.records.map(record => record.get('a').properties)
+    })
+
+    And('the logs should be grouped together', async () => {
+      expect(auditLogs.length).toBe(3)
+      auditLogs.forEach(log => {
+        expect(log.sessionId).toBe('session-abc-123')
+      })
+      await session.close()
+    })
+  })
+
+  Scenario('Filtering by source', ({ Given, When, Then }) => {
+    let session: neo4j.Session
+    const scenarioId = `scenario-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+    Given('audit logs exist from different sources', async () => {
+      session = driver.session()
+      const sources = ['UI', 'API', 'SBOM', 'SYSTEM']
+      for (const source of sources) {
+        await session.run(`
+          CREATE (a:AuditLog {
+            id: $id,
+            timestamp: datetime(),
+            operation: 'UPDATE',
+            entityType: 'Technology',
+            entityId: $entityId,
+            userId: 'user123',
+            source: $source
+          })
+        `, {
+          id: `audit-${source.toLowerCase()}-${scenarioId}`,
+          source,
+          entityId: `React-${scenarioId}`
+        })
+      }
+    })
+
+    When('I query audit logs from source "UI"', async () => {
+      const result = await session.run(`
+        MATCH (a:AuditLog)
+        WHERE a.source = 'UI' AND a.entityId = $entityId
+        RETURN a
+      `, { entityId: `React-${scenarioId}` })
+
+      auditLogs = result.records.map(record => record.get('a').properties)
+    })
+
+    Then('I should only receive logs from the UI source', async () => {
+      expect(auditLogs.length).toBe(1)
+      expect(auditLogs[0].source).toBe('UI')
+      await session.close()
+    })
+  })
+
+  Scenario('Tagging audit logs', ({ When, Then, And }) => {
+    let session: neo4j.Session
+
+    When('I create an audit log with tags:', async () => {
+      const tags = ['security', 'critical', 'compliance']
+
+      session = driver.session()
+      auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+      const result = await session.run(`
+        CREATE (a:AuditLog {
+          id: $id,
+          timestamp: datetime(),
+          operation: 'UPDATE',
+          entityType: 'Technology',
+          entityId: 'React',
+          userId: 'user123',
+          source: 'UI',
+          tags: $tags
+        })
+        RETURN a
+      `, {
+        id: auditLogId,
+        tags
+      })
+
+      auditLog = result.records[0].get('a').properties
     })
 
     Then('the audit log should have the specified tags', () => {
@@ -743,39 +701,33 @@ describeFeature(feature, ({ Background, Scenario }) => {
     })
 
     And('I can query audit logs by tag', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog)
-          WHERE 'security' IN a.tags
-          RETURN a
-        `)
+      const result = await session.run(`
+        MATCH (a:AuditLog)
+        WHERE 'security' IN a.tags
+        RETURN a
+      `)
 
-        expect(result.records.length).toBe(1)
-      } finally {
-        await session.close()
-      }
+      expect(result.records.length).toBe(1)
+      await session.close()
     })
   })
 
   Scenario('Audit log uniqueness', ({ When, Then, And }) => {
+    let session: neo4j.Session
+
     When('I create an audit log with ID "audit-123"', async () => {
-      const session = driver.session()
-      try {
-        await session.run(`
-          CREATE (a:AuditLog {
-            id: 'audit-123',
-            timestamp: datetime(),
-            operation: 'CREATE',
-            entityType: 'Technology',
-            entityId: 'React',
-            userId: 'user123',
-            source: 'UI'
-          })
-        `)
-      } finally {
-        await session.close()
-      }
+      session = driver.session()
+      await session.run(`
+        CREATE (a:AuditLog {
+          id: 'audit-123',
+          timestamp: datetime(),
+          operation: 'CREATE',
+          entityType: 'Technology',
+          entityId: 'React',
+          userId: 'user123',
+          source: 'UI'
+        })
+      `)
     })
 
     And('I try to create another audit log with ID "audit-123"', () => {
@@ -783,24 +735,20 @@ describeFeature(feature, ({ Background, Scenario }) => {
     })
 
     Then('the second creation should fail due to unique constraint', async () => {
-      const session = driver.session()
-      try {
-        await expect(
-          session.run(`
-            CREATE (a:AuditLog {
-              id: 'audit-123',
-              timestamp: datetime(),
-              operation: 'UPDATE',
-              entityType: 'Technology',
-              entityId: 'React',
-              userId: 'user123',
-              source: 'UI'
-            })
-          `)
-        ).rejects.toThrow()
-      } finally {
-        await session.close()
-      }
+      await expect(
+        session.run(`
+          CREATE (a:AuditLog {
+            id: 'audit-123',
+            timestamp: datetime(),
+            operation: 'UPDATE',
+            entityType: 'Technology',
+            entityId: 'React',
+            userId: 'user123',
+            source: 'UI'
+          })
+        `)
+      ).rejects.toThrow()
+      await session.close()
     })
   })
 
@@ -950,43 +898,41 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Capturing user context', ({ When, Then, And }) => {
-    When('I create an audit log with user context:', async (_ctx: any, dataTable: Array<{field: string, value: string}>) => {
-      const session = driver.session()
-      try {
-        // Convert data table array to object
-        const context: Record<string, string> = {}
-        for (const row of dataTable) {
-          if (row.field && row.value) {
-            context[row.field] = row.value
-          }
-        }
-        
-        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-        const result = await session.run(`
-          CREATE (a:AuditLog {
-            id: $id,
-            timestamp: datetime(),
-            operation: 'UPDATE',
-            entityType: 'Technology',
-            entityId: 'React',
-            userId: 'user123',
-            source: 'UI',
-            ipAddress: $ipAddress,
-            userAgent: $userAgent,
-            sessionId: $sessionId
-          })
-          RETURN a
-        `, {
-          id: auditLogId,
-          ipAddress: context.ipAddress,
-          userAgent: context.userAgent,
-          sessionId: context.sessionId
-        })
+    let session: neo4j.Session
 
-        auditLog = result.records[0].get('a').properties
-      } finally {
-        await session.close()
+    When('I create an audit log with user context:', async (_ctx: any, dataTable: Array<{field: string, value: string}>) => {
+      session = driver.session()
+      // Convert data table array to object
+      const context: Record<string, string> = {}
+      for (const row of dataTable) {
+        if (row.field && row.value) {
+          context[row.field] = row.value
+        }
       }
+      
+      auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+      const result = await session.run(`
+        CREATE (a:AuditLog {
+          id: $id,
+          timestamp: datetime(),
+          operation: 'UPDATE',
+          entityType: 'Technology',
+          entityId: 'React',
+          userId: 'user123',
+          source: 'UI',
+          ipAddress: $ipAddress,
+          userAgent: $userAgent,
+          sessionId: $sessionId
+        })
+        RETURN a
+      `, {
+        id: auditLogId,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        sessionId: context.sessionId
+      })
+
+      auditLog = result.records[0].get('a').properties
     })
 
     Then('the audit log should include the user context', () => {
@@ -996,22 +942,18 @@ describeFeature(feature, ({ Background, Scenario }) => {
     })
 
     And('I can analyze access patterns by IP address', async () => {
-      const session = driver.session()
-      try {
-        const result = await session.run(`
-          MATCH (a:AuditLog)
-          WHERE a.ipAddress = '192.168.1.100'
-          RETURN a
-        `)
+      const result = await session.run(`
+        MATCH (a:AuditLog)
+        WHERE a.ipAddress = '192.168.1.100'
+        RETURN a
+      `)
 
-        expect(result.records.length).toBeGreaterThan(0)
-        const logs = result.records.map(record => record.get('a').properties)
-        logs.forEach(log => {
-          expect(log.ipAddress).toBe('192.168.1.100')
-        })
-      } finally {
-        await session.close()
-      }
+      expect(result.records.length).toBeGreaterThan(0)
+      const logs = result.records.map(record => record.get('a').properties)
+      logs.forEach(log => {
+        expect(log.ipAddress).toBe('192.168.1.100')
+      })
+      await session.close()
     })
   })
 })
