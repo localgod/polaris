@@ -1,4 +1,4 @@
-import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { expect, beforeAll, afterAll } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { MigrationRunner } from '../../schema/scripts/migrationRunner'

@@ -5,7 +5,7 @@
  * with the database and ensure proper cleanup.
  */
 
-import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { expect, beforeAll, afterAll } from 'vitest'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
