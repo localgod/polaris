@@ -5,7 +5,8 @@ import {
   parseDataTableAsFirstRow,
   parseDataTableAuto,
   createDataTableStep,
-  createDataTableObjectStep
+  createDataTableObjectStep,
+  type DataTableRow
 } from './data-table-parser'
 
 describe('Data Table Parser', () => {
@@ -221,7 +222,7 @@ describe('Data Table Parser', () => {
         | Alice | alice@test.com  |
       `
       
-      let capturedData: any = null
+      let capturedData: DataTableRow[] | null = null
       const handler = createDataTableStep(async (data) => {
         capturedData = data
       })
@@ -229,11 +230,11 @@ describe('Data Table Parser', () => {
       await handler(table)
       
       expect(capturedData).toHaveLength(1)
-      expect(capturedData[0]).toEqual({ name: 'Alice', email: 'alice@test.com' })
+      expect(capturedData?.[0]).toEqual({ name: 'Alice', email: 'alice@test.com' })
     })
 
     it('should handle undefined data table', async () => {
-      let capturedData: any = null
+      let capturedData: DataTableRow[] | null = null
       const handler = createDataTableStep(async (data) => {
         capturedData = data
       })
@@ -249,7 +250,7 @@ describe('Data Table Parser', () => {
         | key1 | val1  |
       `
       
-      let capturedData: any = null
+      let capturedData: DataTableRow[] | null = null
       const handler = createDataTableStep((data) => {
         capturedData = data
       })
@@ -268,7 +269,7 @@ describe('Data Table Parser', () => {
         | userId     | user123     |
       `
       
-      let capturedData: any = null
+      let capturedData: Record<string, string> | null = null
       const handler = createDataTableObjectStep(async (data) => {
         capturedData = data
       })
@@ -282,7 +283,7 @@ describe('Data Table Parser', () => {
     })
 
     it('should handle undefined data table', async () => {
-      let capturedData: any = null
+      let capturedData: Record<string, string> | null = null
       const handler = createDataTableObjectStep(async (data) => {
         capturedData = data
       })

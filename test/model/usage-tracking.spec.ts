@@ -424,7 +424,7 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('Query team usage with compliance status', ({ Given, When, Then, And }) => {
     let session: neo4j.Session | null = null
     let usage: Array<{ technology: string; complianceStatus: string }> = []
-    let summary: { total: number; compliant: number; violations: number } = { total: 0, compliant: 0, violations: 0 }
+    const summary: { total: number; compliant: number; violations: number } = { total: 0, compliant: 0, violations: 0 }
 
     Given('a Neo4j database is available', () => {
       if (!neo4jAvailable || !driver) return
