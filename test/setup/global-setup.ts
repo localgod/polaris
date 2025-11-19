@@ -14,7 +14,7 @@ export default async function globalSetup() {
   
   try {
     // Verify connectivity
-    await driver.verifyConnectivity()
+    await driver.verifyAuthentication()
     
     // Clean up any leftover test data from previous runs
     const session = driver.session()

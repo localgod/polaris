@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     const driver = useDriver()
     
     // Verify connectivity
-    await driver.verifyConnectivity()
+    await driver.verifyAuthentication()
     
     // Run a simple query
     const { records } = await driver.executeQuery('RETURN 1 as status')
