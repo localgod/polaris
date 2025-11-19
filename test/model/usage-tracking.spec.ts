@@ -246,8 +246,9 @@ describeFeature(feature, ({ Scenario }) => {
       if (!neo4jAvailable || !session) return
       
       const result = await session.run(`
-        MATCH (team:Team {testData: true})-[u:USES]->(tech:Technology)
+        MATCH (team:Team {testData: true})-[u:USES]->(tech:Technology {testData: true})
         OPTIONAL MATCH (team)-[a:APPROVES]->(tech)
+        WITH team, tech, a
         WHERE a IS NULL OR a.time = 'eliminate'
         RETURN team.name as team, tech.name as technology,
                CASE WHEN a IS NULL THEN 'unapproved' ELSE 'eliminated' END as violationType
@@ -322,8 +323,9 @@ describeFeature(feature, ({ Scenario }) => {
       if (!neo4jAvailable || !session) return
       
       const result = await session.run(`
-        MATCH (team:Team {testData: true})-[u:USES]->(tech:Technology)
+        MATCH (team:Team {testData: true})-[u:USES]->(tech:Technology {testData: true})
         OPTIONAL MATCH (team)-[a:APPROVES]->(tech)
+        WITH team, tech, a
         WHERE a IS NULL OR a.time = 'eliminate'
         RETURN team.name as team, tech.name as technology,
                CASE WHEN a IS NULL THEN 'unapproved' ELSE 'eliminated' END as violationType
@@ -373,8 +375,10 @@ describeFeature(feature, ({ Scenario }) => {
       if (!neo4jAvailable || !session) return
       
       await session.run(`
-        MERGE (team:Team {name: 'Backend Platform Test Compliant', testData: true})
-        MERGE (tech:Technology {name: 'TypeScript Test', testData: true})
+        MERGE (team:Team {name: 'Backend Platform Test Compliant'})
+        SET team.testData = true
+        MERGE (tech:Technology {name: 'TypeScript Test'})
+        SET tech.testData = true
         MERGE (team)-[u:USES]->(tech)
         ON CREATE SET u.systemCount = 1, u.firstUsed = datetime(), u.lastVerified = datetime()
       `)
@@ -384,8 +388,8 @@ describeFeature(feature, ({ Scenario }) => {
       if (!neo4jAvailable || !session) return
       
       await session.run(`
-        MATCH (team:Team {name: 'Backend Platform Test Compliant', testData: true})
-        MATCH (tech:Technology {name: 'TypeScript Test', testData: true})
+        MATCH (team:Team {name: 'Backend Platform Test Compliant'})
+        MATCH (tech:Technology {name: 'TypeScript Test'})
         MERGE (team)-[a:APPROVES]->(tech)
         SET a.time = 'invest', a.approvedAt = datetime()
       `)
@@ -395,8 +399,9 @@ describeFeature(feature, ({ Scenario }) => {
       if (!neo4jAvailable || !session) return
       
       const result = await session.run(`
-        MATCH (team:Team {testData: true})-[u:USES]->(tech:Technology)
+        MATCH (team:Team {testData: true})-[u:USES]->(tech:Technology {testData: true})
         OPTIONAL MATCH (team)-[a:APPROVES]->(tech)
+        WITH team, tech, a
         WHERE a IS NULL OR a.time = 'eliminate'
         RETURN team.name as team, tech.name as technology,
                CASE WHEN a IS NULL THEN 'unapproved' ELSE 'eliminated' END as violationType

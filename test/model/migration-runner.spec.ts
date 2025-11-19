@@ -21,7 +21,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   let status: { total: number; applied: unknown[]; pending: string[] }
 
   beforeAll(async () => {
-    const uri = process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'neo4j://neo4j:7687'
+    const uri = process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'bolt://localhost:7687'
     const username = process.env.NEO4J_USERNAME || 'neo4j'
     const password = process.env.NEO4J_PASSWORD || 'devpassword'
 
