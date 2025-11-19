@@ -4,7 +4,6 @@ import neo4j from 'neo4j-driver'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { parseDataTableAsObject } from '../helpers/data-table-parser'
 
 const feature = await loadFeature('./test/model/features/audit-trail.feature')
 
@@ -148,10 +147,17 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Creating an audit log entry', ({ When, Then, And }) => {
-    When('I create an audit log with:', async (dataTable: string) => {
+    When('I create an audit log with:', async (_context: any, dataTable: Array<{field: string, value: string}>) => {
       const session = driver.session()
       try {
-        const data = parseDataTableAsObject(dataTable)
+        // Convert data table array to object
+        const data: Record<string, string> = {}
+        for (const row of dataTable) {
+          if (row.field && row.value) {
+            data[row.field] = row.value
+          }
+        }
+        
         auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
@@ -944,10 +950,16 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Capturing user context', ({ When, Then, And }) => {
-    When('I create an audit log with user context:', async (dataTable: string) => {
+    When('I create an audit log with user context:', async (_ctx: any, dataTable: Array<{field: string, value: string}>) => {
       const session = driver.session()
       try {
-        const context = parseDataTableAsObject(dataTable)
+        // Convert data table array to object
+        const context: Record<string, string> = {}
+        for (const row of dataTable) {
+          if (row.field && row.value) {
+            context[row.field] = row.value
+          }
+        }
         
         auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
