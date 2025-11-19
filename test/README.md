@@ -361,3 +361,162 @@ describeFeature(feature, ({ Scenario }) => {
 - [vitest-cucumber Documentation](https://vitest-cucumber.miceli.click/)
 - [Gherkin Reference](https://cucumber.io/docs/gherkin/reference/)
 - [Vitest Documentation](https://vitest.dev/)
+
+## Working with Data Tables
+
+Gherkin data tables provide a way to pass structured data to test steps. This project includes a comprehensive data table parser utility to handle various table formats.
+
+### Using the Data Table Parser
+
+**Import the parser:**
+```typescript
+import { parseDataTable, parseDataTableAsObject } from '../helpers/data-table-parser'
+```
+
+### Example 1: Multi-Row Data Tables
+
+**Feature file:**
+```gherkin
+Given the following teams exist:
+  | name           | email                    |
+  | Backend Team   | backend@example.com      |
+  | Frontend Team  | frontend@example.com     |
+```
+
+**Spec file:**
+```typescript
+Given('the following teams exist:', async (dataTable: string) => {
+  const teams = parseDataTable(dataTable)
+  // teams = [
+  //   { name: 'Backend Team', email: 'backend@example.com' },
+  //   { name: 'Frontend Team', email: 'frontend@example.com' }
+  // ]
+  
+  for (const team of teams) {
+    await session.run(`
+      CREATE (t:Team {name: $name, email: $email})
+    `, team)
+  }
+})
+```
+
+### Example 2: Key-Value Data Tables
+
+**Feature file:**
+```gherkin
+When I create an audit log with:
+  | field      | value       |
+  | operation  | CREATE      |
+  | entityType | Technology  |
+  | userId     | user123     |
+```
+
+**Spec file:**
+```typescript
+When('I create an audit log with:', async (dataTable: string) => {
+  const data = parseDataTableAsObject(dataTable)
+  // data = { operation: 'CREATE', entityType: 'Technology', userId: 'user123' }
+  
+  await session.run(`
+    CREATE (a:AuditLog {
+      operation: $operation,
+      entityType: $entityType,
+      userId: $userId,
+      timestamp: datetime()
+    })
+  `, data)
+})
+```
+
+### Example 3: Single-Row Configuration
+
+**Feature file:**
+```gherkin
+Given the "Backend Team" approves "Java" with:
+  | status   | versionConstraint |
+  | approved | >=17              |
+```
+
+**Spec file:**
+```typescript
+import { parseDataTableAsFirstRow } from '../helpers/data-table-parser'
+
+Given('the "Backend Team" approves "Java" with:', async (dataTable: string) => {
+  const config = parseDataTableAsFirstRow(dataTable)
+  // config = { status: 'approved', versionConstraint: '>=17' }
+  
+  await session.run(`
+    MATCH (team:Team {name: 'Backend Team'})
+    MATCH (tech:Technology {name: 'Java'})
+    CREATE (team)-[:APPROVES {
+      status: $status,
+      versionConstraint: $versionConstraint
+    }]->(tech)
+  `, config)
+})
+```
+
+### Available Parser Functions
+
+- **`parseDataTable(tableString)`** - Returns array of row objects
+- **`parseDataTableAsObject(tableString)`** - Converts field/value table to single object
+- **`parseDataTableAsFirstRow(tableString)`** - Returns first row as object
+- **`parseDataTableAuto(tableString)`** - Auto-detects format and parses accordingly
+- **`createDataTableStep(handler)`** - Helper to create step handlers
+- **`createDataTableObjectStep(handler)`** - Helper for object-based steps
+
+### Best Practices for Data Tables
+
+1. **Use appropriate parser** - Choose the parser that matches your data structure
+2. **Validate data** - Check that required fields are present before using
+3. **Handle empty tables** - All parsers return empty arrays/objects for invalid input
+4. **Type safety** - Define interfaces for your data structures
+5. **Reusable steps** - Create helper functions for common data table patterns
+
+### Complete Example with Background
+
+```typescript
+import { parseDataTable, parseDataTableAsObject } from '../helpers/data-table-parser'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
+
+const feature = await loadFeature('./test/model/features/example.feature')
+
+describeFeature(feature, ({ Background, Scenario }) => {
+  let teams: Array<{ name: string; email: string }>
+  let session: Session
+
+  Background(({ Given, And }) => {
+    Given('a Neo4j database is available', () => {
+      expect(driver).toBeDefined()
+    })
+
+    And('the following teams exist:', async (dataTable: string) => {
+      teams = parseDataTable(dataTable)
+      session = driver.session()
+      
+      for (const team of teams) {
+        await session.run(`
+          CREATE (t:Team {name: $name, email: $email})
+        `, team)
+      }
+    })
+  })
+
+  Scenario('Test with background data', ({ When, Then }) => {
+    When('I query teams', async () => {
+      // Teams are already created in Background
+      const result = await session.run('MATCH (t:Team) RETURN t')
+      expect(result.records.length).toBeGreaterThan(0)
+    })
+
+    Then('all teams should exist', () => {
+      expect(teams.length).toBeGreaterThan(0)
+    })
+  })
+})
+```
+
+For more examples, see:
+- `test/helpers/data-table-parser.spec.ts` - Comprehensive unit tests
+- `test/model/usage-tracking.spec.ts` - Real-world usage examples
+

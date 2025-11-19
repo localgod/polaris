@@ -4,10 +4,11 @@ import neo4j from 'neo4j-driver'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { parseDataTableAsObject } from '../helpers/data-table-parser'
 
 const feature = await loadFeature('./test/model/features/audit-trail.feature')
 
-describeFeature(feature, ({ Scenario }) => {
+describeFeature(feature, ({ Background, Scenario }) => {
   let driver: Driver
   let auditLogId: string
   let auditLog: Record | null
@@ -134,18 +135,23 @@ describeFeature(feature, ({ Scenario }) => {
     }
   })
 
-  Scenario('Creating an audit log entry', ({ Given, When, Then }) => {
+  Background(({ Given, And }) => {
     Given('a clean Neo4j database', () => {
       // Already cleaned in beforeEach
+      expect(driver).toBeDefined()
     })
 
-    Given('the audit trail schema is applied', () => {
+    And('the audit trail schema is applied', () => {
       // Already applied in beforeAll
+      expect(driver).toBeDefined()
     })
+  })
 
-    When('I create an audit log with:', async () => {
+  Scenario('Creating an audit log entry', ({ When, Then, And }) => {
+    When('I create an audit log with:', async (dataTable: string) => {
       const session = driver.session()
       try {
+        const data = parseDataTableAsObject(dataTable)
         auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
         const result = await session.run(`
           CREATE (a:AuditLog {
@@ -160,11 +166,11 @@ describeFeature(feature, ({ Scenario }) => {
           RETURN a
         `, {
           id: auditLogId,
-          operation: 'CREATE',
-          entityType: 'Technology',
-          entityId: 'React',
-          userId: 'user123',
-          source: 'UI'
+          operation: data.operation,
+          entityType: data.entityType,
+          entityId: data.entityId,
+          userId: data.userId,
+          source: data.source
         })
 
         auditLog = result.records[0].get('a').properties
