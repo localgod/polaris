@@ -51,7 +51,8 @@ describeFeature(feature, ({ Background, Scenario }) => {
       await session.close()
     }
 
-    rmSync(testMigrationsDir, { recursive: true, force: true })
+    // Don't delete the directory - just ensure it exists
+    // Files will be created as needed in each scenario
     mkdirSync(join(testMigrationsDir, 'common'), { recursive: true })
     runner = new MigrationRunner(driver, testMigrationsDir)
   })
