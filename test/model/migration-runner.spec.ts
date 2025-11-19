@@ -21,7 +21,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   let status: { total: number; applied: unknown[]; pending: string[] }
 
   beforeAll(async () => {
-    const uri = process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'neo4j://neo4j:7687'
+    const uri = process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'bolt://localhost:7687'
     const username = process.env.NEO4J_USERNAME || 'neo4j'
     const password = process.env.NEO4J_PASSWORD || 'devpassword'
 
@@ -51,7 +51,8 @@ describeFeature(feature, ({ Background, Scenario }) => {
       await session.close()
     }
 
-    rmSync(testMigrationsDir, { recursive: true, force: true })
+    // Don't delete the directory - just ensure it exists
+    // Files will be created as needed in each scenario
     mkdirSync(join(testMigrationsDir, 'common'), { recursive: true })
     runner = new MigrationRunner(driver, testMigrationsDir)
   })

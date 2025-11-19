@@ -115,9 +115,6 @@ describeFeature(feature, ({ Scenario }) => {
   })
 
   Scenario('Using helper function for cleanup', ({ Given, When, Then }) => {
-    // Option 2: Use cleanup helper
-    const cleanup = createCleanup(driver, { prefix: TEST_PREFIX })
-
     Given('I have test data', async () => {
       if (!serverRunning) {
         console.log('   ⏭️  Skipping - database not available')
@@ -136,6 +133,8 @@ describeFeature(feature, ({ Scenario }) => {
 
     When('I run cleanup', async () => {
       if (!serverRunning) return
+      // Option 2: Use cleanup helper
+      const cleanup = createCleanup(driver, { prefix: TEST_PREFIX })
       await cleanup()
     })
 
