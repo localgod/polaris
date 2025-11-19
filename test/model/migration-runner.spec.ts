@@ -8,7 +8,7 @@ import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 
 const feature = await loadFeature('./test/model/features/migration-runner.feature')
 
-describeFeature(feature, ({ Scenario }) => {
+describeFeature(feature, ({ Background, Scenario }) => {
   let driver: Driver
   let runner: MigrationRunner
   const testMigrationsDir = join(process.cwd(), 'test-migrations')
@@ -56,7 +56,17 @@ describeFeature(feature, ({ Scenario }) => {
     runner = new MigrationRunner(driver, testMigrationsDir)
   })
 
-  Scenario('Calculate consistent checksums @smoke', ({ Given, When, Then, And }) => {
+  Background(({ Given, And }) => {
+    Given('a Neo4j database is available', () => {
+      expect(driver).toBeDefined()
+    })
+
+    And('a test migrations directory exists', () => {
+      expect(testMigrationsDir).toBeDefined()
+    })
+  })
+
+  Scenario('Calculate consistent checksums', ({ Given, When, Then, And }) => {
     Given('a migration file with content "CREATE (n:Test)"', () => {
       migrationContent = 'CREATE (n:Test)'
       expect(migrationContent).toBeDefined()
@@ -317,7 +327,7 @@ INVALID CYPHER SYNTAX`
     })
   })
 
-  Scenario('Support dry-run mode', ({ Given, When, Then, And }) => {
+  Scenario('Support dry-run mode', ({ Given, When, Then, But, And }) => {
     let dryRunResult: { success: boolean; applied: string[] }
 
     Given('a migration file exists', () => {
@@ -334,7 +344,7 @@ INVALID CYPHER SYNTAX`
       expect(dryRunResult.applied).toHaveLength(1)
     })
 
-    And('no database changes should be made', async () => {
+    But('no database changes should be made', async () => {
       const session = driver.session()
       try {
         const result = await session.run(
