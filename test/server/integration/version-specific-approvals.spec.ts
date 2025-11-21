@@ -20,7 +20,7 @@ describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
   let serverRunning = false
   let approvalStatus: string | null = null
-  let approvalResults: Record[] = []
+  const _approvalResults: Record[] = []
   let systemsResult: Record[] = []
 
   beforeAll(async () => {
