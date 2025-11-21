@@ -93,7 +93,7 @@ Auto-imported utilities:
 ## Import Summary Table
 
 | From | To | Pattern | Example |
-|------|-----|---------|---------|
+| ------ | ----- | --------- | --------- |
 | API route | Service | Relative | `'../services/tech.service'` |
 | API route (nested) | Service | Relative | `'../../services/tech.service'` |
 | Service | Repository | Relative | `'../repositories/tech.repository'` |

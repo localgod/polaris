@@ -216,7 +216,7 @@ The graph model enables queries to identify technologies that need migration:
 **Example Results:**
 
 | Technology | Team | EOL Date | Days Left | Migrate To |
-|-----------|------|----------|-----------|------------|
+| ----------- | ------ | ---------- | ----------- | ------------ |
 | Angular | Frontend Platform | 2025-12-31 | 245 | React |
 | Java 11 | Backend Platform | 2024-09-30 | 45 | Java 17 |
 
