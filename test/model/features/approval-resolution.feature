@@ -45,10 +45,10 @@ Feature: Approval Resolution Logic
       | status            | approved |
       | versionConstraint | >=17     |
     When I resolve approval for "Backend Team" and "Java" version "17"
-    Then the effective status should be "approved"
+    And the effective status should be "approved"
     And the constraint ">=17" should be satisfied by version "17"
     When I resolve approval for "Backend Team" and "Java" version "21"
-    Then the effective status should be "approved"
+    And the effective status for version 21 should be "approved"
     And the constraint ">=17" should be satisfied by version "21"
 
   Scenario: Version constraint evaluation for restricted range
@@ -56,10 +56,10 @@ Feature: Approval Resolution Logic
       | status            | approved |
       | versionConstraint | >=17     |
     When I resolve approval for "Backend Team" and "Java" version "11"
-    Then the effective status should be "restricted"
+    And the effective status should be "restricted"
     And the constraint ">=17" should not be satisfied by version "11"
     When I resolve approval for "Backend Team" and "Java" version "8"
-    Then the effective status should be "restricted"
+    And the effective status for version 8 should be "restricted"
     And the constraint ">=17" should not be satisfied by version "8"
 
   Scenario: Version-specific override of version constraint
@@ -127,11 +127,11 @@ Feature: Approval Resolution Logic
     When I resolve approval for "Backend Team" and "Java" version "11"
     Then the effective status should be "approved"
     When I resolve approval for "Backend Team" and "Java" version "17"
-    Then the effective status should be "approved"
+    And the effective status should be "approved"
     When I resolve approval for "Backend Team" and "Java" version "21"
     Then the effective status should be "restricted"
     When I resolve approval for "Backend Team" and "Java" version "8"
-    Then the effective status should be "restricted"
+    And the effective status should be "restricted"
 
   Scenario: Resolution caching and performance
     Given the "Backend Team" approves "Java" with status "approved"
