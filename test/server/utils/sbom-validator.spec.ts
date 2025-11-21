@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { SbomValidator, getSbomValidator } from '../../server/utils/sbom-validator'
+import { SbomValidator, getSbomValidator } from '../../../server/utils/sbom-validator'
 
 describe('SBOM Validator', () => {
   let validator: SbomValidator

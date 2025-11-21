@@ -1,10 +1,10 @@
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { MigrationRunner } from '../../schema/scripts/migrationRunner'
+import { MigrationRunner } from '../../../schema/scripts/migrationRunner'
 import { writeFileSync, mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../../fixtures/gherkin'
 
 Feature('Database Migration Runner @model @unit', ({ Scenario }) => {
   let driver: Driver

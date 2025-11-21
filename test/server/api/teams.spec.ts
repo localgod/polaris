@@ -1,6 +1,6 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
-import { apiGet, checkServerHealth } from '../helpers/api-client'
+import { Feature } from '../../fixtures/gherkin'
+import { apiGet, checkServerHealth } from '../../fixtures/api-client'
 
 interface TeamResponse {
   name: string

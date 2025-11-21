@@ -1,7 +1,7 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../../fixtures/gherkin'
 import { chromium, type Browser, type Page } from '@playwright/test'
-import { checkServerHealth } from '../helpers/api-client'
+import { checkServerHealth } from '../../fixtures/api-client'
 
 /**
  * Homepage UI Tests

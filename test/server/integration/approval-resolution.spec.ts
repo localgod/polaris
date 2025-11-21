@@ -1,7 +1,7 @@
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../../fixtures/gherkin'
 
 /**
  * Approval Resolution Logic Tests

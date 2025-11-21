@@ -6,10 +6,10 @@
  */
 
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../fixtures/gherkin'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { cleanupTestData, createCleanup, verifyCleanDatabase } from '../helpers/db-cleanup'
+import { cleanupTestData, createCleanup, verifyCleanDatabase } from '../fixtures/db-cleanup'
 
 Feature('Example: Proper Database Cleanup @example', ({ Scenario }) => {
   let driver: Driver

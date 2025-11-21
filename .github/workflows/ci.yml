@@ -43,7 +43,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test-layer: [model, api, ui, smoke]
+        # Test layers aligned with new test directory structure
+        # server:integration - Complex business workflows
+        # server:api - API endpoint integration tests
+        # server:utils - Server utility tests
+        # schema - Database schema and migration tests
+        # app:e2e - Frontend E2E tests
+        # smoke - Critical smoke tests across all layers
+        test-layer: [server:integration, server:api, server:utils, schema, app:e2e, smoke]
 
     services:
       neo4j:
@@ -75,8 +82,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install Playwright browsers (UI tests only)
-        if: matrix.test-layer == 'ui'
+      - name: Install Playwright browsers (E2E tests only)
+        if: matrix.test-layer == 'app:e2e'
         run: npx playwright install chromium --with-deps
 
       - name: Wait for Neo4j to be ready
@@ -111,8 +118,8 @@ jobs:
           NEO4J_USERNAME: neo4j
           NEO4J_PASSWORD: testpassword
 
-      - name: Start dev server (UI tests only)
-        if: matrix.test-layer == 'ui'
+      - name: Start dev server (E2E tests only)
+        if: matrix.test-layer == 'app:e2e'
         run: |
           npm run dev &
           echo "Waiting for dev server to be ready..."
@@ -170,8 +177,12 @@ jobs:
         run: |
           mkdir -p coverage
           # Copy the first coverage report as base
-          if [ -d "coverage-artifacts/coverage-model" ]; then
-            cp -r coverage-artifacts/coverage-model/* coverage/
+          if [ -d "coverage-artifacts/coverage-server:integration" ]; then
+            cp -r coverage-artifacts/coverage-server:integration/* coverage/
+          elif [ -d "coverage-artifacts/coverage-server:api" ]; then
+            cp -r coverage-artifacts/coverage-server:api/* coverage/
+          elif [ -d "coverage-artifacts/coverage-schema" ]; then
+            cp -r coverage-artifacts/coverage-schema/* coverage/
           fi
           echo "Coverage artifacts merged"
 

@@ -1,7 +1,7 @@
 import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver, Record } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../../fixtures/gherkin'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 

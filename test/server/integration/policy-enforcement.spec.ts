@@ -1,6 +1,6 @@
 import { expect, beforeAll, afterAll } from 'vitest'
 import neo4j, { type Driver } from 'neo4j-driver'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../../fixtures/gherkin'
 
 Feature('Policy Enforcement @model @schema', ({ Scenario }) => {
   let driver: Driver

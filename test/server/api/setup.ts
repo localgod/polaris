@@ -6,7 +6,7 @@
  */
 
 import { beforeAll, afterAll } from 'vitest'
-import { checkServerHealth } from '../helpers/api-client'
+import { checkServerHealth } from '../../fixtures/api-client'
 
 // Note: This is intentionally not exported as tests should check server health individually
 // to avoid race conditions and ensure proper test isolation

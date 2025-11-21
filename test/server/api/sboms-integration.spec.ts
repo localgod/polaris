@@ -1,12 +1,12 @@
 import { expect, beforeAll, afterAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
-import { getBaseURL, checkServerHealth } from '../helpers/api-client'
+import { Feature } from '../../fixtures/gherkin'
+import { getBaseURL, checkServerHealth } from '../../fixtures/api-client'
 
 Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
   const baseURL = getBaseURL()
   const apiPath = '/api/sboms'
   let serverRunning = false
-  let validToken: string | null = null
+  const validToken: string | null = null
   
   // Sample SBOMs for testing
   const validCycloneDXSbom = {
@@ -69,7 +69,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
 
   Scenario('Reject requests without Content-Type header', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
 
     Given('the API server is running', () => {
       if (!serverRunning) {
@@ -109,7 +109,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
 
   Scenario('Reject requests with wrong Content-Type', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
 
     Given('the API server is running', () => {
       if (!serverRunning) {
@@ -147,7 +147,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
 
   Scenario('Reject unauthenticated requests', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
     let sbomPayload: typeof validCycloneDXSbom
 
     Given('the API server is running', () => {
@@ -193,7 +193,7 @@ Feature('SBOM API Endpoint @api @integration', ({ Scenario }) => {
 
   Scenario('Reject requests with invalid Bearer token', ({ Given, When, Then, And }) => {
     let response: Response
-    let responseData: any
+    let responseData: unknown
     let sbomPayload: typeof validCycloneDXSbom
 
     Given('the API server is running', () => {

@@ -1,12 +1,12 @@
 import { expect } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../../fixtures/gherkin'
 import {
   validateRepositoryUrl,
   validateSbomStructure,
   validateSbomRequest,
   type ValidationResult,
   type SbomRequest
-} from '../../server/utils/sbom-request-validator'
+} from '../../../server/utils/sbom-request-validator'
 
 Feature('SBOM Request Validation @helpers @unit', ({ Scenario }) => {
   let validationResult: ValidationResult

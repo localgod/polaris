@@ -1,5 +1,5 @@
 import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { Feature } from '../../fixtures/gherkin'
 import neo4j from 'neo4j-driver'
 
 const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687'
