@@ -1,12 +1,12 @@
 import { expect, beforeAll, afterAll } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { MigrationRunner } from '../../schema/scripts/migrationRunner'
+import { MigrationRunner } from '../../../schema/scripts/migrationRunner'
 import { writeFileSync, mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 
-const feature = await loadFeature('./test/model/features/migration-runner.feature')
+const feature = await loadFeature('./test/schema/migrations/migration-runner.feature')
 
 describeFeature(feature, ({ Background, Scenario }) => {
   let driver: Driver

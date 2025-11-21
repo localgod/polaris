@@ -2,7 +2,7 @@ import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
-import { parseDataTable, parseDataTableAsObject } from '../helpers/data-table-parser'
+import { parseDataTable, parseDataTableAsObject } from '../../fixtures/data-table-parser'
 
 /**
  * Approval Resolution Logic Tests
@@ -17,7 +17,7 @@ import { parseDataTable, parseDataTableAsObject } from '../helpers/data-table-pa
  * and schema migrations are not yet complete.
  */
 
-const feature = await loadFeature('./test/model/features/approval-resolution.feature')
+const feature = await loadFeature('./test/server/integration/features/approval-resolution.feature')
 
 // Helper to evaluate version constraints
 function evaluateVersionConstraint(constraint: string | null, version: string): boolean {

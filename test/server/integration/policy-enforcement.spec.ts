@@ -2,7 +2,7 @@ import { expect, beforeAll, afterAll } from 'vitest'
 import neo4j, { type Driver } from 'neo4j-driver'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 
-const feature = await loadFeature('./test/model/features/policy-enforcement.feature')
+const feature = await loadFeature('./test/server/integration/features/policy-enforcement.feature')
 
 describeFeature(feature, ({ Scenario }) => {
   let driver: Driver

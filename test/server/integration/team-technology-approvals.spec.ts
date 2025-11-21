@@ -2,7 +2,7 @@ import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver, Record } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
-import { parseDataTable } from '../helpers/data-table-parser'
+import { parseDataTable } from '../../fixtures/data-table-parser'
 
 /**
  * Team-Specific Technology Approvals Tests
@@ -15,7 +15,7 @@ import { parseDataTable } from '../helpers/data-table-parser'
  * Implementation requires migration to add APPROVES relationships.
  */
 
-const feature = await loadFeature('./test/model/features/team-technology-approvals.feature')
+const feature = await loadFeature('./test/server/integration/features/team-technology-approvals.feature')
 
 describeFeature(feature, ({ Scenario }) => {
   let driver: Driver

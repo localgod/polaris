@@ -4,20 +4,26 @@ This directory contains all tests for the Polaris application using [vitest-cucu
 
 ## Test Structure
 
+The test directory is organized to mirror the source code architecture:
+
 ```
 test/
-├── api/                    # API integration tests
-│   ├── *.feature          # Gherkin feature files
-│   └── *.spec.ts          # Test implementations
-├── helpers/               # Helper/utility tests
-│   ├── *.feature          # Gherkin feature files
-│   └── *.spec.ts          # Test implementations
-├── model/                 # Model/database tests
-│   ├── features/          # Gherkin feature files
-│   └── *.spec.ts          # Test implementations
-├── ui/                    # UI/E2E tests
-│   ├── *.feature          # Gherkin feature files
-│   └── *.spec.ts          # Test implementations
+├── server/                 # Backend tests (mirrors ./server)
+│   ├── api/               # API endpoint integration tests
+│   ├── integration/       # Complex business workflows
+│   ├── utils/             # Server utility tests
+│   ├── services/          # Service layer (placeholder)
+│   └── repositories/      # Repository layer (placeholder)
+├── app/                   # Frontend tests (mirrors ./app)
+│   ├── e2e/              # E2E/UI tests
+│   ├── components/       # Component tests (placeholder)
+│   ├── composables/      # Composable tests (placeholder)
+│   └── pages/            # Page tests (placeholder)
+├── schema/                # Database schema tests
+│   └── migrations/
+├── fixtures/              # Shared test helpers
+├── helpers/               # Legacy helpers (being phased out)
+├── model/                 # Legacy model tests (being phased out)
 └── setup/                 # Global test setup/teardown
 
 ```

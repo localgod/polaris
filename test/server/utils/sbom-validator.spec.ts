@@ -1,9 +1,9 @@
 import { expect } from 'vitest'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
-import type { SbomValidator } from '../../server/utils/sbom-validator'
-import { getSbomValidator } from '../../server/utils/sbom-validator'
+import type { SbomValidator } from '../../../server/utils/sbom-validator'
+import { getSbomValidator } from '../../../server/utils/sbom-validator'
 
-const feature = await loadFeature('./test/helpers/sbom-validator.feature')
+const feature = await loadFeature('./test/server/utils/sbom-validator.feature')
 
 describeFeature(feature, ({ Background, Scenario }) => {
   let validator: SbomValidator

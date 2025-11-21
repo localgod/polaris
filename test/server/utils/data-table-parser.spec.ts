@@ -7,7 +7,7 @@ import {
   createDataTableStep,
   createDataTableObjectStep,
   type DataTableRow
-} from './data-table-parser'
+} from '../../fixtures/data-table-parser'
 
 describe('Data Table Parser', () => {
   describe('parseDataTable', () => {

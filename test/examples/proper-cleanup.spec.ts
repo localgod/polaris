@@ -9,7 +9,7 @@ import { expect, beforeAll, afterAll } from 'vitest'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
-import { cleanupTestData, createCleanup, verifyCleanDatabase } from '../helpers/db-cleanup'
+import { cleanupTestData, createCleanup, verifyCleanDatabase } from '../../fixtures/db-cleanup'
 
 const feature = await loadFeature('./test/examples/proper-cleanup.feature')
 

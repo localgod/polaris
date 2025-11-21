@@ -14,7 +14,7 @@ import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
  * Implementation requires migration to add version-level APPROVES relationships.
  */
 
-const feature = await loadFeature('./test/model/features/version-specific-approvals.feature')
+const feature = await loadFeature('./test/server/integration/features/version-specific-approvals.feature')
 
 describeFeature(feature, ({ Scenario }) => {
   let driver: Driver
