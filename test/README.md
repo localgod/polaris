@@ -519,4 +519,3 @@ describeFeature(feature, ({ Background, Scenario }) => {
 For more examples, see:
 - `test/helpers/data-table-parser.spec.ts` - Comprehensive unit tests
 - `test/model/usage-tracking.spec.ts` - Real-world usage examples
-
