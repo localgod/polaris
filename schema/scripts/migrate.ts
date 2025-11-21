@@ -29,12 +29,58 @@ const commands = {
   help: 'Show this help message'
 }
 
+// Default Neo4j connection settings
+const DEFAULT_NEO4J_URI = 'bolt://localhost:7687'
+const DEFAULT_NEO4J_USERNAME = 'neo4j'
+const DEFAULT_NEO4J_PASSWORD = 'devpassword'
+
 async function getDriver() {
-  const uri = process.env.NEO4J_URI || 'neo4j://neo4j:7687'
-  const username = process.env.NEO4J_USERNAME || 'neo4j'
-  const password = process.env.NEO4J_PASSWORD || 'devpassword'
+  const uri = process.env.NEO4J_URI || DEFAULT_NEO4J_URI
+  const username = process.env.NEO4J_USERNAME || DEFAULT_NEO4J_USERNAME
+  const password = process.env.NEO4J_PASSWORD || DEFAULT_NEO4J_PASSWORD
 
   return neo4j.driver(uri, neo4j.auth.basic(username, password))
+}
+
+async function testConnection(driver: neo4j.Driver): Promise<void> {
+  const session = driver.session()
+  try {
+    await session.run('RETURN 1')
+  } catch (error) {
+    const uri = process.env.NEO4J_URI || DEFAULT_NEO4J_URI
+    
+    // Provide helpful error messages based on the error type
+    let helpMessage = '\n💡 Troubleshooting steps:\n'
+    
+    if (error instanceof Error) {
+      const errorMsg = error.message.toLowerCase()
+      
+      if (errorMsg.includes('could not perform discovery') || errorMsg.includes('no routing servers')) {
+        helpMessage += '  1. Your NEO4J_URI uses the "neo4j://" protocol which expects a cluster.\n'
+        helpMessage += '     For a single Neo4j instance, use "bolt://" instead.\n'
+        helpMessage += `     Current URI: ${uri}\n`
+        helpMessage += '     Update your .env file to use: NEO4J_URI=bolt://localhost:7687\n'
+      } else if (errorMsg.includes('failed to connect') || errorMsg.includes('connection refused')) {
+        helpMessage += '  1. Neo4j is not running. Start it with:\n'
+        helpMessage += '     cd .devcontainer && docker compose up -d neo4j\n'
+      } else if (errorMsg.includes('authentication')) {
+        helpMessage += '  1. Check your Neo4j credentials in .env file\n'
+        helpMessage += '     NEO4J_USERNAME and NEO4J_PASSWORD must match your Neo4j instance\n'
+      } else {
+        helpMessage += '  1. Check Neo4j is running: docker ps | grep neo4j\n'
+        helpMessage += '  2. Verify connection settings in .env file\n'
+        helpMessage += `     Current URI: ${uri}\n`
+      }
+      
+      helpMessage += '\n  Additional help:\n'
+      helpMessage += '  • Missing .env file: cp .env.example .env\n'
+      helpMessage += '  • Port conflicts: Ensure ports 7474 and 7687 are available\n'
+    }
+    
+    throw new Error(`Cannot connect to Neo4j database.\n${helpMessage}`)
+  } finally {
+    await session.close()
+  }
 }
 
 async function status() {
@@ -42,6 +88,7 @@ async function status() {
   const runner = new MigrationRunner(driver, join(process.cwd(), 'schema/migrations'))
 
   try {
+    await testConnection(driver)
     const status = await runner.getStatus()
 
     console.log('\n📊 Migration Status\n')
@@ -82,6 +129,7 @@ async function up(options: { dryRun?: boolean; force?: boolean; verbose?: boolea
   const runner = new MigrationRunner(driver, join(process.cwd(), 'schema/migrations'))
 
   try {
+    await testConnection(driver)
     console.log('\n🚀 Running migrations...\n')
 
     const result = await runner.runMigrations({
@@ -198,6 +246,7 @@ async function validate() {
   const runner = new MigrationRunner(driver, join(process.cwd(), 'schema/migrations'))
 
   try {
+    await testConnection(driver)
     console.log('\n🔍 Validating migrations...\n')
 
     const result = await runner.runMigrations({

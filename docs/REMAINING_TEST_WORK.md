@@ -12,16 +12,16 @@ This document outlines the remaining work needed to complete the implementation 
 
 ### 🚧 In Progress (1 of 7 test files - 15 scenarios)
 
-4. **test/model/audit-trail.spec.ts** (15 scenarios) - 🚧 PARTIAL
+1. **test/model/audit-trail.spec.ts** (15 scenarios) - 🚧 PARTIAL
    - ✅ Background section implemented
    - ✅ First scenario using data tables
    - ❌ 14 scenarios remaining
 
 ### ⏸️ Not Started (3 of 7 test files - 21 scenarios)
 
-5. **test/model/team-technology-approvals.spec.ts** (3 scenarios) - ⏸️ TODO
-6. **test/model/version-specific-approvals.spec.ts** (4 scenarios) - ⏸️ TODO
-7. **test/model/approval-resolution.spec.ts** (15 scenarios) - ⏸️ TODO
+1. **test/model/team-technology-approvals.spec.ts** (3 scenarios) - ⏸️ TODO
+2. **test/model/version-specific-approvals.spec.ts** (4 scenarios) - ⏸️ TODO
+3. **test/model/approval-resolution.spec.ts** (15 scenarios) - ⏸️ TODO
 
 ---
 

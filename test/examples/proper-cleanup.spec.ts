@@ -5,7 +5,7 @@
  * with the database and ensure proper cleanup.
  */
 
-import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { expect, beforeAll, afterAll } from 'vitest'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
@@ -48,11 +48,9 @@ describeFeature(feature, ({ Scenario }) => {
     }
   })
 
-  // Option 1: Clean before each test (recommended for isolated tests)
-  beforeEach(async () => {
-    if (!serverRunning) return
-    await cleanupTestData(driver, { prefix: TEST_PREFIX })
-  })
+  // Removed beforeEach - it was cleaning up between test steps which broke the tests!
+  // Each Gherkin step (Given/When/Then/And) is treated as a separate test by vitest-cucumber
+  // so beforeEach would run between steps, deleting data created in previous steps.
 
   Scenario('Create and verify test data with cleanup', ({ Given, When, Then, And }) => {
     let _nodeId: string

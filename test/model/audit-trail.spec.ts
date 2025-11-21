@@ -13,6 +13,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   let auditLog: Record | null
   let auditLogs: Record[]
   let _user: Record | null
+  let queryTime: number
 
   beforeAll(async () => {
     const uri = process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'neo4j://neo4j:7687'
@@ -141,7 +142,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Creating an audit log entry', ({ When, Then, And }) => {
-    When('I create an audit log with:', async (_context: any, dataTable: Array<{field: string, value: string}>) => {
+    When('I create an audit log with:', async (_context: unknown, dataTable: Array<{field: string, value: string}>) => {
       const session = driver.session()
       try {
         // Convert data table array to object
@@ -803,10 +804,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
         `)
 
         auditLogs = result.records.map(record => record.get('a').properties)
-        const queryTime = Date.now() - startTime
-
-        // Store query time for assertion
-        ;(auditLogs as any).queryTime = queryTime
+        queryTime = Date.now() - startTime
       } finally {
         await session.close()
       }
@@ -819,7 +817,6 @@ describeFeature(feature, ({ Background, Scenario }) => {
 
     And('the query should complete in reasonable time', () => {
       // Query should complete in less than 1 second even with 1000 records
-      const queryTime = (auditLogs as any).queryTime
       expect(queryTime).toBeLessThan(1000)
     })
   })
@@ -900,7 +897,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   Scenario('Capturing user context', ({ When, Then, And }) => {
     let session: neo4j.Session
 
-    When('I create an audit log with user context:', async (_ctx: any, dataTable: Array<{field: string, value: string}>) => {
+    When('I create an audit log with user context:', async (_ctx: unknown, dataTable: Array<{field: string, value: string}>) => {
       session = driver.session()
       // Convert data table array to object
       const context: Record<string, string> = {}

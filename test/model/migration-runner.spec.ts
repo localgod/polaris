@@ -1,4 +1,4 @@
-import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { expect, beforeAll, afterAll } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { MigrationRunner } from '../../schema/scripts/migrationRunner'
@@ -42,24 +42,30 @@ describeFeature(feature, ({ Background, Scenario }) => {
     await driver.close()
   })
 
-  beforeEach(async () => {
-    const session = driver.session()
-    try {
-      await session.run('MATCH (m:Migration) DELETE m')
-      await session.run('MATCH (t:TestNode) DELETE t')
-    } finally {
-      await session.close()
-    }
-
-    // Don't delete the directory - just ensure it exists
-    // Files will be created as needed in each scenario
-    mkdirSync(join(testMigrationsDir, 'common'), { recursive: true })
-    runner = new MigrationRunner(driver, testMigrationsDir)
-  })
+  // Removed beforeEach - it was cleaning up between test steps which broke the tests!
+  // Each Gherkin step (Given/When/Then/And) is treated as a separate test by vitest-cucumber
+  // so beforeEach would run between steps, deleting data created in previous steps.
+  // Instead, cleanup is done in the Background section which runs once per scenario.
 
   Background(({ Given, And }) => {
-    Given('a Neo4j database is available', () => {
+    Given('a Neo4j database is available', async () => {
       expect(driver).toBeDefined()
+      
+      // Clean up before each scenario (not before each step!)
+      const session = driver.session()
+      try {
+        await session.run('MATCH (m:Migration) DELETE m')
+        await session.run('MATCH (t:TestNode) DELETE t')
+      } finally {
+        await session.close()
+      }
+      
+      // Clean up migration files from previous scenarios
+      rmSync(testMigrationsDir, { recursive: true, force: true })
+      
+      // Ensure test migrations directory exists
+      mkdirSync(join(testMigrationsDir, 'common'), { recursive: true })
+      runner = new MigrationRunner(driver, testMigrationsDir)
     })
 
     And('a test migrations directory exists', () => {
