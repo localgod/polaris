@@ -146,11 +146,16 @@ jobs:
           NEO4J_PASSWORD: testpassword
           NUXT_TEST_BASE_URL: http://localhost:3000
 
+      - name: Set artifact name
+        if: always()
+        id: artifact-name
+        run: echo "name=coverage-$(echo '${{ matrix.test-layer }}' | tr ':' '-')" >> $GITHUB_OUTPUT
+
       - name: Upload coverage artifacts
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: coverage-${{ matrix.test-layer }}
+          name: ${{ steps.artifact-name.outputs.name }}
           path: coverage/
           retention-days: 7
 
@@ -176,11 +181,11 @@ jobs:
       - name: Merge coverage reports
         run: |
           mkdir -p coverage
-          # Copy the first coverage report as base
-          if [ -d "coverage-artifacts/coverage-server:integration" ]; then
-            cp -r coverage-artifacts/coverage-server:integration/* coverage/
-          elif [ -d "coverage-artifacts/coverage-server:api" ]; then
-            cp -r coverage-artifacts/coverage-server:api/* coverage/
+          # Copy the first coverage report as base (artifact names use hyphens instead of colons)
+          if [ -d "coverage-artifacts/coverage-server-integration" ]; then
+            cp -r coverage-artifacts/coverage-server-integration/* coverage/
+          elif [ -d "coverage-artifacts/coverage-server-api" ]; then
+            cp -r coverage-artifacts/coverage-server-api/* coverage/
           elif [ -d "coverage-artifacts/coverage-schema" ]; then
             cp -r coverage-artifacts/coverage-schema/* coverage/
           fi
