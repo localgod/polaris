@@ -13,19 +13,19 @@ jobs:
     name: Setup Node and cache dependencies
     runs-on: ubuntu-latest
     outputs:
-      node-version: 18
+      node-version: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Use Node.js 18 (LTS)
+      - name: Use Node.js 20 (LTS)
         uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --unsafe-perm
 
       - name: Verify basic repo files
         run: |
@@ -38,15 +38,15 @@ jobs:
     needs: setup-and-cache
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Use Node.js 18
+      - name: Use Node.js 20
         uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --unsafe-perm
 
       - name: Run markdownlint
         run: npm run mdlint
@@ -60,15 +60,15 @@ jobs:
     needs: setup-and-cache
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Use Node.js 18
+      - name: Use Node.js 20
         uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --unsafe-perm
 
       - name: Validate migrations
         run: npm run migrate:validate
@@ -92,15 +92,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Use Node.js 18
+      - name: Use Node.js 20
         uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --unsafe-perm
 
       - name: Wait for Neo4j to be available
         run: |
@@ -118,7 +118,7 @@ jobs:
     needs: [lint-and-mdlint, tests]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Use Node.js 18
         uses: actions/setup-node@v6
