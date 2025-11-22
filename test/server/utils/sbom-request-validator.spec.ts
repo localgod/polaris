@@ -6,7 +6,7 @@ import {
   validateSbomRequest,
   type ValidationResult,
   type SbomRequest
-} from '../../server/utils/sbom-request-validator'
+} from '../../../server/utils/sbom-request-validator'
 
 const feature = await loadFeature('./test/model/features/sbom-request-validation.feature')
 

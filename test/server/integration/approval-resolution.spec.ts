@@ -2,7 +2,7 @@ import { expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Driver } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
-import { parseDataTable, parseDataTableAsObject } from '../helpers/data-table-parser'
+import { parseDataTable, parseDataTableAsObject } from '../../fixtures/data-table-parser'
 
 /**
  * Approval Resolution Logic Tests
@@ -17,7 +17,7 @@ import { parseDataTable, parseDataTableAsObject } from '../helpers/data-table-pa
  * and schema migrations are not yet complete.
  */
 
-const feature = await loadFeature('./test/model/features/approval-resolution.feature')
+const feature = await loadFeature('./test/server/integration/features/approval-resolution.feature')
 
 // Helper to evaluate version constraints
 function evaluateVersionConstraint(constraint: string | null, version: string): boolean {
@@ -43,7 +43,7 @@ function evaluateVersionConstraint(constraint: string | null, version: string): 
 describeFeature(feature, ({ Background, Scenario }) => {
   let driver: Driver
   let serverRunning = false
-  let resolutionResult: any = null
+  let resolutionResult: unknown = null
 
   beforeAll(async () => {
     const uri = process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'neo4j://neo4j:7687'
@@ -289,7 +289,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Version constraint evaluation for approved range', ({ Given, When, And }) => {
-    const testResults: any[] = []
+    const testResults: unknown[] = []
     
     Given('the "Backend Team" approves "Java" with:', async (dataTable: string) => {
       if (!serverRunning) return
@@ -329,7 +329,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Version constraint evaluation for restricted range', ({ Given, When, And }) => {
-    const testResults: any[] = []
+    const testResults: unknown[] = []
     
     Given('the "Backend Team" approves "Java" with:', async (dataTable: string) => {
       if (!serverRunning) return
@@ -403,39 +403,39 @@ describeFeature(feature, ({ Background, Scenario }) => {
   // Remaining scenarios are placeholders
   // TODO: Full implementation when schema is complete
   
-  Scenario('Multiple resolution paths with priority', ({ Given, And, When, Then }) => {
+  Scenario('Multiple resolution paths with priority', ({ Given: _Given, And: _And, When: _When, Then: _Then }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Resolution includes metadata from source', ({ Given, When, Then, And }) => {
+  Scenario('Resolution includes metadata from source', ({ Given: _Given, When: _When, Then: _Then, And: _And }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Technology-level restricted overrides version constraint', ({ Given, When, Then, And }) => {
+  Scenario('Technology-level restricted overrides version constraint', ({ Given: _Given, When: _When, Then: _Then, And: _And }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Experimental status allows usage with warnings', ({ Given, When, And }) => {
+  Scenario('Experimental status allows usage with warnings', ({ Given: _Given, When: _When, And: _And }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Resolution for multiple teams shows different results', ({ Given, And, When, Then }) => {
+  Scenario('Resolution for multiple teams shows different results', ({ Given: _Given, And: _And, When: _When, Then: _Then }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Complex version constraint with multiple operators', ({ Given, When, And }) => {
+  Scenario('Complex version constraint with multiple operators', ({ Given: _Given, When: _When, And: _And }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Resolution caching and performance', ({ Given, When, And }) => {
+  Scenario('Resolution caching and performance', ({ Given: _Given, When: _When, And: _And }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Audit trail for resolution decisions', ({ Given, When, Then, And }) => {
+  Scenario('Audit trail for resolution decisions', ({ Given: _Given, When: _When, Then: _Then, And: _And }) => {
     if (!serverRunning) return
   })
 
-  Scenario('Resolution with missing version node', ({ Given, When, Then }) => {
+  Scenario('Resolution with missing version node', ({ Given: _Given, When: _When, Then: _Then }) => {
     if (!serverRunning) return
   })
 })

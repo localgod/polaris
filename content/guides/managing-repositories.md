@@ -56,7 +56,7 @@ For systems with multiple repositories (frontend, backend, etc.):
 ### SCM Type Detection
 
 | URL Pattern | Detected Type |
-|-------------|---------------|
+| ------------- | --------------- |
 | `github.com`, `gitlab.com`, `bitbucket.org` | Git |
 | `svn.` or `/svn/` | SVN |
 | `hg.` or `/hg/` | Mercurial |

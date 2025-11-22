@@ -83,7 +83,7 @@ A **Component** is a **software artifact** discovered in systems through SBOM (S
 ### Component vs Technology
 
 | Aspect | Technology | Component |
-|--------|-----------|-----------|
+| -------- | ----------- | ----------- |
 | **Definition** | Governed strategic choice | Actual software artifact in use |
 | **Governance** | Requires approval and oversight | Tracked for compliance |
 | **Scope** | Enterprise-wide decision | System-specific dependency |

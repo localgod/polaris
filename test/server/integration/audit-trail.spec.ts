@@ -5,7 +5,7 @@ import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
-const feature = await loadFeature('./test/model/features/audit-trail.feature')
+const feature = await loadFeature('./test/server/integration/features/audit-trail.feature')
 
 describeFeature(feature, ({ Background, Scenario }) => {
   let driver: Driver
