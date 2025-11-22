@@ -8,7 +8,7 @@ import {
   type SbomRequest
 } from '../../../server/utils/sbom-request-validator'
 
-const feature = await loadFeature('./test/model/features/sbom-request-validation.feature')
+const feature = await loadFeature('./test/server/utils/sbom-request-validation.feature')
 
 describeFeature(feature, ({ Background, Scenario }) => {
   let validationResult: ValidationResult
