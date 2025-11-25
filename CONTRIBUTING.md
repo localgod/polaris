@@ -140,21 +140,14 @@ npm run migrate:create your_migration_name
 
 ### 3. Test Your Changes
 
+Available test scripts are defined in `package.json`. Run `npm run` to list available scripts and execute the desired script by name. For example:
+
 ```bash
-# Run all tests
-npm test
+# List scripts
+npm run
 
-# Run tests with coverage
-npm run test:coverage
-
-# Test migrations
-npm run test:migrations
-
-# Lint code
-npm run lint
-
-# Build for production
-npm run build
+# Run the test script shown in package.json, e.g.:
+# npm run <script-name>
 ```
 
 ### 4. Commit Changes
@@ -214,7 +207,7 @@ API Layer Tests → Service Layer Tests → Repository Layer Tests
   - Three-layer strategy explained
   - Quick start and examples
   
-- **[Backend Testing Guide](docs/testing/backend-testing-guide.md)** - Detailed guide
+- **[Backend Testing Guide](test/server/README.md)** - Detailed guide
   - Layer-by-layer examples
   - Best practices
   - Common patterns
@@ -242,20 +235,14 @@ test/server/
 
 ### Running Tests
 
+Available test scripts are defined in `package.json`. Run `npm run` to list available scripts and run the desired test script by name.
+
 ```bash
-# Run all tests
-npm test
+# List scripts
+npm run
 
-# Run by layer
-npm run test:server:api          # API tests
-npm run test:server:services     # Service tests
-npm run test:server:repositories # Repository tests
-
-# Run with coverage
-npm run test:coverage
-
-# Watch mode
-npm run test:watch
+# Run the script from package.json, e.g.:
+# npm run <script-name>
 ```
 
 ### Writing Tests
@@ -367,7 +354,7 @@ npm run migrate:validate
 npm run migrate:down
 
 # Run migration tests
-npm run test:migrations
+Migration/test scripts are declared in `package.json`. Run `npm run` to list available scripts and execute the migration test script by name.
 ```
 
 **Migration Directories:**
@@ -439,11 +426,7 @@ npm run seed             # Seed database with test data
 npm run seed:clear       # Clear and reseed database
 
 # Testing
-npm test                 # Run all tests
-npm run test:run         # Run tests once (CI mode)
-npm run test:coverage    # Run with coverage
-npm run test:ui          # Run with UI
-npm run test:migrations  # Run migration tests only
+# See `package.json` for test-related script names (run `npm run` to list available scripts)
 
 # Code Quality
 npm run lint             # Run ESLint
@@ -543,7 +526,7 @@ Tests run against a real Neo4j instance in GitHub Actions:
 Pull requests automatically receive:
 - Coverage report as PR comment
 - Coverage in GitHub Actions step summary
-- Threshold status indicators
+- Coverage status indicators (informational — no thresholds are currently enforced)
 - File-level coverage details
 
 ## Development Environment
@@ -614,9 +597,9 @@ bash .devcontainer/scripts/post-create.sh
 - Wait 10-20 seconds after starting Neo4j
 - Check Neo4j logs for errors
 
-**Coverage below thresholds:**
-- Add more tests to increase coverage
-- Or adjust thresholds in `vitest.config.ts`
+**Coverage notes:**
+- If coverage is low for a component, consider adding targeted unit or integration tests to improve confidence.
+- Coverage is collected and reported for information only; no thresholds are currently enforced. If you want to experiment with enforcing thresholds locally or in a feature branch, you can adjust `vitest.config.ts`, but this is not required for PRs.
 
 **API tests skipping:**
 - Expected behavior when Nuxt dev server isn't running
@@ -659,11 +642,10 @@ When contributing, update relevant documentation:
 
 ## Pull Request Checklist
 
-Before submitting your PR, ensure:
-
+- Before submitting your PR, ensure:
 - [ ] Code follows project conventions
-- [ ] All tests pass (`npm test`)
-- [ ] Coverage meets thresholds
+- [ ] All tests pass (run the repository's test script listed in `package.json`)
+- [ ] Coverage reviewed (coverage is reported for information; no thresholds are enforced)
 - [ ] Linting passes (`npm run lint`)
 - [ ] Build succeeds (`npm run build`)
 - [ ] Migrations tested (if applicable)

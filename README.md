@@ -158,28 +158,14 @@ The spec is automatically generated from JSDoc comments in the API endpoint file
 
 ### Available Commands
 
+All runnable scripts are defined in `package.json`. To see the full list of available scripts, run:
+
 ```bash
-# Development
-npm run dev              # Start dev server
-npm run build            # Build for production
-npm run preview          # Preview production build
-
-# Database
-npm run migrate:up       # Apply migrations
-npm run seed             # Seed sample data
-
-# Testing
-npm test                 # Run all tests (60 tests)
-npm run test:model       # Model layer tests (41 tests)
-npm run test:api         # API layer tests (18 tests)
-npm run test:ui          # UI layer tests (1 test)
-npm run test:smoke       # Smoke tests (6 tests)
-npm run test:coverage    # Run with coverage
-
-# Code Quality
-npm run lint             # Run linter
-npm run lint:fix         # Fix linting issues
+# List available npm scripts
+npm run
 ```
+
+Run the specific script name shown in `package.json` to execute a task (for example, the repository includes scripts for development, database, testing, and linting).
 
 ### Development Environment
 
@@ -192,17 +178,7 @@ See [Dev Container README](.devcontainer/README.md) and [Gitpod Automations](.on
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) with a three-layer testing strategy.
-
-```bash
-# Run all tests
-npm test
-
-# Run by layer
-npm run test:server:api          # API tests
-npm run test:server:services     # Service tests
-npm run test:server:repositories # Repository tests
-```
+This project uses [Vitest](https://vitest.dev/) with a three-layer testing strategy. Available test scripts are defined in `package.json`; run `npm run` to list scripts and execute the desired script by name.
 
 **For detailed testing information, see:**
 - **[Testing Documentation](docs/testing/README.md)** - Complete testing guide
@@ -271,20 +247,14 @@ Polaris tracks all data changes with complete context for compliance, security, 
 
 ### Running Tests
 
+Available test scripts (by name) are defined in `package.json`. Run `npm run` to list scripts and then run the desired script by name. For example:
+
 ```bash
-# Run all tests (60 tests)
-npm test
+# List scripts
+npm run
 
-# Run by layer
-npm run test:model       # Model layer (41 tests)
-npm run test:api         # API layer (18 tests)
-npm run test:ui          # UI layer (1 test)
-
-# Run smoke tests (6 critical tests)
-npm run test:smoke
-
-# Run with coverage
-npm run test:coverage
+# Run the script shown in package.json, e.g.:
+# npm run <script-name>
 ```
 
 ### CI/CD Testing

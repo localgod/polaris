@@ -61,125 +61,30 @@ describe('ComponentService', () => {
       technologyName: 'React',
       systemCount: 5,
       vulnerabilityCount: 0
-    }
-  ]
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-    componentService = new ComponentService()
-    mockComponentRepo = componentService['componentRepo']
-  })
+    ## Key points (service layer)
 
-  describe('findAll()', () => {
-    it('should return all components with correct count', async () => {
-      // Arrange
-      vi.mocked(mockComponentRepo.findAll).mockResolvedValue(mockComponents)
+    This file contains service-layer-specific patterns and examples. For general testing rules, scripts, and the three-layer strategy see `../README.md`.
 
-      // Act
-      const result = await componentService.findAll()
+    - Mock the repository layer: `vi.mock('../../../server/repositories/component.repository')`.
+    - Keep service tests focused on business rules and data transformation; do not call the database.
+    - Use `beforeEach(() => vi.clearAllMocks())` to ensure test isolation.
 
-      // Assert
-      expect(mockComponentRepo.findAll).toHaveBeenCalledTimes(1)
-      expect(result).toEqual({
-        data: mockComponents,
-        count: 1
-      })
-    })
+    ### Common scenarios
 
-    it('should return empty array when no components exist', async () => {
-      // Arrange
-      vi.mocked(mockComponentRepo.findAll).mockResolvedValue([])
+    - Success case: mock repositories to return domain objects and assert the service returns `{ data, count }`.
+    - Empty results: mock repo to return [] and assert count is 0.
+    - Error propagation: mock repo method to reject and assert service propagates or handles the error as intended.
 
-      // Act
-      const result = await componentService.findAll()
+    ### Examples
 
-      // Assert
-      expect(result).toEqual({
-        data: [],
-        count: 0
-      })
-    })
+    See the examples in this file for concrete spec patterns. For repository-level examples and cleanup patterns, see `../repositories/README.md`.
 
-    it('should propagate repository errors', async () => {
-      // Arrange
-      const error = new Error('Database connection failed')
-      vi.mocked(mockComponentRepo.findAll).mockRejectedValue(error)
+    ## Related Documentation
 
-      // Act & Assert
-      await expect(componentService.findAll()).rejects.toThrow('Database connection failed')
-      expect(mockComponentRepo.findAll).toHaveBeenCalledTimes(1)
-    })
-  })
-})
-```
-
-## Key Points
-
-### 1. Mock the Repository
-
-Always mock the repository layer:
-
-```typescript
-vi.mock('../../../server/repositories/component.repository')
-```
-
-### 2. Clear Mocks
-
-Clear mocks before each test:
-
-```typescript
-beforeEach(() => {
-  vi.clearAllMocks()
-  componentService = new ComponentService()
-  mockComponentRepo = componentService['componentRepo']
-})
-```
-
-### 3. Test Business Logic
-
-Focus on what the service does, not how data is retrieved:
-
-```typescript
-// Yes Good - tests count calculation
-it('should calculate count correctly', async () => {
-  vi.mocked(mockComponentRepo.findAll).mockResolvedValue(mockComponents)
-  const result = await componentService.findAll()
-  expect(result.count).toBe(mockComponents.length)
-})
-
-// No Bad - tests repository behavior
-it('should call repository findAll', async () => {
-  await componentService.findAll()
-  expect(mockComponentRepo.findAll).toHaveBeenCalled()
-})
-```
-
-### 4. Test Error Handling
-
-Ensure errors propagate correctly:
-
-```typescript
-it('should propagate repository errors', async () => {
-  const error = new Error('Database connection failed')
-  vi.mocked(mockComponentRepo.findAll).mockRejectedValue(error)
-  
-  await expect(componentService.findAll()).rejects.toThrow('Database connection failed')
-})
-```
-
-## Common Test Scenarios
-
-### Success Case
-
-```typescript
-it('should return all components with correct count', async () => {
-  vi.mocked(mockComponentRepo.findAll).mockResolvedValue(mockComponents)
-  const result = await componentService.findAll()
-  
-  expect(result.data).toEqual(mockComponents)
-  expect(result.count).toBe(mockComponents.length)
-})
-```
+    - [Server test overview](../README.md) - Canonical server testing overview
+    - [API Tests](../api/README.md) - API layer testing
+    - [Repository Tests](../repositories/README.md) - Repository layer testing
 
 ### Empty Results
 
@@ -220,15 +125,14 @@ it('should transform data correctly', async () => {
 
 ## Running Tests
 
+Available test scripts are defined in `package.json`. Run `npm run` to list scripts, then run the desired script by name. For example:
+
 ```bash
-# Run all service tests
-npm run test:server:services
+# List scripts
+npm run
 
-# Run specific service test
-npm test test/server/services/component.service.spec.ts
-
-# Watch mode
-npm run test:watch test/server/services
+# Run the script from package.json, e.g.:
+# npm run <script-name>
 ```
 
 ## Performance
@@ -242,7 +146,7 @@ If tests are slow:
 
 ## Related Documentation
 
-- [Backend Testing Guide](../../../docs/testing/backend-testing-guide.md) - Complete testing strategy
+- [Backend Testing Guide](../README.md) - Complete testing strategy
 - [API Tests](../api/README.md) - API layer testing
 - [Repository Tests](../repositories/README.md) - Repository layer testing
 - [Service Layer Pattern](../../../docs/architecture/service-layer-pattern.md) - Architecture overview
