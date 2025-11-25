@@ -27,8 +27,9 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { ComponentRepository } from '../../../server/repositories/component.repository'
 import neo4j, { type Driver, type Session } from 'neo4j-driver'
 import { cleanupTestData } from '../../fixtures/db-cleanup'
-```markdown
-# Repository tests (Neo4j)
+```
+
+## Repository tests (Neo4j)
 
 Repository tests exercise database queries and data mapping using Neo4j. They require either the devcontainer or a local Neo4j instance. Tests use a prefix-based isolation pattern (`test_<feature>_`) because Neo4j Community Edition does not support multiple databases.
 
@@ -48,6 +49,3 @@ npm run test:server:repositories
 See the canonical server testing overview at `../README.md` and the schema/migration notes at `../../../schema/README.md` for related context.
 
 For full examples, inspect the spec files in this directory: `component.repository.spec.ts`, `team.repository.spec.ts`, `system.repository.spec.ts`.
-
-``` 
-        technologyName,

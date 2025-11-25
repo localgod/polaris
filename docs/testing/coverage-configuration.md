@@ -6,26 +6,6 @@ The test suite is configured to measure coverage of the service and repository l
 
 ## What's Covered
 
-Coverage is collected from all source files except those explicitly excluded.
-
-### No Excluded from Coverage
-
-- **API Endpoints** (`server/api/**`) - Thin HTTP handlers tested via integration tests
-- **Query Files** (`server/database/queries/**`) - Cypher files tested via repository tests
-- **Frontend** (`app/**`) - Vue components tested separately
-- **Configuration** (`**/*.config.*`) - Configuration files
-- **Type Definitions** (`**/*.d.ts`) - TypeScript declarations
-- **Test Files** (`test/**`) - Test code itself
-- **Build Artifacts** (`.nuxt/**`, `.output/**`, `dist/**`)
-
-# Test Coverage Configuration
-
-## Overview
-
-The test suite is configured to measure coverage of the service and repository layers, which contain the core business logic and data access code.
-
-## What's Covered
-
 Coverage is collected from all source files except those explicitly excluded by Vitest's configuration.
 
 ### Excluded from Coverage

@@ -27,7 +27,6 @@ npm run
 
 Vitest is the canonical test runner for this repository. All unit, service, and repository tests should be authored as plain Vitest specs (`.spec.ts`). Available test scripts are defined in `package.json`; run `npm run` to list scripts and execute the desired script by name. A Gherkin-style layer is available for high-level, business-facing feature tests: we integrate `vitest-cucumber` for those scenarios, but Gherkin is not required for unit or service tests. Use Gherkin feature files only when the scenario benefits from human-readable acceptance criteria or when testing cross-layer workflows.
 
-
 ## Documentation Index
 
 ### Core Guides

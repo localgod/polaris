@@ -1,4 +1,3 @@
-beforeEach(async () => {
 # Test Data Isolation
 
 ## Overview
@@ -157,4 +156,3 @@ If you have Neo4j Enterprise with multi-database support, you may prefer to run 
 - [Database Cleanup Utilities](./database-cleanup.md)
 - [Coverage Configuration](./coverage-configuration.md)
 - [Service Layer Pattern](../architecture/service-layer-pattern.md)
-
