@@ -18,10 +18,6 @@ Polaris helps organizations manage their technology landscape by:
 
 ## Quick Links
 
-### User Guides
-
-- [Managing System Repositories](/docs/guides/managing-repositories) - How to add and manage repositories
-
 ### Core Concepts
 
 - [Technologies vs Components](/docs/concepts) - Understanding the key distinction
