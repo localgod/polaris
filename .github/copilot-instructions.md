@@ -7,7 +7,7 @@ This file gives contextual guidance to GitHub Copilot / code suggestion systems 
 - Polaris is an enterprise Technology Catalog built with Nuxt 4 (Vue 3 + TypeScript) and Neo4j (graph DB).
 - Server implements a 3-layer pattern: Endpoint (server/api) → Service (server/services) → Repository (server/repositories). Cypher queries live under `server/database/queries/`.
 - Database schema and migrations are in `schema/` with an idempotent migration runner and seed/fixture system.
-- Tests use Vitest and Gherkin-style feature files in `test/`. Neo4j Community Edition is used in the dev container; tests use prefix-based isolation (`test_` / `test-`).
+- Tests use Vitest and Gherkin-style feature files in `test/`. Neo4j Community Edition is used in the dev container; tests use prefix-based isolation (enforced pattern: `test_<feature>_`).
 
 ## Goals for suggestions
 
@@ -25,16 +25,16 @@ When offering completions, prioritize suggestions that:
 - Queries: Load `.cypher` files via the project's `loadQuery()` utility (auto-imported from `server/utils/`). Do not inline complex Cypher in TS files.
 - Repository classes: Keep DB access logic in `server/repositories/*`. No business logic in repositories.
 - Service classes: Business rules, orchestration and validation live in `server/services/*` and return `{ data, count }` where appropriate.
-- Tests: Use the Gherkin-style feature files in `test/` and matching `.spec.ts` implementations. Test data must use the `test_` or `test-` prefixes.
+- Tests: Use the Gherkin-style feature files in `test/` and matching `.spec.ts` implementations. Test data must use the enforced prefix pattern `test_<feature>_`.
 - Migrations: Name migrations using the timestamp template and include `.up` and `.down` cypher files. Prefer small, idempotent changes.
 
 ## Scripts you should reference
 
-Use the scripts in `package.json` when producing run instructions or suggestions:
+Use the scripts in `package.json` when producing run instructions or suggestions. Run `npm run` to list available scripts. Example script names you may find in `package.json` include:
 - `npm run dev`, `npm run build`, `npm run preview`
 - `npm run migrate:status|up|down|create|validate`
 - `npm run seed`, `npm run seed:clear`
-- `npm test`, `npm run test:coverage`, `npm run test:ci`, `npm run test:smoke`
+- test/coverage-related scripts (see `package.json` for exact names)
 - `npm run lint`, `npm run lint:fix`, `npm run mdlint`
 
 ## Devcontainer & local environment
@@ -46,7 +46,7 @@ Use the scripts in `package.json` when producing run instructions or suggestions
 ## Tests & test data guidance
 
 - Always add tests for server/service/repository changes. Unit tests for services and integration tests for repositories are expected.
-- Use test data prefixes `test_` or `test-` and ensure cleanup with `afterAll` / `beforeEach` hooks or provided cleanup helpers.
+- Use test data prefixes following the `test_<feature>_` pattern and ensure cleanup with `afterAll` / `beforeEach` hooks or provided cleanup helpers.
 - When suggesting tests, include the matching `.feature` Gherkin file (if applicable) and a `.spec.ts` that implements the steps.
 
 ## Documentation & PR workflow
@@ -71,7 +71,7 @@ Use the scripts in `package.json` when producing run instructions or suggestions
 
 When changing code, suggest a short verification checklist, for example:
 1. Run `npm run lint` and `npm run mdlint`.
-2. Run `npm test` and `npm run test:coverage` locally (or `npm run test:ci` for CI-like output).
+2. Run the relevant test script(s) declared in `package.json` locally (use `npm run` to list available scripts). For CI-like output, run the script named for CI/tests in `package.json`.
 3. Run `npm run migrate:status` and `npm run migrate:validate` before applying migrations.
 4. Start the devcontainer (`Reopen in container`) or run `npm run dev` and check http://localhost:3000.
 

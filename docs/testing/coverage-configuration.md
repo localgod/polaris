@@ -18,30 +18,41 @@ Coverage is collected from all source files except those explicitly excluded.
 - **Test Files** (`test/**`) - Test code itself
 - **Build Artifacts** (`.nuxt/**`, `.output/**`, `dist/**`)
 
-## Rationale
+# Test Coverage Configuration
 
-### Why Exclude API Endpoints?
+## Overview
 
-API endpoints are thin HTTP handlers that:
-- Parse request parameters
-- Call service methods
-- Format responses
-- Handle HTTP errors
+The test suite is configured to measure coverage of the service and repository layers, which contain the core business logic and data access code.
 
-They are thoroughly tested via **integration tests** that verify the entire request/response cycle. Measuring line coverage of these files would be misleading because:
-- Most logic is in services (which ARE covered)
-- HTTP handling code is framework-specific
-- Integration tests provide better confidence
+## What's Covered
 
-### Why Exclude Query Files?
+Coverage is collected from all source files except those explicitly excluded by Vitest's configuration.
 
-Cypher query files (`.cypher`) are:
-- Tested indirectly via repository tests
-- Not executable TypeScript code
-- Version-controlled and reviewed
-- Validated by Neo4j at runtime
+### Excluded from Coverage
 
-Repository tests verify that queries execute correctly and return expected results.
+The project excludes a number of files and directories from coverage reporting (these globs come from `vitest.config.ts`):
+
+- `node_modules/**`
+- `dist/**`
+- `.nuxt/**`
+- `.output/**`
+- `**/*.d.ts`
+- `**/*.config.*`
+- `**/mockData/**`
+- `test/**`
+- `app/pages/**`
+- `app/components/**`
+- `app/plugins/**`
+- `server/api/**`
+- `server/database/queries/**`
+- `schema/scripts/**`
+- `server/scripts/**`
+
+These exclusions keep framework code, build artifacts, test code and non-TypeScript assets out of coverage calculations so the reports focus on application logic.
+
+## Coverage Provider and Reports
+
+Vitest is configured to use the V8 coverage provider. The test run generates multiple report formats: `text`, `html`, `json`, `lcov` and `json-summary`. Reports are written to `./coverage` by default (see `vitest.config.ts`).
 
 ## Coverage Thresholds
 
@@ -49,16 +60,11 @@ Repository tests verify that queries execute correctly and return expected resul
 
 ### Rationale
 
-The current test suite focuses on:
-- **Integration tests** - Testing full request/response cycles
-- **Model tests** - Testing database schema and relationships
-- **UI tests** - Testing user workflows
-
-These tests provide high confidence in system behavior but don't directly exercise service/repository code in isolation, resulting in low coverage percentages.
+The current test suite contains a mix of integration and unit tests. Integration tests (API and E2E) exercise the whole stack while unit tests focus on services and repositories. Because some logic lives in integration flows, and because query files and front-end code are excluded from coverage, the overall percentage can be misleading.
 
 ### Future Considerations
 
-As the test suite evolves to include more unit tests of service and repository layers, coverage thresholds may be introduced:
+As the test suite evolves, the project may add coverage thresholds. Example target ranges:
 
 - **Lines**: 70-80%
 - **Branches**: 60-70%
@@ -67,34 +73,27 @@ As the test suite evolves to include more unit tests of service and repository l
 
 ## Running Coverage
 
+There are npm scripts for running tests and coverage. The canonical coverage command is:
+
 ```bash
-# Run tests with coverage
 npm run test:coverage
-
-# View HTML report
-open coverage/index.html
-
-# View summary
-npm run test:coverage -- --reporter=text
 ```
+
+CI uses `npm run test:ci` (or layer-specific scripts) with the `--coverage` flag to generate coverage artifacts.
 
 ## Coverage Reports
 
-The test suite generates multiple report formats:
+The test run produces the following report formats:
 
 - **Text** - Console output
-- **HTML** - Interactive browser report
+- **HTML** - Interactive browser report (open `coverage/index.html`)
 - **JSON** - Machine-readable data
 - **LCOV** - For CI/CD integration
 - **JSON Summary** - Quick overview
 
 ## CI/CD Integration
 
-Coverage reports are automatically:
-- Generated on every test run
-- Uploaded to GitHub Actions artifacts
-- Commented on pull requests
-- Tracked over time
+The GitHub Actions CI runs tests with the `--coverage` flag, uploads the generated `coverage/` directory as an artifact per test layer, then merges/aggregates those artifacts in a follow-up job. The repository also uses a Vitest coverage-report Action to post a coverage summary on pull requests.
 
 ## Best Practices
 
@@ -171,15 +170,14 @@ test('API endpoint returns correct format', async () => {
 
 ## Viewing Coverage by Layer
 
+Use the coverage script name in `package.json` and pass any runtime flags you need. Run `npm run` to find the script name and then execute it with flags, for example:
+
 ```bash
-# Services only
-npm run test:coverage -- --include="server/services/**"
+# List scripts
+npm run
 
-# Repositories only
-npm run test:coverage -- --include="server/repositories/**"
-
-# Specific file
-npm run test:coverage -- --include="server/services/team.service.ts"
+# Run coverage script with additional flags
+# npm run <coverage-script> -- --include="server/services/**"
 ```
 
 ## Troubleshooting
@@ -194,7 +192,7 @@ npm run test:coverage -- --include="server/services/team.service.ts"
 
 - Clear coverage directory: `rm -rf coverage`
 - Rebuild: `npm run build`
-- Run tests again: `npm run test:coverage`
+- Run tests again using the coverage script declared in `package.json` (run `npm run` to list scripts)
 
 ### Files not appearing in coverage
 
