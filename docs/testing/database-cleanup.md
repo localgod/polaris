@@ -163,7 +163,7 @@ The test suite automatically cleans up test data:
 
 ## Best Practices
 
-### ✅ DO
+### Yes DO
 
 - Use unique prefixes for each test file: `test_<filename>_`
 - Clean up in `afterAll` hook
@@ -171,7 +171,7 @@ The test suite automatically cleans up test data:
 - Verify cleanup with `verifyCleanDatabase`
 - Use `DETACH DELETE` to remove relationships
 
-### ❌ DON'T
+### No DON'T
 
 - Create data without a test prefix
 - Rely on test execution order

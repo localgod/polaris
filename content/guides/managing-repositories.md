@@ -125,9 +125,9 @@ Add all repositories that comprise the system:
 ### Use Full URLs
 
 Always use complete HTTPS URLs:
-- ✅ `https://github.com/company/repo`
-- ❌ `github.com/company/repo`
-- ❌ `git@github.com:company/repo.git`
+- Yes `https://github.com/company/repo`
+- No `github.com/company/repo`
+- No `git@github.com:company/repo.git`
 
 Note: SSH URLs are automatically converted to HTTPS.
 

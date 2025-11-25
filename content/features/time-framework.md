@@ -172,7 +172,7 @@ The graph model enables analysis of your technology portfolio by TIME category:
 The model supports automatic detection of violations by comparing actual usage against TIME approvals:
 
 **Violation Types:**
-- ❌ **Using Unapproved Technology** - Team using technology with no approval (Eliminate by default)
+- No **Using Unapproved Technology** - Team using technology with no approval (Eliminate by default)
 - ⚠️ **Using Deprecated Technology** - Team using technology marked as Migrate or Tolerate
 - ⚠️ **Version Mismatch** - Team using version outside approved constraints
 
@@ -478,7 +478,7 @@ The TIME framework in the graph model enables various types of analysis and repo
 **Eliminate (0 technologies - 0%):**
 - No violations
 
-**Health Assessment:** ✅ Healthy portfolio
+**Health Assessment:** Yes Healthy portfolio
 - Good balance of strategic investments
 - Clear migration plans with realistic timelines
 - Minimal legacy debt

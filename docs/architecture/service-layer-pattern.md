@@ -131,16 +131,16 @@ server/database/queries/
 
 ### Use Service Layer When
 
-- ✅ Adding business logic (validation, rules)
-- ✅ Orchestrating multiple repositories
-- ✅ Transforming data for API responses
-- ✅ Maintaining consistent response format
+- Yes Adding business logic (validation, rules)
+- Yes Orchestrating multiple repositories
+- Yes Transforming data for API responses
+- Yes Maintaining consistent response format
 
 ### Skip Service Layer When
 
-- ❌ Simple health checks (direct driver access is fine)
-- ❌ Static configuration endpoints
-- ❌ Truly trivial pass-through operations
+- No Simple health checks (direct driver access is fine)
+- No Static configuration endpoints
+- No Truly trivial pass-through operations
 
 ## Naming Conventions
 
@@ -201,6 +201,133 @@ See the following files for reference implementations:
 - **Complex Query**: `server/api/systems/[name]/unmapped-components.get.ts`
 - **Authentication**: `server/api/auth/[...].ts`
 
+## Testing Strategy
+
+The 3-layer architecture enables **isolated testing** at each layer:
+
+### API Layer Tests (`test/server/api/`)
+
+**Mock the service layer** to test API contracts:
+
+```typescript
+import { vi } from 'vitest'
+import { ComponentService } from '../../../server/services/component.service'
+
+// Mock the service
+vi.mock('../../../server/services/component.service')
+
+vi.mocked(ComponentService.prototype.findAll).mockResolvedValue({
+  data: mockComponents,
+  count: 2
+})
+
+// Test API response structure
+const responseData = {
+  success: true,
+  data: result.data,
+  count: result.count
+}
+
+expect(responseData.success).toBe(true)
+expect(responseData.data).toHaveLength(2)
+```
+
+**What to test:**
+- Yes Response structure (success, data, count, error)
+- Yes Required fields and types
+- Yes Error handling (service failures)
+- No Business logic (tested in service layer)
+- No Database queries (tested in repository layer)
+
+### Service Layer Tests (`test/server/services/`)
+
+**Mock the repository layer** to test business logic:
+
+```typescript
+import { vi } from 'vitest'
+import { ComponentRepository } from '../../../server/repositories/component.repository'
+
+// Mock the repository
+vi.mock('../../../server/repositories/component.repository')
+
+vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue(mockComponents)
+
+// Test service logic
+const result = await componentService.findAll()
+
+expect(result.count).toBe(mockComponents.length)
+expect(result.data).toEqual(mockComponents)
+```
+
+**What to test:**
+- Yes Business rules and validation
+- Yes Data transformation
+- Yes Count calculation
+- Yes Error propagation
+- No HTTP concerns (tested in API layer)
+- No Database queries (tested in repository layer)
+
+### Repository Layer Tests (`test/server/repositories/`)
+
+**Use test database** with proper isolation:
+
+```typescript
+import neo4j from 'neo4j-driver'
+import { cleanupTestData } from '../../fixtures/db-cleanup'
+
+const TEST_PREFIX = 'test_component_repo_'
+let driver: Driver
+
+beforeEach(async () => {
+  componentRepo = new ComponentRepository(driver)
+  await cleanupTestData(driver, { prefix: TEST_PREFIX })
+})
+
+// Create test data
+await session.run(`
+  CREATE (c:Component {
+    name: $name,
+    version: $version
+  })
+`, { name: `${TEST_PREFIX}react`, version: '18.2.0' })
+
+// Test repository
+const result = await componentRepo.findAll()
+const testComponent = result.find(c => c.name === `${TEST_PREFIX}react`)
+
+expect(testComponent).toBeDefined()
+expect(testComponent.version).toBe('18.2.0')
+```
+
+**What to test:**
+- Yes Database queries execute correctly
+- Yes Data mapping from Neo4j records
+- Yes Query results match expectations
+- Yes Edge cases (empty results, null values)
+- No Business logic (tested in service layer)
+- No HTTP concerns (tested in API layer)
+
+### Testing Principles
+
+1. **Test in Isolation** - Each layer tests independently
+2. **Mock Dependencies** - Always mock the layer below
+3. **Fast Execution** - API/Service tests run in ~10ms, Repository tests in ~50-100ms
+4. **Clear Focus** - Each test layer has specific responsibilities
+
+### Test Execution Speed
+
+| Layer      | Mocks      | Database | Typical Speed | Focus          |
+|------------|-----------|----------|---------------|----------------|
+| API        | Service   | No        | ~10ms         | HTTP contracts |
+| Service    | Repository| No        | ~10ms         | Business logic |
+| Repository | None      | Yes        | ~50-100ms     | Data queries   |
+
+### Related Documentation
+
+- [Test Documentation](../../test/README.md) - Complete testing guide
+- [API Testing Guide](../../test/server/api/README.md) - API test patterns
+- [Test Isolation](../testing/test-isolation.md) - Database isolation strategy
+
 ## Last Updated
 
-2025-11-10 - Completed 3-layer architecture migration
+2025-11-24 - Added testing strategy documentation

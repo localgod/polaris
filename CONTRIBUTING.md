@@ -22,9 +22,9 @@ Thank you for your interest in contributing to Polaris! This document provides g
    - Open in VS Code with Dev Containers extension
    - Reopen in Container when prompted
    - Everything starts automatically:
-     - ✅ Neo4j service
-     - ✅ Environment variables (`.env` created)
-     - ✅ Dependencies installed
+     - Yes Neo4j service
+     - Yes Environment variables (`.env` created)
+     - Yes Dependencies installed
 
 3. **Verify setup**:
    ```bash
@@ -190,465 +190,127 @@ git push origin feature/your-feature-name
 
 ## Testing
 
-### Test Architecture
-
-Polaris uses a **three-layer testing strategy** for comprehensive coverage:
+Polaris uses a **three-layer testing strategy** that mirrors the service layer architecture:
 
 ```
-test/
-├── model/         # Layer 1: Database schema and data integrity
-│   ├── features/  # Gherkin feature files
-│   └── *.spec.ts  # Test implementations
-├── api/           # Layer 2: Business logic and API endpoints
-│   ├── *.feature  # Gherkin feature files
-│   └── *.spec.ts  # Test implementations
-├── ui/            # Layer 3: End-to-end user workflows
-│   ├── *.feature  # Gherkin feature files
-│   ├── *.spec.ts  # Test implementations
-│   └── setup.ts   # Playwright configuration
-└── helpers/       # Shared test utilities
+API Layer Tests → Service Layer Tests → Repository Layer Tests
+   (Mock Service)    (Mock Repository)    (Use Test Database)
 ```
 
-**Test Layers:**
+### Quick Reference
 
-1. **Model Layer** (41 tests) - Database schema, constraints, relationships
-   - Neo4j schema validation
-   - Data integrity checks
-   - Migration testing
-   - Policy enforcement
+| Layer      | Location                    | Mocks      | Database | Speed      | Focus           |
+|------------|-----------------------------|-----------|---------|-----------|--------------------|
+| API        | `test/server/api/`          | Service   | No       | ~10ms     | HTTP contracts     |
+| Service    | `test/server/services/`     | Repository| No       | ~10ms     | Business logic     |
+| Repository | `test/server/repositories/` | None      | Yes       | ~50-100ms | Data queries       |
 
-2. **API Layer** (18 tests) - Business logic and endpoints
-   - API endpoint functionality
-   - Request/response validation
-   - Error handling
-   - Integration with database
+### Complete Testing Documentation
 
-3. **UI Layer** (1 test) - End-to-end user workflows
-   - Browser automation with Playwright
-   - User interaction flows
-   - Visual validation
-   - Cross-browser testing
+**For comprehensive testing information, see:**
 
-Each test includes:
-- `.feature` file - Gherkin feature description in plain language
-- `.spec.ts` file - Test implementation with Vitest
+- **[Testing Documentation](docs/testing/README.md)** ⭐ - Start here
+  - Complete testing guide
+  - Three-layer strategy explained
+  - Quick start and examples
+  
+- **[Backend Testing Guide](docs/testing/backend-testing-guide.md)** - Detailed guide
+  - Layer-by-layer examples
+  - Best practices
+  - Common patterns
+  
+- **[API Tests](test/server/api/README.md)** - API layer guide
+- **[Service Tests](test/server/services/README.md)** - Service layer guide
+- **[Repository Tests](test/server/repositories/README.md)** - Repository layer guide
+
+### Test Structure
+
+Each backend test layer follows a specific pattern:
+
+```
+test/server/
+├── api/              # API endpoint tests (mock service)
+│   ├── README.md     # API testing guide
+│   └── *.spec.ts     # Test files
+├── services/         # Service layer tests (mock repository)
+│   ├── README.md     # Service testing guide
+│   └── *.spec.ts     # Test files
+└── repositories/     # Repository layer tests (use database)
+    ├── README.md     # Repository testing guide
+    └── *.spec.ts     # Test files
+```
 
 ### Running Tests
 
 ```bash
-# Run all tests (60 tests across all layers)
+# Run all tests
 npm test
 
 # Run by layer
-npm run test:model    # Model layer (41 tests)
-npm run test:api      # API layer (18 tests)
-npm run test:ui       # UI layer (1 test)
-
-# Run smoke tests (6 critical tests across all layers)
-npm run test:smoke
+npm run test:server:api          # API tests
+npm run test:server:services     # Service tests
+npm run test:server:repositories # Repository tests
 
 # Run with coverage
 npm run test:coverage
 
-# Run with UI
-npm run test:ui
-
-# View coverage report
-open coverage/index.html
+# Watch mode
+npm run test:watch
 ```
-
-### CI/CD Testing
-
-Tests run in **parallel** in GitHub Actions for faster feedback:
-
-- **4 parallel jobs**: model, api, ui, smoke
-- **~60% faster** than sequential execution
-- **Layer-specific failures** for better debugging
-- **Coverage reporting** per layer with merged results
-
-See [Phase 5 Migration](PHASE5_MIGRATION_COMPLETE.md) for CI/CD details.
 
 ### Writing Tests
 
-**All tests MUST use Gherkin-style BDD syntax** for consistency and readability.
+When adding new tests, follow the three-layer pattern:
 
-#### Test Structure
-
-Every test consists of two files:
-
-1. **`.feature` file** - Human-readable specification in Gherkin syntax
-2. **`.spec.ts` file** - Test implementation using the Gherkin helper
-
-#### Example: Basic Test
-
-**File: `test/api/my-feature.feature`**
-```gherkin
-Feature: My Feature
-  As a user
-  I want to perform an action
-  So that I can achieve a goal
-
-  Scenario: Successful action
-    Given a precondition exists
-    When I perform an action
-    Then I should see the expected result
-    And the system should be in the correct state
-```
-
-**File: `test/api/my-feature.spec.ts`**
+**1. API Layer Tests** - Mock service, test HTTP contracts
 ```typescript
-import { expect } from 'vitest'
-import { Feature } from '../helpers/gherkin'
+import { vi } from 'vitest'
+import { ComponentService } from '../../../server/services/component.service'
 
-Feature('My Feature', ({ Scenario }) => {
-  Scenario('Successful action', ({ Given, When, Then, And }) => {
-    let result: any
-
-    Given('a precondition exists', () => {
-      // Setup code
-    })
-
-    When('I perform an action', () => {
-      result = performAction()
-    })
-
-    Then('I should see the expected result', () => {
-      expect(result).toBe(expected)
-    })
-
-    And('the system should be in the correct state', () => {
-      expect(something).toBeDefined()
-    })
-  })
-})
+vi.mock('../../../server/services/component.service')
+// Test API response structure
 ```
 
-#### Why Gherkin?
-
-- **Readable** - Non-technical stakeholders can understand tests
-- **Consistent** - All tests follow the same structure
-- **Traceable** - Feature files serve as living documentation
-- **Maintainable** - Clear separation between specification and implementation
-
-### Testing Model Layer
-
-Model layer tests validate database schema, constraints, and data integrity using Neo4j directly.
-
-#### Pattern: Model Test
-
-**File: `test/model/features/my-model.feature`**
-```gherkin
-Feature: My Model
-  As a developer
-  I want to validate the data model
-  So that I can ensure data integrity
-
-  Scenario: Create entity with required properties
-    Given test data has been created
-    When I create an entity with all properties
-    Then the entity should exist in the database
-    And all properties should be set correctly
-```
-
-**File: `test/model/my-model.spec.ts`**
+**2. Service Layer Tests** - Mock repository, test business logic
 ```typescript
-import { expect, beforeAll, afterAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
-import neo4j, { type Driver } from 'neo4j-driver'
+import { vi } from 'vitest'
+import { ComponentRepository } from '../../../server/repositories/component.repository'
 
-Feature('My Model @model @schema', ({ Scenario }) => {
-  let driver: Driver
-  const testPrefix = 'test_'
-
-  beforeAll(async () => {
-    driver = neo4j.driver(
-      process.env.NEO4J_URI || 'bolt://localhost:7687',
-      neo4j.auth.basic(
-        process.env.NEO4J_USERNAME || 'neo4j',
-        process.env.NEO4J_PASSWORD || 'devpassword'
-      )
-    )
-  })
-
-  afterAll(async () => {
-    const session = driver.session()
-    try {
-      await session.run(`
-        MATCH (n) WHERE n.name STARTS WITH $prefix
-        DETACH DELETE n
-      `, { prefix: testPrefix })
-    } finally {
-      await session.close()
-      await driver.close()
-    }
-  })
-
-  Scenario('Create entity with required properties', ({ Given, When, Then, And }) => {
-    let result: any
-
-    Given('test data has been created', () => {
-      expect(driver).toBeDefined()
-    })
-
-    When('I create an entity with all properties', async () => {
-      const session = driver.session()
-      try {
-        await session.run(`
-          CREATE (e:Entity {
-            name: $name,
-            status: $status
-          })
-        `, {
-          name: `${testPrefix}Entity`,
-          status: 'active'
-        })
-      } finally {
-        await session.close()
-      }
-    })
-
-    Then('the entity should exist in the database', async () => {
-      const session = driver.session()
-      try {
-        result = await session.run(`
-          MATCH (e:Entity {name: $name})
-          RETURN e
-        `, { name: `${testPrefix}Entity` })
-        
-        expect(result.records).toHaveLength(1)
-      } finally {
-        await session.close()
-      }
-    })
-
-    And('all properties should be set correctly', () => {
-      const entity = result.records[0].get('e')
-      expect(entity.properties.name).toBe(`${testPrefix}Entity`)
-      expect(entity.properties.status).toBe('active')
-    })
-  })
-})
+vi.mock('../../../server/repositories/component.repository')
+// Test business rules and data transformation
 ```
 
-### Testing API Endpoints
-
-API tests use Gherkin BDD with custom API client helpers that work with a running dev server.
-
-#### Pattern: API Endpoint Test
-
-**File: `test/api/my-endpoint.feature`**
-```gherkin
-Feature: My API Endpoint
-  As an API consumer
-  I want to retrieve data
-  So that I can use it in my application
-
-  Scenario: Successful data retrieval
-    Given the API server is running
-    When I request the endpoint
-    Then I should receive a successful response
-    And the response should contain valid data
-```
-
-**File: `test/api/my-endpoint.spec.ts`**
+**3. Repository Layer Tests** - Use test database, test queries
 ```typescript
-import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
-import { apiGet, apiPost, checkServerHealth } from '../helpers/api-client'
+import neo4j from 'neo4j-driver'
+import { cleanupTestData } from '../../fixtures/db-cleanup'
 
-Feature('My API Endpoint', ({ Scenario }) => {
-  let serverRunning = false
-
-  beforeAll(async () => {
-    serverRunning = await checkServerHealth()
-    if (!serverRunning) {
-      console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
-      console.warn('   These tests will be skipped.\n')
-    }
-  })
-
-  Scenario('Successful data retrieval', ({ Given, When, Then, And }) => {
-    let response: any
-
-    Given('the API server is running', () => {
-      if (!serverRunning) {
-        console.log('   ⏭️  Skipping - server not available')
-        return
-      }
-      expect(serverRunning).toBe(true)
-    })
-
-    When('I request the endpoint', async () => {
-      if (!serverRunning) return
-      response = await apiGet('/api/my-endpoint')
-    })
-
-    Then('I should receive a successful response', () => {
-      if (!serverRunning) return
-      expect(response.success).toBe(true)
-    })
-
-    And('the response should contain valid data', () => {
-      if (!serverRunning) return
-      expect(response.data).toBeDefined()
-      expect(response.count).toBeGreaterThanOrEqual(0)
-    })
-  })
-})
+const TEST_PREFIX = 'test_component_repo_'
+// Test database queries with proper isolation
 ```
 
-#### Key Points
+**For complete examples and patterns, see:**
+- [API Testing Guide](test/server/api/README.md)
+- [Service Testing Guide](test/server/services/README.md)
+- [Repository Testing Guide](test/server/repositories/README.md)
 
-- **Use custom API helpers** - `apiGet()`, `apiPost()` from `test/helpers/api-client`
-- **Check server health** - Use `checkServerHealth()` in `beforeAll()`
-- **Graceful skipping** - Tests skip when dev server isn't running
-- **Manual server start** - Run `npm run dev` before running tests
-- **Guard all steps** - Check `serverRunning` in each step to skip gracefully
+### Test Data Isolation
 
-### Testing UI Layer
+All test data must use the `test_` prefix:
 
-UI tests use Playwright for end-to-end browser automation and user workflow testing.
-
-#### Pattern: UI Test
-
-**File: `test/ui/my-feature.feature`**
-```gherkin
-Feature: My Feature UI
-  As a user
-  I want to interact with the application
-  So that I can accomplish my goal
-
-  Scenario: User completes workflow
-    Given the application server is running
-    When I navigate to the feature page
-    Then the page should load successfully
-    And I should see the expected content
-```
-
-**File: `test/ui/my-feature.spec.ts`**
 ```typescript
-import { expect, beforeAll } from 'vitest'
-import { Feature } from '../helpers/gherkin'
-import { chromium, type Browser, type Page } from '@playwright/test'
-import { checkServerHealth } from '../helpers/api-client'
+const TEST_PREFIX = 'test_myfeature_'
 
-Feature('My Feature UI @ui @e2e', ({ Scenario }) => {
-  let browser: Browser
-  let page: Page
-  let serverRunning = false
-  const appURL = process.env.NUXT_TEST_BASE_URL || 'http://localhost:3000'
+// Create test data
+await session.run(`
+  CREATE (n:Node {name: $name})
+`, { name: `${TEST_PREFIX}node1` })
 
-  beforeAll(async () => {
-    serverRunning = await checkServerHealth()
-    
-    if (!serverRunning) {
-      console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
-      console.warn('   UI tests will be skipped.\n')
-    }
-  })
-
-  Scenario('User completes workflow', ({ Given, When, Then, And }) => {
-    Given('the application server is running', () => {
-      if (!serverRunning) {
-        console.log('   ⏭️  Skipping - server not available')
-        return
-      }
-      expect(serverRunning).toBe(true)
-    })
-
-    When('I navigate to the feature page', async () => {
-      if (!serverRunning) return
-      
-      if (!browser) {
-        browser = await chromium.launch({ headless: true })
-      }
-      
-      page = await browser.newPage()
-      await page.goto(`${appURL}/feature`, { waitUntil: 'domcontentloaded' })
-    })
-
-    Then('the page should load successfully', async () => {
-      if (!serverRunning) return
-      expect(page).toBeDefined()
-      expect(page.url()).toContain('/feature')
-    })
-
-    And('I should see the expected content', async () => {
-      if (!serverRunning) return
-      const heading = await page.textContent('h1')
-      expect(heading).toBeTruthy()
-      
-      if (page) await page.close()
-      if (browser) await browser.close()
-    })
-  })
-})
+// Clean up after tests
+await cleanupTestData(driver, { prefix: TEST_PREFIX })
 ```
 
-**Key Points:**
-- **Playwright** - Browser automation for E2E testing
-- **Graceful skipping** - Tests skip when dev server isn't running
-- **Manual server start** - Run `npm run dev` before running UI tests
-- **Cleanup** - Always close browser and page in final step
-
-### Testing with Neo4j
-
-Tests run against a real Neo4j instance:
-- **Dev Container**: Neo4j starts automatically
-- **CI**: Neo4j service container with health checks
-- **Credentials**: `neo4j/devpassword` (dev) or `neo4j/testpassword` (CI)
-
-The test environment automatically configures Neo4j connection via environment variables.
-
-### Coverage Requirements
-
-**Current Thresholds:**
-- **Lines**: 5%
-- **Branches**: 5%
-- **Functions**: 5%
-- **Statements**: 5%
-
-**Target Thresholds (Roadmap):**
-- **Lines**: 80%
-- **Branches**: 70%
-- **Functions**: 80%
-- **Statements**: 80%
-
-**Note:** Thresholds are intentionally low while building out the test suite. We're working toward comprehensive coverage across all layers.
-
-**Current Coverage:**
-- **Total Tests**: 60 tests across 11 files
-- **Model Layer**: 41 tests (schema, relationships, policies)
-- **API Layer**: 18 tests (endpoints, business logic)
-- **UI Layer**: 1 test (E2E smoke test)
-- **Smoke Tests**: 6 critical path tests
-
-Coverage is automatically reported in pull requests with:
-- Overall coverage summary
-- Per-layer coverage breakdown
-- File-level coverage for changed files
-- Links to uncovered lines
-- Threshold status indicators
-
-See [Recommended Future Work](RECOMMENDED_FUTURE_WORK.md) for coverage improvement roadmap.
-
-### Test File Requirements
-
-Every test MUST include:
-
-1. **`.feature` file** - Gherkin specification
-   - Clear feature description with user story
-   - One or more scenarios
-   - Given/When/Then/And steps
-
-2. **`.spec.ts` file** - Test implementation
-   - Import Gherkin helper: `import { Feature } from '../helpers/gherkin'`
-   - Match scenario names exactly
-   - Implement all steps from feature file
-
-3. **Proper cleanup** - Clean up test data in `afterAll()` or final `And()` step
-
-4. **Meaningful assertions** - No placeholder tests like `expect(true).toBe(true)`
+See [Test Isolation Guide](docs/testing/test-isolation.md) for details.
 
 ## Database Management
 
@@ -889,12 +551,12 @@ Pull requests automatically receive:
 ### Dev Container Features
 
 The dev container automatically provides:
-- ✅ Node.js LTS
-- ✅ Docker-in-Docker
-- ✅ Neo4j 5 Community Edition (auto-starts)
-- ✅ Environment variables (`.env` auto-created)
-- ✅ Dependencies (auto-installed)
-- ✅ VS Code extensions:
+- Yes Node.js LTS
+- Yes Docker-in-Docker
+- Yes Neo4j 5 Community Edition (auto-starts)
+- Yes Environment variables (`.env` auto-created)
+- Yes Dependencies (auto-installed)
+- Yes VS Code extensions:
   - PlantUML
   - Markdown Lint
   - Error Lens
