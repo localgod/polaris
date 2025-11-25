@@ -40,6 +40,7 @@
     "migrate:down": "tsx schema/scripts/migrate.ts down",
     "migrate:create": "tsx schema/scripts/migrate.ts create",
     "migrate:validate": "tsx schema/scripts/migrate.ts validate",
+    "schema:query": "node scripts/query-schema.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:server": "vitest run test/server",

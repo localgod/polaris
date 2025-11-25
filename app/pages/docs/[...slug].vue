@@ -66,7 +66,6 @@ useHead({
 /* Prose styling for markdown content */
 .prose {
   color: #374151;
-  max-width: 65ch;
 }
 
 .dark .prose {
