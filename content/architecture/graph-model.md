@@ -525,7 +525,7 @@ graph TB
 ```
 Technology: React (approved by Frontend Platform)
 Component: react@18.2.0 (used in Customer Portal)
-Status: ✅ Compliant - Component version within approved range
+Status: Yes Compliant - Component version within approved range
 ```
 
 **Scenario 2: Version Violation**
@@ -539,7 +539,7 @@ Status: ⚠️ Warning - Component version outside approved range
 ```
 Technology: jQuery (deprecated, not approved)
 Component: jquery@3.6.0 (used in Admin Dashboard)
-Status: ❌ Violation - Using deprecated technology without approval
+Status: No Violation - Using deprecated technology without approval
 ```
 
 **Scenario 4: Transitive Dependency**
@@ -592,10 +592,10 @@ Repository: github.com/company/api-gateway
 Systems: API Gateway, Auth Service, Rate Limiter
 
 SBOM Pushed → 3 Systems Updated → 150 Components Discovered
-  ├─ 45 Components mapped to approved Technologies ✅
+  ├─ 45 Components mapped to approved Technologies Yes
   ├─ 100 Components are transitive dependencies ℹ️
   ├─ 3 Components have known vulnerabilities ⚠️
-  └─ 2 Components use unapproved Technologies ❌
+  └─ 2 Components use unapproved Technologies No
 ```
 
 ## Policy Governance Model

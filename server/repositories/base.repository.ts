@@ -7,8 +7,9 @@ import type { Driver, QueryResult } from 'neo4j-driver'
 export abstract class BaseRepository {
   protected driver: Driver
 
-  constructor() {
-    this.driver = useDriver() // Singleton driver from nuxt-neo4j
+  constructor(driver?: Driver) {
+    // Allow driver injection for testing, otherwise use Nuxt composable
+    this.driver = driver || useDriver() // Singleton driver from nuxt-neo4j
   }
 
   /**

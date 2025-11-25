@@ -158,12 +158,12 @@ Key:
 
 ## Scenarios
 
-### Scenario 1: Compliant Usage ✅
+### Scenario 1: Compliant Usage Yes
 
 ```
 Technology: React (approved by Frontend Platform)
 Component: react@18.2.0 (used in Customer Portal)
-Status: ✅ Compliant - Component version within approved range
+Status: Yes Compliant - Component version within approved range
 ```
 
 ### Scenario 2: Version Violation ⚠️
@@ -174,12 +174,12 @@ Component: react@17.0.2 (used in Legacy App)
 Status: ⚠️ Warning - Component version outside approved range
 ```
 
-### Scenario 3: Unapproved Technology ❌
+### Scenario 3: Unapproved Technology No
 
 ```
 Technology: jQuery (deprecated, not approved)
 Component: jquery@3.6.0 (used in Admin Dashboard)
-Status: ❌ Violation - Using deprecated technology without approval
+Status: No Violation - Using deprecated technology without approval
 ```
 
 ### Scenario 4: Transitive Dependency ℹ️

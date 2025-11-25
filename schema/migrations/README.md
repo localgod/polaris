@@ -77,7 +77,7 @@ npm run migrate:down -- --to=2025.10.15.143022
 
 ## Migration Best Practices
 
-### ✅ DO
+### Yes DO
 
 - **Write idempotent migrations** - Use `IF NOT EXISTS` / `IF EXISTS`
 - **Include rollback scripts** - Always provide a `.down.cypher`
@@ -87,7 +87,7 @@ npm run migrate:down -- --to=2025.10.15.143022
 - **Use transactions** - Wrap related changes together
 - **Version everything** - Commit migrations with code changes
 
-### ❌ DON'T
+### No DON'T
 
 - **Modify applied migrations** - Create a new migration instead
 - **Skip rollback scripts** - Always provide a way back
