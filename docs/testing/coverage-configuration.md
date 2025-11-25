@@ -8,7 +8,7 @@ The test suite is configured to measure coverage of the service and repository l
 
 Coverage is collected from all source files except those explicitly excluded.
 
-### ❌ Excluded from Coverage
+### No Excluded from Coverage
 
 - **API Endpoints** (`server/api/**`) - Thin HTTP handlers tested via integration tests
 - **Query Files** (`server/database/queries/**`) - Cypher files tested via repository tests
@@ -98,7 +98,7 @@ Coverage reports are automatically:
 
 ## Best Practices
 
-### ✅ DO
+### Yes DO
 
 - Write unit tests for services and repositories
 - Test business logic thoroughly
@@ -106,7 +106,7 @@ Coverage reports are automatically:
 - Aim for high coverage of critical paths
 - Test error handling and edge cases
 
-### ❌ DON'T
+### No DON'T
 
 - Chase 100% coverage
 - Test framework code

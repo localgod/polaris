@@ -192,59 +192,21 @@ See [Dev Container README](.devcontainer/README.md) and [Gitpod Automations](.on
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) with Gherkin-style BDD syntax and a **three-layer testing strategy**.
+This project uses [Vitest](https://vitest.dev/) with a three-layer testing strategy.
 
-### Test Data Isolation
+```bash
+# Run all tests
+npm test
 
-Tests use **namespace-based isolation** to prevent corrupting development data:
-
-- All test data is prefixed with `test_` or `test-` (both patterns supported)
-- Automatic cleanup in test hooks
-- Global setup clears test data before runs
-
-**Note**: The Neo4j Community Edition instance doesn't support multiple databases. Tests share the same database as development but use prefixed data for isolation.
-
-See [Test Isolation Guide](docs/testing/test-isolation.md) for detailed information.
-
-### Test Architecture
-
-**75 tests across 3 layers:**
-
-1. **Model Layer** (41 tests) - Database schema and data integrity
-   - Neo4j schema validation
-   - Relationship constraints
-   - Policy enforcement
-   - Migration testing
-
-2. **API Layer** (18 tests) - Business logic and endpoints
-   - API endpoint functionality
-   - Request/response validation
-   - Error handling
-   - Integration testing
-
-3. **UI Layer** (1 test) - End-to-end user workflows
-   - Browser automation with Playwright
-   - User interaction flows
-   - Visual validation
-
-### Test Organization
-
-```
-test/
-├── model/         # Layer 1: Database schema (41 tests)
-│   ├── features/  # Gherkin feature files
-│   └── *.spec.ts  # Test implementations
-├── api/           # Layer 2: API endpoints (18 tests)
-│   ├── *.feature  # Gherkin feature files
-│   └── *.spec.ts  # Test implementations
-├── ui/            # Layer 3: E2E workflows (1 test)
-│   ├── *.feature  # Gherkin feature files
-│   ├── *.spec.ts  # Test implementations
-│   └── setup.ts   # Playwright configuration
-└── helpers/       # Shared test utilities
+# Run by layer
+npm run test:server:api          # API tests
+npm run test:server:services     # Service tests
+npm run test:server:repositories # Repository tests
 ```
 
-Each test includes a `.feature` file (Gherkin scenarios) and `.spec.ts` file (implementation).
+**For detailed testing information, see:**
+- **[Testing Documentation](docs/testing/README.md)** - Complete testing guide
+- **[Contributing Guide](CONTRIBUTING.md#testing)** - How to write tests
 
 ## Features
 

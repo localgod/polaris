@@ -2,7 +2,7 @@
 
 ## Import Patterns for Nuxt 4 Server
 
-### ✅ Correct Import Patterns
+### Yes Correct Import Patterns
 
 #### In API Routes (`server/api/**/*.ts`)
 
@@ -44,18 +44,18 @@ import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { someHelper } from './other-util'
 ```
 
-### ❌ Incorrect Import Patterns
+### No Incorrect Import Patterns
 
 ```typescript
-// ❌ DON'T use ~/server/ in server files
+// No DON'T use ~/server/ in server files
 import { TechnologyService } from '~/server/services/technology.service'
 // This causes: ENOENT: no such file or directory, open '/app//server/...'
 
-// ❌ DON'T use @ alias in server files
+// No DON'T use @ alias in server files
 import { TechnologyService } from '@/server/services/technology.service'
 // @ alias is for client-side code
 
-// ❌ DON'T use absolute paths
+// No DON'T use absolute paths
 import { TechnologyService } from '/server/services/technology.service'
 ```
 
@@ -76,7 +76,7 @@ Files in `server/utils/` are **automatically imported** everywhere in the server
 export async function loadQuery(path: string) { /* ... */ }
 
 // server/repositories/technology.repository.ts
-// ✅ No import needed! loadQuery is auto-imported
+// Yes No import needed! loadQuery is auto-imported
 async findAll() {
   const query = await loadQuery('technologies/find-all.cypher')
   // ...
@@ -169,10 +169,10 @@ export class EntityRepository extends BaseRepository {
 
 **Solution**: Change to relative import
 ```typescript
-// ❌ Before
+// No Before
 import { Service } from '~/server/services/service'
 
-// ✅ After
+// Yes After
 import { Service } from '../services/service'
 ```
 
@@ -186,8 +186,8 @@ import { Service } from '../services/service'
 
 ## Best Practices
 
-1. ✅ **Always use relative imports** for server-to-server imports
-2. ✅ **Use `~~` for types** - Works everywhere consistently
-3. ✅ **Leverage auto-imports** - Put utilities in `server/utils/`
-4. ✅ **Be consistent** - Follow the same pattern across all files
-5. ✅ **Test imports** - Run `npm run lint` to catch import issues early
+1. Yes **Always use relative imports** for server-to-server imports
+2. Yes **Use `~~` for types** - Works everywhere consistently
+3. Yes **Leverage auto-imports** - Put utilities in `server/utils/`
+4. Yes **Be consistent** - Follow the same pattern across all files
+5. Yes **Test imports** - Run `npm run lint` to catch import issues early

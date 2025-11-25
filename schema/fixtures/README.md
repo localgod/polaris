@@ -241,7 +241,7 @@ seed-database:
   command: |
     echo "🌱 Seeding database with fixture data..."
     npm run seed
-    echo "✅ Database seeded successfully"
+    echo "Yes Database seeded successfully"
 ```
 
 ### Reset Database Task
@@ -253,7 +253,7 @@ reset-database:
     echo "🔄 Resetting database to known state..."
     echo "⚠️  This will clear all non-migration data!"
     npm run seed:clear
-    echo "✅ Database reset complete"
+    echo "Yes Database reset complete"
 ```
 
 ## Best Practices

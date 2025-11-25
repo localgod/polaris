@@ -9,11 +9,11 @@ The test directory is organized to mirror the source code architecture:
 ```
 test/
 ├── server/                 # Backend tests (mirrors ./server)
-│   ├── api/               # API endpoint integration tests
+│   ├── api/               # API endpoint tests (mock service layer)
+│   ├── services/          # Service layer tests (mock repository layer)
+│   ├── repositories/      # Repository layer tests (use test database)
 │   ├── integration/       # Complex business workflows
-│   ├── utils/             # Server utility tests
-│   ├── services/          # Service layer (placeholder)
-│   └── repositories/      # Repository layer (placeholder)
+│   └── utils/             # Server utility tests
 ├── app/                   # Frontend tests (mirrors ./app)
 │   ├── e2e/              # E2E/UI tests
 │   ├── components/       # Component tests (placeholder)
@@ -22,9 +22,154 @@ test/
 ├── schema/                # Database schema tests
 │   └── migrations/
 ├── fixtures/              # Shared test helpers
-├── helpers/               # Legacy helpers (being phased out)
-├── model/                 # Legacy model tests (being phased out)
 └── setup/                 # Global test setup/teardown
+
+```
+
+## Backend Testing Strategy
+
+Polaris follows a **three-layer testing approach** that mirrors the service layer architecture:
+
+### Layer 1: API Tests (`test/server/api/`)
+
+**Purpose:** Test API contracts and response structures
+
+**Approach:** Mock the service layer
+- Yes Test HTTP response structure
+- Yes Test required fields and types
+- Yes Test error handling
+- No No database calls
+- No No business logic testing
+
+**Example:**
+```typescript
+import { vi } from 'vitest'
+import { ComponentService } from '../../../server/services/component.service'
+
+vi.mock('../../../server/services/component.service')
+
+// Mock service response
+vi.mocked(ComponentService.prototype.findAll).mockResolvedValue({
+  data: mockComponents,
+  count: mockComponents.length
+})
+
+// Test API response structure
+const responseData = {
+  success: true,
+  data: result.data,
+  count: result.count
+}
+expect(responseData.success).toBe(true)
+```
+
+### Layer 2: Service Tests (`test/server/services/`)
+
+**Purpose:** Test business logic and data transformation
+
+**Approach:** Mock the repository layer
+- Yes Test business rules
+- Yes Test data transformation
+- Yes Test error propagation
+- Yes Test count calculation
+- No No database calls
+- No No API concerns
+
+**Example:**
+```typescript
+import { vi } from 'vitest'
+import { ComponentRepository } from '../../../server/repositories/component.repository'
+
+vi.mock('../../../server/repositories/component.repository')
+
+// Mock repository response
+vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue(mockComponents)
+
+// Test service logic
+const result = await componentService.findAll()
+expect(result.count).toBe(mockComponents.length)
+```
+
+### Layer 3: Repository Tests (`test/server/repositories/`)
+
+**Purpose:** Test database queries and data mapping
+
+**Approach:** Use test database with isolation
+- Yes Test actual database queries
+- Yes Test data mapping from Neo4j
+- Yes Test query correctness
+- Yes Use test data prefixes (`test_`)
+- No No business logic
+- No No API concerns
+
+**Example:**
+```typescript
+import neo4j from 'neo4j-driver'
+import { cleanupTestData } from '../../fixtures/db-cleanup'
+
+const TEST_PREFIX = 'test_component_repo_'
+let driver: Driver
+
+beforeEach(async () => {
+  componentRepo = new ComponentRepository(driver)
+  await cleanupTestData(driver, { prefix: TEST_PREFIX })
+})
+
+// Create test data
+await session.run(`
+  CREATE (c:Component {
+    name: $name,
+    version: $version
+  })
+`, { name: `${TEST_PREFIX}react`, version: '18.2.0' })
+
+// Test repository
+const result = await componentRepo.findAll()
+expect(result.find(c => c.name === `${TEST_PREFIX}react`)).toBeDefined()
+```
+
+## Testing Principles
+
+### 1. Test Isolation
+
+Each layer tests in isolation:
+- **API tests** don't call services
+- **Service tests** don't call repositories
+- **Repository tests** don't include business logic
+
+### 2. Mock Dependencies
+
+Always mock the layer below:
+- API tests mock services
+- Service tests mock repositories
+- Repository tests use real database (with test prefixes)
+
+### 3. Fast Execution
+
+- API tests: ~10ms (no I/O)
+- Service tests: ~10ms (no I/O)
+- Repository tests: ~50-100ms (database I/O)
+
+### 4. Clear Responsibilities
+
+Each test layer has a specific focus:
+- **API:** Response contracts
+- **Service:** Business logic
+- **Repository:** Data access
+
+## Quick Reference
+
+| Layer      | Mocks      | Database | Speed  | Focus          |
+|------------|-----------|----------|--------|----------------|
+| API        | Service   | No        | Fast   | HTTP contracts |
+| Service    | Repository| No        | Fast   | Business logic |
+| Repository | None      | Yes        | Medium | Data queries   |
+
+## Related Documentation
+
+- [API Testing Guide](./server/api/README.md) - Detailed API testing patterns
+- [Test Isolation](../docs/testing/test-isolation.md) - Database isolation strategy
+- [Service Layer Pattern](../docs/architecture/service-layer-pattern.md) - Architecture overview
 
 ```
 
@@ -159,7 +304,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
 - **beforeAll**: Runs ONCE before all scenarios (Vitest hook, outside describeFeature)
 
 ```typescript
-// ✅ CORRECT
+// Yes CORRECT
 let serverRunning = false
 
 beforeAll(async () => {
@@ -176,7 +321,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 })
 
-// ❌ WRONG - Don't put beforeAll inside describeFeature
+// No WRONG - Don't put beforeAll inside describeFeature
 describeFeature(feature, ({ Background, Scenario }) => {
   beforeAll(async () => {  // This will cause issues!
     // ...
@@ -257,31 +402,31 @@ Tests are organized by category using tags in feature files:
 
 ### 1. Feature Files
 
-- ✅ Use clear, business-focused language
-- ✅ One feature per file
-- ✅ Use Background for common setup
-- ✅ Keep scenarios focused and independent
-- ❌ Don't include implementation details
+- Yes Use clear, business-focused language
+- Yes One feature per file
+- Yes Use Background for common setup
+- Yes Keep scenarios focused and independent
+- No Don't include implementation details
 
 ### 2. Spec Files
 
-- ✅ Match scenario names exactly
-- ✅ Implement all steps from feature file
-- ✅ Use Background for repeated setup
-- ✅ Keep step implementations simple
-- ❌ Don't skip scenarios without good reason
+- Yes Match scenario names exactly
+- Yes Implement all steps from feature file
+- Yes Use Background for repeated setup
+- Yes Keep step implementations simple
+- No Don't skip scenarios without good reason
 
 ### 3. Step Definitions
 
-- ✅ Given: Setup/preconditions
-- ✅ When: Actions/events
-- ✅ Then: Assertions/outcomes
-- ✅ And/But: Additional steps of same type
+- Yes Given: Setup/preconditions
+- Yes When: Actions/events
+- Yes Then: Assertions/outcomes
+- Yes And/But: Additional steps of same type
 
 ### 4. Shared State
 
 ```typescript
-// ✅ GOOD - Shared state in closure
+// Yes GOOD - Shared state in closure
 describeFeature(feature, ({ Scenario }) => {
   let sharedData: any  // Accessible to all scenarios
 
@@ -312,12 +457,12 @@ This means a step in your feature file isn't implemented in the spec file.
 Background steps must be implemented using the `Background` function:
 
 ```typescript
-// ❌ WRONG
+// No WRONG
 Scenario('Test', ({ Given }) => {
   Given('background step', () => {})  // Don't implement Background steps here
 })
 
-// ✅ CORRECT
+// Yes CORRECT
 Background(({ Given }) => {
   Given('background step', () => {})  // Implement Background steps here
 })
