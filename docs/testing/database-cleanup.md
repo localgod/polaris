@@ -273,13 +273,13 @@ Feature('My Feature @model', ({ Scenario }) => {
 
 ### Tests failing due to leftover data
 
-1. Run global setup manually: `npm run test:setup`
+1. Global setup/teardown scripts are declared in `package.json`; run `npm run` to list available test/setup scripts and use the appropriate script name for manual setup
 2. Check for tests without proper cleanup
 3. Ensure unique prefixes per test file
 
 ### Database bloat
 
-1. Run global teardown: `npm run test:teardown`
+1. Global teardown scripts are declared in `package.json`; run `npm run` to list available scripts and run the appropriate teardown script by name
 2. Manually clean: `MATCH (n) WHERE any(prop IN keys(n) WHERE n[prop] STARTS WITH 'test_') DETACH DELETE n`
 
 ## See Also

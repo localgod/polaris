@@ -13,24 +13,25 @@ API Layer Tests → Service Layer Tests → Repository Layer Tests
 
 ## Quick Start
 
+Available test scripts are defined in `package.json`. Run `npm run` to list available scripts and execute the desired test script by name.
+
 ```bash
-# Run all tests
-npm test
+# List scripts
+npm run
 
-# Run specific layer
-npm run test:server:api          # API tests (~10ms each)
-npm run test:server:services     # Service tests (~10ms each)
-npm run test:server:repositories # Repository tests (~50-100ms each)
-
-# Watch mode
-npm run test:watch
+# Run the script from package.json, e.g.:
+# npm run <script-name>
 ```
+
+## Test runner
+
+Vitest is the canonical test runner for this repository. All unit, service, and repository tests should be authored as plain Vitest specs (`.spec.ts`). Available test scripts are defined in `package.json`; run `npm run` to list scripts and execute the desired script by name. A Gherkin-style layer is available for high-level, business-facing feature tests: we integrate `vitest-cucumber` for those scenarios, but Gherkin is not required for unit or service tests. Use Gherkin feature files only when the scenario benefits from human-readable acceptance criteria or when testing cross-layer workflows.
 
 ## Documentation Index
 
 ### Core Guides
 
-1. **[Backend Testing Guide](./backend-testing-guide.md)** ⭐
+1. **[Backend Testing Guide](../../test/server/README.md)** ⭐
    - Complete guide to three-layer testing
    - Examples for each layer
    - Best practices and patterns
@@ -308,7 +309,7 @@ it('should handle empty results', async () => {
 
 ### Internal Documentation
 
-- [Backend Testing Guide](./backend-testing-guide.md) - Complete guide
+- [Backend Testing Guide](../../test/server/README.md) - Complete guide
 - [Service Layer Pattern](../architecture/service-layer-pattern.md) - Architecture
 - [Test Isolation](./test-isolation.md) - Database isolation
 

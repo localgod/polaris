@@ -2,61 +2,58 @@
 
 ## Overview
 
-Polaris uses **namespace-based isolation** to separate test data from development data. Since Neo4j Community Edition doesn't support multiple databases, tests share the same database but use prefixed data for isolation.
+Polaris uses namespace-based isolation to separate test data from development data. Neo4j Community Edition doesn't support multiple databases in this setup, so tests share the same database but must use a strict prefixing convention to isolate test records.
 
-## How It Works
+## Prefix convention (enforced)
 
-### Prefix Patterns
+All test data MUST use the standardized prefix pattern: `test_<feature>_` (underscore). The feature/token inserted between `test_` and the trailing underscore should be unique and descriptive — typically the test filename or feature under test.
 
-All test data uses one of two supported prefix patterns:
+Examples:
 
-- **Underscore**: `test_` (e.g., `test_example_`, `policy_test_`)
-- **Hyphen**: `test-` (e.g., `test-system-`, `test-user-`)
+- `test_myfeature_`
+- `test_approval_`
+- `test_component_repo_`
 
-Both patterns are supported and cleaned automatically.
+Using a single, consistent pattern simplifies cleanup and reduces accidental data collisions with development data.
 
-### Cleanup Mechanisms
+## Cleanup mechanisms
+
+Global setup and teardown scripts clean test-prefixed data before/after test runs. They look for properties that start with the enforced `test_` prefix and remove matching nodes.
 
 **Global Setup** (`test/setup/global-setup.ts`)
+
 - Runs once before all tests
-- Cleans all nodes with `test_` or `test-` prefixed properties
+- Cleans all nodes with properties that START WITH `test_`
 - Removes leftover data from previous test runs
 
 **Test Cleanup Hooks**
-- Individual tests use `afterAll` hooks to clean their data
-- Some tests use `beforeEach` for clean slate per test
-- Helper utilities available in `test/helpers/db-cleanup.ts`
+
+- Individual tests should use `afterAll` or `beforeEach` hooks to clean their own test data
+- Helper utilities are available in `test/helpers/db-cleanup.ts`
 
 ### Cleanup Query
 
 ```cypher
 MATCH (n)
-WHERE any(prop IN keys(n) WHERE 
-  toString(n[prop]) STARTS WITH 'test_' OR 
-  toString(n[prop]) STARTS WITH 'test-'
-)
+WHERE any(prop IN keys(n) WHERE toString(n[prop]) STARTS WITH 'test_')
 DETACH DELETE n
 ```
 
 ## Usage
 
-### No Setup Required
+### No setup required
 
-Tests work out of the box:
+Tests work out of the box. Available test scripts are defined in `package.json`; run `npm run` to list scripts and execute the desired script by name.
 
-```bash
-npm test
-```
+### Writing tests
 
-### Writing Tests
-
-Use test prefixes for all data:
+Use the enforced prefix pattern for any test-created data. Example:
 
 ```typescript
-// Example with underscore prefix
+// Example enforced prefix
 const TEST_PREFIX = 'test_myfeature_'
 
-beforeEach(async () => {
+
   await cleanupTestData(driver, { prefix: TEST_PREFIX })
 })
 
@@ -70,17 +67,13 @@ await session.run(`
 `, { name: `${TEST_PREFIX}node1` })
 ```
 
-```typescript
-// Example with hyphen prefix
-const systemName = `test-system-${Date.now()}`
+If an example needs a generated name, follow the same pattern:
 
-afterAll(async () => {
-  // Cleanup via API
-  await fetch(`/api/systems/${systemName}`, { method: 'DELETE' })
-})
+```typescript
+const systemName = `test_system_${Date.now()}`
 ```
 
-### Helper Utilities
+## Helper utilities
 
 Available in `test/helpers/db-cleanup.ts`:
 
@@ -98,42 +91,23 @@ const cleanup = createCleanup(driver, { prefix: 'test_mytest_' })
 afterAll(cleanup)
 ```
 
-## Test Status
+## Test status
 
-**Total Tests**: 75 across 13 test files  
-**Status**: Yes All properly isolated
+This repository contains many test files across categories. Counts change frequently; avoid hard-coding totals in docs.
 
-### Test Categories
+## Best practices
 
-**API Tests (18 tests)**
-- Health checks, systems, teams, unmapped components
-- Mix of read-only and data-creating tests
-- Proper cleanup where needed
-
-**Model Tests (56 tests)**
-- Approval resolution, audit trail, migrations, policy enforcement
-- Team technology approvals, usage tracking, version-specific approvals
-- All use proper prefixes and cleanup
-
-**UI Tests (1 test)**
-- Homepage UI test (read-only)
-
-**Example Tests (2 tests)**
-- Reference implementation in `test/examples/proper-cleanup.spec.ts`
-
-## Best Practices
-
-1. **Use test prefixes** - Always prefix test data with `test_` or `test-`
-2. **Clean up after tests** - Use `afterAll` or `afterEach` hooks
-3. **Be consistent** - Use the same prefix pattern within a test file
-4. **Verify cleanup** - Use `verifyCleanDatabase()` in critical tests
-5. **Don't modify unprefixed data** - Never touch development data in tests
+1. Use the enforced prefix pattern: `test_<feature>_`
+2. Clean up test data in `afterAll` or `beforeEach`
+3. Keep prefixes unique per test file or feature
+4. Verify cleanup where appropriate using `verifyCleanDatabase()`
+5. Never modify unprefixed (development) data in tests
 
 ## Configuration
 
-### Environment Variables
+### Environment variables
 
-Tests use the same database as development by default:
+By default tests use the same database as development:
 
 ```bash
 # Default (uses development database)
@@ -143,71 +117,42 @@ NEO4J_DATABASE=neo4j
 NEO4J_TEST_DATABASE=test
 ```
 
-### Vitest Configuration
+### Vitest configuration
 
-Test environment configured in `vitest.config.ts`:
-
-```typescript
-env: {
-  NEO4J_URI: process.env.NEO4J_TEST_URI || process.env.NEO4J_URI || 'bolt://localhost:7687',
-  NEO4J_USERNAME: process.env.NEO4J_TEST_USERNAME || process.env.NEO4J_USERNAME || 'neo4j',
-  NEO4J_PASSWORD: process.env.NEO4J_TEST_PASSWORD || process.env.NEO4J_PASSWORD || 'devpassword',
-  NEO4J_DATABASE: process.env.NEO4J_TEST_DATABASE || 'neo4j',
-}
-```
+Test environment values are read from `vitest.config.ts` and environment variables. See that file for details.
 
 ## Troubleshooting
 
-### Tests Failing Due to Leftover Data
+### Tests failing due to leftover data
 
-Run tests again - global setup will clean leftover data:
+Re-run the appropriate test script (see `package.json`) — global setup will clean leftover data. To list scripts:
 
 ```bash
-npm test
+npm run
 ```
 
 Or manually clean test data:
 
 ```cypher
 MATCH (n)
-WHERE any(prop IN keys(n) WHERE 
-  toString(n[prop]) STARTS WITH 'test_' OR 
-  toString(n[prop]) STARTS WITH 'test-'
-)
+WHERE any(prop IN keys(n) WHERE toString(n[prop]) STARTS WITH 'test_')
 DETACH DELETE n
 ```
 
-### Development Data Affected by Tests
+### Development data affected by tests
 
-This shouldn't happen if tests follow prefix conventions. If it does:
+If development data is affected:
 
-1. Check test code for unprefixed data creation
-2. Verify `beforeEach`/`afterEach` hooks are cleaning up properly
-3. Review test data creation patterns
+1. Check for unprefixed data creation in tests
+2. Ensure `beforeEach`/`afterEach` hooks are running correctly
+3. Use `verifyCleanDatabase()` to find leftover test data
 
-## Neo4j Enterprise Edition (Optional)
+## Neo4j Enterprise Edition (optional)
 
-If you have Neo4j Enterprise Edition with multi-database support, you can use true database isolation:
+If you have Neo4j Enterprise with multi-database support, you may prefer to run tests against a separate database. Use the `NEO4J_TEST_DATABASE` env var and the test scripts declared in `package.json`.
 
-1. Create separate test database:
-   ```cypher
-   CREATE DATABASE test
-   ```
+## Related documentation
 
-2. Set environment variable:
-   ```bash
-   export NEO4J_TEST_DATABASE=test
-   ```
-
-3. Run tests:
-   ```bash
-   npm test
-   ```
-
-Tests will use the separate `test` database instead of namespace-based isolation.
-
-## Related Documentation
-
-- [Database Cleanup Utilities](./database-cleanup.md) - Helper functions
-- [Coverage Configuration](./coverage-configuration.md) - Test coverage setup
-- [Service Layer Pattern](../architecture/service-layer-pattern.md) - Architecture overview
+- [Database Cleanup Utilities](./database-cleanup.md)
+- [Coverage Configuration](./coverage-configuration.md)
+- [Service Layer Pattern](../architecture/service-layer-pattern.md)

@@ -1,6 +1,6 @@
 # Test Documentation
 
-This directory contains all tests for the Polaris application using [vitest-cucumber](https://vitest-cucumber.miceli.click/).
+This directory contains tests for the Polaris application. Vitest is the canonical test runner. A subset of higher-level feature tests use [vitest-cucumber](https://vitest-cucumber.miceli.click/) (Gherkin) for human-readable acceptance scenarios, but unit and layer tests should be plain Vitest specs.
 
 ## Test Structure
 
@@ -175,9 +175,11 @@ Each test layer has a specific focus:
 
 ## Writing Tests with vitest-cucumber
 
-### Basic Pattern
+Note: use Gherkin (`vitest-cucumber`) only for feature/acceptance tests.
 
-Every test file follows this pattern:
+### Basic Pattern (Gherkin feature tests)
+
+When you do choose to write a Gherkin-style feature test, the common pattern is:
 
 1. **Feature file** (`.feature`) - Gherkin scenarios
 2. **Spec file** (`.spec.ts`) - Test implementation
@@ -368,23 +370,14 @@ describeFeature(feature, ({ Scenario }) => {
 
 ## Running Tests
 
+Available test scripts are defined in `package.json`. Run `npm run` to list scripts and then run the desired script by name. Example:
+
 ```bash
-# Run all tests
-npm test
+# List scripts
+npm run
 
-# Run specific test file
-npm test test/api/example.spec.ts
-
-# Run tests by category
-npm run test:api      # API tests
-npm run test:model    # Model tests
-npm run test:ui       # UI tests
-
-# Run tests with coverage
-npm run test:coverage
-
-# Watch mode
-npm run test:watch
+# Run the script from package.json, e.g.:
+# npm run <script-name>
 ```
 
 ## Test Categories
