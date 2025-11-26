@@ -2,23 +2,39 @@
 
 This directory contains tests for the Polaris application. Vitest is the canonical test runner. A subset of higher-level feature tests use [vitest-cucumber](https://vitest-cucumber.miceli.click/) (Gherkin) for human-readable acceptance scenarios, but unit and layer tests should be plain Vitest specs.
 
+## Quick Start
+
+**Need to know which test to write?**
+
+- Testing a **pure function** or **utility**? → `test/server/utils/` (unit test)
+- Testing **business logic** in isolation? → `test/server/services/` (unit test)
+- Testing **database queries**? → `test/server/repositories/` (unit test)
+- Testing **API endpoints**? → `test/server/api/` (unit test)
+- Testing **backend workflow** across layers? → `test/integration/` (backend integration)
+- Testing **user journey** with UI? → `test/app/e2e/` (E2E test)
+
+**Key distinction:**
+- **Backend Integration** (`test/integration/`) = Test backend workflows without UI
+- **E2E** (`test/app/e2e/`) = Test user journeys with browser and UI
+
 ## Test Structure
 
-The test directory is organized to mirror the source code architecture:
+The test directory is organized to separate concerns by scope and architectural layer:
 
 ```
 test/
-├── server/                 # Backend tests (mirrors ./server)
+├── server/                 # Backend unit tests (mirrors ./server)
 │   ├── api/               # API endpoint tests (mock service layer)
 │   ├── services/          # Service layer tests (mock repository layer)
 │   ├── repositories/      # Repository layer tests (use test database)
-│   ├── integration/       # Complex business workflows
-│   └── utils/             # Server utility tests
+│   └── utils/             # Server utility unit tests
 ├── app/                   # Frontend tests (mirrors ./app)
-│   ├── e2e/              # E2E/UI tests
+│   ├── e2e/              # E2E/UI tests (Playwright + browser)
 │   ├── components/       # Component tests (placeholder)
 │   ├── composables/      # Composable tests (placeholder)
 │   └── pages/            # Page tests (placeholder)
+├── integration/           # Backend integration tests (no UI)
+│   └── features/         # Gherkin feature files for backend workflows
 ├── schema/                # Database schema tests
 │   └── migrations/
 ├── fixtures/              # Shared test helpers
@@ -26,9 +42,14 @@ test/
 
 ```
 
+**Key distinction:**
+- `test/integration/` = Backend workflows (Service → Repository → Database)
+- `test/app/e2e/` = Full-stack user journeys (Browser → UI → API → Database)
+
+
 ## Backend Testing Strategy
 
-Polaris follows a **three-layer testing approach** that mirrors the service layer architecture:
+Polaris follows a **layered testing approach** that separates concerns by architectural layer:
 
 ### Layer 1: API Tests (`test/server/api/`)
 
@@ -128,6 +149,130 @@ const result = await componentRepo.findAll()
 expect(result.find(c => c.name === `${TEST_PREFIX}react`)).toBeDefined()
 ```
 
+### Layer 4: Backend Integration Tests (`test/integration/`)
+
+**Purpose:** Test complex backend workflows that span multiple layers (without UI)
+
+**Approach:** Use real database and test business logic end-to-end
+- ✅ Test complete business workflows
+- ✅ Test cross-layer interactions (service → repository → database)
+- ✅ Use Gherkin for business-readable scenarios
+- ✅ Use real database with test prefixes
+- ✅ Use Neo4j driver directly
+- ❌ Don't test individual layer logic (use layer tests)
+- ❌ Don't test UI (use E2E tests)
+
+**Example:**
+```typescript
+// Test audit trail workflow: create entity → verify audit log created
+Scenario('Creating an audit log entry', ({ When, Then }) => {
+  When('I create an audit log with:', async (dataTable: string) => {
+    const data = parseDataTableAsObject(dataTable)
+    const session = driver.session()
+    await session.run(`
+      CREATE (a:AuditLog {
+        operation: $operation,
+        entityType: $entityType,
+        userId: $userId
+      })
+    `, data)
+  })
+  
+  Then('the audit log should be created successfully', async () => {
+    const session = driver.session()
+    const result = await session.run('MATCH (a:AuditLog) RETURN a')
+    expect(result.records.length).toBeGreaterThan(0)
+  })
+})
+```
+
+**When to use:**
+- Testing workflows that involve multiple services
+- Testing side effects (audit logs, notifications)
+- Testing policy enforcement across layers
+- Business acceptance criteria (backend only)
+- Testing database schema and constraints
+
+### Utility Tests (`test/server/utils/`)
+
+**Purpose:** Test utility functions and helpers
+
+**Approach:** Plain Vitest unit tests for pure functions
+- ✅ Test pure functions
+- ✅ Test validation logic
+- ✅ Test data transformers
+- ✅ Fast execution (no I/O)
+- ❌ Don't test business logic (use service tests)
+- ❌ Don't use Gherkin (use plain Vitest)
+
+**Example:**
+```typescript
+describe('Data Table Parser', () => {
+  it('should parse multi-row data table', () => {
+    const table = `
+      | name  | email              |
+      | Alice | alice@example.com  |
+    `
+    const result = parseDataTable(table)
+    expect(result).toHaveLength(1)
+  })
+})
+```
+
+**When to use:**
+- Testing parsers, validators, formatters
+- Testing helper functions
+- Testing data transformations
+- Testing utilities used across layers
+
+## Frontend Testing Strategy
+
+### End-to-End (E2E) Tests (`test/app/e2e/`)
+
+**Purpose:** Test complete user journeys through the UI
+
+**Approach:** Use Playwright to control a real browser
+- ✅ Test full stack (UI → API → Database)
+- ✅ Test user interactions and workflows
+- ✅ Use Gherkin for user-readable scenarios
+- ✅ Requires running Nuxt dev server
+- ✅ Tests actual browser rendering
+- ❌ Don't test backend logic in isolation (use integration tests)
+- ❌ Slower than other test types
+
+**Example:**
+```typescript
+Scenario('Homepage loads successfully', ({ Given, When, Then }) => {
+  Given('the application server is running', () => {
+    expect(serverRunning).toBe(true)
+  })
+
+  When('I navigate to the homepage', async () => {
+    browser = await chromium.launch({ headless: true })
+    page = await browser.newPage()
+    await page.goto('http://localhost:3000')
+  })
+
+  Then('the page should load successfully', async () => {
+    expect(page.url()).toBe('http://localhost:3000/')
+    const title = await page.title()
+    expect(title).toBeTruthy()
+  })
+})
+```
+
+**When to use:**
+- Testing critical user journeys
+- Testing UI interactions (clicks, forms, navigation)
+- Testing visual rendering
+- Smoke tests for deployments
+- Acceptance criteria from user perspective
+
+**Setup requirements:**
+- Start dev server: `npm run dev`
+- Or use `exec_preview` in CI/CD
+- Playwright browsers installed
+
 ## Testing Principles
 
 ### 1. Test Isolation
@@ -136,6 +281,8 @@ Each layer tests in isolation:
 - **API tests** don't call services
 - **Service tests** don't call repositories
 - **Repository tests** don't include business logic
+- **Utils tests** are pure unit tests
+- **Integration tests** test across layers
 
 ### 2. Mock Dependencies
 
@@ -143,12 +290,16 @@ Always mock the layer below:
 - API tests mock services
 - Service tests mock repositories
 - Repository tests use real database (with test prefixes)
+- Utils tests mock nothing (pure functions)
+- Integration tests mock nothing (real database)
 
 ### 3. Fast Execution
 
 - API tests: ~10ms (no I/O)
 - Service tests: ~10ms (no I/O)
 - Repository tests: ~50-100ms (database I/O)
+- Utils tests: ~5ms (pure functions)
+- Integration tests: ~100-500ms (full stack)
 
 ### 4. Clear Responsibilities
 
@@ -156,14 +307,93 @@ Each test layer has a specific focus:
 - **API:** Response contracts
 - **Service:** Business logic
 - **Repository:** Data access
+- **Utils:** Pure functions
+- **Integration:** End-to-end workflows
 
 ## Quick Reference
 
-| Layer      | Mocks      | Database | Speed  | Focus          |
-|------------|-----------|----------|--------|----------------|
-| API        | Service   | No        | Fast   | HTTP contracts |
-| Service    | Repository| No        | Fast   | Business logic |
-| Repository | None      | Yes        | Medium | Data queries   |
+| Layer              | Scope          | UI  | Mocks      | Database | Speed    | Focus              | Gherkin |
+|--------------------|----------------|-----|-----------|----------|----------|--------------------|---------|
+| API                | Backend        | No  | Service   | No       | Fast     | HTTP contracts     | No      |
+| Service            | Backend        | No  | Repository| No       | Fast     | Business logic     | No      |
+| Repository         | Backend        | No  | None      | Yes      | Medium   | Data queries       | No      |
+| Utils              | Backend        | No  | None      | No       | Fast     | Pure functions     | No      |
+| Backend Integration| Backend        | No  | None      | Yes      | Medium   | Backend workflows  | Yes     |
+| E2E                | Full Stack     | Yes | None      | Yes      | Slow     | User journeys      | Yes     |
+
+## Integration vs E2E: When to Use Which?
+
+### Visual Overview
+
+```
+Backend Integration Tests (test/integration/)
+┌─────────────────────────────────────────────┐
+│  Test Code                                  │
+│     ↓                                       │
+│  Service Layer                              │
+│     ↓                                       │
+│  Repository Layer                           │
+│     ↓                                       │
+│  Neo4j Database                             │
+└─────────────────────────────────────────────┘
+No UI, No Browser, No HTTP Server
+Tests: Business logic workflows
+
+
+E2E Tests (test/app/e2e/)
+┌─────────────────────────────────────────────┐
+│  Test Code (Playwright)                     │
+│     ↓                                       │
+│  Browser (Chromium/Firefox/WebKit)          │
+│     ↓                                       │
+│  Nuxt UI (Vue Components)                   │
+│     ↓                                       │
+│  API Endpoints (HTTP)                       │
+│     ↓                                       │
+│  Service Layer                              │
+│     ↓                                       │
+│  Repository Layer                           │
+│     ↓                                       │
+│  Neo4j Database                             │
+└─────────────────────────────────────────────┘
+Full Stack: UI + API + Database
+Tests: User journeys and interactions
+```
+
+### Use Backend Integration Tests when:
+- Testing business logic across multiple layers
+- Testing database schema and constraints
+- Testing side effects (audit logs, policy enforcement)
+- No UI interaction needed
+- Faster feedback loop desired
+
+**Example scenarios:**
+- "When I create an audit log, it should be linked to the user"
+- "When a technology is approved by all required teams, status should update"
+- "When usage tracking is enabled, USES relationships should be created"
+
+### Use E2E Tests when:
+- Testing from user perspective
+- Testing UI interactions (clicks, forms, navigation)
+- Testing visual rendering
+- Testing authentication flows
+- Testing critical user journeys
+
+**Example scenarios:**
+- "When I click the login button, I should see the login form"
+- "When I submit a new technology, it should appear in the list"
+- "When I navigate to the homepage, I should see the dashboard"
+
+### Key Differences
+
+| Aspect          | Backend Integration       | E2E                      |
+|-----------------|---------------------------|--------------------------|
+| **Entry Point** | Service/Repository layer  | Browser UI               |
+| **Tools**       | Neo4j driver, Vitest      | Playwright, Vitest       |
+| **Speed**       | ~100-500ms per test       | ~1-5s per test           |
+| **Setup**       | Database only             | Database + Dev server    |
+| **Scope**       | Backend workflows         | Full stack               |
+| **Perspective** | Developer/System          | End user                 |
 
 ## Related Documentation
 
@@ -370,15 +600,47 @@ describeFeature(feature, ({ Scenario }) => {
 
 ## Running Tests
 
-Available test scripts are defined in `package.json`. Run `npm run` to list scripts and then run the desired script by name. Example:
+Available test scripts are defined in `package.json`. Run `npm run` to list scripts and then run the desired script by name.
+
+### Common Test Commands
 
 ```bash
-# List scripts
-npm run
+# Run all tests
+npm test
 
-# Run the script from package.json, e.g.:
-# npm run <script-name>
+# Run tests in watch mode
+npm run test:watch
+
+# Backend unit tests (API, Service, Repository, Utils)
+npm run test:server
+npm run test:server:api
+npm run test:server:services
+npm run test:server:repositories
+npm run test:server:utils
+
+# Backend integration tests (cross-layer workflows, no UI)
+npm run test:integration
+
+# Frontend E2E tests (full-stack with browser)
+npm run test:app:e2e
+
+# All unit tests (fast, no integration)
+npm run test:unit
+
+# Coverage report
+npm run test:coverage
+
+# Interactive UI
+npm run test:vitest-ui
 ```
+
+### Test Script Naming Convention
+
+- `test:server:*` - Backend unit tests (isolated layers)
+- `test:integration` - Backend integration tests (cross-layer, no UI)
+- `test:app:e2e` - Frontend E2E tests (full-stack with UI)
+- `test:unit` - All unit tests (fast feedback)
+- `test:*` - Other test categories
 
 ## Test Categories
 

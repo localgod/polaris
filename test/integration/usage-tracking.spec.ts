@@ -19,7 +19,7 @@ beforeAll(async () => {
   }
 })
 
-const feature = await loadFeature('./test/server/integration/features/usage-tracking.feature')
+const feature = await loadFeature('./test/integration/features/usage-tracking.feature')
 
 describeFeature(feature, ({ Scenario }) => {
   Scenario('Team USES relationship is created from system ownership', ({ Given, When, Then, And }) => {

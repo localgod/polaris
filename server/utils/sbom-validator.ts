@@ -44,7 +44,8 @@ export class SbomValidator {
     this.ajv = new Ajv({
       allErrors: true, // Collect all errors, not just the first
       verbose: true, // Include validated data in errors
-      strict: false // Allow schema features that aren't strict JSON Schema
+      strict: false, // Allow schema features that aren't strict JSON Schema
+      logger: false // Suppress format warnings in tests
     })
   }
 
