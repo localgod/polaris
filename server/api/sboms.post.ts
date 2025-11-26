@@ -1,5 +1,6 @@
 import { getSbomValidator } from '../utils/sbom-validator'
 import { validateSbomRequest, type SbomRequest as ValidatorSbomRequest } from '../utils/sbom-request-validator'
+import { SBOMService } from '../services/sbom.service'
 
 /**
  * @openapi
@@ -34,7 +35,7 @@ import { validateSbomRequest, type SbomRequest as ValidatorSbomRequest } from '.
  *                 description: The SBOM document in CycloneDX or SPDX format
  *     responses:
  *       200:
- *         description: SBOM is valid
+ *         description: SBOM processed successfully
  *         content:
  *           application/json:
  *             schema:
@@ -48,7 +49,19 @@ import { validateSbomRequest, type SbomRequest as ValidatorSbomRequest } from '.
  *                   enum: [cyclonedx, spdx]
  *                 message:
  *                   type: string
- *                   example: "Valid SBOM"
+ *                   example: "SBOM processed successfully"
+ *                 systemName:
+ *                   type: string
+ *                   example: "my-application"
+ *                 componentsAdded:
+ *                   type: integer
+ *                   example: 42
+ *                 componentsUpdated:
+ *                   type: integer
+ *                   example: 8
+ *                 relationshipsCreated:
+ *                   type: integer
+ *                   example: 50
  *       400:
  *         description: Bad request - invalid JSON or missing required fields
  *         content:
@@ -65,6 +78,22 @@ import { validateSbomRequest, type SbomRequest as ValidatorSbomRequest } from '.
  *                 message:
  *                   type: string
  *                   example: "repositoryUrl is required"
+ *       404:
+ *         description: Not Found - system with repository URL not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "system_not_found"
+ *                 message:
+ *                   type: string
+ *                   example: "No system found with repository URL: https://github.com/org/repo. Please create the system first."
  *       401:
  *         description: Unauthorized - authentication required
  *         content:
@@ -133,6 +162,10 @@ interface SbomValidResponse {
   success: true
   format: 'cyclonedx' | 'spdx'
   message: string
+  systemName?: string
+  componentsAdded?: number
+  componentsUpdated?: number
+  relationshipsCreated?: number
 }
 
 interface SbomErrorResponse {
@@ -206,14 +239,7 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     const validator = getSbomValidator()
     const result = validator.validate(validatedBody.sbom)
 
-    if (result.valid) {
-      setResponseStatus(event, 200)
-      return {
-        success: true,
-        format: result.format as 'cyclonedx' | 'spdx',
-        message: 'Valid SBOM'
-      }
-    } else {
+    if (!result.valid) {
       setResponseStatus(event, 422)
       return {
         success: false,
@@ -222,9 +248,39 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
         validationErrors: result.errors || []
       }
     }
+
+    // 6. Process and persist SBOM
+    const sbomService = new SBOMService()
+    const processResult = await sbomService.processSBOM({
+      sbom: validatedBody.sbom,
+      repositoryUrl: validatedBody.repositoryUrl,
+      format: result.format as 'cyclonedx' | 'spdx'
+    })
+
+    setResponseStatus(event, 200)
+    return {
+      success: true,
+      format: result.format as 'cyclonedx' | 'spdx',
+      message: 'SBOM processed successfully',
+      systemName: processResult.systemName,
+      componentsAdded: processResult.componentsAdded,
+      componentsUpdated: processResult.componentsUpdated,
+      relationshipsCreated: processResult.relationshipsCreated
+    }
   } catch (error) {
-    // Internal error during validation
-    console.error('SBOM validation error:', error)
+    // Handle specific errors
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      const httpError = error as { statusCode: number; message: string }
+      setResponseStatus(event, httpError.statusCode)
+      return {
+        success: false,
+        error: httpError.statusCode === 404 ? 'system_not_found' : 'processing_error',
+        message: httpError.message
+      }
+    }
+
+    // Internal error during processing
+    console.error('SBOM processing error:', error)
     setResponseStatus(event, 500)
     return {
       success: false,

@@ -39,6 +39,19 @@ Key points:
 - Mock Nuxt utilities (for example `loadQuery`) when running tests in Node.
 - Skip tests gracefully when Neo4j isn't available (see examples in existing specs).
 
+### Known Limitations
+
+**Complex nested data structures:** The Neo4j JavaScript driver has serialization issues with deeply nested objects containing arrays of objects with null values (e.g., components with hashes, licenses, and external references). This manifests as:
+
+```
+GQLError: 22N01: Expected the value Map{} to be of type BOOLEAN, STRING, INTEGER, FLOAT...
+```
+
+**Workaround:** For repositories handling complex nested data:
+1. Test at the service layer with mocked repositories (preferred)
+2. Use simplified test data without nested structures
+3. Focus on integration/E2E tests instead of repository unit tests
+
 Example runner:
 
 ```bash

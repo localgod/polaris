@@ -75,6 +75,26 @@ export class SystemRepository extends BaseRepository {
   }
 
   /**
+   * Find a system by repository URL
+   * 
+   * Searches for a system that has a HAS_SOURCE_IN relationship
+   * to a repository with the given URL.
+   * 
+   * @param url - Repository URL (should be normalized)
+   * @returns System name or null if not found
+   */
+  async findByRepositoryUrl(url: string): Promise<{ name: string } | null> {
+    const query = await loadQuery('systems/find-by-repository-url.cypher')
+    const { records } = await this.executeQuery(query, { url })
+    
+    if (records.length === 0) {
+      return null
+    }
+    
+    return { name: records[0].get('name') }
+  }
+
+  /**
    * Check if a system exists
    * 
    * @param name - System name
