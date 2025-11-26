@@ -1,190 +1,116 @@
-import { expect } from 'vitest'
-import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
+import { describe, it, expect } from 'vitest'
 import {
   validateRepositoryUrl,
   validateSbomStructure,
   validateSbomRequest,
-  type ValidationResult,
   type SbomRequest
 } from '../../../server/utils/sbom-request-validator'
 
-const feature = await loadFeature('./test/server/utils/sbom-request-validation.feature')
+describe('SBOM Request Validator', () => {
+  describe('validateRepositoryUrl', () => {
+    it('should fail when repositoryUrl is missing', () => {
+      const result = validateRepositoryUrl(undefined)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('repositoryUrl is required')
+    })
 
-describeFeature(feature, ({ Background, Scenario }) => {
-  let validationResult: ValidationResult
-  let requestBody: Partial<SbomRequest>
+    it('should fail when repositoryUrl is not a string', () => {
+      const result = validateRepositoryUrl(123)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('must be a string')
+    })
 
-  Background(({ Given }) => {
-    Given('the SBOM request validator is initialized', () => {
-      // Validator is stateless, no initialization needed
-      expect(validateSbomRequest).toBeDefined()
+    it('should fail when repositoryUrl has invalid URL format', () => {
+      const result = validateRepositoryUrl('not-a-valid-url')
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('must be a valid URL')
+    })
+
+    it('should succeed with valid repositoryUrl', () => {
+      const result = validateRepositoryUrl('https://github.com/test/repo')
+      
+      expect(result.valid).toBe(true)
+      expect(result.error).toBeUndefined()
     })
   })
 
-  Scenario('Validate missing repositoryUrl', ({ Given, When, Then, And }) => {
-    Given('a request body without repositoryUrl', () => {
-      requestBody = { sbom: {} }
-    })
-
-    When('I validate the request', () => {
-      validationResult = validateSbomRequest(requestBody as SbomRequest)
-    })
-
-    Then('the validation should fail', () => {
-      expect(validationResult.valid).toBe(false)
-    })
-
-    And('the error should indicate repositoryUrl is required', () => {
-      expect(validationResult.error?.message).toContain('repositoryUrl is required')
+  describe('validateSbomStructure', () => {
+    it('should succeed with valid SBOM object', () => {
+      const sbom = { bomFormat: 'CycloneDX', specVersion: '1.6' }
+      const result = validateSbomStructure(sbom)
+      
+      expect(result.valid).toBe(true)
+      expect(result.error).toBeUndefined()
     })
   })
 
-  Scenario('Validate non-string repositoryUrl', ({ Given, When, Then, And }) => {
-    Given('a request body with repositoryUrl as a number', () => {
-      requestBody = { repositoryUrl: 123, sbom: {} }
+  describe('validateSbomRequest', () => {
+    it('should fail when repositoryUrl is missing', () => {
+      const requestBody = { sbom: {} } as SbomRequest
+      const result = validateSbomRequest(requestBody)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('repositoryUrl is required')
     })
 
-    When('I validate the request', () => {
-      validationResult = validateSbomRequest(requestBody as SbomRequest)
+    it('should fail when repositoryUrl is not a string', () => {
+      const requestBody = { repositoryUrl: 123, sbom: {} } as unknown as SbomRequest
+      const result = validateSbomRequest(requestBody)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('must be a string')
     })
 
-    Then('the validation should fail', () => {
-      expect(validationResult.valid).toBe(false)
+    it('should fail when repositoryUrl has invalid format', () => {
+      const requestBody = { repositoryUrl: 'not-a-valid-url', sbom: {} } as SbomRequest
+      const result = validateSbomRequest(requestBody)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('must be a valid URL')
     })
 
-    And('the error should indicate repositoryUrl must be a string', () => {
-      expect(validationResult.error?.message).toContain('must be a string')
-    })
-  })
-
-  Scenario('Validate invalid URL format', ({ Given, When, Then, And }) => {
-    Given('a request body with repositoryUrl "not-a-valid-url"', () => {
-      requestBody = { repositoryUrl: 'not-a-valid-url', sbom: {} }
+    it('should fail when sbom is missing', () => {
+      const requestBody = { repositoryUrl: 'https://github.com/test/repo' } as SbomRequest
+      const result = validateSbomRequest(requestBody)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('sbom is required')
     })
 
-    When('I validate the request', () => {
-      validationResult = validateSbomRequest(requestBody as SbomRequest)
-    })
-
-    Then('the validation should fail', () => {
-      expect(validationResult.valid).toBe(false)
-    })
-
-    And('the error should indicate repositoryUrl must be a valid URL', () => {
-      expect(validationResult.error?.message).toContain('must be a valid URL')
-    })
-  })
-
-  Scenario('Validate valid repositoryUrl', ({ Given, When, Then }) => {
-    Given('a request body with repositoryUrl "https://github.com/test/repo"', () => {
-      requestBody = { repositoryUrl: 'https://github.com/test/repo' }
-    })
-
-    When('I validate the repositoryUrl', () => {
-      validationResult = validateRepositoryUrl(requestBody.repositoryUrl)
-    })
-
-    Then('the validation should succeed', () => {
-      expect(validationResult.valid).toBe(true)
-      expect(validationResult.error).toBeUndefined()
-    })
-  })
-
-  Scenario('Validate missing SBOM', ({ Given, When, Then, And }) => {
-    Given('a request body without sbom field', () => {
-      requestBody = { repositoryUrl: 'https://github.com/test/repo' }
-    })
-
-    When('I validate the request', () => {
-      validationResult = validateSbomRequest(requestBody as SbomRequest)
-    })
-
-    Then('the validation should fail', () => {
-      expect(validationResult.valid).toBe(false)
-    })
-
-    And('the error should indicate sbom is required', () => {
-      expect(validationResult.error?.message).toContain('sbom is required')
-    })
-  })
-
-  Scenario('Validate non-object SBOM', ({ Given, When, Then, And }) => {
-    Given('a request body with sbom as a string', () => {
-      requestBody = { 
+    it('should fail when sbom is not an object', () => {
+      const requestBody = { 
         repositoryUrl: 'https://github.com/test/repo',
         sbom: 'not an object' as unknown
-      }
+      } as SbomRequest
+      const result = validateSbomRequest(requestBody)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('must be an object')
     })
 
-    When('I validate the request', () => {
-      validationResult = validateSbomRequest(requestBody as SbomRequest)
-    })
-
-    Then('the validation should fail', () => {
-      expect(validationResult.valid).toBe(false)
-    })
-
-    And('the error should indicate sbom must be an object', () => {
-      expect(validationResult.error?.message).toContain('must be an object')
-    })
-  })
-
-  Scenario('Validate null SBOM', ({ Given, When, Then, And }) => {
-    Given('a request body with sbom as null', () => {
-      requestBody = { 
+    it('should fail when sbom is null', () => {
+      const requestBody = { 
         repositoryUrl: 'https://github.com/test/repo',
         sbom: null as unknown
-      }
+      } as SbomRequest
+      const result = validateSbomRequest(requestBody)
+      
+      expect(result.valid).toBe(false)
+      expect(result.error?.message).toContain('sbom is required')
     })
 
-    When('I validate the request', () => {
-      validationResult = validateSbomRequest(requestBody as SbomRequest)
-    })
-
-    Then('the validation should fail', () => {
-      expect(validationResult.valid).toBe(false)
-    })
-
-    And('the error should indicate sbom must be an object', () => {
-      expect(validationResult.error?.message).toContain('sbom is required')
-    })
-  })
-
-  Scenario('Validate valid SBOM structure', ({ Given, When, Then }) => {
-    Given('a request body with a valid SBOM object', () => {
-      requestBody = { 
-        sbom: { bomFormat: 'CycloneDX', specVersion: '1.6' }
-      }
-    })
-
-    When('I validate the SBOM structure', () => {
-      validationResult = validateSbomStructure(requestBody.sbom)
-    })
-
-    Then('the validation should succeed', () => {
-      expect(validationResult.valid).toBe(true)
-      expect(validationResult.error).toBeUndefined()
-    })
-  })
-
-  Scenario('Validate complete valid request', ({ Given, When, Then, And }) => {
-    Given('a request body with valid repositoryUrl and SBOM', () => {
-      requestBody = {
+    it('should succeed with valid request', () => {
+      const requestBody = {
         repositoryUrl: 'https://github.com/test/repo',
         sbom: { bomFormat: 'CycloneDX', specVersion: '1.6' }
-      }
-    })
-
-    When('I validate the complete request', () => {
-      validationResult = validateSbomRequest(requestBody as SbomRequest)
-    })
-
-    Then('the validation should succeed', () => {
-      expect(validationResult.valid).toBe(true)
-    })
-
-    And('no errors should be present', () => {
-      expect(validationResult.error).toBeUndefined()
+      } as SbomRequest
+      const result = validateSbomRequest(requestBody)
+      
+      expect(result.valid).toBe(true)
+      expect(result.error).toBeUndefined()
     })
   })
 })

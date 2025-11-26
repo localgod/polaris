@@ -40,23 +40,42 @@ See `docs/architecture/service-layer-pattern.md` for detailed patterns.
 polaris/
 ├── app/                    # Nuxt application
 │   ├── pages/             # Vue pages
+│   ├── components/        # Vue components
 │   └── app.vue            # Root component
 ├── server/                # Server-side code (3-layer architecture)
 │   ├── api/               # API endpoints (HTTP layer)
 │   ├── services/          # Business logic layer
 │   ├── repositories/      # Data access layer
+│   ├── utils/             # Server utilities and validators
 │   └── database/queries/  # Cypher query files
 ├── schema/                # Database management
 │   ├── migrations/        # Cypher migration files
 │   ├── scripts/           # Migration CLI tools
 │   └── fixtures/          # Test data
-├── test/                  # Test files (Gherkin-style BDD)
-│   ├── api/               # API endpoint tests
-│   ├── schema/            # Database migration tests
-│   ├── app/               # Frontend/application tests
-│   └── helpers/           # Test utilities
-├── docs/                  # Documentation
-│   └── architecture/      # Architecture decision records
+├── test/                  # Test files (layered testing strategy)
+│   ├── server/            # Backend unit tests
+│   │   ├── api/           # API endpoint tests (mock services)
+│   │   ├── services/      # Service layer tests (mock repositories)
+│   │   ├── repositories/  # Repository tests (real database)
+│   │   └── utils/         # Utility unit tests
+│   ├── app/               # Frontend tests
+│   │   ├── e2e/           # End-to-end UI tests (Playwright)
+│   │   ├── components/    # Component tests
+│   │   ├── composables/   # Composable tests
+│   │   └── pages/         # Page tests
+│   ├── integration/       # Backend integration tests (cross-layer)
+│   ├── schema/            # Database schema tests
+│   ├── fixtures/          # Shared test helpers
+│   └── setup/             # Global test setup/teardown
+├── content/               # In-app documentation (Markdown)
+│   ├── features/          # Feature documentation
+│   ├── architecture/      # Architecture guides
+│   └── api/               # API documentation
+├── docs/                  # Project documentation
+│   ├── architecture/      # Architecture decision records
+│   └── testing/           # Testing guides
+├── public/                # Static assets
+├── .github/               # GitHub Actions workflows
 ├── .devcontainer/         # Dev container configuration
 └── .ona/                  # Gitpod automations
 ```
