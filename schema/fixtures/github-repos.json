@@ -1,0 +1,67 @@
+{
+  "repositories": [
+    {
+      "url": "https://github.com/lodash/lodash",
+      "branch": "main",
+      "system": {
+        "name": "Lodash Utility Library",
+        "domain": "Libraries",
+        "ownerTeam": "Platform Team",
+        "businessCriticality": "medium",
+        "environment": "prod",
+        "sourceCodeType": "open-source",
+        "hasSourceAccess": true
+      },
+      "repository": {
+        "name": "lodash",
+        "description": "A modern JavaScript utility library delivering modularity, performance & extras",
+        "isPublic": true,
+        "requiresAuth": false,
+        "scmType": "git",
+        "defaultBranch": "main"
+      }
+    },
+    {
+      "url": "https://github.com/expressjs/express",
+      "branch": "master",
+      "system": {
+        "name": "Express Web Framework",
+        "domain": "Backend",
+        "ownerTeam": "Backend Team",
+        "businessCriticality": "high",
+        "environment": "prod",
+        "sourceCodeType": "open-source",
+        "hasSourceAccess": true
+      },
+      "repository": {
+        "name": "express",
+        "description": "Fast, unopinionated, minimalist web framework for Node.js",
+        "isPublic": true,
+        "requiresAuth": false,
+        "scmType": "git",
+        "defaultBranch": "main"
+      }
+    },
+    {
+      "url": "https://github.com/localgod/polaris",
+      "branch": "main",
+      "system": {
+        "name": "Polaris Technology Catalog",
+        "domain": "Platform",
+        "ownerTeam": "Platform Team",
+        "businessCriticality": "high",
+        "environment": "prod",
+        "sourceCodeType": "open-source",
+        "hasSourceAccess": true
+      },
+      "repository": {
+        "name": "polaris",
+        "description": "Enterprise technology catalog built with Nuxt 4 and Neo4j graph database",
+        "isPublic": true,
+        "requiresAuth": false,
+        "scmType": "git",
+        "defaultBranch": "main"
+      }
+    }
+  ]
+}

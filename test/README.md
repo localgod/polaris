@@ -46,7 +46,6 @@ test/
 - `test/integration/` = Backend workflows (Service → Repository → Database)
 - `test/app/e2e/` = Full-stack user journeys (Browser → UI → API → Database)
 
-
 ## Backend Testing Strategy
 
 Polaris follows a **layered testing approach** that separates concerns by architectural layer:
@@ -360,7 +359,8 @@ Full Stack: UI + API + Database
 Tests: User journeys and interactions
 ```
 
-### Use Backend Integration Tests when:
+### Use Backend Integration Tests when
+
 - Testing business logic across multiple layers
 - Testing database schema and constraints
 - Testing side effects (audit logs, policy enforcement)
@@ -372,7 +372,8 @@ Tests: User journeys and interactions
 - "When a technology is approved by all required teams, status should update"
 - "When usage tracking is enabled, USES relationships should be created"
 
-### Use E2E Tests when:
+### Use E2E Tests when
+
 - Testing from user perspective
 - Testing UI interactions (clicks, forms, navigation)
 - Testing visual rendering

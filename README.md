@@ -129,9 +129,14 @@ npm run migrate:create <name>
 
 # Seed database with sample data
 npm run seed
+
+# Seed database from GitHub repositories (generates real SBOMs)
+npm run seed:github
 ```
 
 **For detailed database documentation**, see the [Contributing Guide](CONTRIBUTING.md#database-management).
+
+**For GitHub seeding**, see [Seeding from GitHub Repositories](docs/seeding-from-github.md).
 
 ## API Documentation
 
