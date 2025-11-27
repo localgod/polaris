@@ -71,7 +71,7 @@ export class SBOMRepository extends BaseRepository {
       hashes: flatHashes,
       licenses: flatLicenses,
       externalReferences: flatReferences,
-      timestamp: params.timestamp
+      timestamp: params.timestamp.toISOString()
     })
     
     if (records.length === 0) {

@@ -14,7 +14,9 @@ The seeding system provides:
 ## Files
 
 - `tech-catalog.json` - Fixture data for the tech catalog schema
+- `github-repos.json` - Configuration for seeding from GitHub repositories
 - `../scripts/seed.ts` - Idempotent seeding script
+- `../scripts/seed-github.ts` - GitHub repository SBOM seeding script
 
 ## Usage
 
@@ -45,6 +47,18 @@ Or via automation:
 ```bash
 gitpod automations task start reset-database
 ```
+
+### Seed from GitHub Repositories
+
+Generate SBOMs from real GitHub repositories and populate the database:
+
+```bash
+npm run seed:github
+```
+
+This clones configured repositories, generates CycloneDX SBOMs using cdxgen, and posts them to the SBOM API endpoint.
+
+**For detailed instructions**, see [Seeding from GitHub Repositories](../../docs/seeding-from-github.md).
 
 ## Fixture Data Structure
 

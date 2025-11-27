@@ -59,6 +59,7 @@
     "test:vitest-ui": "vitest --ui",
     "seed": "tsx schema/scripts/seed.ts",
     "seed:clear": "tsx schema/scripts/seed.ts --clear",
+    "seed:github": "tsx schema/scripts/seed-github.ts",
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
@@ -80,6 +81,7 @@
     "@cucumber/cucumber": "^12.2.0",
     "@cucumber/gherkin": "^36.0.0",
     "@cucumber/messages": "^30.1.0",
+    "@cyclonedx/cdxgen": "^12.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.56.1",
     "@scalar/nuxt": "^0.5.21",
