@@ -4,30 +4,25 @@ MATCH (s:System {name: $systemName})
 // Process each component
 UNWIND $components AS comp
 
-// Create unique identifier (prefer purl, fallback to name@version)
+// Create unique identifier for purl (prefer purl, fallback to name@version)
 WITH s, comp,
-     COALESCE(comp.purl, comp.name + '@' + COALESCE(comp.version, 'unknown')) AS componentId
+     COALESCE(comp.purl, comp.name + '@' + COALESCE(comp.version, 'unknown')) AS componentPurl
 
-// Check if component exists before MERGE
-OPTIONAL MATCH (existing:Component {purl: componentId})
-WITH s, comp, componentId, existing IS NOT NULL AS componentExists
+// Check if component exists before MERGE (using the constraint fields)
+OPTIONAL MATCH (existing:Component {name: comp.name, version: COALESCE(comp.version, 'unknown'), packageManager: COALESCE(comp.packageManager, 'unknown')})
+WITH s, comp, componentPurl, existing IS NOT NULL AS componentExists
 
-// MERGE component by unique identifier
-MERGE (c:Component {purl: componentId})
+// MERGE component by the unique constraint fields (name, version, packageManager)
+// This avoids constraint violations when different PURLs map to the same component
+MERGE (c:Component {name: comp.name, version: COALESCE(comp.version, 'unknown'), packageManager: COALESCE(comp.packageManager, 'unknown')})
 ON CREATE SET
-  c.name = comp.name,
+  c.purl = componentPurl,
   c.createdAt = $timestamp
 ON MATCH SET
   c.updatedAt = $timestamp
 
 // Set optional properties only if they exist in comp
 WITH s, c, comp, componentExists
-FOREACH (_ IN CASE WHEN comp.version IS NOT NULL THEN [1] ELSE [] END |
-  SET c.version = comp.version
-)
-FOREACH (_ IN CASE WHEN comp.packageManager IS NOT NULL THEN [1] ELSE [] END |
-  SET c.packageManager = comp.packageManager
-)
 FOREACH (_ IN CASE WHEN comp.cpe IS NOT NULL THEN [1] ELSE [] END |
   SET c.cpe = comp.cpe
 )
