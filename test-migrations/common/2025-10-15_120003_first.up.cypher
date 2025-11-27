@@ -1,0 +1,1 @@
+CREATE (n:TestNode {name: "first", order: 1})
