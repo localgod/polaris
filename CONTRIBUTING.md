@@ -374,6 +374,35 @@ npm run seed
 npm run seed:clear
 ```
 
+### Creating Technical Users
+
+For CI/CD pipelines, testing or maintenance tasks, create technical users that don't require OAuth:
+
+```bash
+# Create a regular technical user
+npx tsx schema/scripts/create-technical-user.ts ci@example.com "CI Bot"
+
+# Create a technical user with superuser privileges
+npx tsx schema/scripts/create-technical-user.ts admin@example.com "Admin Bot" --superuser
+
+# Using npm script (note the -- separator)
+npm run createuser -- ci@example.com "CI Bot"
+```
+
+**Technical users:**
+- Use the `technical` provider (not OAuth)
+- Require API tokens for authentication
+- Can be assigned to teams via the admin UI or API
+- Support both regular user and superuser roles
+
+**After creating a technical user, generate an API token:**
+
+```bash
+npx tsx schema/scripts/seed-api-token.ts ci@example.com
+```
+
+The token will be displayed once and should be stored securely. Use it with the `Authorization: Bearer <token>` header for API requests.
+
 **What Gets Seeded:**
 - 5 Teams (Frontend Platform, Backend Platform, Data Platform, DevOps, Security)
 - 10 Technologies (React, Vue, Node.js, PostgreSQL, Neo4j, etc.)

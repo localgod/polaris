@@ -17,63 +17,32 @@ npm run migrate:up
 npm run seed
 ```
 
-### 2. Create Seed User and API Token
+### 2. API Token Setup
 
-The GitHub seeding requires a user with an API token. Create a seed user:
+The GitHub seeding requires an API token for authentication.
+
+**Automatic User Creation:**
+
+The `seed:github` script automatically creates a technical user (`seed-bot@polaris.local`) if no technical users exist. You only need to generate an API token:
 
 ```bash
-# Create seed user
-cat > /tmp/create-user.ts << 'EOF'
-import neo4j from 'neo4j-driver'
-import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
+# Run seed:github - it will create the user automatically if needed
+npm run seed:github
 
-const envPath = join(process.cwd(), '.env')
-if (existsSync(envPath)) {
-  const envContent = readFileSync(envPath, 'utf-8')
-  envContent.split('\n').forEach(line => {
-    const trimmed = line.trim()
-    if (trimmed && !trimmed.startsWith('#')) {
-      const [key, ...valueParts] = trimmed.split('=')
-      if (key && valueParts.length > 0) {
-        process.env[key.trim()] = valueParts.join('=').trim()
-      }
-    }
-  })
-}
+# If it prompts for a token, generate one for the created user
+npx tsx schema/scripts/seed-api-token.ts seed-bot@polaris.local
+```
 
-const uri = process.env.NEO4J_URI || 'neo4j://neo4j:7687'
-const username = process.env.NEO4J_USERNAME || 'neo4j'
-const password = process.env.NEO4J_PASSWORD || 'devpassword'
-const driver = neo4j.driver(uri, neo4j.auth.basic(username, password))
+**Manual User Creation (Optional):**
 
-async function createUser() {
-  const session = driver.session()
-  try {
-    await session.run(`
-      MERGE (u:User {email: 'seed@polaris.local'})
-      ON CREATE SET
-        u.id = randomUUID(),
-        u.role = 'superuser',
-        u.provider = 'local',
-        u.createdAt = datetime(),
-        u.lastLogin = datetime()
-    `)
-    console.log('✅ Seed user created')
-  } finally {
-    await session.close()
-    await driver.close()
-  }
-}
+If you prefer to create a custom technical user:
 
-createUser().catch(console.error)
-EOF
+```bash
+# Create a technical user
+npx tsx schema/scripts/create-technical-user.ts seed@example.com "Seed Bot" --superuser
 
-# Run from project directory
-cd /workspaces/polaris && npx tsx /tmp/create-user.ts
-
-# Create API token
-npx tsx schema/scripts/seed-api-token.ts seed@polaris.local
+# Generate API token
+npx tsx schema/scripts/seed-api-token.ts seed@example.com
 ```
 
 Copy the generated token and add it to your `.env` file:
@@ -82,7 +51,7 @@ Copy the generated token and add it to your `.env` file:
 SEED_API_TOKEN=your-token-here
 ```
 
-**Note**: If you use `--clear` flag, you'll need to recreate the user and token.
+**Note**: The technical user persists across database clears, so you only need to create it once.
 
 ## Verified Working
 
@@ -242,6 +211,8 @@ npm run seed:github
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+✅ Found existing technical user: seed-bot@polaris.local
+
 📋 Found 3 repositories to process
 
 📦 Processing: https://github.com/lodash/lodash
@@ -275,10 +246,11 @@ npm run seed:github
 
 ### "SEED_API_TOKEN environment variable not set"
 
-Create an API token:
+The script will automatically create a technical user if none exists. Generate an API token for the user:
 
 ```bash
-npx tsx schema/scripts/seed-api-token.ts frontend-platform@company.com
+# The script will tell you which user email to use
+npx tsx schema/scripts/seed-api-token.ts seed-bot@polaris.local
 ```
 
 Add to `.env`:
