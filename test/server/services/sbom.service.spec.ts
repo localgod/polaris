@@ -2,15 +2,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SBOMService } from '../../../server/services/sbom.service'
 import type { SystemRepository } from '../../../server/repositories/system.repository'
 import type { SBOMRepository } from '../../../server/repositories/sbom.repository'
+import type { SourceRepositoryRepository } from '../../../server/repositories/source-repository.repository'
 
 // Mock the repositories
 vi.mock('../../../server/repositories/system.repository')
 vi.mock('../../../server/repositories/sbom.repository')
+vi.mock('../../../server/repositories/source-repository.repository')
 
 describe('SBOMService', () => {
   let sbomService: SBOMService
   let mockSystemRepo: SystemRepository
   let mockSbomRepo: SBOMRepository
+  let mockSourceRepoRepo: SourceRepositoryRepository
 
   const validCycloneDxSbom = {
     bomFormat: 'CycloneDX',
@@ -97,6 +100,7 @@ describe('SBOMService', () => {
     // Get mocked instances (accessing private properties for testing)
     mockSystemRepo = (sbomService as unknown as { systemRepo: SystemRepository }).systemRepo
     mockSbomRepo = (sbomService as unknown as { sbomRepo: SBOMRepository }).sbomRepo
+    mockSourceRepoRepo = (sbomService as unknown as { sourceRepoRepo: SourceRepositoryRepository }).sourceRepoRepo
   })
 
   describe('processSBOM', () => {
@@ -112,6 +116,9 @@ describe('SBOMService', () => {
         componentsUpdated: 0,
         relationshipsCreated: 2
       })
+
+      // Mock updateLastScan
+      const updateLastScanSpy = vi.spyOn(mockSourceRepoRepo, 'updateLastScan').mockResolvedValue()
 
       const result = await sbomService.processSBOM({
         sbom: validCycloneDxSbom,
@@ -129,6 +136,7 @@ describe('SBOMService', () => {
 
       expect(mockSystemRepo.findByRepositoryUrl).toHaveBeenCalledWith('https://github.com/org/repo')
       expect(mockSbomRepo.persistSBOM).toHaveBeenCalled()
+      expect(updateLastScanSpy).toHaveBeenCalledWith('https://github.com/org/repo')
     })
 
     it('should process SPDX SBOM successfully', async () => {

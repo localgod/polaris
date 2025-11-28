@@ -10,4 +10,12 @@ describe('SourceRepositoryRepository', () => {
   it('should have findAll method', () => {
     expect(SourceRepositoryRepository.prototype.findAll).toBeDefined()
   })
+
+  it('should have findByUrl method', () => {
+    expect(SourceRepositoryRepository.prototype.findByUrl).toBeDefined()
+  })
+
+  it('should have updateLastScan method', () => {
+    expect(SourceRepositoryRepository.prototype.updateLastScan).toBeDefined()
+  })
 })
