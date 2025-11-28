@@ -44,13 +44,13 @@ jobs:
       fail-fast: false
       matrix:
         # Test layers aligned with new test directory structure
-        # server-integration - Complex business workflows
-        # server-api - API endpoint integration tests
-        # server-utils - Server utility tests
-        # schema - Database schema and migration tests
-        # app-e2e - Frontend E2E tests
-        # smoke - Critical smoke tests across all layers
-        test-layer: [server-integration, server-api, server-utils, schema, app-e2e, smoke]
+        # integration - Complex business workflows (test:integration)
+        # server-api - API endpoint integration tests (test:server:api)
+        # server-utils - Server utility tests (test:server:utils)
+        # schema - Database schema and migration tests (test:schema)
+        # app-e2e - Frontend E2E tests (test:app:e2e)
+        # smoke - Critical smoke tests across all layers (test:smoke)
+        test-layer: [integration, server-api, server-utils, schema, app-e2e, smoke]
 
     services:
       neo4j:
@@ -177,8 +177,8 @@ jobs:
         run: |
           mkdir -p coverage
           # Copy the first coverage report as base
-          if [ -d "coverage-artifacts/coverage-server-integration" ]; then
-            cp -r coverage-artifacts/coverage-server-integration/* coverage/
+          if [ -d "coverage-artifacts/coverage-integration" ]; then
+            cp -r coverage-artifacts/coverage-integration/* coverage/
           elif [ -d "coverage-artifacts/coverage-server-api" ]; then
             cp -r coverage-artifacts/coverage-server-api/* coverage/
           elif [ -d "coverage-artifacts/coverage-schema" ]; then
