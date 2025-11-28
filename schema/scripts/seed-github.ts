@@ -475,7 +475,7 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
   const userEmail = await ensureTechnicalUserExists()
   
   // Check for API token
-  let apiToken = process.env.SEED_API_TOKEN
+  const apiToken = process.env.SEED_API_TOKEN
   if (!apiToken) {
     console.log('⚠️  SEED_API_TOKEN not found in environment\n')
     console.log('Please create an API token for the technical user:')
