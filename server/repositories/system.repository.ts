@@ -166,8 +166,6 @@ export class SystemRepository extends BaseRepository {
       ownerTeam: record.get('ownerTeam'),
       businessCriticality: record.get('businessCriticality'),
       environment: record.get('environment'),
-      sourceCodeType: record.get('sourceCodeType'),
-      hasSourceAccess: record.get('hasSourceAccess'),
       componentCount: record.get('componentCount').toNumber(),
       repositoryCount: record.get('repositoryCount').toNumber()
     }
