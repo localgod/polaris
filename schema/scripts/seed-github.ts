@@ -22,6 +22,7 @@ import { mkdirSync, rmSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { createBom } from '@cyclonedx/cdxgen'
 import neo4j from 'neo4j-driver'
+import { randomBytes } from 'crypto'
 
 // Load .env file manually
 const envPath = join(process.cwd(), '.env')
@@ -354,6 +355,69 @@ async function clearDatabase(): Promise<void> {
 }
 
 /**
+ * Ensure a technical user exists for seeding
+ * Returns the user email
+ */
+async function ensureTechnicalUserExists(): Promise<string> {
+  const driver = getDriver()
+  const session = driver.session()
+  
+  try {
+    // Check if any technical user exists
+    const result = await session.run(
+      'MATCH (u:User {provider: "technical"}) RETURN u.email as email LIMIT 1'
+    )
+    
+    if (result.records.length > 0) {
+      const email = result.records[0].get('email')
+      console.log(`✅ Found existing technical user: ${email}\n`)
+      return email
+    }
+    
+    // No technical user exists, create one
+    console.log('📝 No technical user found, creating one...\n')
+    
+    const email = 'seed-bot@polaris.local'
+    const name = 'Seed Bot'
+    const userId = `technical-${randomBytes(16).toString('hex')}`
+    const createdAt = new Date().toISOString()
+    
+    await session.run(
+      `
+      CREATE (u:User {
+        id: $id,
+        email: $email,
+        name: $name,
+        provider: 'technical',
+        role: 'superuser',
+        avatarUrl: null,
+        createdAt: datetime($createdAt),
+        lastLogin: null
+      })
+      RETURN u.email as email
+      `,
+      {
+        id: userId,
+        email,
+        name,
+        createdAt
+      }
+    )
+    
+    console.log(`✅ Created technical user: ${email}`)
+    console.log(`   Role: superuser`)
+    console.log(`   Provider: technical\n`)
+    
+    return email
+  } catch (error) {
+    throw new Error(`Failed to ensure technical user exists: ${error instanceof Error ? error.message : error}`)
+  } finally {
+    await session.close()
+    await driver.close()
+  }
+}
+
+/**
  * Load repository configurations
  */
 function loadConfigurations(options: SeedOptions): RepositoryConfig[] {
@@ -401,14 +465,16 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
   console.log('\n🌟 GitHub SBOM Seeding\n')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
   
+  // Ensure a technical user exists
+  const userEmail = await ensureTechnicalUserExists()
+  
   // Check for API token
-  const apiToken = process.env.SEED_API_TOKEN
+  let apiToken = process.env.SEED_API_TOKEN
   if (!apiToken) {
-    console.error('❌ Error: SEED_API_TOKEN environment variable not set\n')
-    console.log('Please create an API token first:')
-    console.log('  1. Run: npm run seed')
-    console.log('  2. Run: tsx schema/scripts/seed-api-token.ts admin@example.com')
-    console.log('  3. Add token to .env: SEED_API_TOKEN=your-token-here\n')
+    console.log('⚠️  SEED_API_TOKEN not found in environment\n')
+    console.log('Please create an API token for the technical user:')
+    console.log(`  npx tsx schema/scripts/seed-api-token.ts ${userEmail}`)
+    console.log('  Then add it to .env: SEED_API_TOKEN=your-token-here\n')
     process.exit(1)
   }
   
