@@ -314,6 +314,12 @@ async function processRepository(config: RepositoryConfig, apiToken: string): Pr
   console.log(`\n📦 Processing: ${config.url}`)
   
   try {
+    // Clean up any existing directory first
+    if (existsSync(repoDir)) {
+      console.log(`  🧹 Cleaning up existing directory...`)
+      rmSync(repoDir, { recursive: true, force: true })
+    }
+    
     // Clone repository
     await cloneRepository(config.url, config.branch, repoDir)
     
