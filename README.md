@@ -243,6 +243,41 @@ Polaris uses **Gartner's TIME framework** for technology portfolio management wi
 - `GET /api/teams/{name}/approvals` - All approvals for a team
 - `GET /api/approvals/check` - Check TIME category with hierarchy resolution
 
+### SBOM Submission Workflow
+
+Polaris collects and tracks Software Bill of Materials (SBOM) from your CI/CD pipelines:
+
+**Workflow:**
+1. **Register Repository**: Link repository to a system
+   ```bash
+   POST /api/systems/my-system/repositories
+   {
+     "url": "https://github.com/org/repo"
+   }
+   ```
+
+2. **Submit SBOM**: CI/CD submits SBOM after build
+   ```bash
+   POST /api/sboms
+   {
+     "repositoryUrl": "https://github.com/org/repo",
+     "sbom": { /* CycloneDX or SPDX */ }
+   }
+   ```
+
+**Features:**
+- ✅ Supports CycloneDX and SPDX formats
+- ✅ Automatic component extraction and deduplication
+- ✅ Links components to systems for governance
+- ✅ Tracks last SBOM scan timestamp
+- ✅ Strict enforcement: repository must be registered first
+
+**Note:** Polaris focuses on SBOM collection and component tracking. For vulnerability scanning, use complementary tools like GitHub Dependabot, Trivy, or Grype alongside Polaris.
+
+**Documentation:**
+- [SBOM Schema Design](docs/sbom-schema-design.md)
+- [ADR-0004: Exclude CVE Management](docs/architecture/decisions/0004-exclude-cve-vulnerability-management.md)
+
 ### Comprehensive Audit Trail
 
 Polaris tracks all data changes with complete context for compliance, security, and debugging:
@@ -257,7 +292,7 @@ Polaris tracks all data changes with complete context for compliance, security, 
 **What Gets Audited:**
 - CRUD operations on all entities (Technology, System, Team, Policy, Component, User)
 - Approval operations with TIME framework decisions
-- SBOM uploads and vulnerability detection
+- SBOM uploads and component tracking
 - Relationship changes (ownership, stewardship)
 - User activities (login, role changes)
 

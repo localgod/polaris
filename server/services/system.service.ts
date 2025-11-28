@@ -1,5 +1,7 @@
 import { SystemRepository } from '../repositories/system.repository'
+import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
 import type { System, CreateSystemParams, RepositoryInput, UnmappedComponentsResult } from '../repositories/system.repository'
+import type { Repository } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
 
 export interface CreateSystemInput {
@@ -18,9 +20,11 @@ export interface CreateSystemInput {
  */
 export class SystemService {
   private systemRepo: SystemRepository
+  private sourceRepoRepo: SourceRepositoryRepository
 
   constructor() {
     this.systemRepo = new SystemRepository()
+    this.sourceRepoRepo = new SourceRepositoryRepository()
   }
 
   /**
@@ -172,5 +176,110 @@ export class SystemService {
     }
     
     return await this.systemRepo.findUnmappedComponents(systemName)
+  }
+
+  /**
+   * Add a repository to a system
+   * 
+   * Business rules:
+   * - System must exist
+   * - Repository URL is normalized
+   * - Repository name is extracted from URL if not provided
+   * - Creates repository if it doesn't exist (MERGE)
+   * - Links repository to system
+   * 
+   * @param systemName - System name
+   * @param data - Repository data
+   * @returns Created/updated repository
+   * @throws Error if system not found
+   */
+  async addRepository(systemName: string, data: {
+    url: string
+    name?: string
+  }): Promise<Repository> {
+    // Business logic: validate system exists
+    const system = await this.systemRepo.findByName(systemName)
+    if (!system) {
+      throw createError({
+        statusCode: 404,
+        message: `System not found: ${systemName}`
+      })
+    }
+    
+    // Business logic: normalize URL
+    const normalizedUrl = normalizeRepoUrl(data.url)
+    
+    // Business logic: extract name if not provided
+    const name = data.name || this.extractRepoName(normalizedUrl)
+    
+    // Use add-repository query which uses MERGE
+    const query = await loadQuery('systems/add-repository.cypher')
+    const { records } = await this.systemRepo.executeQuery(query, {
+      systemName,
+      url: normalizedUrl,
+      name
+    })
+    
+    if (records.length === 0) {
+      throw new Error('Failed to add repository')
+    }
+    
+    return {
+      url: records[0].get('url'),
+      name: records[0].get('name'),
+      createdAt: records[0].get('createdAt')?.toString() || null,
+      updatedAt: records[0].get('updatedAt')?.toString() || null,
+      lastSbomScanAt: records[0].get('lastSbomScanAt')?.toString() || null,
+      systemCount: 1
+    }
+  }
+
+  /**
+   * Get all repositories for a system
+   * 
+   * Business rules:
+   * - System must exist
+   * 
+   * @param systemName - System name
+   * @returns List of repositories
+   * @throws Error if system not found
+   */
+  async getRepositories(systemName: string): Promise<{ data: Repository[]; count: number }> {
+    // Business logic: validate system exists
+    const system = await this.systemRepo.findByName(systemName)
+    if (!system) {
+      throw createError({
+        statusCode: 404,
+        message: `System not found: ${systemName}`
+      })
+    }
+    
+    const query = await loadQuery('systems/get-repositories.cypher')
+    const { records } = await this.systemRepo.executeQuery(query, { systemName })
+    
+    const repositories = records.map(record => ({
+      url: record.get('url'),
+      name: record.get('name'),
+      createdAt: record.get('createdAt')?.toString() || null,
+      updatedAt: record.get('updatedAt')?.toString() || null,
+      lastSbomScanAt: record.get('lastSbomScanAt')?.toString() || null,
+      systemCount: 1
+    }))
+    
+    return {
+      data: repositories,
+      count: repositories.length
+    }
+  }
+
+  /**
+   * Extract repository name from URL
+   * 
+   * @param url - Repository URL
+   * @returns Repository name
+   */
+  private extractRepoName(url: string): string {
+    const parts = url.split('/')
+    return parts[parts.length - 1].replace('.git', '')
   }
 }
