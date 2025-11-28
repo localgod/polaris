@@ -22,4 +22,12 @@ describe('SystemService', () => {
   it('should have delete method', () => {
     expect(SystemService.prototype.delete).toBeDefined()
   })
+
+  it('should have addRepository method', () => {
+    expect(SystemService.prototype.addRepository).toBeDefined()
+  })
+
+  it('should have getRepositories method', () => {
+    expect(SystemService.prototype.getRepositories).toBeDefined()
+  })
 })

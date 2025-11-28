@@ -47,6 +47,34 @@ export class SourceRepositoryRepository extends BaseRepository {
   }
 
   /**
+   * Create a repository and link it to a system
+   * 
+   * @param data - Repository creation data
+   * @returns Created repository
+   */
+  async createWithSystem(data: {
+    url: string
+    name: string
+    systemName: string
+  }): Promise<Repository> {
+    const query = await loadQuery('source-repositories/create-with-system.cypher')
+    const { records } = await this.executeQuery(query, data)
+    
+    if (records.length === 0) {
+      throw new Error('Failed to create repository')
+    }
+    
+    return {
+      url: records[0].get('url'),
+      name: records[0].get('name'),
+      createdAt: records[0].get('createdAt')?.toString() || null,
+      updatedAt: records[0].get('updatedAt')?.toString() || null,
+      lastSbomScanAt: records[0].get('lastSbomScanAt')?.toString() || null,
+      systemCount: 1
+    }
+  }
+
+  /**
    * Map Neo4j record to Repository domain object
    */
   private mapToRepository(record: Neo4jRecord): Repository {

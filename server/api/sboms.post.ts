@@ -270,11 +270,37 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
   } catch (error) {
     // Handle specific errors
     if (error && typeof error === 'object' && 'statusCode' in error) {
-      const httpError = error as { statusCode: number; message: string }
+      const httpError = error as { 
+        statusCode: number
+        message: string
+        hint?: string
+      }
+      
       setResponseStatus(event, httpError.statusCode)
+      
+      // Repository not registered (404)
+      if (httpError.statusCode === 404) {
+        return {
+          success: false,
+          error: 'repository_not_registered',
+          message: httpError.message,
+          hint: httpError.hint || 'Register the repository first using POST /api/systems/{systemName}/repositories'
+        }
+      }
+      
+      // Repository not linked to system (409)
+      if (httpError.statusCode === 409) {
+        return {
+          success: false,
+          error: 'repository_not_linked',
+          message: httpError.message
+        }
+      }
+      
+      // Other errors
       return {
         success: false,
-        error: httpError.statusCode === 404 ? 'system_not_found' : 'processing_error',
+        error: 'processing_error',
         message: httpError.message
       }
     }

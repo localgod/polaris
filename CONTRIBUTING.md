@@ -947,6 +947,60 @@ The project implements a Technology Catalog with SBOM support.
 4. **Backend Service** - Neo4j runs as a backend service (Bolt protocol only)
 5. **Idempotent Operations** - Migrations and seeding can run multiple times safely
 
+## Architecture Decision Records (ADRs)
+
+We use Architecture Decision Records (ADRs) to document significant architectural decisions.
+
+### When to Create an ADR
+
+Create an ADR when making decisions about:
+- Database schema changes
+- Technology choices (frameworks, libraries, tools)
+- Architectural patterns (service layer, repository pattern, etc.)
+- API design decisions
+- Security or compliance approaches
+- Performance optimization strategies
+
+### How to Create an ADR
+
+1. **Copy the template**:
+   ```bash
+   cp docs/architecture/decisions/0000-template.md \
+      docs/architecture/decisions/NNNN-your-decision.md
+   ```
+
+2. **Use the next sequential number** (check existing ADRs)
+
+3. **Fill in all sections**:
+   - **Status**: Start with "Proposed"
+   - **Context**: Explain the problem and constraints
+   - **Decision**: Describe the solution and why
+   - **Consequences**: List positive, negative, and neutral impacts
+
+4. **Submit with your PR**: Include the ADR in the same PR as the implementation
+
+5. **Update the index**: Add your ADR to the list in `docs/architecture/decisions/README.md`
+
+### ADR Lifecycle
+
+- **Proposed**: Under discussion (use in PR for review)
+- **Accepted**: Approved and implemented
+- **Deprecated**: No longer recommended but still in use
+- **Superseded**: Replaced by a newer ADR (link to it)
+
+### Example ADRs
+
+See `docs/architecture/decisions/` for examples:
+- ADR-0001: Use Neo4j for Graph Database
+- ADR-0002: Implement Service Layer Pattern
+
+### Benefits
+
+- **Knowledge Sharing**: New team members understand why decisions were made
+- **Historical Context**: Preserve reasoning for future reference
+- **Prevent Rehashing**: Avoid revisiting settled discussions
+- **Transparency**: Make decision-making process visible
+
 ## Getting Help
 
 If you have questions:

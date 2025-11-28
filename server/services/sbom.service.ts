@@ -32,7 +32,8 @@ export class SBOMService {
    * Process and persist an SBOM
    * 
    * Business rules:
-   * - Repository URL must reference an existing system
+   * - Repository must be registered first (strict enforcement)
+   * - Repository must be linked to a system
    * - Components are deduplicated by purl (or name+version)
    * - Existing components are updated with new metadata
    * - System-Component relationships are created/updated
@@ -46,19 +47,35 @@ export class SBOMService {
     // 1. Normalize repository URL
     const normalizedUrl = normalizeRepoUrl(input.repositoryUrl)
     
-    // 2. Find system by repository URL (business rule: must exist)
-    const system = await this.findSystemByRepository(normalizedUrl)
+    // 2. Find repository (STRICT - must be registered first)
+    const repository = await this.sourceRepoRepo.findByUrl(normalizedUrl)
     
-    if (!system) {
-      const error = new Error(`No system found with repository URL: ${normalizedUrl}. Please create the system first.`) as Error & { statusCode: number }
+    if (!repository) {
+      const error = new Error(
+        `Repository not registered: ${normalizedUrl}. ` +
+        `Please register it first using POST /api/systems/{systemName}/repositories`
+      ) as Error & { statusCode: number; hint: string }
       error.statusCode = 404
+      error.hint = 'POST /api/systems/{systemName}/repositories'
       throw error
     }
     
-    // 3. Extract components from SBOM
+    // 3. Find system by repository URL (verify linkage)
+    const system = await this.findSystemByRepository(normalizedUrl)
+    
+    if (!system) {
+      const error = new Error(
+        `Repository ${normalizedUrl} is not linked to any system. ` +
+        `Please contact your administrator.`
+      ) as Error & { statusCode: number }
+      error.statusCode = 409
+      throw error
+    }
+    
+    // 4. Extract components from SBOM
     const components = this.extractComponents(input.sbom as Record<string, unknown>, input.format)
     
-    // 4. Persist to database
+    // 5. Persist to database
     const result = await this.sbomRepo.persistSBOM({
       systemName: system.name,
       repositoryUrl: normalizedUrl,
@@ -67,7 +84,7 @@ export class SBOMService {
       timestamp: new Date()
     })
     
-    // 5. Update repository last scan timestamp
+    // 6. Update repository last scan timestamp
     await this.sourceRepoRepo.updateLastScan(normalizedUrl)
     
     return {

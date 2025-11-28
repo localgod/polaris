@@ -104,21 +104,33 @@ describe('SBOMService', () => {
   })
 
   describe('processSBOM', () => {
-    it('should process CycloneDX SBOM successfully', async () => {
-      // Mock system found
+    beforeEach(() => {
+      // Mock repository found for all tests (can be overridden in specific tests)
+      vi.spyOn(mockSourceRepoRepo, 'findByUrl').mockResolvedValue({
+        url: 'https://github.com/org/repo',
+        name: 'repo',
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+        lastSbomScanAt: null,
+        systemCount: 1
+      })
+
+      // Mock system found for all tests (can be overridden in specific tests)
       vi.spyOn(mockSystemRepo, 'findByRepositoryUrl').mockResolvedValue({
         name: 'test-system'
       })
 
+      // Mock updateLastScan for all tests
+      vi.spyOn(mockSourceRepoRepo, 'updateLastScan').mockResolvedValue()
+    })
+
+    it('should process CycloneDX SBOM successfully', async () => {
       // Mock persistence
       vi.spyOn(mockSbomRepo, 'persistSBOM').mockResolvedValue({
         componentsAdded: 2,
         componentsUpdated: 0,
         relationshipsCreated: 2
       })
-
-      // Mock updateLastScan
-      const updateLastScanSpy = vi.spyOn(mockSourceRepoRepo, 'updateLastScan').mockResolvedValue()
 
       const result = await sbomService.processSBOM({
         sbom: validCycloneDxSbom,
@@ -134,17 +146,13 @@ describe('SBOMService', () => {
         relationshipsCreated: 2
       })
 
+      expect(mockSourceRepoRepo.findByUrl).toHaveBeenCalledWith('https://github.com/org/repo')
       expect(mockSystemRepo.findByRepositoryUrl).toHaveBeenCalledWith('https://github.com/org/repo')
       expect(mockSbomRepo.persistSBOM).toHaveBeenCalled()
-      expect(updateLastScanSpy).toHaveBeenCalledWith('https://github.com/org/repo')
+      expect(mockSourceRepoRepo.updateLastScan).toHaveBeenCalledWith('https://github.com/org/repo')
     })
 
     it('should process SPDX SBOM successfully', async () => {
-      // Mock system found
-      vi.spyOn(mockSystemRepo, 'findByRepositoryUrl').mockResolvedValue({
-        name: 'test-system'
-      })
-
       // Mock persistence
       vi.spyOn(mockSbomRepo, 'persistSBOM').mockResolvedValue({
         componentsAdded: 1,
@@ -171,10 +179,6 @@ describe('SBOMService', () => {
     })
 
     it('should normalize repository URL', async () => {
-      vi.spyOn(mockSystemRepo, 'findByRepositoryUrl').mockResolvedValue({
-        name: 'test-system'
-      })
-
       vi.spyOn(mockSbomRepo, 'persistSBOM').mockResolvedValue({
         componentsAdded: 1,
         componentsUpdated: 0,
@@ -191,9 +195,9 @@ describe('SBOMService', () => {
       expect(mockSystemRepo.findByRepositoryUrl).toHaveBeenCalledWith('https://github.com/org/repo')
     })
 
-    it('should throw error when system not found', async () => {
-      // Mock system not found
-      vi.spyOn(mockSystemRepo, 'findByRepositoryUrl').mockResolvedValue(null)
+    it('should throw error when repository not registered', async () => {
+      // Mock repository not found
+      vi.spyOn(mockSourceRepoRepo, 'findByUrl').mockResolvedValue(null)
 
       await expect(
         sbomService.processSBOM({
@@ -201,7 +205,7 @@ describe('SBOMService', () => {
           repositoryUrl: 'https://github.com/org/unknown',
           format: 'cyclonedx'
         })
-      ).rejects.toThrow('No system found with repository URL')
+      ).rejects.toThrow('Repository not registered')
 
       expect(mockSbomRepo.persistSBOM).not.toHaveBeenCalled()
     })

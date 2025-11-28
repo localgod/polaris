@@ -18,4 +18,8 @@ describe('SourceRepositoryRepository', () => {
   it('should have updateLastScan method', () => {
     expect(SourceRepositoryRepository.prototype.updateLastScan).toBeDefined()
   })
+
+  it('should have createWithSystem method', () => {
+    expect(SourceRepositoryRepository.prototype.createWithSystem).toBeDefined()
+  })
 })
