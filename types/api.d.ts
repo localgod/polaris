@@ -153,14 +153,10 @@ export interface System {
 
 export interface Repository {
   url: string
-  scmType: string
   name: string
-  description: string | null
-  isPublic: boolean
-  requiresAuth: boolean
-  defaultBranch: string | null
   createdAt: string | null
-  lastSyncedAt: string | null
+  updatedAt: string | null
+  lastSbomScanAt: string | null
   systemCount?: number
 }
 

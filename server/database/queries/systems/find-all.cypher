@@ -7,8 +7,6 @@ RETURN s.name as name,
        team.name as ownerTeam,
        s.businessCriticality as businessCriticality,
        s.environment as environment,
-       s.sourceCodeType as sourceCodeType,
-       s.hasSourceAccess as hasSourceAccess,
        count(DISTINCT c) as componentCount,
        count(DISTINCT r) as repositoryCount
 ORDER BY s.businessCriticality DESC, s.name

@@ -127,7 +127,7 @@
               SCM Repositories
             </label>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              Add repository URLs - details will be auto-filled
+              Add repository URLs for this system
             </p>
             <div class="space-y-3">
               <div
@@ -162,64 +162,16 @@
                   >
                 </div>
                 
-                <button
-                  v-if="!repo.showAdvanced"
-                  type="button"
-                  class="text-xs text-primary-600 dark:text-primary-400 hover:underline"
-                  @click="repo.showAdvanced = true"
-                >
-                  Show advanced options
-                </button>
-                
-                <div v-if="repo.showAdvanced" class="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        SCM Type
-                      </label>
-                      <select
-                        v-model="repo.scmType"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        <option value="git">Git</option>
-                        <option value="svn">SVN</option>
-                        <option value="mercurial">Mercurial</option>
-                        <option value="perforce">Perforce</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Repository Name
-                      </label>
-                      <input
-                        v-model="repo.name"
-                        type="text"
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Auto-filled from URL"
-                      >
-                    </div>
-                  </div>
-                  
-                  <div class="flex items-center gap-4">
-                    <label class="flex items-center gap-2">
-                      <input
-                        v-model="repo.isPublic"
-                        type="checkbox"
-                        class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                      >
-                      <span class="text-xs text-gray-700 dark:text-gray-300">Public repository</span>
-                    </label>
-                    
-                    <label class="flex items-center gap-2">
-                      <input
-                        v-model="repo.requiresAuth"
-                        type="checkbox"
-                        class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                      >
-                      <span class="text-xs text-gray-700 dark:text-gray-300">Requires authentication</span>
-                    </label>
-                  </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Repository Name
+                  </label>
+                  <input
+                    v-model="repo.name"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Auto-filled from URL"
+                  >
                 </div>
               </div>
               
@@ -293,11 +245,7 @@ interface SystemFormData {
   environment: string
   repositories: Array<{
     url: string
-    scmType: string
     name: string
-    isPublic: boolean
-    requiresAuth: boolean
-    showAdvanced?: boolean
   }>
 }
 
@@ -333,28 +281,6 @@ const fieldErrors = ref<Record<string, string>>({})
 const { data: teamsData, error: teamsError } = await useFetch<TeamsResponse>('/api/teams')
 const teams = computed(() => teamsData.value?.data || [])
 
-function detectScmType(url: string): string {
-  if (!url) return 'git'
-  
-  const lowerUrl = url.toLowerCase()
-  
-  if (lowerUrl.includes('github.com') || 
-      lowerUrl.includes('gitlab.com') || 
-      lowerUrl.includes('bitbucket.org')) {
-    return 'git'
-  }
-  
-  if (lowerUrl.includes('svn.') || lowerUrl.includes('/svn/')) {
-    return 'svn'
-  }
-  
-  if (lowerUrl.includes('hg.') || lowerUrl.includes('/hg/')) {
-    return 'mercurial'
-  }
-  
-  return 'git'
-}
-
 function extractRepoName(url: string): string {
   if (!url) return ''
   
@@ -370,52 +296,19 @@ function extractRepoName(url: string): string {
   return ''
 }
 
-function isLikelyPublic(url: string): boolean {
-  if (!url) return false
-  
-  const lowerUrl = url.toLowerCase()
-  
-  // GitHub/GitLab public repos
-  if ((lowerUrl.includes('github.com') || lowerUrl.includes('gitlab.com')) &&
-      !lowerUrl.includes('/private/')) {
-    return true
-  }
-  
-  // Bitbucket public repos
-  if (lowerUrl.includes('bitbucket.org')) {
-    return true
-  }
-  
-  return false
-}
-
 function autoFillRepository(repo: SystemFormData['repositories'][0]) {
   if (!repo.url) return
-  
-  // Auto-detect SCM type if not already set
-  if (!repo.scmType || repo.scmType === 'git') {
-    repo.scmType = detectScmType(repo.url)
-  }
   
   // Extract name from URL if not already set
   if (!repo.name) {
     repo.name = extractRepoName(repo.url)
   }
-  
-  // Smart defaults for public/auth
-  const isPublic = isLikelyPublic(repo.url)
-  repo.isPublic = isPublic
-  repo.requiresAuth = !isPublic
 }
 
 function addRepository() {
   formData.value.repositories.push({
     url: '',
-    scmType: 'git',
-    name: '',
-    isPublic: false,
-    requiresAuth: true,
-    showAdvanced: false
+    name: ''
   })
 }
 

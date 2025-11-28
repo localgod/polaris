@@ -8,18 +8,13 @@ export interface System {
   ownerTeam: string | null
   businessCriticality: string | null
   environment: string | null
-  sourceCodeType: string | null
-  hasSourceAccess: boolean | null
   componentCount: number
   repositoryCount: number
 }
 
 export interface RepositoryInput {
   url: string
-  scmType: string
   name: string
-  isPublic: boolean
-  requiresAuth: boolean
 }
 
 export interface CreateSystemParams {
@@ -28,8 +23,6 @@ export interface CreateSystemParams {
   ownerTeam: string
   businessCriticality: string
   environment: string
-  sourceCodeType: string
-  hasSourceAccess: boolean
   repositories: RepositoryInput[]
 }
 

@@ -1,4 +1,4 @@
-MATCH (r:Repository)
+MATCH (r:Repository {url: $url})
 OPTIONAL MATCH (s:System)-[:HAS_SOURCE_IN]->(r)
 RETURN r.url as url,
        r.name as name,
@@ -6,4 +6,3 @@ RETURN r.url as url,
        r.updatedAt as updatedAt,
        r.lastSbomScanAt as lastSbomScanAt,
        count(DISTINCT s) as systemCount
-ORDER BY r.name

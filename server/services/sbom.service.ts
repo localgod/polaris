@@ -1,5 +1,6 @@
 import { SystemRepository } from '../repositories/system.repository'
 import { SBOMRepository } from '../repositories/sbom.repository'
+import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
 import { normalizeRepoUrl } from '../utils/repository'
 import type {
   ProcessSBOMInput,
@@ -19,10 +20,12 @@ import type {
 export class SBOMService {
   private systemRepo: SystemRepository
   private sbomRepo: SBOMRepository
+  private sourceRepoRepo: SourceRepositoryRepository
 
   constructor() {
     this.systemRepo = new SystemRepository()
     this.sbomRepo = new SBOMRepository()
+    this.sourceRepoRepo = new SourceRepositoryRepository()
   }
 
   /**
@@ -33,6 +36,7 @@ export class SBOMService {
    * - Components are deduplicated by purl (or name+version)
    * - Existing components are updated with new metadata
    * - System-Component relationships are created/updated
+   * - Repository lastSbomScanAt timestamp is updated
    * 
    * @param input - SBOM processing input
    * @returns Processing result with counts
@@ -62,6 +66,9 @@ export class SBOMService {
       format: input.format,
       timestamp: new Date()
     })
+    
+    // 5. Update repository last scan timestamp
+    await this.sourceRepoRepo.updateLastScan(normalizedUrl)
     
     return {
       systemName: system.name,
