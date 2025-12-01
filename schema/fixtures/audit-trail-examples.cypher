@@ -86,7 +86,7 @@ ORDER BY a.timestamp DESC;
 
 // Get all SBOM-related operations
 MATCH (a:AuditLog)
-WHERE a.operation IN ['SBOM_UPLOAD', 'COMPONENT_DISCOVERED', 'VULNERABILITY_DETECTED']
+WHERE a.operation IN ['SBOM_UPLOAD', 'COMPONENT_DISCOVERED']
 RETURN a
 ORDER BY a.timestamp DESC;
 

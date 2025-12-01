@@ -167,24 +167,87 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v6
         with:
           pattern: coverage-*
           path: coverage-artifacts/
 
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded coverage artifacts:"
+          ls -la coverage-artifacts/
+          echo ""
+          echo "Contents of each artifact:"
+          for dir in coverage-artifacts/*/; do
+            echo "=== $dir ==="
+            ls -la "$dir"
+          done
+
       - name: Merge coverage reports
         run: |
+          # Install nyc globally for coverage merging
+          npm install -g nyc
+          
+          # Create output directory
           mkdir -p coverage
-          # Copy the first coverage report as base
-          if [ -d "coverage-artifacts/coverage-integration" ]; then
-            cp -r coverage-artifacts/coverage-integration/* coverage/
-          elif [ -d "coverage-artifacts/coverage-server-api" ]; then
-            cp -r coverage-artifacts/coverage-server-api/* coverage/
-          elif [ -d "coverage-artifacts/coverage-schema" ]; then
-            cp -r coverage-artifacts/coverage-schema/* coverage/
+          
+          # Find and merge all coverage-final.json files
+          echo "Merging coverage reports from all test layers..."
+          
+          # Copy all coverage-final.json files to a temp directory
+          mkdir -p .nyc_output
+          find coverage-artifacts -name 'coverage-final.json' -type f | while read file; do
+            layer=$(echo "$file" | sed 's|coverage-artifacts/coverage-||' | sed 's|/.*||')
+            echo "Found coverage from: $layer"
+            cp "$file" ".nyc_output/coverage-${layer}.json"
+          done
+          
+          # List what we're merging
+          echo ""
+          echo "Coverage files to merge:"
+          ls -la .nyc_output/
+          
+          # Merge all coverage files
+          if [ -n "$(ls -A .nyc_output/*.json 2>/dev/null)" ]; then
+            echo ""
+            echo "Merging coverage reports..."
+            nyc merge .nyc_output coverage/coverage-final.json
+            
+            # Generate reports in multiple formats
+            echo ""
+            echo "Generating coverage reports..."
+            nyc report \
+              --temp-dir .nyc_output \
+              --report-dir coverage \
+              --reporter=json-summary \
+              --reporter=json \
+              --reporter=lcov \
+              --reporter=html \
+              --reporter=text
+            
+            echo ""
+            echo "✅ Coverage reports merged successfully"
+            
+            # Show summary
+            if [ -f "coverage/coverage-summary.json" ]; then
+              echo ""
+              echo "Coverage Summary:"
+              cat coverage/coverage-summary.json | grep -A 10 '"total"' || true
+            fi
+          else
+            echo "❌ No coverage files found to merge"
+            exit 1
           fi
-          echo "Coverage artifacts merged"
 
       - name: Report Coverage
         uses: davelosert/vitest-coverage-report-action@v2

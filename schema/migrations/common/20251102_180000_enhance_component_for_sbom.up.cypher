@@ -142,8 +142,19 @@ FOR (e:ExternalReference)
 ON (e.url);
 
 // ============================================================================
-// VULNERABILITY NODE TYPE
+// VULNERABILITY NODE TYPE (SUPERSEDED - SEE NOTE BELOW)
 // ============================================================================
+
+// NOTE: This vulnerability schema was removed by migration 20251125_074808
+// and is no longer part of Polaris. See ADR-0003 for the architectural decision
+// to exclude CVE/vulnerability management from Polaris.
+//
+// Polaris focuses on technology governance and SBOM tracking.
+// Vulnerability management is handled by specialized security tools
+// (Dependabot, Trivy, Grype, etc.) that operate alongside Polaris.
+//
+// The following schema elements are kept here for historical reference but
+// are immediately removed by migration 20251125_074808:
 
 // Create Vulnerability node type
 CREATE CONSTRAINT vulnerability_id_unique IF NOT EXISTS
