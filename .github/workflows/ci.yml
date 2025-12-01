@@ -44,12 +44,12 @@ jobs:
       fail-fast: false
       matrix:
         # Test layers aligned with new test directory structure
-        # integration - Complex business workflows
-        # server-api - API endpoint integration tests
-        # server-utils - Server utility tests
-        # schema - Database schema and migration tests
-        # app-e2e - Frontend E2E tests
-        # smoke - Critical smoke tests across all layers
+        # integration - Complex business workflows (test:integration)
+        # server-api - API endpoint integration tests (test:server:api)
+        # server-utils - Server utility tests (test:server:utils)
+        # schema - Database schema and migration tests (test:schema)
+        # app-e2e - Frontend E2E tests (test:app:e2e)
+        # smoke - Critical smoke tests across all layers (test:smoke)
         test-layer: [integration, server-api, server-utils, schema, app-e2e, smoke]
 
     services:
