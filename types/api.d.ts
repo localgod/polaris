@@ -86,7 +86,6 @@ export interface Component {
   // === RELATIONSHIPS (computed) ===
   technologyName: string | null  // Linked Technology name
   systemCount: number            // Number of systems using this
-  vulnerabilityCount?: number    // Number of known vulnerabilities
 }
 
 export interface UnmappedComponent {
@@ -195,73 +194,6 @@ export interface Violation {
   status: string
   resolvedAt: string | null
   notes: string | null
-}
-
-// ============================================================================
-// VULNERABILITY TYPES
-// ============================================================================
-
-export type VulnerabilitySeverity = 
-  | 'critical'
-  | 'high'
-  | 'medium'
-  | 'low'
-  | 'info'
-  | 'none'
-  | 'unknown'
-
-export type VulnerabilityAnalysisState = 
-  | 'exploitable'
-  | 'in_triage'
-  | 'false_positive'
-  | 'not_affected'
-  | 'resolved'
-
-export type VulnerabilityResponse = 
-  | 'can_not_fix'
-  | 'will_not_fix'
-  | 'update'
-  | 'rollback'
-  | 'workaround_available'
-
-export interface VulnerabilityRating {
-  score: number              // CVSS score (0-10)
-  severity: VulnerabilitySeverity
-  method: string             // CVSSv2, CVSSv3, CVSSv31, OWASP, etc.
-  vector: string | null      // CVSS vector string
-}
-
-export interface VulnerabilityAnalysis {
-  state: VulnerabilityAnalysisState
-  justification: string | null
-  response: VulnerabilityResponse | null
-  detail: string | null
-}
-
-export interface Vulnerability {
-  id: string                 // CVE-2024-1234, GHSA-xxxx-xxxx-xxxx
-  source: string             // NVD, GitHub, OSV, etc.
-  description: string | null
-  recommendation: string | null
-  
-  // Ratings
-  ratings: VulnerabilityRating[]
-  cwes: number[]             // CWE IDs
-  
-  // Temporal
-  createdDate: string | null
-  publishedDate: string | null
-  updatedDate: string | null
-  
-  // Analysis
-  analysis: VulnerabilityAnalysis | null
-  
-  // References
-  advisories: string[]       // URLs to advisories
-  
-  // Relationships (computed)
-  affectedComponents: string[]  // Component purls
-  affectedSystemCount: number
 }
 
 export interface User {

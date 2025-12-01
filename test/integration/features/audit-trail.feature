@@ -72,16 +72,6 @@ Feature: Audit Trail Schema @model @unit
     Then the audit log should capture the SBOM details
     And the metadata should include component count
 
-  Scenario: Tracking vulnerability detection
-    When I create an audit log for vulnerability detection:
-      | field              | value                           |
-      | operation          | VULNERABILITY_DETECTED          |
-      | entityType         | Component                       |
-      | entityId           | react@18.2.0                    |
-      | vulnerabilityId    | CVE-2024-12345                  |
-      | severity           | HIGH                            |
-    Then the audit log should capture the vulnerability details
-
   Scenario: Using session and correlation IDs
     When I create multiple audit logs with the same sessionId
     Then I should be able to query all logs for that session

@@ -30,8 +30,7 @@ const mockComponents: Component[] = [
     publishedDate: null,
     modifiedDate: null,
     technologyName: 'React',
-    systemCount: 5,
-    vulnerabilityCount: 0
+    systemCount: 5
   }
 ]
 

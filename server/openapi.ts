@@ -331,11 +331,6 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             systemCount: { 
               type: 'integer',
               description: 'Number of systems using this component'
-            },
-            vulnerabilityCount: { 
-              type: 'integer',
-              nullable: true,
-              description: 'Number of known vulnerabilities'
             }
           }
         },

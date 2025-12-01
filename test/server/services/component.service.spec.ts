@@ -34,8 +34,7 @@ describe('ComponentService', () => {
       publishedDate: null,
       modifiedDate: null,
       technologyName: 'React',
-      systemCount: 5,
-      vulnerabilityCount: 0
+      systemCount: 5
     },
     {
       name: 'vue',
@@ -60,8 +59,7 @@ describe('ComponentService', () => {
       publishedDate: null,
       modifiedDate: null,
       technologyName: 'Vue',
-      systemCount: 3,
-      vulnerabilityCount: 0
+      systemCount: 3
     }
   ]
 

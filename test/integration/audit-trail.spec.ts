@@ -538,48 +538,6 @@ describeFeature(feature, ({ Background, Scenario }) => {
     })
   })
 
-  Scenario('Tracking vulnerability detection', ({ When, Then }) => {
-    When('I create an audit log for vulnerability detection:', async () => {
-      const session = driver.session()
-      try {
-        auditLogId = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-        const result = await session.run(`
-          CREATE (a:AuditLog {
-            id: $id,
-            timestamp: datetime(),
-            operation: $operation,
-            entityType: $entityType,
-            entityId: $entityId,
-            userId: 'system',
-            source: 'SYSTEM',
-            metadata: $metadata
-          })
-          RETURN a
-        `, {
-          id: auditLogId,
-          operation: 'VULNERABILITY_DETECTED',
-          entityType: 'Component',
-          entityId: 'lodash@4.17.20',
-          metadata: JSON.stringify({
-            vulnerabilityId: 'CVE-2024-12345',
-            severity: 'HIGH'
-          })
-        })
-
-        auditLog = result.records[0].get('a').properties
-      } finally {
-        await session.close()
-      }
-    })
-
-    Then('the audit log should capture the vulnerability details', () => {
-      expect(auditLog.operation).toBe('VULNERABILITY_DETECTED')
-      const metadata = JSON.parse(auditLog.metadata)
-      expect(metadata.vulnerabilityId).toBe('CVE-2024-12345')
-      expect(metadata.severity).toBe('HIGH')
-    })
-  })
-
   Scenario('Using session and correlation IDs', ({ When, Then, And }) => {
     let session: neo4j.Session
 
