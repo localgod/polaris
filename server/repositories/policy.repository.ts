@@ -13,6 +13,7 @@ export interface PolicyFilters {
   scope?: string
   status?: string
   enforcedBy?: string
+  ruleType?: string
 }
 
 export interface PolicyViolation {
@@ -80,7 +81,7 @@ export class PolicyRepository extends BaseRepository {
   /**
    * Find all policies with optional filters
    * 
-   * @param filters - Optional filters for scope, status, and enforcedBy
+   * @param filters - Optional filters for scope, status, enforcedBy, and ruleType
    * @returns Array of policies
    */
   async findAll(filters: PolicyFilters = {}): Promise<Policy[]> {
@@ -104,6 +105,11 @@ export class PolicyRepository extends BaseRepository {
     if (filters.enforcedBy) {
       conditions.push('p.enforcedBy = $enforcedBy')
       params.enforcedBy = filters.enforcedBy
+    }
+    
+    if (filters.ruleType) {
+      conditions.push('p.ruleType = $ruleType')
+      params.ruleType = filters.ruleType
     }
     
     if (conditions.length > 0) {

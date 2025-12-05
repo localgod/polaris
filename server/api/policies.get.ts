@@ -25,6 +25,12 @@ import { PolicyService } from '../services/policy.service'
  *         schema:
  *           type: string
  *         description: Filter by enforcement mechanism
+ *       - in: query
+ *         name: ruleType
+ *         schema:
+ *           type: string
+ *           enum: [technology-approval, license-compliance]
+ *         description: Filter by policy rule type
  *     responses:
  *       200:
  *         description: Successfully retrieved policies
@@ -52,9 +58,10 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Policy>> =>
     const scope = query.scope as string | undefined
     const status = query.status as string | undefined
     const enforcedBy = query.enforcedBy as string | undefined
+    const ruleType = query.ruleType as string | undefined
     
     const policyService = new PolicyService()
-    const result = await policyService.findAll({ scope, status, enforcedBy })
+    const result = await policyService.findAll({ scope, status, enforcedBy, ruleType })
     
     return {
       success: true,
