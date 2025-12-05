@@ -16,6 +16,7 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
 ## Indexes REMOVED (14 total)
 
 ### Technology Node (2 indexes)
+
 - ✅ `technology_owner_team` - **Replaced by relationship**
   - Migration 20251022_141517 created STEWARDED_BY relationship
   - Property index is redundant for traversal queries
@@ -25,6 +26,7 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
   - Risk assessment done via Policy relationships
 
 ### System Node (2 indexes)
+
 - ✅ `system_business_criticality` - **Never queried independently**
   - Property exists in OpenAPI schema but no filtering queries
   - Retrieved as part of system details, not used in WHERE clauses
@@ -34,6 +36,7 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
   - Retrieved as part of system details, not used in WHERE clauses
 
 ### Policy Node (2 indexes)
+
 - ✅ `policy_enforced_by` - **Replaced by relationship**
   - Property still used for display (kept in OpenAPI)
   - ENFORCES relationship handles graph traversal
@@ -44,17 +47,20 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
   - Policies filtered by scope and status instead
 
 ### Team Node (1 index)
+
 - ✅ `team_responsibility_area` - **Never populated**
   - Defined in OpenAPI schema but not used anywhere
   - No queries reference this property
 
 ### Version Node (1 index)
+
 - ✅ `version_release_date` - **Low query value**
   - eolDate index covers temporal queries
   - Release chronology rarely queried
   - Kept in data model for SBOM completeness
 
 ### Component Node (2 indexes)
+
 - ✅ `component_supplier` - **Rarely queried independently**
   - SBOM data includes supplier info
   - Accessed as component detail, not filtered
@@ -65,6 +71,7 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
   - releaseDate provides sufficient temporal context
 
 ### Relationship Indexes (4 indexes)
+
 - ✅ `audit_performed_by` - **Redundant with node index**
   - AuditLog.userId already indexed
   - Neo4j relationship traversal is fast without index
@@ -84,6 +91,7 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
 ## Indexes KEPT (Actively Used)
 
 ### Critical Constraints
+
 - `technology_name_unique`
 - `system_name_unique`
 - `team_name_unique`
@@ -96,6 +104,7 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
 - All Migration and AuditLog constraints
 
 ### Performance Indexes
+
 - `technology_category` - ✅ Filtered in queries
 - `component_package_manager` - ✅ Critical for ecosystem filtering
 - `component_type` - ✅ SBOM classification queries
@@ -109,7 +118,8 @@ Reviewed all 30 migrations in `schema/migrations/common` and cross-referenced wi
 
 ## Verification Results
 
-### Properties Still in Data Model (but not indexed):
+### Properties Still in Data Model (but not indexed)
+
 These properties exist and are returned in API responses, but don't need indexes because they're not used in WHERE clauses:
 - `businessCriticality` - Part of system details
 - `environment` - Part of system details
@@ -118,7 +128,8 @@ These properties exist and are returned in API responses, but don't need indexes
 - `supplier` - SBOM metadata
 - `publishedDate` - SBOM temporal data
 
-### Properties Actively Queried (kept indexes):
+### Properties Actively Queried (kept indexes)
+
 - ✅ `enforcedBy` - Used in `PolicyRepository.findAll()` WHERE clause
 - ✅ `group` - Used in 5 component query files
 - ✅ Component temporal fields still in test fixtures for SBOM completeness
@@ -128,7 +139,8 @@ These properties exist and are returned in API responses, but don't need indexes
 **Before**: 14 unnecessary indexes causing write overhead  
 **After**: Leaner schema with same query performance
 
-### Write Operations Improved:
+### Write Operations Improved
+
 - Component creation (SBOM ingestion) - 2 fewer indexes
 - Policy operations - 2 fewer indexes  
 - System creation - 2 fewer indexes
@@ -136,7 +148,8 @@ These properties exist and are returned in API responses, but don't need indexes
 - Audit logging - 2 fewer relationship indexes
 - User/Token operations - 2 fewer relationship indexes
 
-### Query Performance:
+### Query Performance
+
 - ✅ No impact - all actively queried properties still indexed
 - ✅ Relationship traversals remain fast
 - ✅ Composite indexes cover entity-specific queries
