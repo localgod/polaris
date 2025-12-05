@@ -1,9 +1,17 @@
 <template>
   <NuxtLayout name="default">
     <div class="space-y-6">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Policy Violations</h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Technologies used without approval</p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Policy Violations</h1>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Technologies and licenses used without approval</p>
+        </div>
+        <NuxtLink 
+          to="/violations/licenses"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          View License Violations
+        </NuxtLink>
       </div>
 
       <UiCard v-if="pending">
