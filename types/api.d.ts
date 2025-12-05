@@ -212,6 +212,7 @@ export interface ApiSuccessResponse<T> {
   success: true
   data: T[]
   count: number
+  total?: number  // Total count without pagination (for filtered results)
 }
 
 export interface ApiErrorResponse {

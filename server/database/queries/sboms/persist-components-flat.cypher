@@ -103,14 +103,39 @@ FOREACH (hash IN [h IN allHashes WHERE h.componentIndex = compIndex AND h.algori
 )
 
 // Create License nodes for this component
-WITH s, c, compIndex, componentExists, relationshipExists, $licenses AS allLicenses
-FOREACH (license IN [lic IN allLicenses WHERE lic.componentIndex = compIndex AND lic.id IS NOT NULL] |
-  MERGE (l:License {id: license.id})
+WITH s, c, compIndex, componentExists, relationshipExists, $licenses AS allLicenses, $timestamp AS timestamp
+FOREACH (license IN [lic IN allLicenses WHERE lic.componentIndex = compIndex AND (lic.id IS NOT NULL OR lic.name IS NOT NULL)] |
+  MERGE (l:License {id: COALESCE(license.id, license.name)})
   ON CREATE SET 
-    l.name = CASE WHEN license.name IS NOT NULL THEN license.name ELSE null END,
-    l.url = CASE WHEN license.url IS NOT NULL THEN license.url ELSE null END,
-    l.text = CASE WHEN license.text IS NOT NULL THEN license.text ELSE null END
-  MERGE (c)-[:HAS_LICENSE]->(l)
+    l.name = COALESCE(license.name, license.id),
+    l.spdxId = COALESCE(license.id, license.name),
+    l.url = license.url,
+    l.text = license.text,
+    l.osiApproved = CASE 
+      WHEN COALESCE(license.id, license.name) IN ['MIT', 'Apache-2.0', 'BSD-3-Clause', 'BSD-2-Clause', 'GPL-2.0', 'GPL-3.0', 'LGPL-2.1', 'LGPL-3.0', 'MPL-2.0', 'ISC', 'EPL-1.0', 'EPL-2.0']
+      THEN true
+      ELSE false
+    END,
+    l.category = CASE
+      WHEN COALESCE(license.id, license.name) IN ['MIT', 'Apache-2.0', 'BSD-3-Clause', 'BSD-2-Clause', 'ISC']
+      THEN 'permissive'
+      WHEN COALESCE(license.id, license.name) IN ['GPL-2.0', 'GPL-3.0', 'LGPL-2.1', 'LGPL-3.0', 'AGPL-3.0', 'MPL-2.0']
+      THEN 'copyleft'
+      WHEN COALESCE(license.id, license.name) IN ['Unlicense', 'CC0-1.0']
+      THEN 'public-domain'
+      WHEN COALESCE(license.id, license.name) CONTAINS 'Proprietary' OR COALESCE(license.id, license.name) CONTAINS 'Commercial'
+      THEN 'proprietary'
+      ELSE 'other'
+    END,
+    l.deprecated = false,
+    l.createdAt = timestamp,
+    l.updatedAt = timestamp
+  ON MATCH SET
+    l.updatedAt = timestamp,
+    l.url = COALESCE(l.url, license.url),
+    l.text = COALESCE(l.text, license.text)
+  MERGE (c)-[r:HAS_LICENSE]->(l)
+  ON CREATE SET r.createdAt = timestamp, r.source = 'SBOM'
 )
 
 // Create ExternalReference nodes for this component

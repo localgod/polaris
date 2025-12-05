@@ -1,19 +1,44 @@
 name: Copilot Setup Steps
 
+# Only trigger for validation when the workflow file itself changes
+# or when manually dispatched for testing
 on:
-  pull_request:
   workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
+  # This is the ONLY job that Copilot coding agent will use
+  # All setup steps must be defined here
   copilot-setup-steps:
     name: Setup Node and cache dependencies (copilot-setup-steps)
     runs-on: ubuntu-latest
-    outputs:
-      node-version: 20
+    
+    permissions:
+      contents: read
+
+    # Neo4j service for database operations
+    services:
+      neo4j:
+        image: neo4j:5-community
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_PLUGINS: '["apoc"]'
+          NEO4J_dbms_security_procedures_unrestricted: apoc.*
+        ports:
+          - 7474:7474
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p testpassword 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 30s
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -27,117 +52,42 @@ jobs:
       - name: Install dependencies
         run: npm ci --unsafe-perm
 
-      - name: Verify basic repo files
+      - name: Wait for Neo4j to be ready
         run: |
-          echo "Found package.json:"
-          test -f package.json && cat package.json | jq -r '.name,.version' || true
-
-  lint-and-mdlint:
-    name: Lint (ESLint) and Markdown Lint
-    runs-on: ubuntu-latest
-    needs: copilot-setup-steps
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci --unsafe-perm
-
-      - name: Run markdownlint
-        run: npm run mdlint
-
-      - name: Run ESLint
-        run: npm run lint
-
-  migrate-validate:
-    name: Validate migrations
-    runs-on: ubuntu-latest
-    needs: copilot-setup-steps
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci --unsafe-perm
-
-      - name: Validate migrations
-        run: npm run migrate:validate
-
-  tests:
-    name: Run tests (Vitest) with Neo4j service
-    runs-on: ubuntu-latest
-    needs: [copilot-setup-steps, migrate-validate]
-    services:
-      neo4j:
-        image: neo4j:5.8
-        ports:
-          - 7474:7474
-          - 7687:7687
-        env:
-          NEO4J_AUTH: neo4j/testpassword
-    env:
-      NEO4J_URI: bolt://localhost:7687
-      NEO4J_USERNAME: neo4j
-      NEO4J_PASSWORD: testpassword
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci --unsafe-perm
-
-      - name: Wait for Neo4j to be available
-        run: |
-          echo "Waiting for Neo4j to accept connections on 7687..."
-          for i in {1..60}; do
-            nc -z localhost 7687 && echo "Neo4j is up" && break || echo "waiting... ($i)" && sleep 2
+          echo "Waiting for Neo4j to be ready..."
+          for i in {1..30}; do
+            if npm run migrate:status > /dev/null 2>&1; then
+              echo "✅ Neo4j is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/30: Neo4j not ready yet, waiting..."
+            sleep 2
           done
+          echo "❌ Neo4j failed to become ready"
+          exit 1
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
 
-      - name: Run tests (CI mode)
-        run: npm run test:ci
+      - name: Migrate database schema
+        run: npm run migrate:up
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
 
-  suggested-pr-checks:
-    name: Suggested Copilot/PR checks
-    runs-on: ubuntu-latest
-    needs: [lint-and-mdlint, tests]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Seed database
+        run: npm run seed:clear
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: testpassword
 
-      - name: Use Node.js 18
-        uses: actions/setup-node@v6
-        with:
-          node-version: 18
-
-      - name: "Quick smoke: build"
-        run: npm run build
-
-      - name: Generate OpenAPI (optional)
-        if: always()
+      - name: Verify setup
         run: |
-          # Regenerate OpenAPI spec for review (safe, read-only)
-          npm run docs:api || echo "docs:api failed or skipped"
-
-      - name: Post-check summary
-        run: |
-          echo "Lint and tests completed. If this is a Copilot suggestion PR, ensure the following in the PR description:" 
-          echo "- What was changed and why (2-3 lines)"
-          echo "- Any migration files added (include up/down)"
-          echo "- Tests added/updated and passing"
-          echo "- Any devcontainer or environment changes"
+          echo "✅ Setup complete!"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Dependencies installed"
+          echo "Neo4j ready and migrated"

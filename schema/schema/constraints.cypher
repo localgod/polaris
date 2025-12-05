@@ -18,3 +18,8 @@ REQUIRE m.version IS UNIQUE;
 CREATE CONSTRAINT audit_log_id_unique IF NOT EXISTS
 FOR (a:AuditLog)
 REQUIRE a.id IS UNIQUE;
+
+// License constraints
+CREATE CONSTRAINT license_id_unique IF NOT EXISTS
+FOR (l:License)
+REQUIRE l.id IS UNIQUE;
