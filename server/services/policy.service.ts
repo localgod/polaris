@@ -1,8 +1,19 @@
 import { PolicyRepository } from '../repositories/policy.repository'
-import type { Policy, ViolationFilters, PolicyFilters, PolicyViolation } from '../repositories/policy.repository'
+import type { Policy, ViolationFilters, PolicyFilters, PolicyViolation, LicenseViolation } from '../repositories/policy.repository'
 
 export interface ViolationResult {
   data: PolicyViolation[]
+  count: number
+  summary: {
+    critical: number
+    error: number
+    warning: number
+    info: number
+  }
+}
+
+export interface LicenseViolationResult {
+  data: LicenseViolation[]
   count: number
   summary: {
     critical: number
@@ -97,6 +108,30 @@ export class PolicyService {
   }
 
   /**
+   * Get license compliance violations with optional filters
+   * Includes business logic for validation and summary calculation
+   * 
+   * @param filters - Optional filters for severity, team, system, and license
+   * @returns License violation result with data, count, and summary
+   */
+  async getLicenseViolations(filters: ViolationFilters): Promise<LicenseViolationResult> {
+    // Business logic: validate filters
+    this.validateFilters(filters)
+    
+    // Fetch license violations from repository
+    const violations = await this.policyRepo.findLicenseViolations(filters)
+    
+    // Business logic: calculate summary
+    const summary = this.calculateLicenseSummary(violations)
+    
+    return {
+      data: violations,
+      count: violations.length,
+      summary
+    }
+  }
+
+  /**
    * Validate filter inputs
    */
   private validateFilters(filters: ViolationFilters): void {
@@ -114,6 +149,18 @@ export class PolicyService {
    * Calculate violation summary by severity
    */
   private calculateSummary(violations: PolicyViolation[]) {
+    return {
+      critical: violations.filter(v => v.policy.severity === 'critical').length,
+      error: violations.filter(v => v.policy.severity === 'error').length,
+      warning: violations.filter(v => v.policy.severity === 'warning').length,
+      info: violations.filter(v => v.policy.severity === 'info').length
+    }
+  }
+
+  /**
+   * Calculate license violation summary by severity
+   */
+  private calculateLicenseSummary(violations: LicenseViolation[]) {
     return {
       critical: violations.filter(v => v.policy.severity === 'critical').length,
       error: violations.filter(v => v.policy.severity === 'error').length,

@@ -83,3 +83,24 @@
 //   - (Component)-[:HAS_LICENSE]->(License) - Component uses this license
 //   - (Policy)-[:ALLOWS_LICENSE]->(License) - Policy allows this license
 (:License)
+
+// Policy node
+// Properties:
+//   - name: String (required) - Unique policy name
+//   - description: String (optional) - Policy description
+//   - ruleType: String (required) - Type of rule (technology-approval, license-compliance)
+//   - severity: String (required) - Severity level (critical, error, warning, info)
+//   - effectiveDate: DateTime (optional) - When policy becomes effective
+//   - expiryDate: DateTime (optional) - When policy expires
+//   - enforcedBy: String (required) - Enforcement level (team, organization)
+//   - scope: String (required) - Policy scope (all, specific-teams)
+//   - status: String (required) - Policy status (active, inactive, draft)
+//   - createdAt: DateTime (required) - When policy was created
+//   - updatedAt: DateTime (required) - Last update timestamp
+//
+// Relationships:
+//   - (Team)-[:ENFORCES]->(Policy) - Team enforces this policy
+//   - (Team)-[:SUBJECT_TO]->(Policy) - Team is subject to this policy
+//   - (Policy)-[:GOVERNS]->(Technology) - Policy governs technology approval (ruleType: technology-approval)
+//   - (Policy)-[:ALLOWS_LICENSE]->(License) - Policy allows license (ruleType: license-compliance)
+(:Policy)

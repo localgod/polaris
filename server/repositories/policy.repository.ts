@@ -5,6 +5,8 @@ export interface ViolationFilters {
   severity?: string
   team?: string
   technology?: string
+  system?: string
+  license?: string
 }
 
 export interface PolicyFilters {
@@ -18,6 +20,29 @@ export interface PolicyViolation {
   technology: string
   technologyCategory: string
   riskLevel: string
+  policy: {
+    name: string
+    description: string
+    severity: string
+    ruleType: string
+    enforcedBy: string | null
+  }
+}
+
+export interface LicenseViolation {
+  team: string
+  system: string
+  component: {
+    name: string
+    version: string
+    purl: string
+  }
+  license: {
+    id: string
+    name: string
+    category: string | null
+    osiApproved: boolean | null
+  }
   policy: {
     name: string
     description: string
@@ -197,6 +222,46 @@ export class PolicyRepository extends BaseRepository {
   }
 
   /**
+   * Find license compliance violations with optional filters
+   * 
+   * @param filters - Optional filters for severity, team, system, and license
+   * @returns Array of license violations
+   */
+  async findLicenseViolations(filters: ViolationFilters): Promise<LicenseViolation[]> {
+    const query = await loadQuery('policies/find-license-violations.cypher')
+    
+    const params: Record<string, string> = {}
+    const conditions: string[] = []
+    
+    if (filters.severity) {
+      conditions.push('policy.severity = $severity')
+      params.severity = filters.severity
+    }
+    
+    if (filters.team) {
+      conditions.push('team.name = $team')
+      params.team = filters.team
+    }
+    
+    if (filters.system) {
+      conditions.push('system.name = $system')
+      params.system = filters.system
+    }
+    
+    if (filters.license) {
+      conditions.push('license.id = $license')
+      params.license = filters.license
+    }
+    
+    // Inject WHERE conditions into query
+    const finalQuery = injectWhereConditions(query, conditions)
+    
+    const { records } = await this.executeQuery(finalQuery, params)
+    
+    return records.map(record => this.mapToLicenseViolation(record))
+  }
+
+  /**
    * Map Neo4j record to PolicyViolation domain object
    */
   private mapToViolation(record: Neo4jRecord): PolicyViolation {
@@ -254,6 +319,34 @@ export class PolicyRepository extends BaseRepository {
       subjectTeams: record.get('subjectTeams').filter((t: string) => t),
       governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
       governedVersions: [] // Not included in list view
+    }
+  }
+
+  /**
+   * Map Neo4j record to LicenseViolation domain object
+   */
+  private mapToLicenseViolation(record: Neo4jRecord): LicenseViolation {
+    return {
+      team: record.get('teamName'),
+      system: record.get('systemName'),
+      component: {
+        name: record.get('componentName'),
+        version: record.get('componentVersion'),
+        purl: record.get('componentPurl')
+      },
+      license: {
+        id: record.get('licenseId'),
+        name: record.get('licenseName'),
+        category: record.get('licenseCategory'),
+        osiApproved: record.get('licenseOsiApproved')
+      },
+      policy: {
+        name: record.get('policyName'),
+        description: record.get('policyDescription'),
+        severity: record.get('severity'),
+        ruleType: record.get('ruleType'),
+        enforcedBy: record.get('enforcedBy')
+      }
     }
   }
 }
