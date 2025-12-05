@@ -65,3 +65,21 @@
 //   - (AuditLog)-[:PERFORMED_BY]->(User) - Links to user who performed the action
 //   - (AuditLog)-[:AUDITS]->(Entity) - Links to the entity that was changed (optional)
 (:AuditLog)
+
+// License node
+// Properties:
+//   - id: String (required) - SPDX identifier (e.g., "MIT", "Apache-2.0")
+//   - name: String (required) - Human-readable name (e.g., "MIT License")
+//   - spdxId: String (required) - Canonical SPDX identifier
+//   - osiApproved: Boolean (optional) - OSI approval status
+//   - url: String (optional) - License text URL
+//   - category: String (optional) - License category (permissive, copyleft, proprietary, public-domain, other)
+//   - text: String (optional) - Full license text
+//   - deprecated: Boolean (optional) - Whether license is deprecated
+//   - createdAt: DateTime (required) - When license was first seen
+//   - updatedAt: DateTime (required) - Last update timestamp
+//
+// Relationships:
+//   - (Component)-[:HAS_LICENSE]->(License) - Component uses this license
+//   - (Policy)-[:ALLOWS_LICENSE]->(License) - Policy allows this license
+(:License)

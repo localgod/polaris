@@ -42,3 +42,16 @@ ON (a.source);
 CREATE INDEX audit_log_entity_composite IF NOT EXISTS
 FOR (a:AuditLog)
 ON (a.entityType, a.entityId, a.timestamp);
+
+// License indexes
+CREATE INDEX license_spdx_id IF NOT EXISTS
+FOR (l:License)
+ON (l.spdxId);
+
+CREATE INDEX license_category IF NOT EXISTS
+FOR (l:License)
+ON (l.category);
+
+CREATE INDEX license_osi_approved IF NOT EXISTS
+FOR (l:License)
+ON (l.osiApproved);
