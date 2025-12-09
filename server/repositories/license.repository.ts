@@ -255,6 +255,8 @@ export class LicenseRepository extends BaseRepository {
       UNWIND $licenseIds as licenseId
       MATCH (l:License {id: licenseId})
       WITH collect(l) as licenses, $licenseIds as requestedIds
+      // This WHERE clause ensures atomicity: if any license doesn't exist,
+      // the sizes won't match and the query returns no results (rollback)
       WHERE size(licenses) = size(requestedIds)
       
       // If all exist, update them
