@@ -262,4 +262,490 @@ describe('LicenseRepository', () => {
       expect(result.total).toBeGreaterThanOrEqual(2)
     })
   })
+
+  describe('updateWhitelistStatus()', () => {
+    it('should update whitelist status to true', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create a test license
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id: `${TEST_PREFIX}MIT`
+      })
+
+      // Update whitelist status
+      const result = await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}MIT`, true)
+      expect(result).toBe(true)
+
+      // Verify the update
+      const license = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      expect(license?.whitelisted).toBe(true)
+    })
+
+    it('should update whitelist status to false', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create a test license that is whitelisted
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id: `${TEST_PREFIX}Apache-2.0`
+      })
+
+      // Update whitelist status
+      const result = await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}Apache-2.0`, false)
+      expect(result).toBe(true)
+
+      // Verify the update
+      const license = await licenseRepo.findById(`${TEST_PREFIX}Apache-2.0`)
+      expect(license?.whitelisted).toBe(false)
+    })
+
+    it('should return false when license does not exist', async () => {
+      if (!neo4jAvailable) return
+
+      const result = await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}nonexistent`, true)
+      expect(result).toBe(false)
+    })
+
+    it('should update timestamp when updating whitelist status', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create a test license
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime() - duration('PT1H')
+        })
+      `, {
+        id: `${TEST_PREFIX}MIT`
+      })
+
+      const beforeUpdate = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      
+      // Wait a tiny bit to ensure timestamp difference
+      await new Promise(resolve => setTimeout(resolve, 10))
+      
+      // Update whitelist status
+      await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}MIT`, true)
+
+      const afterUpdate = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      
+      expect(afterUpdate?.updatedAt).not.toBe(beforeUpdate?.updatedAt)
+    })
+  })
+
+  describe('getWhitelistedLicenses()', () => {
+    it('should return only whitelisted licenses', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create test licenses with mixed whitelist status
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l3:License {
+          id: $id3,
+          name: 'BSD 3-Clause',
+          spdxId: 'BSD-3-Clause',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}Apache-2.0`,
+        id3: `${TEST_PREFIX}BSD-3-Clause`
+      })
+
+      const result = await licenseRepo.getWhitelistedLicenses()
+      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+
+      expect(testLicenses.length).toBe(2)
+      testLicenses.forEach(license => {
+        expect(license.whitelisted).toBe(true)
+      })
+    })
+
+    it('should return empty array when no licenses are whitelisted', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create test licenses that are not whitelisted
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'GPL 3.0',
+          spdxId: 'GPL-3.0',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}GPL-3.0`
+      })
+
+      const result = await licenseRepo.getWhitelistedLicenses()
+      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+
+      expect(testLicenses.length).toBe(0)
+    })
+  })
+
+  describe('isWhitelisted()', () => {
+    it('should return true when license is whitelisted', async () => {
+      if (!neo4jAvailable || !session) return
+
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id: `${TEST_PREFIX}MIT`
+      })
+
+      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}MIT`)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when license is not whitelisted', async () => {
+      if (!neo4jAvailable || !session) return
+
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'GPL 3.0',
+          spdxId: 'GPL-3.0',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id: `${TEST_PREFIX}GPL-3.0`
+      })
+
+      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}GPL-3.0`)
+      expect(result).toBe(false)
+    })
+
+    it('should return false when license does not exist', async () => {
+      if (!neo4jAvailable) return
+
+      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}nonexistent`)
+      expect(result).toBe(false)
+    })
+
+    it('should return false when license has no whitelist property', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create a license without the whitelisted property
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'Old License',
+          spdxId: 'Old-License',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id: `${TEST_PREFIX}Old-License`
+      })
+
+      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}Old-License`)
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('bulkUpdateWhitelistStatus()', () => {
+    it('should update multiple licenses at once', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create multiple test licenses
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l3:License {
+          id: $id3,
+          name: 'BSD 3-Clause',
+          spdxId: 'BSD-3-Clause',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}Apache-2.0`,
+        id3: `${TEST_PREFIX}BSD-3-Clause`
+      })
+
+      // Update multiple licenses
+      const licenseIds = [
+        `${TEST_PREFIX}MIT`,
+        `${TEST_PREFIX}Apache-2.0`,
+        `${TEST_PREFIX}BSD-3-Clause`
+      ]
+      const result = await licenseRepo.bulkUpdateWhitelistStatus(licenseIds, true)
+      
+      expect(result).toBe(3)
+
+      // Verify all licenses are whitelisted
+      for (const id of licenseIds) {
+        const license = await licenseRepo.findById(id)
+        expect(license?.whitelisted).toBe(true)
+      }
+    })
+
+    it('should handle partial updates when some licenses do not exist', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create one test license
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id: `${TEST_PREFIX}MIT`
+      })
+
+      // Try to update two licenses, one exists and one doesn't
+      const licenseIds = [
+        `${TEST_PREFIX}MIT`,
+        `${TEST_PREFIX}nonexistent`
+      ]
+      const result = await licenseRepo.bulkUpdateWhitelistStatus(licenseIds, true)
+      
+      expect(result).toBe(1)
+
+      // Verify the existing license is whitelisted
+      const license = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      expect(license?.whitelisted).toBe(true)
+    })
+
+    it('should return 0 when empty array is provided', async () => {
+      if (!neo4jAvailable) return
+
+      const result = await licenseRepo.bulkUpdateWhitelistStatus([], true)
+      expect(result).toBe(0)
+    })
+
+    it('should update whitelist status to false for multiple licenses', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create test licenses that are whitelisted
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}Apache-2.0`
+      })
+
+      // Update to not whitelisted
+      const licenseIds = [`${TEST_PREFIX}MIT`, `${TEST_PREFIX}Apache-2.0`]
+      const result = await licenseRepo.bulkUpdateWhitelistStatus(licenseIds, false)
+      
+      expect(result).toBe(2)
+
+      // Verify all licenses are not whitelisted
+      for (const id of licenseIds) {
+        const license = await licenseRepo.findById(id)
+        expect(license?.whitelisted).toBe(false)
+      }
+    })
+  })
+
+  describe('findAll() with whitelisted filter', () => {
+    it('should filter licenses by whitelisted status', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create test licenses with different whitelist status
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'GPL 3.0',
+          spdxId: 'GPL-3.0',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l3:License {
+          id: $id3,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}GPL-3.0`,
+        id3: `${TEST_PREFIX}Apache-2.0`
+      })
+
+      const whitelistedResult = await licenseRepo.findAll({ whitelisted: true })
+      const testWhitelisted = whitelistedResult.filter(l => l.id.startsWith(TEST_PREFIX))
+
+      expect(testWhitelisted.length).toBe(2)
+      testWhitelisted.forEach(license => {
+        expect(license.whitelisted).toBe(true)
+      })
+
+      const notWhitelistedResult = await licenseRepo.findAll({ whitelisted: false })
+      const testNotWhitelisted = notWhitelistedResult.filter(l => l.id.startsWith(TEST_PREFIX))
+
+      expect(testNotWhitelisted.length).toBe(1)
+      expect(testNotWhitelisted[0].id).toBe(`${TEST_PREFIX}GPL-3.0`)
+      expect(testNotWhitelisted[0].whitelisted).toBe(false)
+    })
+
+    it('should combine whitelisted filter with other filters', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create test licenses with different properties
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          category: 'permissive',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'GPL 3.0',
+          spdxId: 'GPL-3.0',
+          category: 'copyleft',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l3:License {
+          id: $id3,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          category: 'permissive',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}GPL-3.0`,
+        id3: `${TEST_PREFIX}Apache-2.0`
+      })
+
+      // Filter by both whitelisted and category
+      const result = await licenseRepo.findAll({ 
+        whitelisted: true, 
+        category: 'permissive' 
+      })
+      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+
+      expect(testLicenses.length).toBe(1)
+      expect(testLicenses[0].id).toBe(`${TEST_PREFIX}MIT`)
+      expect(testLicenses[0].whitelisted).toBe(true)
+      expect(testLicenses[0].category).toBe('permissive')
+    })
+  })
 })
