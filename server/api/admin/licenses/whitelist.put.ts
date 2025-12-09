@@ -88,6 +88,7 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
     
     // Validate request body
     if (typeof body.whitelisted !== 'boolean') {
+      setResponseStatus(event, 400)
       return {
         success: false,
         message: 'whitelisted field is required and must be a boolean'
@@ -95,6 +96,7 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
     }
 
     if (!body.licenseId && !body.licenseIds) {
+      setResponseStatus(event, 400)
       return {
         success: false,
         message: 'Either licenseId or licenseIds must be provided'
@@ -102,6 +104,7 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
     }
 
     if (body.licenseId && body.licenseIds) {
+      setResponseStatus(event, 400)
       return {
         success: false,
         message: 'Provide either licenseId or licenseIds, not both'
@@ -114,6 +117,7 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
     if (body.licenseId) {
       try {
         await licenseService.updateWhitelistStatus(body.licenseId, body.whitelisted)
+        setResponseStatus(event, 200)
         return {
           success: true,
           message: `License '${body.licenseId}' whitelist status updated to ${body.whitelisted}`,
@@ -121,6 +125,12 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        // Check if it's a "not found" error
+        if (errorMessage.includes('not found')) {
+          setResponseStatus(event, 404)
+        } else {
+          setResponseStatus(event, 500)
+        }
         return {
           success: false,
           message: errorMessage
@@ -133,12 +143,16 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
       const result = await licenseService.bulkUpdateWhitelistStatus(body.licenseIds, body.whitelisted)
       
       if (result.success) {
+        setResponseStatus(event, 200)
         return {
           success: true,
           message: `${result.updated} licenses whitelist status updated to ${body.whitelisted}`,
           updated: result.updated
         }
       } else {
+        // Check if any errors mention "not found"
+        const hasNotFoundError = result.errors?.some(err => err.includes('not found'))
+        setResponseStatus(event, hasNotFoundError ? 404 : 400)
         return {
           success: false,
           message: 'Failed to update some licenses',
@@ -147,12 +161,14 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
       }
     }
 
+    setResponseStatus(event, 500)
     return {
       success: false,
       message: 'Unexpected error processing request'
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to update license whitelist status'
+    setResponseStatus(event, 500)
     return {
       success: false,
       message: errorMessage
