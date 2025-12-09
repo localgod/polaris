@@ -237,24 +237,40 @@ export class LicenseRepository extends BaseRepository {
   }
 
   /**
-   * Bulk update whitelist status for multiple licenses
+   * Bulk update whitelist status for multiple licenses atomically
+   * 
+   * Uses a transaction to ensure all licenses are updated or none are.
+   * Validates that all licenses exist before updating.
    * 
    * @param licenseIds - Array of license IDs
    * @param whitelisted - New whitelist status
    * @returns Number of licenses updated
+   * @throws Error if any license does not exist
    */
   async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean): Promise<number> {
     if (licenseIds.length === 0) return 0
     
     const cypher = `
+      // First, verify all licenses exist
       UNWIND $licenseIds as licenseId
       MATCH (l:License {id: licenseId})
-      SET l.whitelisted = $whitelisted,
-          l.updatedAt = datetime()
-      RETURN count(l) as updated
+      WITH collect(l) as licenses, $licenseIds as requestedIds
+      WHERE size(licenses) = size(requestedIds)
+      
+      // If all exist, update them
+      UNWIND licenses as license
+      SET license.whitelisted = $whitelisted,
+          license.updatedAt = datetime()
+      RETURN count(license) as updated
     `
     
-    const { records } = await this.executeQuery(cypher, { licenseIds, whitelisted })
+    const { records } = await this.executeQueryWithSession(cypher, { licenseIds, whitelisted })
+    
+    // If no records returned, it means some licenses don't exist
+    if (records.length === 0 || records[0].get('updated') === null) {
+      throw new Error('One or more licenses not found')
+    }
+    
     return records[0]?.get('updated').toNumber() || 0
   }
 

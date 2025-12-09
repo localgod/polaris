@@ -127,7 +127,8 @@ export class LicenseService {
    * 
    * Business rules:
    * - Only existing licenses can be whitelisted
-   * - All or nothing approach - if any license fails, none are updated
+   * - All or nothing approach - transaction ensures atomic updates
+   * - If any license doesn't exist or update fails, entire operation is rolled back
    * - Returns summary of operation
    * 
    * @param licenseIds - Array of license IDs
@@ -139,31 +140,23 @@ export class LicenseService {
     updated: number
     errors: string[]
   }> {
-    const errors: string[] = []
-    
-    // Validate all licenses exist
-    for (const id of licenseIds) {
-      const license = await this.licenseRepo.findById(id)
-      if (!license) {
-        errors.push(`License '${id}' not found`)
+    try {
+      // Attempt atomic bulk update (validates existence and updates in one transaction)
+      const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted)
+      
+      return {
+        success: true,
+        updated,
+        errors: []
       }
-    }
-    
-    if (errors.length > 0) {
+    } catch (error) {
+      // Transaction failed - either validation or update failed
+      const errorMessage = error instanceof Error ? error.message : 'Bulk update failed'
       return {
         success: false,
         updated: 0,
-        errors
+        errors: [errorMessage]
       }
-    }
-    
-    // Perform bulk update
-    const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted)
-    
-    return {
-      success: updated === licenseIds.length,
-      updated,
-      errors: updated === licenseIds.length ? [] : ['Some licenses failed to update']
     }
   }
 
