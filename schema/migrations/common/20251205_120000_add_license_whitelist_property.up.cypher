@@ -35,10 +35,3 @@ SET l.whitelisted = false,
 CREATE INDEX license_whitelisted IF NOT EXISTS
 FOR (l:License)
 ON (l.whitelisted);
-
-// Step 3: Add metadata to track this migration
-// Helps with debugging and rollback verification
-MATCH (l:License)
-WHERE l._whitelist_migration_date IS NULL
-SET l._whitelist_migration_date = datetime(),
-    l._whitelist_migration_version = '20251205.120000';

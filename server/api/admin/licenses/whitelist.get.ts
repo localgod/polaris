@@ -129,6 +129,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License> & 
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch license whitelist data'
+    setResponseStatus(event, 500)
     return {
       success: false,
       error: errorMessage,
