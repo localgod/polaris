@@ -41,11 +41,12 @@ export class LicenseService {
     // Get filtered licenses
     const licenses = await this.licenseRepo.findAll(filtersWithPagination)
     
-    // For now, return actual count as total (could be optimized with separate count query)
+    // Get total count (without pagination)
+    const total = await this.licenseRepo.count(filters)
     return {
       data: licenses,
       count: licenses.length,
-      total: licenses.length
+      total
     }
   }
 
