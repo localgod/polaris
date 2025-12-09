@@ -22,6 +22,8 @@ export interface LicenseFilters {
   deprecated?: boolean
   whitelisted?: boolean
   search?: string
+  limit?: number
+  offset?: number
 }
 
 /**
@@ -87,6 +89,12 @@ export class LicenseRepository extends BaseRepository {
         componentCount
       ORDER BY componentCount DESC, l.id
     `
+    
+    if (filters.limit !== undefined) {
+      cypher += ` SKIP toInteger($offset) LIMIT toInteger($limit)`
+      params.offset = filters.offset || 0
+      params.limit = filters.limit
+    }
     
     const { records } = await this.executeQuery(cypher, params)
     return records.map(record => this.mapToLicense(record))
