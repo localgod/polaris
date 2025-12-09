@@ -263,11 +263,6 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('bulkUpdateWhitelistStatus()', () => {
-    it('should update multiple licenses atomically when all exist', async () => {
-      if (!neo4jAvailable || !session) return
-
-      // Create test licenses
   describe('updateWhitelistStatus()', () => {
     it('should update whitelist status to true', async () => {
       if (!neo4jAvailable || !session) return
@@ -555,6 +550,7 @@ describe('LicenseRepository', () => {
       if (!neo4jAvailable || !session) return
 
       // Create only one license
+      await session.run(`
         CREATE (l3:License {
           id: $id3,
           name: 'BSD 3-Clause',
@@ -565,26 +561,24 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Apache-2.0`,
         id3: `${TEST_PREFIX}BSD-3-Clause`
       })
 
-      // Update multiple licenses
+      // Try to update multiple licenses (but only BSD-3-Clause exists)
       const licenseIds = [
         `${TEST_PREFIX}MIT`,
         `${TEST_PREFIX}Apache-2.0`,
         `${TEST_PREFIX}BSD-3-Clause`
       ]
-      const result = await licenseRepo.bulkUpdateWhitelistStatus(licenseIds, true)
       
-      expect(result).toBe(3)
+      // Should throw an error because MIT and Apache-2.0 don't exist
+      await expect(
+        licenseRepo.bulkUpdateWhitelistStatus(licenseIds, true)
+      ).rejects.toThrow('One or more licenses not found')
 
-      // Verify all licenses are whitelisted
-      for (const id of licenseIds) {
-        const license = await licenseRepo.findById(id)
-        expect(license?.whitelisted).toBe(true)
-      }
+      // Verify BSD-3-Clause was NOT updated (rollback)
+      const bsd = await licenseRepo.findById(`${TEST_PREFIX}BSD-3-Clause`)
+      expect(bsd?.whitelisted).toBe(false)
     })
 
     it('should handle partial updates when some licenses do not exist', async () => {
