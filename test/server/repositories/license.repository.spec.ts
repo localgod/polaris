@@ -63,6 +63,230 @@ describe('LicenseRepository', () => {
     it('should have getStatistics method', () => {
       expect(LicenseRepository.prototype.getStatistics).toBeDefined()
     })
+
+    it('should have count method', () => {
+      expect(LicenseRepository.prototype.count).toBeDefined()
+    })
+  })
+
+  describe('count()', () => {
+    it('should return 0 when no licenses exist', async () => {
+      if (!neo4jAvailable) return
+
+      const result = await licenseRepo.count()
+
+      expect(result).toBe(0)
+    })
+
+    it('should return total count of licenses', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create test licenses
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          osiApproved: true,
+          category: 'permissive',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          osiApproved: true,
+          category: 'permissive',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}Apache-2.0`
+      })
+
+      const result = await licenseRepo.count()
+
+      expect(result).toBeGreaterThanOrEqual(2)
+    })
+
+    it('should filter count by category', async () => {
+      if (!neo4jAvailable || !session) return
+
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          category: 'permissive',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'GPL 3.0',
+          spdxId: 'GPL-3.0',
+          category: 'copyleft',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}GPL-3.0`
+      })
+
+      const permissiveCount = await licenseRepo.count({ category: 'permissive' })
+      const copyleftCount = await licenseRepo.count({ category: 'copyleft' })
+
+      // We should have at least the test licenses we created
+      expect(permissiveCount).toBeGreaterThanOrEqual(1)
+      expect(copyleftCount).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should filter count by whitelisted status', async () => {
+      if (!neo4jAvailable || !session) return
+
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          whitelisted: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'GPL 3.0',
+          spdxId: 'GPL-3.0',
+          whitelisted: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}GPL-3.0`
+      })
+
+      const whitelistedCount = await licenseRepo.count({ whitelisted: true })
+      const notWhitelistedCount = await licenseRepo.count({ whitelisted: false })
+
+      expect(whitelistedCount).toBeGreaterThanOrEqual(1)
+      expect(notWhitelistedCount).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should filter count by osiApproved status', async () => {
+      if (!neo4jAvailable || !session) return
+
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          osiApproved: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'Custom License',
+          spdxId: 'Custom',
+          osiApproved: false,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}Custom`
+      })
+
+      const osiApprovedCount = await licenseRepo.count({ osiApproved: true })
+      const notOsiApprovedCount = await licenseRepo.count({ osiApproved: false })
+
+      expect(osiApprovedCount).toBeGreaterThanOrEqual(1)
+      expect(notOsiApprovedCount).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should filter count by search term', async () => {
+      if (!neo4jAvailable || !session) return
+
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'Apache License 2.0',
+          spdxId: 'Apache-2.0',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}Apache-2.0`
+      })
+
+      const mitCount = await licenseRepo.count({ search: 'MIT' })
+      const apacheCount = await licenseRepo.count({ search: 'Apache' })
+
+      expect(mitCount).toBeGreaterThanOrEqual(1)
+      expect(apacheCount).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should combine multiple filters', async () => {
+      if (!neo4jAvailable || !session) return
+
+      await session.run(`
+        CREATE (l1:License {
+          id: $id1,
+          name: 'MIT License',
+          spdxId: 'MIT',
+          category: 'permissive',
+          whitelisted: true,
+          osiApproved: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+        CREATE (l2:License {
+          id: $id2,
+          name: 'GPL 3.0',
+          spdxId: 'GPL-3.0',
+          category: 'copyleft',
+          whitelisted: false,
+          osiApproved: true,
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}GPL-3.0`
+      })
+
+      const filteredCount = await licenseRepo.count({ 
+        category: 'permissive',
+        whitelisted: true,
+        osiApproved: true
+      })
+
+      expect(filteredCount).toBeGreaterThanOrEqual(1)
+    })
   })
 
   describe('findAll()', () => {

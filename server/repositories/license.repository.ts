@@ -31,6 +31,53 @@ export interface LicenseFilters {
  */
 export class LicenseRepository extends BaseRepository {
   /**
+   * Count licenses with optional filtering
+   * 
+   * @param filters - Optional filters to apply
+   * @returns Number of licenses matching the filters
+   */
+  async count(filters: LicenseFilters = {}): Promise<number> {
+    const conditions: string[] = []
+    const params: Record<string, unknown> = {}
+    
+    if (filters.category) {
+      conditions.push('l.category = $category')
+      params.category = filters.category
+    }
+    
+    if (filters.osiApproved !== undefined) {
+      conditions.push('l.osiApproved = $osiApproved')
+      params.osiApproved = filters.osiApproved
+    }
+    
+    if (filters.deprecated !== undefined) {
+      conditions.push('l.deprecated = $deprecated')
+      params.deprecated = filters.deprecated
+    }
+    
+    if (filters.whitelisted !== undefined) {
+      conditions.push('l.whitelisted = $whitelisted')
+      params.whitelisted = filters.whitelisted
+    }
+    
+    if (filters.search) {
+      conditions.push('(toLower(l.id) CONTAINS toLower($search) OR toLower(l.name) CONTAINS toLower($search))')
+      params.search = filters.search
+    }
+    
+    let cypher = `MATCH (l:License)`
+    
+    if (conditions.length > 0) {
+      cypher += ` WHERE ${conditions.join(' AND ')}`
+    }
+    
+    cypher += ` RETURN count(l) as total`
+    
+    const { records } = await this.executeQuery(cypher, params)
+    return records[0]?.get('total').toNumber() || 0
+  }
+
+  /**
    * Find all licenses with optional filtering
    * 
    * @param filters - Optional filters to apply
