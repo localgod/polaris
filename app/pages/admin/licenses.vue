@@ -329,12 +329,24 @@ const queryParams = computed(() => ({
 }))
 
 // Fetch data
-const { data, pending, error, refresh } = await useFetch('/api/admin/licenses/whitelist', {
+const { data: rawData, pending, error, refresh } = await useFetch('/api/admin/licenses/whitelist', {
   query: queryParams,
   server: false // Client-side only for admin pages
 })
 
 // Computed properties
+const data = computed(() => {
+  if (!rawData.value || !rawData.value.success) return null
+  return rawData.value
+})
+
+const apiError = computed(() => {
+  if (error.value) return error.value
+  if (rawData.value && !rawData.value.success) {
+    return rawData.value.error || 'Unknown error'
+  }
+  return null
+})
 const statistics = computed(() => data.value?.statistics)
 
 const allSelected = computed(() => {
