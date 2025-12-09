@@ -15,6 +15,7 @@ const mockLicenses: License[] = [
     category: 'permissive',
     text: null,
     deprecated: false,
+    whitelisted: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     componentCount: 42
@@ -28,6 +29,7 @@ const mockLicenses: License[] = [
     category: 'permissive',
     text: null,
     deprecated: false,
+    whitelisted: false,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     componentCount: 28
@@ -41,6 +43,7 @@ const mockLicenses: License[] = [
     category: 'copyleft',
     text: null,
     deprecated: false,
+    whitelisted: false,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     componentCount: 5

@@ -76,6 +76,7 @@
 //   - category: String (optional) - License category (permissive, copyleft, proprietary, public-domain, other)
 //   - text: String (optional) - Full license text
 //   - deprecated: Boolean (optional) - Whether license is deprecated
+//   - whitelisted: Boolean (optional) - Whether license is globally approved by superadmin (default: false)
 //   - createdAt: DateTime (required) - When license was first seen
 //   - updatedAt: DateTime (required) - Last update timestamp
 //

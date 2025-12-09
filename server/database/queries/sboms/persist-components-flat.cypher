@@ -128,6 +128,7 @@ FOREACH (license IN [lic IN allLicenses WHERE lic.componentIndex = compIndex AND
       ELSE 'other'
     END,
     l.deprecated = false,
+    l.whitelisted = false,
     l.createdAt = timestamp,
     l.updatedAt = timestamp
   ON MATCH SET
