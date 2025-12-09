@@ -618,25 +618,6 @@ describe('LicenseRepository', () => {
       expect(mit?.whitelisted).toBe(false)
     })
 
-    it('should return 0 for empty license array', async () => {
-      if (!neo4jAvailable) return
-
-      const updated = await licenseRepo.bulkUpdateWhitelistStatus([], true)
-      expect(updated).toBe(0)
-      // Try to update two licenses, one exists and one doesn't
-      const licenseIds = [
-        `${TEST_PREFIX}MIT`,
-        `${TEST_PREFIX}nonexistent`
-      ]
-      const result = await licenseRepo.bulkUpdateWhitelistStatus(licenseIds, true)
-      
-      expect(result).toBe(1)
-
-      // Verify the existing license is whitelisted
-      const license = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
-      expect(license?.whitelisted).toBe(true)
-    })
-
     it('should return 0 when empty array is provided', async () => {
       if (!neo4jAvailable) return
 
