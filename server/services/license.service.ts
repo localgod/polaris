@@ -141,9 +141,46 @@ export class LicenseService {
     updated: number
     errors: string[]
   }> {
-    try {
-      // Attempt atomic bulk update (validates existence and updates in one transaction)
+    // Handle empty array case
+    if (licenseIds.length === 0) {
       const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted)
+      return {
+        success: true,
+        updated,
+        errors: []
+      }
+    }
+
+    try {
+      // Pre-validate all licenses exist to provide specific error messages
+      const errors: string[] = []
+      for (const licenseId of licenseIds) {
+        const license = await this.licenseRepo.findById(licenseId)
+        if (!license) {
+          errors.push(`License '${licenseId}' not found`)
+        }
+      }
+
+      // If any validation errors, return without attempting update
+      if (errors.length > 0) {
+        return {
+          success: false,
+          updated: 0,
+          errors
+        }
+      }
+
+      // All licenses exist, proceed with atomic bulk update
+      const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted)
+      
+      // Check if all licenses were updated (partial update scenario)
+      if (updated < licenseIds.length) {
+        return {
+          success: false,
+          updated,
+          errors: ['Some licenses failed to update']
+        }
+      }
       
       return {
         success: true,
@@ -151,7 +188,7 @@ export class LicenseService {
         errors: []
       }
     } catch (error) {
-      // Transaction failed - either validation or update failed
+      // Catch any errors from findById or bulkUpdateWhitelistStatus
       const errorMessage = error instanceof Error ? error.message : 'Bulk update failed'
       return {
         success: false,
