@@ -153,6 +153,8 @@ export class LicenseService {
     try {
       // Pre-validate all licenses exist in parallel to provide specific error messages
       // Using Promise.allSettled to handle partial failures gracefully
+      // Note: For very large license arrays (>100), consider batching to avoid
+      // overwhelming the database connection pool
       const validationResults = await Promise.allSettled(
         licenseIds.map(async (licenseId) => ({
           licenseId,
