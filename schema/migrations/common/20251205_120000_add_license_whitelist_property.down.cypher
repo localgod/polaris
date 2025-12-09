@@ -22,9 +22,6 @@ WHERE l.whitelisted IS NOT NULL
 REMOVE l.whitelisted;
 
 // Step 3: Remove migration metadata
-MATCH (l:License)
-WHERE l._whitelist_migration_date IS NOT NULL
-REMOVE l._whitelist_migration_date, l._whitelist_migration_version;
 
 // Step 4: Update timestamps to reflect rollback
 MATCH (l:License)
