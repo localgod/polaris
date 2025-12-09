@@ -591,21 +591,20 @@ describe('LicenseService', () => {
       expect(result).toEqual({
         success: false,
         updated: 2,
-        errors: ['Some licenses failed to update']
+        errors: ['Some licenses failed to update (unexpected partial update)']
       })
     })
 
     it('should handle empty license array', async () => {
       // Arrange
       const licenseIds: string[] = []
-      vi.mocked(mockLicenseRepo.bulkUpdateWhitelistStatus).mockResolvedValue(0)
 
       // Act
       const result = await licenseService.bulkUpdateWhitelistStatus(licenseIds, true)
 
       // Assert
       expect(mockLicenseRepo.findById).not.toHaveBeenCalled()
-      expect(mockLicenseRepo.bulkUpdateWhitelistStatus).toHaveBeenCalledWith(licenseIds, true)
+      expect(mockLicenseRepo.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
       expect(result).toEqual({
         success: true,
         updated: 0,
@@ -631,18 +630,25 @@ describe('LicenseService', () => {
       expect(result.errors).toContain("License 'NONEXISTENT' not found")
     })
 
-    it('should propagate repository errors from findById', async () => {
+    it('should handle repository errors from findById', async () => {
       // Arrange
       const licenseIds = ['MIT']
       const error = new Error('Database error')
       vi.mocked(mockLicenseRepo.findById).mockRejectedValue(error)
 
-      // Act & Assert
-      await expect(licenseService.bulkUpdateWhitelistStatus(licenseIds, true))
-        .rejects.toThrow('Database error')
+      // Act
+      const result = await licenseService.bulkUpdateWhitelistStatus(licenseIds, true)
+
+      // Assert
+      expect(result).toEqual({
+        success: false,
+        updated: 0,
+        errors: ["License 'MIT': Database error"]
+      })
+      expect(mockLicenseRepo.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
     })
 
-    it('should propagate repository errors from bulkUpdateWhitelistStatus', async () => {
+    it('should handle repository errors from bulkUpdateWhitelistStatus', async () => {
       // Arrange
       const licenseIds = ['MIT', 'Apache-2.0']
       vi.mocked(mockLicenseRepo.findById)
@@ -651,9 +657,15 @@ describe('LicenseService', () => {
       const error = new Error('Bulk update failed')
       vi.mocked(mockLicenseRepo.bulkUpdateWhitelistStatus).mockRejectedValue(error)
 
-      // Act & Assert
-      await expect(licenseService.bulkUpdateWhitelistStatus(licenseIds, true))
-        .rejects.toThrow('Bulk update failed')
+      // Act
+      const result = await licenseService.bulkUpdateWhitelistStatus(licenseIds, true)
+
+      // Assert
+      expect(result).toEqual({
+        success: false,
+        updated: 0,
+        errors: ['Bulk update failed']
+      })
     })
   })
 
