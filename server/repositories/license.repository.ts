@@ -10,6 +10,7 @@ export interface License {
   category: string | null
   text: string | null
   deprecated: boolean
+  whitelisted: boolean
   createdAt: string
   updatedAt: string
   componentCount?: number
@@ -19,6 +20,7 @@ export interface LicenseFilters {
   category?: string
   osiApproved?: boolean
   deprecated?: boolean
+  whitelisted?: boolean
   search?: string
 }
 
@@ -51,6 +53,11 @@ export class LicenseRepository extends BaseRepository {
       params.deprecated = filters.deprecated
     }
     
+    if (filters.whitelisted !== undefined) {
+      conditions.push('l.whitelisted = $whitelisted')
+      params.whitelisted = filters.whitelisted
+    }
+    
     if (filters.search) {
       conditions.push('(toLower(l.id) CONTAINS toLower($search) OR toLower(l.name) CONTAINS toLower($search))')
       params.search = filters.search
@@ -74,6 +81,7 @@ export class LicenseRepository extends BaseRepository {
         l.category as category,
         l.text as text,
         l.deprecated as deprecated,
+        l.whitelisted as whitelisted,
         l.createdAt as createdAt,
         l.updatedAt as updatedAt,
         componentCount
@@ -104,6 +112,7 @@ export class LicenseRepository extends BaseRepository {
         l.category as category,
         l.text as text,
         l.deprecated as deprecated,
+        l.whitelisted as whitelisted,
         l.createdAt as createdAt,
         l.updatedAt as updatedAt,
         componentCount
@@ -184,6 +193,72 @@ export class LicenseRepository extends BaseRepository {
   }
 
   /**
+   * Update whitelist status for a license
+   * 
+   * @param id - License ID
+   * @param whitelisted - New whitelist status
+   * @returns True if license was updated
+   */
+  async updateWhitelistStatus(id: string, whitelisted: boolean): Promise<boolean> {
+    const cypher = `
+      MATCH (l:License {id: $id})
+      SET l.whitelisted = $whitelisted,
+          l.updatedAt = datetime()
+      RETURN count(l) as updated
+    `
+    
+    const { records } = await this.executeQuery(cypher, { id, whitelisted })
+    return records[0]?.get('updated').toNumber() > 0
+  }
+
+  /**
+   * Get all whitelisted licenses
+   * 
+   * @returns Array of whitelisted licenses
+   */
+  async getWhitelistedLicenses(): Promise<License[]> {
+    return this.findAll({ whitelisted: true })
+  }
+
+  /**
+   * Check if a license is whitelisted
+   * 
+   * @param id - License ID
+   * @returns True if license is whitelisted
+   */
+  async isWhitelisted(id: string): Promise<boolean> {
+    const cypher = `
+      MATCH (l:License {id: $id})
+      RETURN l.whitelisted as whitelisted
+    `
+    
+    const { records } = await this.executeQuery(cypher, { id })
+    return records[0]?.get('whitelisted') || false
+  }
+
+  /**
+   * Bulk update whitelist status for multiple licenses
+   * 
+   * @param licenseIds - Array of license IDs
+   * @param whitelisted - New whitelist status
+   * @returns Number of licenses updated
+   */
+  async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean): Promise<number> {
+    if (licenseIds.length === 0) return 0
+    
+    const cypher = `
+      UNWIND $licenseIds as licenseId
+      MATCH (l:License {id: licenseId})
+      SET l.whitelisted = $whitelisted,
+          l.updatedAt = datetime()
+      RETURN count(l) as updated
+    `
+    
+    const { records } = await this.executeQuery(cypher, { licenseIds, whitelisted })
+    return records[0]?.get('updated').toNumber() || 0
+  }
+
+  /**
    * Map Neo4j record to License domain object
    */
   private mapToLicense(record: Neo4jRecord): License {
@@ -196,6 +271,7 @@ export class LicenseRepository extends BaseRepository {
       category: record.get('category'),
       text: record.get('text'),
       deprecated: record.get('deprecated') || false,
+      whitelisted: record.get('whitelisted') || false,
       createdAt: record.get('createdAt')?.toString() || '',
       updatedAt: record.get('updatedAt')?.toString() || '',
       componentCount: record.get('componentCount')?.toNumber() || 0

@@ -1,5 +1,6 @@
 export { ComplianceService } from './compliance.service'
 export { ComponentService } from './component.service'
+export { LicenseService } from './license.service'
 export { PolicyService } from './policy.service'
 export { SBOMService } from './sbom.service'
 export { SourceRepositoryService } from './source-repository.service'
