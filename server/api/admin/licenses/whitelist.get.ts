@@ -39,6 +39,18 @@ import type { License } from '../../../repositories/license.repository'
  *         schema:
  *           type: string
  *         description: Search by license ID or name
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of results per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Pagination offset
  *     responses:
  *       200:
  *         description: License whitelist data retrieved successfully
@@ -109,7 +121,9 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License> & 
       category: query.category as string | undefined,
       osiApproved: query.osiApproved === 'true' ? true : query.osiApproved === 'false' ? false : undefined,
       whitelisted: query.whitelisted === 'true' ? true : query.whitelisted === 'false' ? false : undefined,
-      search: query.search as string | undefined
+      search: query.search as string | undefined,
+      limit: query.limit ? Math.max(0, parseInt(query.limit as string, 10)) : 50,
+      offset: query.offset ? Math.max(0, parseInt(query.offset as string, 10)) : 0
     }
 
     const licenseService = new LicenseService()
