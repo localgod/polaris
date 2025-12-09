@@ -15,7 +15,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
   // 3. Handle the redirect appropriately
   
   // Placeholder implementation - you'd replace this with actual auth logic
-  const isSuperuser = process.server 
+  const isSuperuser = import.meta.server 
     ? false // Server-side check would go here
     : checkClientSuperuserStatus() // Client-side check
     
