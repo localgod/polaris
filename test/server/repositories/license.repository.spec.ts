@@ -328,7 +328,7 @@ describe('LicenseRepository', () => {
     it('should update timestamp when updating whitelist status', async () => {
       if (!neo4jAvailable || !session) return
 
-      // Create a test license
+      // Create a test license with an old timestamp
       await session.run(`
         CREATE (l:License {
           id: $id,
@@ -344,16 +344,16 @@ describe('LicenseRepository', () => {
       })
 
       const beforeUpdate = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
-      
-      // Wait a tiny bit to ensure timestamp difference
-      await new Promise(resolve => setTimeout(resolve, 10))
+      const beforeTimestamp = new Date(beforeUpdate!.updatedAt).getTime()
       
       // Update whitelist status
       await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}MIT`, true)
 
       const afterUpdate = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      const afterTimestamp = new Date(afterUpdate!.updatedAt).getTime()
       
-      expect(afterUpdate?.updatedAt).not.toBe(beforeUpdate?.updatedAt)
+      // The updated timestamp should be later than the original
+      expect(afterTimestamp).toBeGreaterThan(beforeTimestamp)
     })
   })
 
