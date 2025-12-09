@@ -263,6 +263,11 @@ describe('LicenseRepository', () => {
     })
   })
 
+  describe('bulkUpdateWhitelistStatus()', () => {
+    it('should update multiple licenses atomically when all exist', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create test licenses
   describe('updateWhitelistStatus()', () => {
     it('should update whitelist status to true', async () => {
       if (!neo4jAvailable || !session) return
@@ -526,6 +531,30 @@ describe('LicenseRepository', () => {
           createdAt: datetime(),
           updatedAt: datetime()
         })
+      `, {
+        id1: `${TEST_PREFIX}MIT`,
+        id2: `${TEST_PREFIX}Apache-2.0`
+      })
+
+      // Update whitelist status for both licenses
+      const updated = await licenseRepo.bulkUpdateWhitelistStatus(
+        [`${TEST_PREFIX}MIT`, `${TEST_PREFIX}Apache-2.0`],
+        true
+      )
+
+      expect(updated).toBe(2)
+
+      // Verify both licenses were updated
+      const mit = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      const apache = await licenseRepo.findById(`${TEST_PREFIX}Apache-2.0`)
+      expect(mit?.whitelisted).toBe(true)
+      expect(apache?.whitelisted).toBe(true)
+    })
+
+    it('should rollback entire transaction if any license does not exist', async () => {
+      if (!neo4jAvailable || !session) return
+
+      // Create only one license
         CREATE (l3:License {
           id: $id3,
           name: 'BSD 3-Clause',
@@ -576,6 +605,24 @@ describe('LicenseRepository', () => {
         id: `${TEST_PREFIX}MIT`
       })
 
+      // Try to update with one existing and one non-existing license
+      await expect(
+        licenseRepo.bulkUpdateWhitelistStatus(
+          [`${TEST_PREFIX}MIT`, `${TEST_PREFIX}nonexistent`],
+          true
+        )
+      ).rejects.toThrow('One or more licenses not found')
+
+      // Verify the existing license was NOT updated (rollback)
+      const mit = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      expect(mit?.whitelisted).toBe(false)
+    })
+
+    it('should return 0 for empty license array', async () => {
+      if (!neo4jAvailable) return
+
+      const updated = await licenseRepo.bulkUpdateWhitelistStatus([], true)
+      expect(updated).toBe(0)
       // Try to update two licenses, one exists and one doesn't
       const licenseIds = [
         `${TEST_PREFIX}MIT`,
