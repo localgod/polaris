@@ -591,7 +591,7 @@ describe('LicenseService', () => {
       expect(result).toEqual({
         success: false,
         updated: 2,
-        errors: ['Some licenses failed to update']
+        errors: ['Some licenses failed to update (unexpected partial update)']
       })
     })
 

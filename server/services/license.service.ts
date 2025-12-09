@@ -127,14 +127,14 @@ export class LicenseService {
    * Bulk update whitelist status for multiple licenses
    * 
    * Business rules:
-   * - Only existing licenses can be whitelisted
-   * - All or nothing approach - transaction ensures atomic updates
-   * - If any license doesn't exist or update fails, entire operation is rolled back
-   * - Returns summary of operation
+   * - Pre-validates all licenses exist before attempting update
+   * - Provides specific error messages for missing licenses
+   * - Uses atomic transaction for the actual update operation
+   * - Returns detailed operation summary
    * 
    * @param licenseIds - Array of license IDs
    * @param whitelisted - New whitelist status
-   * @returns Operation summary
+   * @returns Operation summary with success status, updated count, and any errors
    */
   async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean): Promise<{
     success: boolean
@@ -152,10 +152,17 @@ export class LicenseService {
     }
 
     try {
-      // Pre-validate all licenses exist to provide specific error messages
+      // Pre-validate all licenses exist in parallel to provide specific error messages
+      const validationResults = await Promise.all(
+        licenseIds.map(async (licenseId) => ({
+          licenseId,
+          license: await this.licenseRepo.findById(licenseId)
+        }))
+      )
+
+      // Collect validation errors
       const errors: string[] = []
-      for (const licenseId of licenseIds) {
-        const license = await this.licenseRepo.findById(licenseId)
+      for (const { licenseId, license } of validationResults) {
         if (!license) {
           errors.push(`License '${licenseId}' not found`)
         }
@@ -173,12 +180,12 @@ export class LicenseService {
       // All licenses exist, proceed with atomic bulk update
       const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted)
       
-      // Check if all licenses were updated (partial update scenario)
+      // Check if all licenses were updated (should not happen with atomic transaction, but safety check)
       if (updated < licenseIds.length) {
         return {
           success: false,
           updated,
-          errors: ['Some licenses failed to update']
+          errors: ['Some licenses failed to update (unexpected partial update)']
         }
       }
       
