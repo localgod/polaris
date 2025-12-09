@@ -122,8 +122,8 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License> & 
       osiApproved: query.osiApproved === 'true' ? true : query.osiApproved === 'false' ? false : undefined,
       whitelisted: query.whitelisted === 'true' ? true : query.whitelisted === 'false' ? false : undefined,
       search: query.search as string | undefined,
-      limit: query.limit ? parseInt(query.limit as string, 10) : 50,
-      offset: query.offset ? parseInt(query.offset as string, 10) : 0
+      limit: query.limit ? Math.max(0, parseInt(query.limit as string, 10)) : 50,
+      offset: query.offset ? Math.max(0, parseInt(query.offset as string, 10)) : 0
     }
 
     const licenseService = new LicenseService()
