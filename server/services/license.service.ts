@@ -141,19 +141,19 @@ export class LicenseService {
     updated: number
     errors: string[]
   }> {
-    // Handle empty array case
+    // Handle empty array case - early return without repository call
     if (licenseIds.length === 0) {
-      const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted)
       return {
         success: true,
-        updated,
+        updated: 0,
         errors: []
       }
     }
 
     try {
       // Pre-validate all licenses exist in parallel to provide specific error messages
-      const validationResults = await Promise.all(
+      // Using Promise.allSettled to handle partial failures gracefully
+      const validationResults = await Promise.allSettled(
         licenseIds.map(async (licenseId) => ({
           licenseId,
           license: await this.licenseRepo.findById(licenseId)
@@ -162,9 +162,15 @@ export class LicenseService {
 
       // Collect validation errors
       const errors: string[] = []
-      for (const { licenseId, license } of validationResults) {
-        if (!license) {
-          errors.push(`License '${licenseId}' not found`)
+      for (let i = 0; i < validationResults.length; i++) {
+        const result = validationResults[i]
+        if (result.status === 'rejected') {
+          // findById call failed (database error, etc.)
+          const errorMsg = result.reason instanceof Error ? result.reason.message : 'Validation failed'
+          errors.push(`License '${licenseIds[i]}': ${errorMsg}`)
+        } else if (!result.value.license) {
+          // License doesn't exist
+          errors.push(`License '${result.value.licenseId}' not found`)
         }
       }
 

@@ -598,14 +598,13 @@ describe('LicenseService', () => {
     it('should handle empty license array', async () => {
       // Arrange
       const licenseIds: string[] = []
-      vi.mocked(mockLicenseRepo.bulkUpdateWhitelistStatus).mockResolvedValue(0)
 
       // Act
       const result = await licenseService.bulkUpdateWhitelistStatus(licenseIds, true)
 
       // Assert
       expect(mockLicenseRepo.findById).not.toHaveBeenCalled()
-      expect(mockLicenseRepo.bulkUpdateWhitelistStatus).toHaveBeenCalledWith(licenseIds, true)
+      expect(mockLicenseRepo.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
       expect(result).toEqual({
         success: true,
         updated: 0,
@@ -644,7 +643,7 @@ describe('LicenseService', () => {
       expect(result).toEqual({
         success: false,
         updated: 0,
-        errors: ['Database error']
+        errors: ["License 'MIT': Database error"]
       })
       expect(mockLicenseRepo.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
     })
