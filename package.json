@@ -78,23 +78,23 @@
     "vue": "^3.5.25"
   },
   "devDependencies": {
-    "@amiceli/vitest-cucumber": "^6.1.0",
-    "@cucumber/cucumber": "^12.2.0",
+    "@amiceli/vitest-cucumber": "^6.2.0",
+    "@cucumber/cucumber": "^12.4.0",
     "@cucumber/gherkin": "^37.0.0",
-    "@cucumber/messages": "^31.0.0",
+    "@cucumber/messages": "^31.0.1",
     "@cyclonedx/cdxgen": "^12.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@playwright/test": "^1.56.1",
-    "@scalar/nuxt": "^0.5.21",
-    "@sidebase/nuxt-auth": "^1.1.0",
+    "@playwright/test": "^1.57.0",
+    "@scalar/nuxt": "^0.5.35",
+    "@sidebase/nuxt-auth": "^1.1.1",
     "@types/node": "^24.9.1",
     "@types/swagger-jsdoc": "^6.0.4",
-    "@vitest/coverage-v8": "^4.0.3",
-    "@vitest/ui": "^4.0.8",
-    "markdownlint-cli": "^0.46.0",
-    "next-auth": "~4.21.1",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
+    "markdownlint-cli": "^0.47.0",
+    "next-auth": "~4.24.13",
     "swagger-jsdoc": "^6.2.8",
-    "tsx": "^4.19.2",
-    "vitest": "^4.0.3"
+    "tsx": "^4.21.0",
+    "vitest": "^4.0.16"
   }
 }
