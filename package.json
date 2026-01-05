@@ -67,7 +67,7 @@
     "@nuxt/content": "^3.10.0",
     "@nuxt/eslint": "^1.12.1",
     "@nuxt/image": "^2.0.0",
-    "@nuxt/test-utils": "^3.21.0",
+    "@nuxt/test-utils": "^3.22.0",
     "ajv": "^8.17.1",
     "better-sqlite3": "^12.5.0",
     "eslint": "^9.39.2",
