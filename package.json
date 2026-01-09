@@ -87,7 +87,7 @@
     "@playwright/test": "^1.57.0",
     "@scalar/nuxt": "^0.5.35",
     "@sidebase/nuxt-auth": "^1.1.1",
-    "@types/node": "^24.9.1",
+    "@types/node": "^25.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
