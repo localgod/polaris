@@ -64,18 +64,18 @@
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
-    "@nuxt/content": "^3.10.0",
+    "@nuxt/content": "^3.11.0",
     "@nuxt/eslint": "^1.12.1",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^3.23.0",
     "ajv": "^8.17.1",
-    "better-sqlite3": "^12.6.0",
+    "better-sqlite3": "^12.6.2",
     "eslint": "^9.39.2",
     "mermaid": "^11.12.2",
     "nuxt": "^4.2.2",
     "nuxt-neo4j": "^0.0.4",
     "typescript": "^5.9.3",
-    "vue": "^3.5.26"
+    "vue": "^3.5.27"
   },
   "devDependencies": {
     "@amiceli/vitest-cucumber": "^6.2.0",
