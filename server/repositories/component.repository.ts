@@ -36,6 +36,7 @@ export class ComponentRepository extends BaseRepository {
       MATCH (c:Component)
       OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)
       OPTIONAL MATCH (s:System)-[:USES]->(c)
+      OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
     `
     
     // Build WHERE conditions
@@ -64,9 +65,9 @@ export class ComponentRepository extends BaseRepository {
     
     if (filters.hasLicense !== undefined) {
       if (filters.hasLicense) {
-        conditions.push('size(c.licenses) > 0')
+        conditions.push('l IS NOT NULL')
       } else {
-        conditions.push('(c.licenses IS NULL OR size(c.licenses) = 0)')
+        conditions.push('l IS NULL')
       }
     }
     
@@ -77,7 +78,8 @@ export class ComponentRepository extends BaseRepository {
     
     // Continue with aggregation and return
     cypher += `
-      WITH c, t.name as technologyName, collect(DISTINCT s.name) as systems
+      WITH c, t.name as technologyName, collect(DISTINCT s.name) as systems, 
+           collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses
       RETURN 
         c.name as name,
         c.version as version,
@@ -89,7 +91,7 @@ export class ComponentRepository extends BaseRepository {
         c.group as \`group\`,
         c.scope as scope,
         COALESCE(c.hashes, []) as hashes,
-        COALESCE(c.licenses, []) as licenses,
+        [lic IN licenses WHERE lic.id IS NOT NULL | lic] as licenses,
         c.copyright as copyright,
         c.supplier as supplier,
         c.author as author,
@@ -131,6 +133,10 @@ export class ComponentRepository extends BaseRepository {
       cypher += ` OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)`
     }
     
+    if (filters.hasLicense !== undefined) {
+      cypher += ` OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)`
+    }
+    
     // Build WHERE conditions (same as findAll)
     const conditions: string[] = []
     const params: Record<string, unknown> = {}
@@ -157,9 +163,9 @@ export class ComponentRepository extends BaseRepository {
     
     if (filters.hasLicense !== undefined) {
       if (filters.hasLicense) {
-        conditions.push('size(c.licenses) > 0')
+        conditions.push('l IS NOT NULL')
       } else {
-        conditions.push('(c.licenses IS NULL OR size(c.licenses) = 0)')
+        conditions.push('l IS NULL')
       }
     }
     

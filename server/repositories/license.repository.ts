@@ -324,11 +324,18 @@ export class LicenseRepository extends BaseRepository {
     const { records } = await this.executeQueryWithSession(cypher, { licenseIds, whitelisted })
     
     // If no records returned, it means some licenses don't exist
-    if (records.length === 0 || records[0].get('updated') === null) {
+    if (records.length === 0) {
       throw new Error('One or more licenses not found')
     }
     
-    return records[0]?.get('updated').toNumber() || 0
+    const updatedCount = records[0]?.get('updated')?.toNumber() || 0
+    
+    // Additional check: if we expected to update licenses but got 0, something went wrong
+    if (updatedCount === 0 && licenseIds.length > 0) {
+      throw new Error('One or more licenses not found')
+    }
+    
+    return updatedCount
   }
 
   /**

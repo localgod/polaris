@@ -1,0 +1,64 @@
+{
+  "name": "Ona",
+
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile"
+  },
+
+  "runArgs": [
+    "--cpus=4",
+    "--memory=8g"
+  ],
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker": {},
+
+    "ghcr.io/devcontainers/features/node": {
+      "version": "lts",
+      "nodeGypDependencies": false
+    },
+
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "jebbs.plantuml",
+        "DavidAnson.vscode-markdownlint",
+        "usernamehw.errorlens",
+        "neo4j.neo4j-vscode",
+        "Vue.volar"
+      ]
+    }
+  },
+
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "runServices": ["neo4j"],
+
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+
+    "source=ona-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/node_modules,type=volume",
+    "source=ona-npm-cache,target=/home/vscode/.npm,type=volume"
+  ],
+
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+
+  "forwardPorts": [7474, 7687, 3000],
+
+  "portsAttributes": {
+    "7474": {
+      "label": "Neo4j Browser",
+      "onAutoForward": "notify"
+    },
+    "7687": {
+      "label": "Neo4j Bolt",
+      "onAutoForward": "silent"
+    }
+  }
+}

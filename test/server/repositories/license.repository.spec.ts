@@ -73,7 +73,8 @@ describe('LicenseRepository', () => {
     it('should return 0 when no licenses exist', async () => {
       if (!neo4jAvailable) return
 
-      const result = await licenseRepo.count()
+      // Count only test licenses by using search filter with test prefix
+      const result = await licenseRepo.count({ search: TEST_PREFIX })
 
       expect(result).toBe(0)
     })

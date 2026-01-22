@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --host",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -64,18 +64,18 @@
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
-    "@nuxt/content": "^3.11.0",
+    "@nuxt/content": "^3.10.0",
     "@nuxt/eslint": "^1.12.1",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^3.23.0",
     "ajv": "^8.17.1",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.6.0",
     "eslint": "^9.39.2",
     "mermaid": "^11.12.2",
     "nuxt": "^4.2.2",
     "nuxt-neo4j": "^0.0.4",
     "typescript": "^5.9.3",
-    "vue": "^3.5.27"
+    "vue": "^3.5.26"
   },
   "devDependencies": {
     "@amiceli/vitest-cucumber": "^6.2.0",
@@ -85,16 +85,16 @@
     "@cyclonedx/cdxgen": "^12.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.57.0",
-    "@scalar/nuxt": "^0.5.47",
+    "@scalar/nuxt": "^0.5.40",
     "@sidebase/nuxt-auth": "^1.1.1",
-    "@types/node": "^25.0.9",
+    "@types/node": "^25.0.6",
     "@types/swagger-jsdoc": "^6.0.4",
-    "@vitest/coverage-v8": "^4.0.17",
-    "@vitest/ui": "^4.0.17",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
     "markdownlint-cli": "^0.47.0",
-    "next-auth": "~4.24.13",
     "swagger-jsdoc": "^6.2.8",
     "tsx": "^4.21.0",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.16",
+    "next-auth": "4.22.1"
   }
 }

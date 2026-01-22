@@ -74,6 +74,20 @@ const TEMP_DIR = join(process.cwd(), '.data', 'temp')
 const CONFIG_PATH = join(process.cwd(), 'schema', 'fixtures', 'github-repos.json')
 
 /**
+ * Return API base URL, preferring 127.0.0.1 over localhost to avoid
+ * potential IPv6/hostname resolution issues when contacting the local dev server.
+ */
+function getApiBaseUrl(): string {
+  const raw = process.env.NUXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:3000'
+  if (raw.includes('localhost')) {
+    const replaced = raw.replace(/localhost/g, '127.0.0.1')
+    console.warn(`  ℹ️  Replacing localhost with 127.0.0.1 for API base URL: ${replaced}`)
+    return replaced
+  }
+  return raw
+}
+
+/**
  * Clone a GitHub repository to a temporary directory
  */
 async function cloneRepository(repoUrl: string, branch: string, targetDir: string): Promise<void> {
@@ -140,7 +154,7 @@ function getDriver(): neo4j.Driver {
 async function ensureSystemExists(config: RepositoryConfig, apiToken: string): Promise<void> {
   console.log(`  🔍 Ensuring system exists: ${config.system.name}`)
   
-  const baseUrl = process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+  const baseUrl = getApiBaseUrl()
   
   // Create system via API (will fail if exists, which is fine)
   try {
@@ -167,7 +181,8 @@ async function ensureSystemExists(config: RepositoryConfig, apiToken: string): P
     if (error instanceof Error && error.message.includes('409')) {
       console.log(`  ✅ System already exists`)
     } else {
-      throw new Error(`Failed to ensure system exists: ${error instanceof Error ? error.message : error}`)
+      const msg = error instanceof Error ? error.message : String(error)
+      throw new Error(`Failed to create system via API at ${baseUrl}/api/systems: ${msg}. Is the Nuxt dev server running? Start it with 'npm run dev' and ensure ${baseUrl} is reachable.`)
     }
   }
   
@@ -270,7 +285,7 @@ function sanitizeSBOM(obj: unknown): unknown {
 async function postSBOM(repoUrl: string, sbom: object, apiToken: string): Promise<void> {
   console.log(`  📤 Posting SBOM to API...`)
   
-  const baseUrl = process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+  const baseUrl = getApiBaseUrl()
   
   // Sanitize SBOM to remove Map/Set objects
   const sanitized = sanitizeSBOM(sbom)
