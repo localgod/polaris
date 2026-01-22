@@ -121,24 +121,33 @@
       "ApiErrorResponse": {
         "type": "object",
         "required": [
-          "success",
-          "error",
-          "data"
+          "statusCode",
+          "statusMessage",
+          "message"
         ],
         "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [
-              false
-            ]
+          "statusCode": {
+            "type": "integer",
+            "description": "HTTP status code"
           },
-          "error": {
-            "type": "string"
+          "statusMessage": {
+            "type": "string",
+            "description": "HTTP status message"
           },
-          "data": {
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "url": {
+            "type": "string",
+            "description": "Request URL"
+          },
+          "stack": {
             "type": "array",
-            "items": {},
-            "maxItems": 0
+            "items": {
+              "type": "string"
+            },
+            "description": "Error stack trace (development only)"
           }
         }
       },
@@ -361,11 +370,6 @@
           "systemCount": {
             "type": "integer",
             "description": "Number of systems using this component"
-          },
-          "vulnerabilityCount": {
-            "type": "integer",
-            "nullable": true,
-            "description": "Number of known vulnerabilities"
           }
         }
       },
@@ -795,6 +799,260 @@
     }
   },
   "paths": {
+    "/admin/licenses/whitelist": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Licenses"
+        ],
+        "summary": "Get license whitelist management data",
+        "description": "Retrieves all licenses with whitelist status for superadmin management.\nIncludes filtering and search capabilities.\n\n**Authorization:** Superuser only\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "permissive",
+                "copyleft",
+                "proprietary",
+                "public-domain",
+                "other"
+              ]
+            },
+            "description": "Filter by license category"
+          },
+          {
+            "in": "query",
+            "name": "osiApproved",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by OSI approval status"
+          },
+          {
+            "in": "query",
+            "name": "whitelisted",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by whitelist status"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by license ID or name"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "License whitelist data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "osiApproved": {
+                                "type": "boolean"
+                              },
+                              "whitelisted": {
+                                "type": "boolean"
+                              },
+                              "componentCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "statistics": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "whitelisted": {
+                          "type": "integer"
+                        },
+                        "byCategory": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": "MIT",
+                      "name": "MIT License",
+                      "category": "permissive",
+                      "osiApproved": true,
+                      "whitelisted": true,
+                      "componentCount": 42
+                    }
+                  ],
+                  "count": 1,
+                  "total": 1,
+                  "statistics": {
+                    "total": 25,
+                    "whitelisted": 8
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin",
+          "Licenses"
+        ],
+        "summary": "Update license whitelist status",
+        "description": "Updates whitelist status for one or multiple licenses.\nSupports both single license and bulk operations.\n\n**Authorization:** Superuser only\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "licenseId": {
+                    "type": "string",
+                    "description": "Single license ID (for single update)"
+                  },
+                  "licenseIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Multiple license IDs (for bulk update)"
+                  },
+                  "whitelisted": {
+                    "type": "boolean",
+                    "description": "New whitelist status"
+                  }
+                },
+                "required": [
+                  "whitelisted"
+                ],
+                "example": {
+                  "licenseId": "MIT",
+                  "whitelisted": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Whitelist status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "updated": {
+                      "type": "integer",
+                      "description": "Number of licenses updated"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "License whitelist status updated successfully",
+                  "updated": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or missing license data"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "License not found"
+          }
+        }
+      }
+    },
     "/admin/users/{userId}/teams": {
       "post": {
         "tags": [
@@ -1153,6 +1411,114 @@
         }
       }
     },
+    "/audit-logs": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Get audit logs",
+        "description": "Retrieves audit log entries with optional filtering.\nReturns the most recent entries first.\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entityType",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by entity type (e.g., Policy, Technology)"
+          },
+          {
+            "in": "query",
+            "name": "operation",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by operation (e.g., ACTIVATE, DEACTIVATE, CREATE)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "description": "Maximum number of entries to return"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Number of entries to skip"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit logs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string"
+                          },
+                          "entityType": {
+                            "type": "string"
+                          },
+                          "entityId": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "filters": {
+                      "type": "object",
+                      "properties": {
+                        "entityTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "operations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/{provider}": {
       "get": {
         "tags": [
@@ -1325,7 +1691,79 @@
           "Components"
         ],
         "summary": "List all components",
-        "description": "Retrieves a list of all components with their metadata and system usage counts",
+        "description": "Retrieves a list of components with their metadata and system usage counts. Supports filtering and pagination.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by component name or package URL (case-insensitive)"
+          },
+          {
+            "in": "query",
+            "name": "packageManager",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "npm",
+                "maven",
+                "pypi",
+                "nuget",
+                "cargo"
+              ]
+            },
+            "description": "Filter by package manager"
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "library",
+                "framework",
+                "application"
+              ]
+            },
+            "description": "Filter by component type"
+          },
+          {
+            "in": "query",
+            "name": "technology",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by mapped technology name"
+          },
+          {
+            "in": "query",
+            "name": "hasLicense",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by license presence"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved components",
@@ -1344,6 +1782,10 @@
                           "items": {
                             "$ref": "#/components/schemas/Component"
                           }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total count of components matching filters (without pagination)"
                         }
                       }
                     }
@@ -1481,6 +1923,449 @@
         }
       }
     },
+    "/licenses": {
+      "get": {
+        "tags": [
+          "Licenses",
+          "License Compliance"
+        ],
+        "summary": "List all licenses",
+        "description": "Retrieves a list of all licenses discovered in components with usage statistics",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "permissive",
+                "copyleft",
+                "proprietary",
+                "public-domain",
+                "other"
+              ]
+            },
+            "description": "Filter by license category"
+          },
+          {
+            "in": "query",
+            "name": "osiApproved",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by OSI approval status"
+          },
+          {
+            "in": "query",
+            "name": "deprecated",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by deprecated status"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by license ID or name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved licenses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "SPDX identifier"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Human-readable name"
+                              },
+                              "spdxId": {
+                                "type": "string",
+                                "description": "Canonical SPDX identifier"
+                              },
+                              "osiApproved": {
+                                "type": "boolean",
+                                "description": "OSI approval status"
+                              },
+                              "url": {
+                                "type": "string",
+                                "description": "License text URL"
+                              },
+                              "category": {
+                                "type": "string",
+                                "description": "License category"
+                              },
+                              "deprecated": {
+                                "type": "boolean",
+                                "description": "Whether license is deprecated"
+                              },
+                              "componentCount": {
+                                "type": "integer",
+                                "description": "Number of components using this license"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch licenses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/licenses/{id}": {
+      "get": {
+        "tags": [
+          "Licenses",
+          "License Compliance"
+        ],
+        "summary": "Get license details",
+        "description": "Retrieves detailed information about a specific license including usage statistics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "License ID (SPDX identifier)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "spdxId": {
+                                "type": "string"
+                              },
+                              "osiApproved": {
+                                "type": "boolean"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "text": {
+                                "type": "string"
+                              },
+                              "deprecated": {
+                                "type": "boolean"
+                              },
+                              "componentCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "License not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/licenses/{id}/allow": {
+      "post": {
+        "tags": [
+          "Licenses"
+        ],
+        "summary": "Allow a previously denied license",
+        "description": "Removes a license from the organization's denied licenses list.\n\nComponents using this license will no longer appear as violations\n(unless denied by another policy).\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "License ID (e.g., MIT, Apache-2.0)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "License allowed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "removed": {
+                      "type": "boolean",
+                      "description": "Whether the license was removed (false if wasn't denied)"
+                    },
+                    "deniedLicenses": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "License ID is required"
+          }
+        }
+      }
+    },
+    "/licenses/{id}/deny": {
+      "post": {
+        "tags": [
+          "Licenses"
+        ],
+        "summary": "Deny a license organization-wide",
+        "description": "Adds a license to the organization's denied licenses list.\nCreates the \"Organization License Policy\" if it doesn't exist.\n\nOnce denied, any component using this license will appear as a violation.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "License ID (e.g., MIT, Apache-2.0)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "License denied successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "added": {
+                      "type": "boolean",
+                      "description": "Whether the license was newly added (false if already denied)"
+                    },
+                    "deniedLicenses": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "License ID is required"
+          },
+          "404": {
+            "description": "License not found"
+          }
+        }
+      }
+    },
+    "/licenses/denied": {
+      "get": {
+        "tags": [
+          "Licenses"
+        ],
+        "summary": "Get list of denied license IDs",
+        "description": "Returns the list of license IDs that are denied by the\nOrganization License Policy.\n",
+        "responses": {
+          "200": {
+            "description": "Denied licenses retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "deniedLicenses": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/licenses/statistics": {
+      "get": {
+        "tags": [
+          "Licenses",
+          "License Compliance"
+        ],
+        "summary": "Get license statistics",
+        "description": "Retrieves organization-wide license statistics including counts by category, OSI approval, and deprecation status",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved license statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "total": {
+                            "type": "integer",
+                            "description": "Total number of unique licenses"
+                          },
+                          "byCategory": {
+                            "type": "object",
+                            "description": "License count by category",
+                            "properties": {
+                              "permissive": {
+                                "type": "integer"
+                              },
+                              "copyleft": {
+                                "type": "integer"
+                              },
+                              "proprietary": {
+                                "type": "integer"
+                              },
+                              "public-domain": {
+                                "type": "integer"
+                              },
+                              "other": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "osiApproved": {
+                            "type": "integer",
+                            "description": "Number of OSI-approved licenses"
+                          },
+                          "deprecated": {
+                            "type": "integer",
+                            "description": "Number of deprecated licenses"
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch license statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/policies": {
       "get": {
         "tags": [
@@ -1512,6 +2397,18 @@
               "type": "string"
             },
             "description": "Filter by enforcement mechanism"
+          },
+          {
+            "in": "query",
+            "name": "ruleType",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "technology-approval",
+                "license-compliance"
+              ]
+            },
+            "description": "Filter by policy rule type"
           }
         ],
         "responses": {
@@ -1551,6 +2448,180 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "Create a new policy",
+        "description": "Creates a new policy for governance enforcement.\n\nFor license-compliance policies, you must specify:\n- `licenseMode`: Either 'allowlist' or 'denylist'\n- `allowedLicenses` or `deniedLicenses`: Array of license IDs\n\nOrganization-scope policies automatically create SUBJECT_TO relationships\nwith all teams.\n",
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "ruleType",
+                  "severity"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique policy name",
+                    "example": "Prohibit MIT License"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Policy description",
+                    "example": "MIT license is not allowed due to legal requirements"
+                  },
+                  "ruleType": {
+                    "type": "string",
+                    "enum": [
+                      "approval",
+                      "compliance",
+                      "security",
+                      "license-compliance"
+                    ],
+                    "description": "Type of policy rule",
+                    "example": "license-compliance"
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "error",
+                      "warning",
+                      "info"
+                    ],
+                    "description": "Severity level for violations",
+                    "example": "error"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "organization",
+                      "team"
+                    ],
+                    "default": "organization",
+                    "description": "Policy scope"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "draft",
+                      "archived"
+                    ],
+                    "default": "active",
+                    "description": "Policy status"
+                  },
+                  "enforcedBy": {
+                    "type": "string",
+                    "description": "Team responsible for enforcement",
+                    "example": "Security"
+                  },
+                  "licenseMode": {
+                    "type": "string",
+                    "enum": [
+                      "allowlist",
+                      "denylist"
+                    ],
+                    "description": "Required for license-compliance policies",
+                    "example": "denylist"
+                  },
+                  "allowedLicenses": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "License IDs to allow (for allowlist mode)",
+                    "example": [
+                      "Apache-2.0",
+                      "BSD-3-Clause"
+                    ]
+                  },
+                  "deniedLicenses": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "License IDs to deny (for denylist mode)",
+                    "example": [
+                      "MIT",
+                      "MIT/X11"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Policy created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Policy created successfully"
+                    },
+                    "policy": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "ruleType": {
+                          "type": "string"
+                        },
+                        "severity": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "licenseMode": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "relationshipsCreated": {
+                      "type": "integer",
+                      "example": 7
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized - authentication required"
+          },
+          "409": {
+            "description": "Conflict - policy already exists"
+          }
+        }
       }
     },
     "/policies/{name}": {
@@ -1559,7 +2630,7 @@
           "Policies"
         ],
         "summary": "Delete a policy",
-        "description": "Deletes a policy and all its relationships.\n\n**Authorization:** Superuser\n",
+        "description": "Deletes a policy and all its relationships.\n\n**TODO:** This endpoint should be restricted to superadmin users only.\nSee GitHub issue for tracking.\n",
         "parameters": [
           {
             "in": "path",
@@ -1571,23 +2642,12 @@
             "description": "Policy name"
           }
         ],
-        "security": [
-          {
-            "sessionAuth": []
-          }
-        ],
         "responses": {
           "204": {
             "description": "Policy deleted successfully"
           },
           "400": {
             "description": "Policy name is required"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "403": {
-            "description": "Superuser access required"
           },
           "404": {
             "description": "Policy not found"
@@ -1684,6 +2744,255 @@
           },
           "500": {
             "description": "Failed to fetch policy"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "Update a policy",
+        "description": "Updates a policy's status or other properties.\n\nStatus values:\n- `active`: Policy is enforced, violations are detected\n- `draft`: Policy exists but is not enforced\n- `archived`: Policy is disabled and hidden from active views\n\n**TODO:** This endpoint should be restricted to superadmin users only.\nSee GitHub issue #156.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Policy name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "draft",
+                      "archived"
+                    ],
+                    "description": "New policy status"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Reason for the status change (recommended when disabling)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Policy updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Policy not found"
+          }
+        }
+      }
+    },
+    "/policies/license-violations": {
+      "get": {
+        "tags": [
+          "Policies",
+          "License Compliance"
+        ],
+        "summary": "Get license compliance violations",
+        "description": "Retrieves all license compliance violations with optional filtering. Returns components using licenses not allowed by active license compliance policies.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "severity",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "critical",
+                "error",
+                "warning",
+                "info"
+              ]
+            },
+            "description": "Filter by violation severity"
+          },
+          {
+            "in": "query",
+            "name": "team",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by team name"
+          },
+          {
+            "in": "query",
+            "name": "system",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by system name"
+          },
+          {
+            "in": "query",
+            "name": "license",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by license ID (SPDX identifier)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved license violations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "team": {
+                            "type": "string",
+                            "description": "Team name"
+                          },
+                          "system": {
+                            "type": "string",
+                            "description": "System name"
+                          },
+                          "component": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "version": {
+                                "type": "string"
+                              },
+                              "purl": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "license": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "osiApproved": {
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          "policy": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "severity": {
+                                "type": "string"
+                              },
+                              "ruleType": {
+                                "type": "string"
+                              },
+                              "enforcedBy": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Number of violations returned"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "description": "Violation count by severity",
+                      "properties": {
+                        "critical": {
+                          "type": "integer"
+                        },
+                        "error": {
+                          "type": "integer"
+                        },
+                        "warning": {
+                          "type": "integer"
+                        },
+                        "info": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch license violations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1876,6 +3185,232 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sboms": {
+      "post": {
+        "tags": [
+          "SBOM"
+        ],
+        "summary": "Validate and submit an SBOM",
+        "description": "Validates a Software Bill of Materials (SBOM) in CycloneDX or SPDX format.\nRequires authentication via session or API token.\n",
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "repositoryUrl",
+                  "sbom"
+                ],
+                "properties": {
+                  "repositoryUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL to the SCM repository that produced this SBOM",
+                    "example": "https://github.com/org/repo"
+                  },
+                  "sbom": {
+                    "type": "object",
+                    "description": "The SBOM document in CycloneDX or SPDX format"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SBOM processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "format": {
+                      "type": "string",
+                      "enum": [
+                        "cyclonedx",
+                        "spdx"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "SBOM processed successfully"
+                    },
+                    "systemName": {
+                      "type": "string",
+                      "example": "my-application"
+                    },
+                    "componentsAdded": {
+                      "type": "integer",
+                      "example": 42
+                    },
+                    "componentsUpdated": {
+                      "type": "integer",
+                      "example": 8
+                    },
+                    "relationshipsCreated": {
+                      "type": "integer",
+                      "example": 50
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid JSON or missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "invalid_request"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "repositoryUrl is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "unauthenticated"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Authentication required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - system with repository URL not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "system_not_found"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "No system found with repository URL: https://github.com/org/repo. Please create the system first."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported Media Type - Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "unsupported_media_type"
+                    },
+                    "required": {
+                      "type": "string",
+                      "example": "application/json"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity - SBOM validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "invalid_sbom"
+                    },
+                    "format": {
+                      "type": "string",
+                      "enum": [
+                        "cyclonedx",
+                        "spdx",
+                        "unknown"
+                      ]
+                    },
+                    "validationErrors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "instancePath": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -2355,6 +3890,180 @@
           },
           "422": {
             "description": "Validation error - invalid field values"
+          }
+        }
+      }
+    },
+    "/api/systems/{name}/repositories": {
+      "get": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "List repositories for a system",
+        "description": "Returns all repositories linked to a system",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of repositories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Repository"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "System not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Register a repository for a system",
+        "description": "Links a repository to a system for SBOM tracking. Creates the repository if it doesn't exist.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Repository URL",
+                    "example": "https://github.com/org/repo"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Repository name (auto-extracted from URL if not provided)",
+                    "example": "repo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Repository registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Repository"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Repository registered for system my-system"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "invalid_url"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Invalid repository URL"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "System not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "system_not_found"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "System not found: my-system"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

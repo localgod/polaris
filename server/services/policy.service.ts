@@ -1,5 +1,5 @@
 import { PolicyRepository } from '../repositories/policy.repository'
-import type { Policy, ViolationFilters, PolicyFilters, PolicyViolation, LicenseViolation } from '../repositories/policy.repository'
+import type { Policy, ViolationFilters, PolicyFilters, PolicyViolation, LicenseViolation, CreatePolicyInput, UpdatePolicyStatusInput, UpdatePolicyResult } from '../repositories/policy.repository'
 
 export interface ViolationResult {
   data: PolicyViolation[]
@@ -105,6 +105,104 @@ export class PolicyService {
     
     // Delete the policy
     await this.policyRepo.delete(name)
+  }
+
+  /**
+   * Create a new policy
+   * 
+   * Business rules:
+   * - Policy name must be unique
+   * - License-compliance policies must have licenseMode set
+   * - Denylist mode requires deniedLicenses array
+   * - Allowlist mode requires allowedLicenses array
+   * - Organization-scope policies auto-create SUBJECT_TO relationships
+   * 
+   * @param input - Policy creation input
+   * @returns Created policy
+   * @throws Error if validation fails or policy already exists
+   */
+  async create(input: CreatePolicyInput): Promise<{ policy: Policy; relationshipsCreated: number }> {
+    // Business logic: check if policy already exists
+    const exists = await this.policyRepo.exists(input.name)
+    if (exists) {
+      throw createError({
+        statusCode: 409,
+        message: `Policy '${input.name}' already exists`
+      })
+    }
+    
+    // Business logic: validate license-compliance policies
+    if (input.ruleType === 'license-compliance') {
+      if (!input.licenseMode) {
+        throw createError({
+          statusCode: 400,
+          message: 'License-compliance policies require licenseMode (allowlist or denylist)'
+        })
+      }
+      
+      if (input.licenseMode === 'denylist' && (!input.deniedLicenses || input.deniedLicenses.length === 0)) {
+        throw createError({
+          statusCode: 400,
+          message: 'Denylist mode requires at least one license in deniedLicenses'
+        })
+      }
+      
+      if (input.licenseMode === 'allowlist' && (!input.allowedLicenses || input.allowedLicenses.length === 0)) {
+        throw createError({
+          statusCode: 400,
+          message: 'Allowlist mode requires at least one license in allowedLicenses'
+        })
+      }
+    }
+    
+    // Business logic: validate severity
+    const validSeverities = ['critical', 'error', 'warning', 'info']
+    if (!validSeverities.includes(input.severity)) {
+      throw createError({
+        statusCode: 400,
+        message: `Invalid severity. Must be one of: ${validSeverities.join(', ')}`
+      })
+    }
+    
+    // Business logic: validate ruleType
+    const validRuleTypes = ['approval', 'compliance', 'security', 'license-compliance']
+    if (!validRuleTypes.includes(input.ruleType)) {
+      throw createError({
+        statusCode: 400,
+        message: `Invalid ruleType. Must be one of: ${validRuleTypes.join(', ')}`
+      })
+    }
+    
+    // Create the policy
+    return await this.policyRepo.create(input)
+  }
+
+  /**
+   * Update a policy's status
+   * 
+   * Business rules:
+   * - Policy must exist
+   * - Status must be valid (active, draft, archived)
+   * - Reason is recommended when disabling a policy
+   * 
+   * @param name - Policy name
+   * @param input - Status update input
+   * @returns Updated policy and previous status
+   */
+  async updateStatus(name: string, input: UpdatePolicyStatusInput): Promise<UpdatePolicyResult> {
+    // Validate status
+    if (input.status) {
+      const validStatuses = ['active', 'draft', 'archived']
+      if (!validStatuses.includes(input.status)) {
+        throw createError({
+          statusCode: 400,
+          message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+        })
+      }
+    }
+    
+    // Update the policy
+    return await this.policyRepo.updateStatus(name, input)
   }
 
   /**

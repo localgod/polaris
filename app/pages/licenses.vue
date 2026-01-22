@@ -149,20 +149,75 @@
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ license.componentCount || 0 }}</td>
                   <td class="px-6 py-4">
-                    <a 
-                      v-if="license.url" 
-                      :href="license.url" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-                    >
-                      View License
-                    </a>
+                    <div class="flex items-center gap-3">
+                      <button
+                        v-if="isDenied(license.id)"
+                        class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-error-100 text-error-700 dark:bg-error-900/30 dark:text-error-400 hover:bg-error-200 dark:hover:bg-error-900/50 transition-colors"
+                        :disabled="togglingLicense === license.id"
+                        @click="allowLicense(license.id)"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        {{ togglingLicense === license.id ? '...' : 'Denied' }}
+                      </button>
+                      <button
+                        v-else
+                        class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-error-100 hover:text-error-700 dark:hover:bg-error-900/30 dark:hover:text-error-400 transition-colors"
+                        :disabled="togglingLicense === license.id"
+                        @click="denyLicense(license.id)"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        {{ togglingLicense === license.id ? '...' : 'Deny' }}
+                      </button>
+                      <a 
+                        v-if="license.url" 
+                        :href="license.url" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        View
+                      </a>
+                    </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </UiCard>
+
+        <!-- Denied Licenses Summary -->
+        <UiCard v-if="deniedLicenses.length > 0">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Denied Licenses</h3>
+              <UiBadge variant="error" size="sm">{{ deniedLicenses.length }}</UiBadge>
+            </div>
+          </template>
+          <div class="flex flex-wrap gap-2">
+            <span
+              v-for="licenseId in deniedLicenses"
+              :key="licenseId"
+              class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-error-100 text-error-700 dark:bg-error-900/30 dark:text-error-400 text-sm"
+            >
+              {{ licenseId }}
+              <button
+                class="ml-1 hover:text-error-900 dark:hover:text-error-200"
+                @click="allowLicense(licenseId)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+          </div>
+          <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            Components using these licenses will appear as violations in 
+            <NuxtLink to="/violations/licenses" class="text-primary-600 dark:text-primary-400 hover:underline">License Violations</NuxtLink>.
+          </p>
         </UiCard>
       </template>
     </div>
@@ -191,6 +246,54 @@ const { data, pending, error } = await useFetch('/api/licenses', {
 })
 
 const { data: stats, pending: statsPending, error: statsError } = await useFetch('/api/licenses/statistics')
+
+// Denied licenses management
+const deniedLicenses = ref<string[]>([])
+const togglingLicense = ref<string | null>(null)
+
+// Fetch denied licenses on mount
+const { data: deniedData } = await useFetch<{ deniedLicenses: string[] }>('/api/licenses/denied')
+if (deniedData.value) {
+  deniedLicenses.value = deniedData.value.deniedLicenses
+}
+
+function isDenied(licenseId: string): boolean {
+  return deniedLicenses.value.includes(licenseId)
+}
+
+async function denyLicense(licenseId: string) {
+  togglingLicense.value = licenseId
+  try {
+    const result = await $fetch<{ success: boolean; deniedLicenses: string[] }>(`/api/licenses/${encodeURIComponent(licenseId)}/deny`, {
+      method: 'POST'
+    })
+    if (result.success && result.deniedLicenses) {
+      deniedLicenses.value = result.deniedLicenses
+    }
+  } catch (err) {
+    console.error('Failed to deny license:', err)
+    alert('Failed to deny license. Please try again.')
+  } finally {
+    togglingLicense.value = null
+  }
+}
+
+async function allowLicense(licenseId: string) {
+  togglingLicense.value = licenseId
+  try {
+    const result = await $fetch<{ success: boolean; deniedLicenses: string[] }>(`/api/licenses/${encodeURIComponent(licenseId)}/allow`, {
+      method: 'POST'
+    })
+    if (result.success && result.deniedLicenses) {
+      deniedLicenses.value = result.deniedLicenses
+    }
+  } catch (err) {
+    console.error('Failed to allow license:', err)
+    alert('Failed to allow license. Please try again.')
+  } finally {
+    togglingLicense.value = null
+  }
+}
 
 let filterTimeout: NodeJS.Timeout
 const debouncedFilter = () => {

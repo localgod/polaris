@@ -115,6 +115,17 @@
             <span>Violations</span>
           </NuxtLink>
 
+          <NuxtLink
+            to="/audit"
+            class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+            active-class="bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            <span>Audit Log</span>
+          </NuxtLink>
+
           <!-- Superuser-only menu items -->
           <NuxtLink
             v-if="session?.user?.role === 'superuser'"
