@@ -10,7 +10,8 @@ import { PolicyService } from '../../services/policy.service'
  *     description: |
  *       Deletes a policy and all its relationships.
  *       
- *       **Authorization:** Superuser
+ *       **TODO:** This endpoint should be restricted to superadmin users only.
+ *       See GitHub issue for tracking.
  *     parameters:
  *       - in: path
  *         name: name
@@ -18,23 +19,18 @@ import { PolicyService } from '../../services/policy.service'
  *         schema:
  *           type: string
  *         description: Policy name
- *     security:
- *       - sessionAuth: []
  *     responses:
  *       204:
  *         description: Policy deleted successfully
  *       400:
  *         description: Policy name is required
- *       401:
- *         description: Authentication required
- *       403:
- *         description: Superuser access required
  *       404:
  *         description: Policy not found
  */
 export default defineEventHandler(async (event) => {
-  // Require superuser access for deleting policies
-  await requireSuperuser(event)
+  // TODO: Require superuser access for deleting policies
+  // See GitHub issue #156
+  // await requireSuperuser(event)
   
   const rawName = getRouterParam(event, 'name')
   

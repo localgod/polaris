@@ -1,17 +1,28 @@
 // Find license compliance violations
-// Returns systems using components with licenses not allowed by active license policies
+// Returns systems using components with licenses that violate active license policies
+//
+// Supports two modes:
+// - allowlist: Violation if license is NOT in ALLOWS_LICENSE relationships
+// - denylist: Violation if license IS in DENIES_LICENSE relationships
 //
 // Logic:
 // 1. Find systems using components with licenses
 // 2. Find active license-compliance policies that apply to the system's team
-// 3. Check if the license is NOT in the policy's allowlist
+// 3. Check violation based on policy's licenseMode:
+//    - allowlist (or null for backward compatibility): license NOT in allowlist
+//    - denylist: license IS in denylist
 // 4. Return violation details
 
 MATCH (system:System)<-[:OWNS]-(team:Team)
 MATCH (system)-[:USES]->(component:Component)-[:HAS_LICENSE]->(license:License)
 MATCH (policy:Policy {status: 'active', ruleType: 'license-compliance'})
 MATCH (team)-[:SUBJECT_TO]->(policy)
-WHERE NOT (policy)-[:ALLOWS_LICENSE]->(license)
+WHERE 
+  // Denylist mode: violation if license IS denied
+  (policy.licenseMode = 'denylist' AND (policy)-[:DENIES_LICENSE]->(license))
+  OR
+  // Allowlist mode (default): violation if license is NOT allowed
+  ((policy.licenseMode = 'allowlist' OR policy.licenseMode IS NULL) AND NOT (policy)-[:ALLOWS_LICENSE]->(license))
 OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(policy)
 {{WHERE_CONDITIONS}}
 RETURN team.name as teamName,
