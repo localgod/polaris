@@ -111,7 +111,13 @@ import type { License } from '../../../repositories/license.repository'
  *       403:
  *         description: Superuser access required
  */
-export default defineEventHandler(async (event): Promise<ApiResponse<License> & { statistics?: any }> => {
+export default defineEventHandler(async (event): Promise<ApiResponse<License> & { statistics?: {
+  total: number
+  byCategory: Record<string, number>
+  osiApproved: number
+  deprecated: number
+  whitelisted: number
+} }> => {
   // Require superuser access
   await requireSuperuser(event)
 

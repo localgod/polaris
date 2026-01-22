@@ -388,7 +388,7 @@ const getCategoryBadgeClasses = (category: string) => {
   }
 }
 
-const toggleLicenseWhitelist = async (license: any) => {
+const toggleLicenseWhitelist = async (license: { id: string; whitelisted?: boolean }) => {
   updating.value = true
   
   try {
