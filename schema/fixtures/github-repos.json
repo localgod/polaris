@@ -1,48 +1,6 @@
 {
   "repositories": [
     {
-      "url": "https://github.com/lodash/lodash",
-      "branch": "main",
-      "system": {
-        "name": "Lodash Utility Library",
-        "domain": "Libraries",
-        "ownerTeam": "Platform Team",
-        "businessCriticality": "medium",
-        "environment": "prod",
-        "sourceCodeType": "open-source",
-        "hasSourceAccess": true
-      },
-      "repository": {
-        "name": "lodash",
-        "description": "A modern JavaScript utility library delivering modularity, performance & extras",
-        "isPublic": true,
-        "requiresAuth": false,
-        "scmType": "git",
-        "defaultBranch": "main"
-      }
-    },
-    {
-      "url": "https://github.com/expressjs/express",
-      "branch": "master",
-      "system": {
-        "name": "Express Web Framework",
-        "domain": "Backend",
-        "ownerTeam": "Backend Team",
-        "businessCriticality": "high",
-        "environment": "prod",
-        "sourceCodeType": "open-source",
-        "hasSourceAccess": true
-      },
-      "repository": {
-        "name": "express",
-        "description": "Fast, unopinionated, minimalist web framework for Node.js",
-        "isPublic": true,
-        "requiresAuth": false,
-        "scmType": "git",
-        "defaultBranch": "main"
-      }
-    },
-    {
       "url": "https://github.com/localgod/polaris",
       "branch": "main",
       "system": {
@@ -61,6 +19,90 @@
         "requiresAuth": false,
         "scmType": "git",
         "defaultBranch": "main"
+      }
+    },
+    {
+      "url": "https://github.com/localgod/catalyst",
+      "branch": "main",
+      "system": {
+        "name": "Catalyst",
+        "domain": "Platform",
+        "ownerTeam": "Platform Team",
+        "businessCriticality": "medium",
+        "environment": "prod",
+        "sourceCodeType": "open-source",
+        "hasSourceAccess": true
+      },
+      "repository": {
+        "name": "catalyst",
+        "description": "Convert C4 diagrams in PlantUML to Draw.io",
+        "isPublic": true,
+        "requiresAuth": false,
+        "scmType": "git",
+        "defaultBranch": "main"
+      }
+    },
+    {
+      "url": "https://github.com/localgod/tsarchi",
+      "branch": "main",
+      "system": {
+        "name": "TSArchi",
+        "domain": "Platform",
+        "ownerTeam": "Platform Team",
+        "businessCriticality": "medium",
+        "environment": "prod",
+        "sourceCodeType": "open-source",
+        "hasSourceAccess": true
+      },
+      "repository": {
+        "name": "tsarchi",
+        "description": "TypeScript utility for parsing .archimate files and manipulating ArchiMate models",
+        "isPublic": true,
+        "requiresAuth": false,
+        "scmType": "git",
+        "defaultBranch": "main"
+      }
+    },
+    {
+      "url": "https://github.com/localgod/plantkit",
+      "branch": "main",
+      "system": {
+        "name": "PlantKit",
+        "domain": "Platform",
+        "ownerTeam": "Platform Team",
+        "businessCriticality": "medium",
+        "environment": "prod",
+        "sourceCodeType": "open-source",
+        "hasSourceAccess": true
+      },
+      "repository": {
+        "name": "plantkit",
+        "description": "Library for generating PlantUML diagrams via an API",
+        "isPublic": true,
+        "requiresAuth": false,
+        "scmType": "git",
+        "defaultBranch": "main"
+      }
+    },
+    {
+      "url": "https://github.com/localgod/karla",
+      "branch": "master",
+      "system": {
+        "name": "Karla",
+        "domain": "Platform",
+        "ownerTeam": "Platform Team",
+        "businessCriticality": "medium",
+        "environment": "prod",
+        "sourceCodeType": "open-source",
+        "hasSourceAccess": true
+      },
+      "repository": {
+        "name": "karla",
+        "description": "ImageMagick wrapper with method chaining",
+        "isPublic": true,
+        "requiresAuth": false,
+        "scmType": "git",
+        "defaultBranch": "master"
       }
     }
   ]
