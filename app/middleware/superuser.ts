@@ -4,7 +4,7 @@
  * Ensures that only superusers can access protected admin pages.
  * Redirects non-superusers to the home page with an error message.
  */
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware((_to, _from) => {
   // Check if user has superuser access
   // This would typically check the user session/auth state
   // For now, we'll use environment variables or session data
