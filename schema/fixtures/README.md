@@ -1,68 +1,62 @@
 # Database Fixtures and Seeding
 
-This directory contains fixture data and scripts for seeding the Neo4j database with test data.
+This directory contains fixture data for seeding the Neo4j database with governance and catalog data.
 
 ## Overview
 
-The seeding system provides:
+The seeding system has two complementary parts:
 
-- **Idempotent seeding**: Running the seed script multiple times produces the same result
-- **Fixture data**: Realistic test data covering all node types
-- **Relationship creation**: Automatically creates relationships between nodes
-- **Reset capability**: Clear and reseed the database to a known state
+1. **Fixture seeding** (`npm run seed`) - Seeds governance data: teams, technologies, policies, and approvals
+2. **GitHub seeding** (`npm run seed:github`) - Seeds real-world data: systems, repositories, and components from actual GitHub repos
 
 ## Files
 
-- `tech-catalog.json` - Fixture data for the tech catalog schema
-- `github-repos.json` - Configuration for seeding from GitHub repositories
-- `../scripts/seed.ts` - Idempotent seeding script
-- `../scripts/seed-github.ts` - GitHub repository SBOM seeding script
+- `tech-catalog.json` - Governance fixture data (teams, technologies, policies, approvals)
+- `github-repos.json` - Configuration for GitHub repository SBOM seeding
+- `../scripts/seed.ts` - Fixture seeding script
+- `../scripts/seed-github.ts` - GitHub SBOM seeding script
 
 ## Usage
 
-### Seed the Database
+### Full Database Seeding (Recommended)
 
-Add fixture data to the database (idempotent - safe to run multiple times):
+The `seed:github` command performs a complete seeding:
+1. Seeds governance data (teams, technologies, policies, approvals)
+2. Clones GitHub repositories and generates SBOMs
+3. Creates systems, repositories, and components
+
+```bash
+# First time setup: create an API token (one-time)
+npm run createuser -- seed-bot@polaris.local "Seed Bot" --superuser
+npx tsx schema/scripts/seed-api-token.ts seed-bot@polaris.local
+# Add the token to .env as SEED_API_TOKEN
+
+# Full seed
+npm run seed:github
+
+# Full seed with database clear first
+npm run seed:github -- --clear
+```
+
+### Governance Data Only
+
+If you only need governance data without GitHub repositories:
 
 ```bash
 npm run seed
 ```
 
-Or via automation:
+### Reset Database
+
+Clear all data and reseed:
 
 ```bash
-gitpod automations task start seed-database
+npm run seed:github -- --clear
 ```
-
-### Reset Database to Known State
-
-Clear all non-migration data and reseed with fixtures:
-
-```bash
-npm run seed:clear
-```
-
-Or via automation:
-
-```bash
-gitpod automations task start reset-database
-```
-
-### Seed from GitHub Repositories
-
-Generate SBOMs from real GitHub repositories and populate the database:
-
-```bash
-npm run seed:github
-```
-
-This clones configured repositories, generates CycloneDX SBOMs using cdxgen, and posts them to the SBOM API endpoint.
-
-**For detailed instructions**, see [Seeding from GitHub Repositories](../../docs/seeding-from-github.md).
 
 ## Fixture Data Structure
 
-The `tech-catalog.json` file contains:
+The `tech-catalog.json` file contains governance data only:
 
 ### Teams (5 teams)
 
@@ -72,87 +66,82 @@ The `tech-catalog.json` file contains:
 - DevOps
 - Security
 
-### Technologies (10 technologies)
+### Technologies (14 technologies)
 
-- **Approved**: React, Vue, Node.js, PostgreSQL, Neo4j, Express, TypeScript, Docker
-- **Deprecated**: Angular
-- **Experimental**: MongoDB
+Curated technology catalog with approval status:
+
+- **Approved**: React, Vue, Node.js, PostgreSQL, Neo4j, Express, TypeScript, Docker, Redis
+- **Deprecated**: Angular, jQuery, Lodash
+- **Experimental**: MongoDB, MySQL
 
 ### Versions (7 versions)
 
-Specific versions for major technologies with approval status and EOL dates.
+Specific versions for major technologies with EOL dates.
 
 ### Policies (6 policies)
 
-Governance and compliance rules covering:
+Governance rules:
 
-- Frontend framework approval
-- Database version policy
-- Deprecated technology warnings
-- High-risk technology reviews
-- License compliance
-- EOL warnings
+- Technology Approval Required
+- Database Version Compliance
+- Migration Target Required
+- High Risk Technology Approval
+- License Compliance
+- EOL Warning
 
-### Systems (5 systems)
+### Approvals (14 approvals)
 
-Example applications:
+Team-technology approval relationships with TIME categories:
 
-- customer-portal (high criticality)
-- api-gateway (critical)
-- analytics-service (medium)
-- admin-dashboard (low)
-- notification-service (high)
+- **adopt**: Recommended for new projects
+- **trial**: Evaluating for specific use cases
+- **assess**: Under evaluation
+- **hold**: Legacy only, migrate away
 
-### Components (7 components)
+## Relationships Created
 
-SBOM entries for npm packages:
-
-- react, react-dom
-- vue
-- express
-- typescript
-- neo4j-driver
-- pg (PostgreSQL driver)
-
-### Relationships
-
-The seed script automatically creates relationships:
+The seed script creates:
 
 - `(Technology)-[:HAS_VERSION]->(Version)`
-- `(Team)-[:OWNS]->(Technology)`
-- `(Team)-[:OWNS]->(System)`
-- `(System)-[:USES]->(Component)`
-- `(Component)-[:IS_VERSION_OF]->(Technology)`
-- `(Policy)-[:APPLIES_TO]->(Technology)`
+- `(Team)-[:STEWARDED_BY]->(Technology)`
+- `(Team)-[:APPROVES]->(Technology)` with TIME properties
+- `(Policy)-[:GOVERNS]->(Technology)`
+- `(Team)-[:ENFORCES]->(Policy)`
+- `(Team)-[:SUBJECT_TO]->(Policy)`
 
-## Idempotency
+## What GitHub Seeding Adds
 
-The seed script uses `MERGE` statements instead of `CREATE`, ensuring:
+Running `npm run seed:github` adds:
 
-1. **No duplicates**: Running multiple times won't create duplicate nodes
-2. **Updates properties**: If a node exists, its properties are updated
-3. **Safe relationships**: Relationships are also merged, not duplicated
+- `System` nodes (from repository configuration)
+- `Repository` nodes (linked to systems)
+- `Component` nodes (from generated SBOMs)
+- `License` nodes (from component licenses)
+- `(System)-[:USES]->(Component)` relationships
+- `(System)-[:HAS_SOURCE_IN]->(Repository)` relationships
+- `(Component)-[:HAS_LICENSE]->(License)` relationships
 
-Example:
+### GitHub API Integration
+
+The seeding script automatically fetches metadata from the GitHub API for each repository:
+
+- **Default branch** - Uses the actual default branch (main, master, etc.)
+- **Description** - Gets the repository description
+- **Visibility** - Detects if the repository is public or private
+
+This means the `branch` and `description` values in `github-repos.json` are fallbacks that will be overridden by live GitHub data when available.
+
+## Recommended Workflow
 
 ```bash
-# First run - creates all data
-npm run seed
+# 1. Run migrations (automatic on environment start)
+npm run migrate:up
 
-# Second run - updates existing data, no duplicates
-npm run seed
-
-# Third run - still no duplicates
-npm run seed
+# 2. Full seed (governance + GitHub repos)
+npm run seed:github
 ```
 
 ## Customizing Fixture Data
-
-To add or modify fixture data:
-
-1. Edit `tech-catalog.json`
-2. Follow the existing structure
-3. Run `npm run seed` to apply changes
 
 ### Adding a New Team
 
@@ -187,96 +176,33 @@ To add or modify fixture data:
 }
 ```
 
-### Adding Relationships
-
-Add to the appropriate relationship array:
+### Adding an Approval
 
 ```json
 {
-  "relationships": {
-    "team_technologies": [
-      { "team": "Mobile Platform", "technology": "Kotlin" }
+  "approvals": {
+    "team_technology_approvals": [
+      {
+        "team": "Mobile Platform",
+        "technology": "Kotlin",
+        "time": "adopt",
+        "approvedAt": "2024-01-15",
+        "notes": "Primary mobile language",
+        "approvedBy": "Tech Lead",
+        "versionConstraint": ">=1.9.0"
+      }
     ]
   }
 }
 ```
 
-## Verification Queries
+## Idempotency
 
-After seeding, verify the data:
+Both seed scripts use `MERGE` statements, ensuring:
 
-### Count all nodes
-
-```cypher
-MATCH (t:Team) RETURN "Team" as type, count(t) as count
-UNION
-MATCH (tech:Technology) RETURN "Technology" as type, count(tech) as count
-UNION
-MATCH (v:Version) RETURN "Version" as type, count(v) as count
-UNION
-MATCH (p:Policy) RETURN "Policy" as type, count(p) as count
-UNION
-MATCH (s:System) RETURN "System" as type, count(s) as count
-UNION
-MATCH (c:Component) RETURN "Component" as type, count(c) as count
-```
-
-### View a system with its components
-
-```cypher
-MATCH (s:System {name: "customer-portal"})-[:USES]->(c:Component)
-RETURN s.name, collect(c.name + "@" + c.version) as components
-```
-
-### View technologies owned by a team
-
-```cypher
-MATCH (team:Team {name: "Frontend Platform"})-[:OWNS]->(tech:Technology)
-RETURN team.name, collect(tech.name) as technologies
-```
-
-### View policies and their applicable technologies
-
-```cypher
-MATCH (p:Policy)-[:APPLIES_TO]->(tech:Technology)
-RETURN p.name, p.severity, collect(tech.name) as technologies
-ORDER BY p.severity
-```
-
-## Integration with Automations
-
-The seeding system is integrated with Gitpod automations:
-
-### Seed Database Task
-
-```yaml
-seed-database:
-  name: Seed Database with Fixtures
-  command: |
-    echo "🌱 Seeding database with fixture data..."
-    npm run seed
-    echo "Yes Database seeded successfully"
-```
-
-### Reset Database Task
-
-```yaml
-reset-database:
-  name: Reset Database to Known State
-  command: |
-    echo "🔄 Resetting database to known state..."
-    echo "⚠️  This will clear all non-migration data!"
-    npm run seed:clear
-    echo "Yes Database reset complete"
-```
-
-## Best Practices
-
-1. **Use seed for development**: Keep your dev database in a known state
-2. **Reset before testing**: Use `seed:clear` to ensure clean test runs
-3. **Version fixture data**: Commit changes to `tech-catalog.json`
-4. **Document custom data**: Add comments explaining non-obvious relationships
-5. **Test idempotency**: Always verify that running seed multiple times is safe
+1. **No duplicates**: Running multiple times won't create duplicate nodes
+2. **Updates properties**: Existing nodes get updated properties
+3. **Safe relationships**: Relationships are merged, not duplicated
 
 ## Troubleshooting
 
@@ -288,35 +214,12 @@ Ensure Neo4j is running:
 docker compose -f .devcontainer/docker-compose.yml ps neo4j
 ```
 
-Check your `.env` file has correct connection settings:
+### GitHub seeding fails with API error
 
-```
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=devpassword
-```
+1. Ensure the Nuxt dev server is running: `npm run dev`
+2. Verify `SEED_API_TOKEN` is set in `.env`
+3. Check the token hasn't expired
 
-### Duplicate nodes appearing
+### Missing relationships
 
-This shouldn't happen with the MERGE-based approach. If it does:
-
-1. Check that unique constraints are in place: `SHOW CONSTRAINTS`
-2. Verify the fixture data doesn't have duplicates
-3. Reset the database: `npm run seed:clear`
-
-### Relationships not created
-
-Ensure the referenced nodes exist in the fixture data. For example, a relationship:
-
-```json
-{ "team": "Mobile Platform", "technology": "Kotlin" }
-```
-
-Requires both nodes to exist in the `teams` and `technologies` arrays.
-
-## Next Steps
-
-- Add more realistic fixture data
-- Create environment-specific fixtures (dev, staging, prod)
-- Add data validation before seeding
-- Create fixtures for additional schemas
+Ensure referenced entities exist. For example, an approval requires both the team and technology to exist in the fixture data.

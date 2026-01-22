@@ -24,6 +24,11 @@
       "name": "Security",
       "email": "security@company.com",
       "responsibilityArea": "security"
+    },
+    {
+      "name": "Platform Team",
+      "email": "platform-team@company.com",
+      "responsibilityArea": "platform"
     }
   ],
   "technologies": [
@@ -236,7 +241,7 @@
   "policies": [
     {
       "name": "Technology Approval Required",
-      "description": "All technologies must be explicitly approved by the responsible team before use in production systems. Verifiable by checking USES relationships against APPROVES relationships.",
+      "description": "All technologies must be explicitly approved by the responsible team before use in production systems.",
       "ruleType": "approval",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -246,7 +251,7 @@
     },
     {
       "name": "Database Version Compliance",
-      "description": "All database technologies must use versions within the approved version range specified in the technology catalog. Verifiable by comparing Component.version against Technology.approvedVersionRange.",
+      "description": "All database technologies must use versions within the approved version range.",
       "ruleType": "compliance",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -256,7 +261,7 @@
     },
     {
       "name": "Migration Target Required",
-      "description": "Technologies marked for migration (TIME status 'migrate') must have a migration target specified. Verifiable by checking APPROVES.migrationTarget property.",
+      "description": "Technologies marked for migration must have a migration target specified.",
       "ruleType": "compliance",
       "severity": "warning",
       "effectiveDate": "2025-01-01",
@@ -266,7 +271,7 @@
     },
     {
       "name": "High Risk Technology Approval",
-      "description": "Technologies with high or critical risk levels require explicit team approval before use. Verifiable by checking riskLevel property and APPROVES relationships.",
+      "description": "Technologies with high or critical risk levels require explicit team approval before use.",
       "ruleType": "security",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -276,7 +281,7 @@
     },
     {
       "name": "License Compliance",
-      "description": "All components must have approved open source licenses (MIT, Apache-2.0, BSD-3-Clause, ISC). Verifiable by checking Component.license property.",
+      "description": "All components must have approved open source licenses (MIT, Apache-2.0, BSD-3-Clause, ISC).",
       "ruleType": "compliance",
       "severity": "error",
       "effectiveDate": "2025-01-01",
@@ -286,970 +291,69 @@
     },
     {
       "name": "EOL Warning",
-      "description": "Technology versions approaching end-of-life within 6 months must be flagged for upgrade. Verifiable by checking Version.eolDate property.",
+      "description": "Technology versions approaching end-of-life within 6 months must be flagged for upgrade.",
       "ruleType": "compliance",
       "severity": "warning",
       "effectiveDate": "2025-01-01",
       "enforcedBy": "DevOps",
       "scope": "organization",
       "status": "active"
-    },
-    {
-      "name": "No Unapproved Deprecated Technologies",
-      "description": "Teams must not use technologies marked for migration or elimination without explicit approval. Verifiable by checking APPROVES.time property against USES relationships.",
-      "ruleType": "compliance",
-      "severity": "error",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Security",
-      "scope": "organization",
-      "status": "active"
-    },
-    {
-      "name": "Tolerated Technology Approval",
-      "description": "Technologies in 'tolerate' status (experimental/evaluation) require explicit approval before production use. Verifiable by checking APPROVES.time='tolerate' and approval status.",
-      "ruleType": "approval",
-      "severity": "warning",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Security",
-      "scope": "organization",
-      "status": "active"
-    },
-    {
-      "name": "Component Integrity Verification",
-      "description": "All components must have integrity hash for verification. Verifiable by checking Component.hash property is not null.",
-      "ruleType": "security",
-      "severity": "error",
-      "effectiveDate": "2025-01-15",
-      "enforcedBy": "DevOps",
-      "scope": "team",
-      "status": "active"
-    },
-    {
-      "name": "Semantic Versioning Compliance",
-      "description": "All component versions must follow semantic versioning format (X.Y.Z). Verifiable by regex pattern matching Component.version.",
-      "ruleType": "compliance",
-      "severity": "warning",
-      "effectiveDate": "2025-02-01",
-      "enforcedBy": "Backend Platform",
-      "scope": "team",
-      "status": "active"
-    },
-    {
-      "name": "Frontend Framework Approval",
-      "description": "All frontend framework technologies must be approved by Frontend Platform team. Verifiable by checking category='framework' technologies have Frontend Platform team approval.",
-      "ruleType": "approval",
-      "severity": "error",
-      "effectiveDate": "2025-01-20",
-      "enforcedBy": "Frontend Platform",
-      "scope": "team",
-      "status": "active"
-    },
-    {
-      "name": "Database Technology Governance",
-      "description": "All database technologies must be approved by Data Platform team. Verifiable by checking category='database' technologies have Data Platform team approval.",
-      "ruleType": "compliance",
-      "severity": "error",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Data Platform",
-      "scope": "team",
-      "status": "active"
-    },
-    {
-      "name": "Vulnerability Threshold Compliance",
-      "description": "Components with CVSS score >= 7.0 must not be used in production. Verifiable by checking Version.cvssScore property.",
-      "ruleType": "security",
-      "severity": "error",
-      "effectiveDate": "2025-01-10",
-      "enforcedBy": "Security",
-      "scope": "team",
-      "status": "active"
-    }
-  ],
-  "systems": [
-    {
-      "name": "customer-portal",
-      "domain": "customer-experience",
-      "ownerTeam": "Frontend Platform",
-      "businessCriticality": "high",
-      "environment": "prod",
-      "sourceCodeType": "proprietary",
-      "hasSourceAccess": true
-    },
-    {
-      "name": "api-gateway",
-      "domain": "platform",
-      "ownerTeam": "Backend Platform",
-      "businessCriticality": "critical",
-      "environment": "prod",
-      "sourceCodeType": "proprietary",
-      "hasSourceAccess": true
-    },
-    {
-      "name": "analytics-service",
-      "domain": "data",
-      "ownerTeam": "Data Platform",
-      "businessCriticality": "medium",
-      "environment": "prod",
-      "sourceCodeType": "open-source",
-      "hasSourceAccess": true
-    },
-    {
-      "name": "admin-dashboard",
-      "domain": "internal-tools",
-      "ownerTeam": "Frontend Platform",
-      "businessCriticality": "low",
-      "environment": "prod",
-      "sourceCodeType": "proprietary",
-      "hasSourceAccess": true
-    },
-    {
-      "name": "notification-service",
-      "domain": "platform",
-      "ownerTeam": "Backend Platform",
-      "businessCriticality": "high",
-      "environment": "prod",
-      "sourceCodeType": "proprietary",
-      "hasSourceAccess": false
-    }
-  ],
-  "repositories": [
-    {
-      "url": "https://github.com/company/customer-portal",
-      "scmType": "git",
-      "name": "customer-portal",
-      "description": "Customer-facing web portal",
-      "isPublic": false,
-      "requiresAuth": true,
-      "defaultBranch": "main"
-    },
-    {
-      "url": "https://github.com/company/customer-portal-api",
-      "scmType": "git",
-      "name": "customer-portal-api",
-      "description": "Backend API for customer portal",
-      "isPublic": false,
-      "requiresAuth": true,
-      "defaultBranch": "main"
-    },
-    {
-      "url": "https://github.com/company/api-gateway",
-      "scmType": "git",
-      "name": "api-gateway",
-      "description": "Central API gateway service",
-      "isPublic": false,
-      "requiresAuth": true,
-      "defaultBranch": "main"
-    },
-    {
-      "url": "https://github.com/company/analytics-service",
-      "scmType": "git",
-      "name": "analytics-service",
-      "description": "Analytics and reporting service",
-      "isPublic": true,
-      "requiresAuth": false,
-      "defaultBranch": "main"
-    },
-    {
-      "url": "https://github.com/company/admin-dashboard",
-      "scmType": "git",
-      "name": "admin-dashboard",
-      "description": "Internal admin dashboard",
-      "isPublic": false,
-      "requiresAuth": true,
-      "defaultBranch": "main"
-    },
-    {
-      "url": "https://svn.company.com/legacy/billing-system",
-      "scmType": "svn",
-      "name": "billing-system",
-      "description": "Legacy billing system",
-      "isPublic": false,
-      "requiresAuth": true,
-      "defaultBranch": "trunk"
-    }
-  ],
-  "components": [
-    {
-      "name": "react",
-      "version": "18.2.0",
-      "packageManager": "npm",
-      "purl": "pkg:npm/react@18.2.0",
-      "cpe": "cpe:2.3:a:meta_platforms__inc_:react:18.2.0:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/react@18.2.0",
-      "type": "library",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "1f8b5c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "1f8b5c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b1f8b5c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "MIT",
-          "name": "MIT License",
-          "url": "https://opensource.org/licenses/MIT",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) Meta Platforms, Inc. and affiliates.",
-      "supplier": "Meta Platforms, Inc.",
-      "author": "Meta Platforms, Inc.",
-      "publisher": "npm",
-      "description": "React is a JavaScript library for building user interfaces.",
-      "homepage": "https://reactjs.org/",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/facebook/react"
-        },
-        {
-          "type": "website",
-          "url": "https://reactjs.org/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/facebook/react/issues"
-        }
-      ],
-      "releaseDate": "2022-06-14T00:00:00Z",
-      "publishedDate": "2022-06-14T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "react-dom",
-      "version": "18.2.0",
-      "packageManager": "npm",
-      "purl": "pkg:npm/react-dom@18.2.0",
-      "cpe": "cpe:2.3:a:meta_platforms__inc_:react-dom:18.2.0:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/react-dom@18.2.0",
-      "type": "library",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "MIT",
-          "name": "MIT License",
-          "url": "https://opensource.org/licenses/MIT",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) Meta Platforms, Inc. and affiliates.",
-      "supplier": "Meta Platforms, Inc.",
-      "author": "Meta Platforms, Inc.",
-      "publisher": "npm",
-      "description": "React package for working with the DOM.",
-      "homepage": "https://reactjs.org/",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/facebook/react"
-        },
-        {
-          "type": "website",
-          "url": "https://reactjs.org/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/facebook/react/issues"
-        }
-      ],
-      "releaseDate": "2022-06-14T00:00:00Z",
-      "publishedDate": "2022-06-14T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "vue",
-      "version": "3.3.4",
-      "packageManager": "npm",
-      "purl": "pkg:npm/vue@3.3.4",
-      "cpe": "cpe:2.3:a:evan_you:vue:3.3.4:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/vue@3.3.4",
-      "type": "framework",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "MIT",
-          "name": "MIT License",
-          "url": "https://opensource.org/licenses/MIT",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) 2013-present, Yuxi (Evan) You",
-      "supplier": "Evan You",
-      "author": "Evan You",
-      "publisher": "npm",
-      "description": "The progressive JavaScript framework for building modern web UI.",
-      "homepage": "https://vuejs.org/",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/vuejs/core"
-        },
-        {
-          "type": "website",
-          "url": "https://vuejs.org/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/vuejs/core/issues"
-        }
-      ],
-      "releaseDate": "2023-07-28T00:00:00Z",
-      "publishedDate": "2023-07-28T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "express",
-      "version": "4.18.2",
-      "packageManager": "npm",
-      "purl": "pkg:npm/express@4.18.2",
-      "cpe": "cpe:2.3:a:openjs_foundation:express:4.18.2:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/express@4.18.2",
-      "type": "framework",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "MIT",
-          "name": "MIT License",
-          "url": "https://opensource.org/licenses/MIT",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) 2009-2014 TJ Holowaychuk <tj@vision-media.ca>",
-      "supplier": "OpenJS Foundation",
-      "author": "TJ Holowaychuk",
-      "publisher": "npm",
-      "description": "Fast, unopinionated, minimalist web framework for Node.js",
-      "homepage": "https://expressjs.com/",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/expressjs/express"
-        },
-        {
-          "type": "website",
-          "url": "https://expressjs.com/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/expressjs/express/issues"
-        }
-      ],
-      "releaseDate": "2022-10-08T00:00:00Z",
-      "publishedDate": "2022-10-08T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "typescript",
-      "version": "5.3.3",
-      "packageManager": "npm",
-      "purl": "pkg:npm/typescript@5.3.3",
-      "cpe": "cpe:2.3:a:microsoft_corporation:typescript:5.3.3:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/typescript@5.3.3",
-      "type": "library",
-      "group": null,
-      "scope": "dev",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "Apache-2.0",
-          "name": "Apache License 2.0",
-          "url": "https://www.apache.org/licenses/LICENSE-2.0",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) Microsoft Corporation. All rights reserved.",
-      "supplier": "Microsoft Corporation",
-      "author": "Microsoft Corporation",
-      "publisher": "npm",
-      "description": "TypeScript is a language for application scale JavaScript development",
-      "homepage": "https://www.typescriptlang.org/",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/microsoft/TypeScript"
-        },
-        {
-          "type": "website",
-          "url": "https://www.typescriptlang.org/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/microsoft/TypeScript/issues"
-        }
-      ],
-      "releaseDate": "2023-12-11T00:00:00Z",
-      "publishedDate": "2023-12-11T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "neo4j-driver",
-      "version": "5.14.0",
-      "packageManager": "npm",
-      "purl": "pkg:npm/neo4j-driver@5.14.0",
-      "cpe": "cpe:2.3:a:neo4j__inc_:neo4j-driver:5.14.0:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/neo4j-driver@5.14.0",
-      "type": "library",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "Apache-2.0",
-          "name": "Apache License 2.0",
-          "url": "https://www.apache.org/licenses/LICENSE-2.0",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) 2002-2024 \"Neo4j,\"",
-      "supplier": "Neo4j, Inc.",
-      "author": "Neo4j, Inc.",
-      "publisher": "npm",
-      "description": "Official Neo4j driver for JavaScript",
-      "homepage": "https://neo4j.com/",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/neo4j/neo4j-javascript-driver"
-        },
-        {
-          "type": "website",
-          "url": "https://neo4j.com/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/neo4j/neo4j-javascript-driver/issues"
-        }
-      ],
-      "releaseDate": "2023-11-15T00:00:00Z",
-      "publishedDate": "2023-11-15T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "pg",
-      "version": "8.11.3",
-      "packageManager": "npm",
-      "purl": "pkg:npm/pg@8.11.3",
-      "cpe": "cpe:2.3:a:brian_carlson:pg:8.11.3:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/pg@8.11.3",
-      "type": "library",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "MIT",
-          "name": "MIT License",
-          "url": "https://opensource.org/licenses/MIT",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) 2010-2023 Brian Carlson",
-      "supplier": "Brian Carlson",
-      "author": "Brian Carlson",
-      "publisher": "npm",
-      "description": "PostgreSQL client for Node.js - pure JavaScript and native libpq bindings",
-      "homepage": "https://node-postgres.com/",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/brianc/node-postgres"
-        },
-        {
-          "type": "website",
-          "url": "https://node-postgres.com/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/brianc/node-postgres/issues"
-        }
-      ],
-      "releaseDate": "2023-09-14T00:00:00Z",
-      "publishedDate": "2023-09-14T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "loose-envify",
-      "version": "1.4.0",
-      "packageManager": "npm",
-      "purl": "pkg:npm/loose-envify@1.4.0",
-      "cpe": "cpe:2.3:a:andres_suarez:loose-envify:1.4.0:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/loose-envify@1.4.0",
-      "type": "library",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "MIT",
-          "name": "MIT License",
-          "url": "https://opensource.org/licenses/MIT",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) 2015 Andres Suarez <zertosh@gmail.com>",
-      "supplier": "Andres Suarez",
-      "author": "Andres Suarez",
-      "publisher": "npm",
-      "description": "Fast (and loose) selective `process.env` replacer using js-tokens instead of an AST",
-      "homepage": "https://github.com/zertosh/loose-envify",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/zertosh/loose-envify"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/zertosh/loose-envify"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/zertosh/loose-envify/issues"
-        }
-      ],
-      "releaseDate": "2015-11-02T00:00:00Z",
-      "publishedDate": "2015-11-02T00:00:00Z",
-      "modifiedDate": null
-    },
-    {
-      "name": "js-tokens",
-      "version": "4.0.0",
-      "packageManager": "npm",
-      "purl": "pkg:npm/js-tokens@4.0.0",
-      "cpe": "cpe:2.3:a:simon_lydell:js-tokens:4.0.0:*:*:*:*:*:*:*",
-      "bomRef": "pkg:npm/js-tokens@4.0.0",
-      "type": "library",
-      "group": null,
-      "scope": "required",
-      "hashes": [
-        {
-          "algorithm": "SHA-256",
-          "value": "9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c"
-        },
-        {
-          "algorithm": "SHA-512",
-          "value": "9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c"
-        }
-      ],
-      "licenses": [
-        {
-          "id": "MIT",
-          "name": "MIT License",
-          "url": "https://opensource.org/licenses/MIT",
-          "text": null
-        }
-      ],
-      "copyright": "Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell",
-      "supplier": "Simon Lydell",
-      "author": "Simon Lydell",
-      "publisher": "npm",
-      "description": "A regex that tokenizes JavaScript.",
-      "homepage": "https://github.com/lydell/js-tokens",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/lydell/js-tokens"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/lydell/js-tokens"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/lydell/js-tokens/issues"
-        }
-      ],
-      "releaseDate": "2018-01-28T00:00:00Z",
-      "publishedDate": "2018-01-28T00:00:00Z",
-      "modifiedDate": null
     }
   ],
   "relationships": {
     "technology_versions": [
-      {
-        "technology": "React",
-        "version": "18.2.0"
-      },
-      {
-        "technology": "React",
-        "version": "18.3.1"
-      },
-      {
-        "technology": "Vue",
-        "version": "3.3.4"
-      },
-      {
-        "technology": "Node.js",
-        "version": "20.11.0"
-      },
-      {
-        "technology": "PostgreSQL",
-        "version": "16.1"
-      },
-      {
-        "technology": "Neo4j",
-        "version": "5.26.13"
-      },
-      {
-        "technology": "TypeScript",
-        "version": "5.3.3"
-      }
+      { "technology": "React", "version": "18.2.0" },
+      { "technology": "React", "version": "18.3.1" },
+      { "technology": "Vue", "version": "3.3.4" },
+      { "technology": "Node.js", "version": "20.11.0" },
+      { "technology": "PostgreSQL", "version": "16.1" },
+      { "technology": "Neo4j", "version": "5.26.13" },
+      { "technology": "TypeScript", "version": "5.3.3" }
     ],
     "team_technologies": [
-      {
-        "team": "Frontend Platform",
-        "technology": "React"
-      },
-      {
-        "team": "Frontend Platform",
-        "technology": "Vue"
-      },
-      {
-        "team": "Frontend Platform",
-        "technology": "Angular"
-      },
-      {
-        "team": "Frontend Platform",
-        "technology": "TypeScript"
-      },
-      {
-        "team": "Backend Platform",
-        "technology": "Node.js"
-      },
-      {
-        "team": "Backend Platform",
-        "technology": "Express"
-      },
-      {
-        "team": "Data Platform",
-        "technology": "PostgreSQL"
-      },
-      {
-        "team": "Data Platform",
-        "technology": "Neo4j"
-      },
-      {
-        "team": "Data Platform",
-        "technology": "MongoDB"
-      },
-      {
-        "team": "DevOps",
-        "technology": "Docker"
-      }
-    ],
-    "team_systems": [
-      {
-        "team": "Frontend Platform",
-        "system": "customer-portal"
-      },
-      {
-        "team": "Backend Platform",
-        "system": "api-gateway"
-      },
-      {
-        "team": "Data Platform",
-        "system": "analytics-service"
-      },
-      {
-        "team": "Frontend Platform",
-        "system": "admin-dashboard"
-      },
-      {
-        "team": "Backend Platform",
-        "system": "notification-service"
-      }
-    ],
-    "system_components": [
-      {
-        "system": "customer-portal",
-        "component": "react",
-        "version": "18.2.0",
-        "packageManager": "npm"
-      },
-      {
-        "system": "customer-portal",
-        "component": "loose-envify",
-        "version": "1.4.0",
-        "packageManager": "npm"
-      },
-      {
-        "system": "customer-portal",
-        "component": "js-tokens",
-        "version": "4.0.0",
-        "packageManager": "npm"
-      },
-      {
-        "system": "customer-portal",
-        "component": "react-dom",
-        "version": "18.2.0",
-        "packageManager": "npm"
-      },
-      {
-        "system": "customer-portal",
-        "component": "typescript",
-        "version": "5.3.3",
-        "packageManager": "npm"
-      },
-      {
-        "system": "admin-dashboard",
-        "component": "vue",
-        "version": "3.3.4",
-        "packageManager": "npm"
-      },
-      {
-        "system": "admin-dashboard",
-        "component": "typescript",
-        "version": "5.3.3",
-        "packageManager": "npm"
-      },
-      {
-        "system": "api-gateway",
-        "component": "express",
-        "version": "4.18.2",
-        "packageManager": "npm"
-      },
-      {
-        "system": "api-gateway",
-        "component": "typescript",
-        "version": "5.3.3",
-        "packageManager": "npm"
-      },
-      {
-        "system": "api-gateway",
-        "component": "pg",
-        "version": "8.11.3",
-        "packageManager": "npm"
-      },
-      {
-        "system": "analytics-service",
-        "component": "neo4j-driver",
-        "version": "5.14.0",
-        "packageManager": "npm"
-      },
-      {
-        "system": "analytics-service",
-        "component": "typescript",
-        "version": "5.3.3",
-        "packageManager": "npm"
-      },
-      {
-        "system": "notification-service",
-        "component": "express",
-        "version": "4.18.2",
-        "packageManager": "npm"
-      }
-    ],
-    "component_technologies": [
-      {
-        "component": "react",
-        "version": "18.2.0",
-        "packageManager": "npm",
-        "technology": "React"
-      },
-      {
-        "component": "react-dom",
-        "version": "18.2.0",
-        "packageManager": "npm",
-        "technology": "React"
-      },
-      {
-        "component": "vue",
-        "version": "3.3.4",
-        "packageManager": "npm",
-        "technology": "Vue"
-      },
-      {
-        "component": "express",
-        "version": "4.18.2",
-        "packageManager": "npm",
-        "technology": "Express"
-      },
-      {
-        "component": "typescript",
-        "version": "5.3.3",
-        "packageManager": "npm",
-        "technology": "TypeScript"
-      },
-      {
-        "component": "neo4j-driver",
-        "version": "5.14.0",
-        "packageManager": "npm",
-        "technology": "Neo4j"
-      },
-      {
-        "component": "pg",
-        "version": "8.11.3",
-        "packageManager": "npm",
-        "technology": "PostgreSQL"
-      }
+      { "team": "Frontend Platform", "technology": "React" },
+      { "team": "Frontend Platform", "technology": "Vue" },
+      { "team": "Frontend Platform", "technology": "Angular" },
+      { "team": "Frontend Platform", "technology": "TypeScript" },
+      { "team": "Frontend Platform", "technology": "jQuery" },
+      { "team": "Frontend Platform", "technology": "Lodash" },
+      { "team": "Backend Platform", "technology": "Node.js" },
+      { "team": "Backend Platform", "technology": "Express" },
+      { "team": "Backend Platform", "technology": "Redis" },
+      { "team": "Data Platform", "technology": "PostgreSQL" },
+      { "team": "Data Platform", "technology": "Neo4j" },
+      { "team": "Data Platform", "technology": "MongoDB" },
+      { "team": "Data Platform", "technology": "MySQL" },
+      { "team": "DevOps", "technology": "Docker" },
+      { "team": "Platform Team", "technology": "TypeScript" },
+      { "team": "Platform Team", "technology": "Node.js" },
+      { "team": "Platform Team", "technology": "Vue" },
+      { "team": "Platform Team", "technology": "Neo4j" }
     ],
     "policy_technologies": [
-      {
-        "policy": "Frontend Framework Approval",
-        "technology": "React"
-      },
-      {
-        "policy": "Frontend Framework Approval",
-        "technology": "Vue"
-      },
-      {
-        "policy": "Frontend Framework Approval",
-        "technology": "Angular"
-      },
-      {
-        "policy": "Database Version Policy",
-        "technology": "PostgreSQL"
-      },
-      {
-        "policy": "Database Version Policy",
-        "technology": "Neo4j"
-      },
-      {
-        "policy": "Database Version Policy",
-        "technology": "MongoDB"
-      },
-      {
-        "policy": "Deprecated Technology Warning",
-        "technology": "Angular"
-      },
-      {
-        "policy": "No Deprecated Libraries",
-        "technology": "jQuery"
-      },
-      {
-        "policy": "No Deprecated Libraries",
-        "technology": "Lodash"
-      },
-      {
-        "policy": "Experimental Technology Restriction",
-        "technology": "MySQL"
-      },
-      {
-        "policy": "Experimental Technology Restriction",
-        "technology": "MongoDB"
-      },
-      {
-        "policy": "Database Version Policy",
-        "technology": "MySQL"
-      }
-    ],
-    "system_repositories": [
-      {
-        "system": "customer-portal",
-        "repository": "https://github.com/company/customer-portal"
-      },
-      {
-        "system": "customer-portal",
-        "repository": "https://github.com/company/customer-portal-api"
-      },
-      {
-        "system": "api-gateway",
-        "repository": "https://github.com/company/api-gateway"
-      },
-      {
-        "system": "analytics-service",
-        "repository": "https://github.com/company/analytics-service"
-      },
-      {
-        "system": "admin-dashboard",
-        "repository": "https://github.com/company/admin-dashboard"
-      }
-    ],
-    "team_repositories": [
-      {
-        "team": "Frontend Platform",
-        "repository": "https://github.com/company/customer-portal"
-      },
-      {
-        "team": "Backend Platform",
-        "repository": "https://github.com/company/customer-portal-api"
-      },
-      {
-        "team": "Backend Platform",
-        "repository": "https://github.com/company/api-gateway"
-      },
-      {
-        "team": "Data Platform",
-        "repository": "https://github.com/company/analytics-service"
-      },
-      {
-        "team": "Frontend Platform",
-        "repository": "https://github.com/company/admin-dashboard"
-      }
+      { "policy": "Technology Approval Required", "technology": "React" },
+      { "policy": "Technology Approval Required", "technology": "Vue" },
+      { "policy": "Technology Approval Required", "technology": "Angular" },
+      { "policy": "Database Version Compliance", "technology": "PostgreSQL" },
+      { "policy": "Database Version Compliance", "technology": "Neo4j" },
+      { "policy": "Database Version Compliance", "technology": "MongoDB" },
+      { "policy": "Database Version Compliance", "technology": "MySQL" },
+      { "policy": "Migration Target Required", "technology": "Angular" },
+      { "policy": "Migration Target Required", "technology": "jQuery" },
+      { "policy": "Migration Target Required", "technology": "Lodash" },
+      { "policy": "High Risk Technology Approval", "technology": "jQuery" },
+      { "policy": "EOL Warning", "technology": "React" },
+      { "policy": "EOL Warning", "technology": "Vue" }
+    ]
+  },
+  "github_systems": {
+    "_comment": "These systems are created by seed:github from github-repos.json. Relationships defined here are applied after GitHub seeding.",
+    "team_systems": [
+      { "team": "Platform Team", "system": "Polaris Technology Catalog" },
+      { "team": "Platform Team", "system": "Catalyst" },
+      { "team": "Platform Team", "system": "TSArchi" },
+      { "team": "Platform Team", "system": "PlantKit" },
+      { "team": "Platform Team", "system": "Karla" }
     ]
   },
   "approvals": {
@@ -1257,143 +361,167 @@
       {
         "team": "Frontend Platform",
         "technology": "React",
-        "approvedBy": "Frontend Lead",
-        "notes": "Primary framework for customer-facing applications",
-        "time": "invest"
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Primary frontend framework - strategic investment",
+        "approvedBy": "Tech Lead",
+        "versionConstraint": ">=18.0.0"
       },
       {
         "team": "Frontend Platform",
         "technology": "Vue",
-        "approvedBy": "Frontend Lead",
-        "notes": "Approved for internal tools and admin interfaces",
-        "time": "invest"
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Alternative frontend framework for specific use cases",
+        "approvedBy": "Tech Lead",
+        "versionConstraint": ">=3.3.0"
       },
       {
         "team": "Frontend Platform",
         "technology": "Angular",
-        "deprecatedAt": "2024-06-01T00:00:00Z",
-        "eolDate": "2025-12-31",
+        "time": "migrate",
+        "approvedAt": "2023-06-01",
+        "deprecatedAt": "2024-06-01",
         "migrationTarget": "React",
-        "approvedBy": "Frontend Lead",
-        "notes": "Migrating to React for better ecosystem support",
-        "time": "migrate"
+        "notes": "Legacy projects only, migrate to React",
+        "approvedBy": "Tech Lead"
       },
       {
         "team": "Frontend Platform",
         "technology": "TypeScript",
-        "approvedBy": "Frontend Lead",
-        "notes": "Required for all new frontend projects",
-        "time": "invest"
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Required for all new projects",
+        "approvedBy": "Tech Lead",
+        "versionConstraint": ">=5.0.0"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "jQuery",
+        "time": "eliminate",
+        "approvedAt": "2020-01-01",
+        "deprecatedAt": "2023-01-01",
+        "eolDate": "2025-12-31",
+        "migrationTarget": "React",
+        "notes": "Phase out - do not use in any projects",
+        "approvedBy": "Tech Lead"
+      },
+      {
+        "team": "Frontend Platform",
+        "technology": "Lodash",
+        "time": "migrate",
+        "approvedAt": "2022-01-01",
+        "deprecatedAt": "2024-06-01",
+        "migrationTarget": "Native ES6+",
+        "notes": "Migrate to native JavaScript methods",
+        "approvedBy": "Tech Lead"
       },
       {
         "team": "Backend Platform",
         "technology": "Node.js",
-        "versionConstraint": ">=18",
-        "approvedBy": "Backend Lead",
-        "notes": "LTS versions only",
-        "time": "invest"
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Primary backend runtime - strategic investment",
+        "approvedBy": "Tech Lead",
+        "versionConstraint": ">=20.0.0"
       },
       {
         "team": "Backend Platform",
         "technology": "Express",
-        "approvedBy": "Backend Lead",
-        "notes": "Standard web framework for Node.js services",
-        "time": "invest"
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Primary web framework",
+        "approvedBy": "Tech Lead",
+        "versionConstraint": ">=4.18.0"
       },
       {
         "team": "Backend Platform",
-        "technology": "TypeScript",
-        "approvedBy": "Backend Lead",
-        "notes": "Required for all backend services",
-        "time": "invest"
+        "technology": "Redis",
+        "time": "invest",
+        "approvedAt": "2024-03-01",
+        "notes": "Caching and session storage",
+        "approvedBy": "Tech Lead",
+        "versionConstraint": ">=7.0.0"
       },
       {
         "team": "Data Platform",
         "technology": "PostgreSQL",
-        "versionConstraint": ">=14",
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Primary relational database - strategic investment",
         "approvedBy": "Data Lead",
-        "notes": "Primary relational database",
-        "time": "invest"
+        "versionConstraint": ">=15.0.0"
       },
       {
         "team": "Data Platform",
         "technology": "Neo4j",
-        "versionConstraint": ">=5",
-        "approvedBy": "Data Lead",
+        "time": "invest",
+        "approvedAt": "2024-01-15",
         "notes": "Graph database for relationship-heavy data",
-        "time": "invest"
+        "approvedBy": "Data Lead",
+        "versionConstraint": ">=5.0.0"
       },
       {
         "team": "Data Platform",
         "technology": "MongoDB",
+        "time": "tolerate",
+        "approvedAt": "2024-06-01",
+        "notes": "Tolerated for specific document storage use cases",
         "approvedBy": "Data Lead",
-        "notes": "Evaluating for document storage use cases",
-        "time": "invest"
+        "versionConstraint": ">=7.0.0"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "MySQL",
+        "time": "tolerate",
+        "approvedAt": "2024-09-01",
+        "notes": "Tolerated for legacy system compatibility",
+        "approvedBy": "Data Lead"
       },
       {
         "team": "DevOps",
         "technology": "Docker",
-        "approvedBy": "DevOps Lead",
+        "time": "invest",
+        "approvedAt": "2024-01-15",
         "notes": "Standard containerization platform",
-        "time": "invest"
-      }
-    ],
-    "team_version_approvals": [
-      {
-        "team": "Frontend Platform",
-        "technology": "React",
-        "version": "18.2.0",
-        "approvedBy": "Frontend Lead",
-        "notes": "Current stable version",
-        "time": "invest"
+        "approvedBy": "DevOps Lead",
+        "versionConstraint": ">=24.0.0"
       },
       {
-        "team": "Frontend Platform",
+        "team": "Platform Team",
+        "technology": "TypeScript",
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Primary language for all Platform Team projects",
+        "approvedBy": "Platform Lead",
+        "versionConstraint": ">=5.0.0"
+      },
+      {
+        "team": "Platform Team",
+        "technology": "Node.js",
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Runtime for TypeScript projects",
+        "approvedBy": "Platform Lead",
+        "versionConstraint": ">=20.0.0"
+      },
+      {
+        "team": "Platform Team",
         "technology": "Vue",
-        "version": "3.3.4",
-        "approvedBy": "Frontend Lead",
-        "notes": "Latest Vue 3 version",
-        "time": "invest"
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Frontend framework for Polaris",
+        "approvedBy": "Platform Lead",
+        "versionConstraint": ">=3.3.0"
       },
       {
-        "team": "Frontend Platform",
-        "technology": "TypeScript",
-        "version": "5.3.3",
-        "approvedBy": "Frontend Lead",
-        "notes": "Latest stable TypeScript",
-        "time": "invest"
-      },
-      {
-        "team": "Backend Platform",
-        "technology": "Express",
-        "version": "4.18.2",
-        "approvedBy": "Backend Lead",
-        "notes": "Stable Express 4.x",
-        "time": "invest"
-      },
-      {
-        "team": "Backend Platform",
-        "technology": "TypeScript",
-        "version": "5.3.3",
-        "approvedBy": "Backend Lead",
-        "notes": "Latest stable TypeScript",
-        "time": "invest"
-      },
-      {
-        "team": "Data Platform",
+        "team": "Platform Team",
         "technology": "Neo4j",
-        "version": "5.14.0",
-        "approvedBy": "Data Lead",
-        "notes": "Latest Neo4j 5.x driver",
-        "time": "invest"
-      },
-      {
-        "team": "Data Platform",
-        "technology": "PostgreSQL",
-        "version": "8.11.3",
-        "approvedBy": "Data Lead",
-        "notes": "pg driver for PostgreSQL",
-        "time": "invest"
+        "time": "invest",
+        "approvedAt": "2024-01-15",
+        "notes": "Graph database for Polaris technology catalog",
+        "approvedBy": "Platform Lead",
+        "versionConstraint": ">=5.0.0"
       }
     ]
   }

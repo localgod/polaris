@@ -3,18 +3,23 @@
 /**
  * Seed Database from GitHub Repositories
  * 
- * This script clones GitHub repositories, generates SBOMs using cdxgen,
- * and posts them to the /api/sboms endpoint to populate the database.
+ * This script performs a complete database seeding:
+ * 1. Seeds governance data (teams, technologies, policies, approvals) from fixtures
+ * 2. Clones GitHub repositories and generates SBOMs using cdxgen
+ * 3. Posts SBOMs to the /api/sboms endpoint to populate systems and components
  * 
  * Usage:
- *   npm run seed:github                    # Use github-repos.json config
- *   npm run seed:github -- --clear         # Clear database first
+ *   npm run seed:github                    # Full seed (fixtures + GitHub repos)
+ *   npm run seed:github -- --clear         # Clear database first, then full seed
  *   npm run seed:github -- --repos="org/repo1,org/repo2"  # CLI repos
  * 
  * Requirements:
  *   - SEED_API_TOKEN environment variable (create with seed-api-token.ts)
  *   - Git installed
  *   - Internet connection
+ * 
+ * Note: Repository metadata (default branch, description) is fetched from
+ * the GitHub API automatically, overriding values in github-repos.json.
  */
 
 import { execSync } from 'child_process'
@@ -88,6 +93,84 @@ function getApiBaseUrl(): string {
 }
 
 /**
+ * GitHub repository metadata from API
+ */
+interface GitHubRepoMetadata {
+  default_branch: string
+  description: string | null
+  language: string | null
+  name: string
+  full_name: string
+  private: boolean
+}
+
+/**
+ * Fetch repository metadata from GitHub API
+ */
+async function fetchGitHubMetadata(repoUrl: string): Promise<GitHubRepoMetadata | null> {
+  // Extract owner/repo from URL
+  const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/)
+  if (!match) {
+    console.warn(`  ⚠️  Could not parse GitHub URL: ${repoUrl}`)
+    return null
+  }
+  
+  const [, owner, repo] = match
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}`
+  
+  try {
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Polaris-Seeder'
+      }
+    })
+    
+    if (!response.ok) {
+      console.warn(`  ⚠️  GitHub API returned ${response.status} for ${owner}/${repo}`)
+      return null
+    }
+    
+    const data = await response.json() as GitHubRepoMetadata
+    return data
+  } catch (error) {
+    console.warn(`  ⚠️  Failed to fetch GitHub metadata: ${error instanceof Error ? error.message : error}`)
+    return null
+  }
+}
+
+/**
+ * Enrich repository config with GitHub metadata
+ */
+async function enrichWithGitHubMetadata(config: RepositoryConfig): Promise<RepositoryConfig> {
+  console.log(`  🔍 Fetching metadata from GitHub API...`)
+  
+  const metadata = await fetchGitHubMetadata(config.url)
+  
+  if (!metadata) {
+    console.log(`  ℹ️  Using config file values (GitHub API unavailable)`)
+    return config
+  }
+  
+  // Update config with GitHub metadata
+  const enriched: RepositoryConfig = {
+    ...config,
+    branch: metadata.default_branch,
+    repository: {
+      ...config.repository,
+      name: metadata.name,
+      description: metadata.description || config.repository.description,
+      isPublic: !metadata.private,
+      defaultBranch: metadata.default_branch
+    }
+  }
+  
+  console.log(`  ✅ Got metadata: branch=${metadata.default_branch}, description="${metadata.description || '(none)'}"`)
+  
+  return enriched
+}
+
+/**
  * Clone a GitHub repository to a temporary directory
  */
 async function cloneRepository(repoUrl: string, branch: string, targetDir: string): Promise<void> {
@@ -113,7 +196,8 @@ async function generateSBOM(repoPath: string, repoName: string): Promise<object>
     const bom = await createBom(repoPath, {
       installDeps: false,
       projectName: repoName,
-      projectVersion: '1.0.0'
+      projectVersion: '1.0.0',
+      multiProject: true  // Detect multiple package managers (npm, composer, etc.)
     })
     
     if (!bom) {
@@ -329,23 +413,26 @@ async function processRepository(config: RepositoryConfig, apiToken: string): Pr
   console.log(`\n📦 Processing: ${config.url}`)
   
   try {
+    // Enrich config with GitHub metadata (default branch, description, etc.)
+    const enrichedConfig = await enrichWithGitHubMetadata(config)
+    
     // Clean up any existing directory first
     if (existsSync(repoDir)) {
       console.log(`  🧹 Cleaning up existing directory...`)
       rmSync(repoDir, { recursive: true, force: true })
     }
     
-    // Clone repository
-    await cloneRepository(config.url, config.branch, repoDir)
+    // Clone repository using the correct branch from GitHub
+    await cloneRepository(enrichedConfig.url, enrichedConfig.branch, repoDir)
     
     // Generate SBOM
     const sbom = await generateSBOM(repoDir, repoName)
     
     // Ensure system exists
-    await ensureSystemExists(config, apiToken)
+    await ensureSystemExists(enrichedConfig, apiToken)
     
     // Post SBOM
-    await postSBOM(config.url, sbom, apiToken)
+    await postSBOM(enrichedConfig.url, sbom, apiToken)
     
     console.log(`✅ Successfully processed ${repoName}\n`)
   } catch (error) {
@@ -360,18 +447,19 @@ async function processRepository(config: RepositoryConfig, apiToken: string): Pr
 }
 
 /**
- * Clear database if requested
+ * Run fixture seeding (teams, technologies, policies, approvals)
  */
-async function clearDatabase(): Promise<void> {
-  console.log('\n🗑️  Clearing database...\n')
+async function seedFixtures(clear: boolean): Promise<void> {
+  console.log('\n📋 Seeding governance data (teams, technologies, policies)...\n')
   
   try {
-    execSync('npm run seed -- --clear', {
+    const clearFlag = clear ? ' -- --clear' : ''
+    execSync(`npm run seed${clearFlag}`, {
       stdio: 'inherit'
     })
-    console.log('\n✅ Database cleared\n')
+    console.log('\n✅ Governance data seeded\n')
   } catch (error) {
-    throw new Error(`Failed to clear database: ${error instanceof Error ? error.message : error}`)
+    throw new Error(`Failed to seed fixtures: ${error instanceof Error ? error.message : error}`)
   }
 }
 
@@ -440,17 +528,19 @@ async function ensureTechnicalUserExists(): Promise<string> {
 
 /**
  * Load repository configurations
+ * Note: Branch and description will be fetched from GitHub API during processing
  */
 function loadConfigurations(options: SeedOptions): RepositoryConfig[] {
   if (options.repos && options.repos.length > 0) {
     // Parse CLI repos (simplified - just URL)
+    // Branch will be fetched from GitHub API during processing
     return options.repos.map(repo => {
       const url = repo.startsWith('http') ? repo : `https://github.com/${repo}`
       const name = repo.split('/').pop() || 'unknown'
       
       return {
         url,
-        branch: 'main',
+        branch: 'main', // Will be overridden by GitHub API
         system: {
           name: name,
           domain: 'Development',
@@ -480,6 +570,72 @@ function loadConfigurations(options: SeedOptions): RepositoryConfig[] {
 }
 
 /**
+ * Create team-system ownership relationships from fixture data
+ * These link teams to systems created by GitHub seeding
+ */
+async function createTeamSystemRelationships(): Promise<void> {
+  console.log('\n🔗 Creating team-system relationships...\n')
+  
+  const fixturesPath = join(process.cwd(), 'schema/fixtures/tech-catalog.json')
+  if (!existsSync(fixturesPath)) {
+    console.log('  ⚠️  Fixtures file not found, skipping team-system relationships')
+    return
+  }
+  
+  const fixtures = JSON.parse(readFileSync(fixturesPath, 'utf-8'))
+  const teamSystems = fixtures.github_systems?.team_systems
+  
+  if (!teamSystems || teamSystems.length === 0) {
+    console.log('  ℹ️  No team-system relationships defined in fixtures')
+    return
+  }
+  
+  const uri = process.env.NEO4J_URI || 'bolt://localhost:7687'
+  const username = process.env.NEO4J_USERNAME || 'neo4j'
+  const password = process.env.NEO4J_PASSWORD || 'devpassword'
+  
+  const neo4jModule = await import('neo4j-driver')
+  const driver = neo4jModule.default.driver(uri, neo4jModule.default.auth.basic(username, password))
+  const session = driver.session()
+  
+  try {
+    let created = 0
+    let skipped = 0
+    
+    for (const rel of teamSystems) {
+      const result = await session.run(
+        `
+        MATCH (team:Team {name: $team})
+        MATCH (sys:System {name: $system})
+        MERGE (team)-[o:OWNS]->(sys)
+        ON CREATE SET o.createdAt = datetime()
+        RETURN team.name as team, sys.name as system, 
+               CASE WHEN o.createdAt = datetime() THEN 'created' ELSE 'exists' END as status
+        `,
+        { team: rel.team, system: rel.system }
+      )
+      
+      if (result.records.length > 0) {
+        const status = result.records[0].get('status')
+        if (status === 'created') {
+          console.log(`  ✅ ${rel.team} -> ${rel.system}`)
+          created++
+        } else {
+          skipped++
+        }
+      } else {
+        console.log(`  ⚠️  Could not link ${rel.team} -> ${rel.system} (team or system not found)`)
+      }
+    }
+    
+    console.log(`\n  Created ${created} relationships, ${skipped} already existed`)
+  } finally {
+    await session.close()
+    await driver.close()
+  }
+}
+
+/**
  * Main seeding function
  */
 async function seedFromGitHub(options: SeedOptions): Promise<void> {
@@ -499,10 +655,9 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
     process.exit(1)
   }
   
-  // Clear database if requested
-  if (options.clear) {
-    await clearDatabase()
-  }
+  // Always seed fixtures first (governance data: teams, technologies, policies)
+  // This ensures the governance structure exists before adding systems/components
+  await seedFixtures(options.clear)
   
   // Create temp directory
   if (!existsSync(TEMP_DIR)) {
@@ -527,6 +682,10 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
         console.error(`\n❌ Failed to process ${config.url}\n`)
       }
     }
+    
+    // Create team-system relationships from fixtures
+    // This links teams to the systems we just created from GitHub
+    await createTeamSystemRelationships()
     
     // Summary
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')

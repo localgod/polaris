@@ -55,56 +55,10 @@ interface FixtureData {
     scope?: string
     status?: string
   }>
-  systems: Array<{
-    name: string
-    domain: string
-    ownerTeam: string
-    businessCriticality: string
-    environment: string
-    sourceCodeType?: string
-    hasSourceAccess?: boolean
-  }>
-  repositories: Array<{
-    url: string
-    scmType: string
-    name: string
-    description?: string
-    isPublic: boolean
-    requiresAuth: boolean
-    defaultBranch?: string
-  }>
-  components: Array<{
-    name: string
-    version: string
-    packageManager: string
-    purl: string
-    cpe?: string
-    bomRef?: string
-    type?: string
-    group?: string
-    scope?: string
-    hashes: Array<{ algorithm: string; value: string }>
-    licenses: Array<{ id?: string; name?: string; url?: string; text?: string }>
-    copyright?: string
-    supplier?: string
-    author?: string
-    publisher?: string
-    description?: string
-    homepage?: string
-    externalReferences: Array<{ type: string; url: string }>
-    releaseDate?: string
-    publishedDate?: string
-    modifiedDate?: string
-  }>
   relationships: {
     technology_versions: Array<{ technology: string; version: string }>
     team_technologies: Array<{ team: string; technology: string }>
-    team_systems: Array<{ team: string; system: string }>
-    system_components: Array<{ system: string; component: string; version: string; packageManager: string }>
-    component_technologies: Array<{ component: string; version: string; packageManager: string; technology: string }>
     policy_technologies: Array<{ policy: string; technology: string }>
-    system_repositories: Array<{ system: string; repository: string }>
-    team_repositories: Array<{ team: string; repository: string }>
   }
   approvals: {
     team_technology_approvals: Array<{
@@ -118,18 +72,6 @@ interface FixtureData {
       notes?: string
       approvedBy?: string
       versionConstraint?: string
-    }>
-    team_version_approvals: Array<{
-      team: string
-      technology: string
-      version: string
-      time: string
-      approvedAt?: string
-      deprecatedAt?: string
-      eolDate?: string
-      migrationTarget?: string
-      notes?: string
-      approvedBy?: string
     }>
   }
 }
@@ -272,198 +214,6 @@ async function seedPolicies(driver: neo4j.Driver, policies: FixtureData['policie
   }
 }
 
-async function seedSystems(driver: neo4j.Driver, systems: FixtureData['systems']) {
-  const session = driver.session()
-  try {
-    console.log('🖥️  Seeding systems...')
-    
-    for (const system of systems) {
-      await session.run(
-        `
-        MERGE (team:Team {name: $ownerTeam})
-        MERGE (s:System {name: $name})
-        SET s.domain = $domain,
-            s.businessCriticality = $businessCriticality,
-            s.environment = $environment,
-            s.sourceCodeType = $sourceCodeType,
-            s.hasSourceAccess = $hasSourceAccess
-        MERGE (team)-[:OWNS]->(s)
-        `,
-        {
-          name: system.name,
-          domain: system.domain,
-          ownerTeam: system.ownerTeam,
-          businessCriticality: system.businessCriticality,
-          environment: system.environment,
-          sourceCodeType: system.sourceCodeType || 'unknown',
-          hasSourceAccess: system.hasSourceAccess !== undefined ? system.hasSourceAccess : false
-        }
-      )
-    }
-    
-    console.log(`✅ Seeded ${systems.length} systems`)
-  } finally {
-    await session.close()
-  }
-}
-
-async function seedRepositories(driver: neo4j.Driver, repositories: FixtureData['repositories']) {
-  const session = driver.session()
-  try {
-    console.log('📦 Seeding repositories...')
-    
-    for (const repo of repositories) {
-      await session.run(
-        `
-        MERGE (r:Repository {url: $url})
-        SET r.scmType = $scmType,
-            r.name = $name,
-            r.description = $description,
-            r.isPublic = $isPublic,
-            r.requiresAuth = $requiresAuth,
-            r.defaultBranch = $defaultBranch,
-            r.createdAt = COALESCE(r.createdAt, datetime()),
-            r.lastSyncedAt = datetime()
-        `,
-        {
-          url: repo.url,
-          scmType: repo.scmType,
-          name: repo.name,
-          description: repo.description || null,
-          isPublic: repo.isPublic,
-          requiresAuth: repo.requiresAuth,
-          defaultBranch: repo.defaultBranch || null
-        }
-      )
-    }
-    
-    console.log(`✅ Seeded ${repositories.length} repositories`)
-  } finally {
-    await session.close()
-  }
-}
-
-async function seedComponents(driver: neo4j.Driver, components: FixtureData['components']) {
-  const session = driver.session()
-  try {
-    console.log('📚 Seeding components...')
-    
-    for (const component of components) {
-      // Create component node with new SBOM schema
-      await session.run(
-        `
-        MERGE (c:Component {name: $name, version: $version, packageManager: $packageManager})
-        SET c.purl = $purl,
-            c.cpe = $cpe,
-            c.bomRef = $bomRef,
-            c.type = $type,
-            c.group = $group,
-            c.scope = $scope,
-            c.supplier = $supplier,
-            c.author = $author,
-            c.publisher = $publisher,
-            c.description = $description,
-            c.copyright = $copyright,
-            c.homepage = $homepage,
-            c.releaseDate = datetime($releaseDate),
-            c.publishedDate = datetime($publishedDate),
-            c.modifiedDate = CASE WHEN $modifiedDate IS NOT NULL THEN datetime($modifiedDate) ELSE NULL END
-        `,
-        {
-          name: component.name,
-          version: component.version,
-          packageManager: component.packageManager,
-          purl: component.purl,
-          cpe: component.cpe || null,
-          bomRef: component.bomRef || null,
-          type: component.type || null,
-          group: component.group || null,
-          scope: component.scope || null,
-          supplier: component.supplier || null,
-          author: component.author || null,
-          publisher: component.publisher || null,
-          description: component.description || null,
-          copyright: component.copyright || null,
-          homepage: component.homepage || null,
-          releaseDate: component.releaseDate || null,
-          publishedDate: component.publishedDate || null,
-          modifiedDate: component.modifiedDate || null
-        }
-      )
-      
-      // Create Hash nodes
-      if (component.hashes && component.hashes.length > 0) {
-        for (const hash of component.hashes) {
-          await session.run(
-            `
-            MATCH (c:Component {name: $name, version: $version, packageManager: $packageManager})
-            MERGE (h:Hash {componentPurl: c.purl, algorithm: $algorithm})
-            SET h.value = $value
-            MERGE (c)-[:HAS_HASH]->(h)
-            `,
-            {
-              name: component.name,
-              version: component.version,
-              packageManager: component.packageManager,
-              algorithm: hash.algorithm,
-              value: hash.value
-            }
-          )
-        }
-      }
-      
-      // Create License nodes
-      if (component.licenses && component.licenses.length > 0) {
-        for (const license of component.licenses) {
-          await session.run(
-            `
-            MATCH (c:Component {name: $name, version: $version, packageManager: $packageManager})
-            MERGE (l:License {id: $id})
-            SET l.name = $licenseName,
-                l.url = $url,
-                l.text = $text
-            MERGE (c)-[:HAS_LICENSE]->(l)
-            `,
-            {
-              name: component.name,
-              version: component.version,
-              packageManager: component.packageManager,
-              id: license.id || license.name || 'UNKNOWN',
-              licenseName: license.name || null,
-              url: license.url || null,
-              text: license.text || null
-            }
-          )
-        }
-      }
-      
-      // Create ExternalReference nodes
-      if (component.externalReferences && component.externalReferences.length > 0) {
-        for (const ref of component.externalReferences) {
-          await session.run(
-            `
-            MATCH (c:Component {name: $name, version: $version, packageManager: $packageManager})
-            CREATE (e:ExternalReference {type: $type, url: $url})
-            CREATE (c)-[:HAS_REFERENCE]->(e)
-            `,
-            {
-              name: component.name,
-              version: component.version,
-              packageManager: component.packageManager,
-              type: ref.type,
-              url: ref.url
-            }
-          )
-        }
-      }
-    }
-    
-    console.log(`✅ Seeded ${components.length} components with SBOM metadata`)
-  } finally {
-    await session.close()
-  }
-}
-
 async function seedRelationships(driver: neo4j.Driver, relationships: FixtureData['relationships']) {
   const session = driver.session()
   try {
@@ -482,7 +232,7 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
     }
     console.log(`✅ Created ${relationships.technology_versions.length} technology-version relationships`)
     
-    // Team -> Technology
+    // Team -> Technology (stewardship)
     for (const rel of relationships.team_technologies) {
       await session.run(
         `
@@ -494,45 +244,6 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
       )
     }
     console.log(`✅ Created ${relationships.team_technologies.length} team stewardship relationships`)
-    
-    // Team -> System
-    for (const rel of relationships.team_systems) {
-      await session.run(
-        `
-        MATCH (team:Team {name: $team})
-        MATCH (sys:System {name: $system})
-        MERGE (team)-[:OWNS]->(sys)
-        `,
-        rel
-      )
-    }
-    console.log(`✅ Created ${relationships.team_systems.length} team-system relationships`)
-    
-    // System -> Component
-    for (const rel of relationships.system_components) {
-      await session.run(
-        `
-        MATCH (sys:System {name: $system})
-        MATCH (comp:Component {name: $component, version: $version, packageManager: $packageManager})
-        MERGE (sys)-[:USES]->(comp)
-        `,
-        rel
-      )
-    }
-    console.log(`✅ Created ${relationships.system_components.length} system-component relationships`)
-    
-    // Component -> Technology
-    for (const rel of relationships.component_technologies) {
-      await session.run(
-        `
-        MATCH (comp:Component {name: $component, version: $version, packageManager: $packageManager})
-        MATCH (tech:Technology {name: $technology})
-        MERGE (comp)-[:IS_VERSION_OF]->(tech)
-        `,
-        rel
-      )
-    }
-    console.log(`✅ Created ${relationships.component_technologies.length} component-technology relationships`)
     
     // Policy -> Technology (using GOVERNS relationship)
     for (const rel of relationships.policy_technologies) {
@@ -546,40 +257,6 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
       )
     }
     console.log(`✅ Created ${relationships.policy_technologies.length} policy-technology relationships`)
-    
-    // System -> Repository
-    for (const rel of relationships.system_repositories) {
-      await session.run(
-        `
-        MATCH (sys:System {name: $system})
-        MATCH (repo:Repository {url: $repository})
-        MERGE (sys)-[r:HAS_SOURCE_IN]->(repo)
-        SET r.addedAt = COALESCE(r.addedAt, datetime())
-        `,
-        {
-          system: rel.system,
-          repository: rel.repository
-        }
-      )
-    }
-    console.log(`✅ Created ${relationships.system_repositories.length} system-repository relationships`)
-    
-    // Team -> Repository
-    for (const rel of relationships.team_repositories) {
-      await session.run(
-        `
-        MATCH (team:Team {name: $team})
-        MATCH (repo:Repository {url: $repository})
-        MERGE (team)-[r:MAINTAINS]->(repo)
-        SET r.since = COALESCE(r.since, datetime())
-        `,
-        {
-          team: rel.team,
-          repository: rel.repository
-        }
-      )
-    }
-    console.log(`✅ Created ${relationships.team_repositories.length} team-repository relationships`)
     
   } finally {
     await session.close()
@@ -623,71 +300,6 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
     }
     console.log(`✅ Created ${approvals.team_technology_approvals.length} team-technology approvals`)
     
-    // Team -> Version approvals
-    for (const approval of approvals.team_version_approvals) {
-      await session.run(
-        `
-        MATCH (team:Team {name: $team})
-        MATCH (tech:Technology {name: $technology})
-        MATCH (tech)-[:HAS_VERSION]->(v:Version {version: $version})
-        MERGE (team)-[a:APPROVES]->(v)
-        SET a.time = $time,
-            a.approvedAt = CASE WHEN $approvedAt IS NOT NULL THEN datetime($approvedAt) ELSE datetime() END,
-            a.deprecatedAt = CASE WHEN $deprecatedAt IS NOT NULL THEN datetime($deprecatedAt) ELSE null END,
-            a.eolDate = CASE WHEN $eolDate IS NOT NULL THEN date($eolDate) ELSE null END,
-            a.migrationTarget = $migrationTarget,
-            a.notes = $notes,
-            a.approvedBy = $approvedBy
-        `,
-        {
-          team: approval.team,
-          technology: approval.technology,
-          version: approval.version,
-          time: approval.time,
-          approvedAt: approval.approvedAt || null,
-          deprecatedAt: approval.deprecatedAt || null,
-          eolDate: approval.eolDate || null,
-          migrationTarget: approval.migrationTarget || null,
-          notes: approval.notes || null,
-          approvedBy: approval.approvedBy || null
-        }
-      )
-    }
-    console.log(`✅ Created ${approvals.team_version_approvals.length} team-version approvals`)
-    
-  } finally {
-    await session.close()
-  }
-}
-
-async function createUsesRelationships(driver: neo4j.Driver) {
-  const session = driver.session()
-  
-  try {
-    console.log('Creating USES relationships...')
-    
-    // Create USES relationships based on system ownership
-    // This infers actual usage from the system dependency graph
-    const result = await session.run(`
-      MATCH (team:Team)-[:OWNS]->(sys:System)
-      MATCH (sys)-[:USES]->(comp:Component)
-      MATCH (comp)-[:IS_VERSION_OF]->(tech:Technology)
-      WITH team, tech, 
-           count(DISTINCT sys) as systemCount
-      MERGE (team)-[u:USES]->(tech)
-      ON CREATE SET
-        u.firstUsed = datetime(),
-        u.lastVerified = datetime(),
-        u.systemCount = systemCount
-      ON MATCH SET
-        u.lastVerified = datetime(),
-        u.systemCount = systemCount
-      RETURN count(u) as usesCount
-    `)
-    
-    const usesCount = result.records[0]?.get('usesCount').toNumber() || 0
-    console.log(`✅ Created ${usesCount} USES relationships`)
-    
   } finally {
     await session.close()
   }
@@ -727,62 +339,6 @@ async function createPolicyRelationships(driver: neo4j.Driver) {
   }
 }
 
-async function createViolationScenarios(driver: neo4j.Driver) {
-  const session = driver.session()
-  
-  try {
-    console.log('Creating policy violation scenarios...')
-    
-    // Scenario 1: Frontend Platform uses jQuery (deprecated) without approval
-    await session.run(`
-      MATCH (team:Team {name: 'Frontend Platform'})
-      MATCH (tech:Technology {name: 'jQuery'})
-      MERGE (team)-[u:USES]->(tech)
-      ON CREATE SET u.firstUsed = datetime(),
-                    u.lastVerified = datetime(),
-                    u.systemCount = 2
-    `)
-    console.log('✅ Frontend Platform uses jQuery (deprecated, not approved)')
-    
-    // Scenario 2: Backend Platform uses Lodash (deprecated) without approval
-    await session.run(`
-      MATCH (team:Team {name: 'Backend Platform'})
-      MATCH (tech:Technology {name: 'Lodash'})
-      MERGE (team)-[u:USES]->(tech)
-      ON CREATE SET u.firstUsed = datetime(),
-                    u.lastVerified = datetime(),
-                    u.systemCount = 3
-    `)
-    console.log('✅ Backend Platform uses Lodash (deprecated, not approved)')
-    
-    // Scenario 3: Data Platform uses MySQL (experimental) without approval
-    await session.run(`
-      MATCH (team:Team {name: 'Data Platform'})
-      MATCH (tech:Technology {name: 'MySQL'})
-      MERGE (team)-[u:USES]->(tech)
-      ON CREATE SET u.firstUsed = datetime(),
-                    u.lastVerified = datetime(),
-                    u.systemCount = 1
-    `)
-    console.log('✅ Data Platform uses MySQL (experimental, not approved)')
-    
-    // Count violations
-    const violationsResult = await session.run(`
-      MATCH (team:Team)-[:USES]->(tech:Technology)
-      WHERE NOT (team)-[:APPROVES]->(tech)
-      MATCH (policy:Policy {status: 'active'})-[:GOVERNS]->(tech)
-      MATCH (team)-[:SUBJECT_TO]->(policy)
-      RETURN count(*) as violationCount
-    `)
-    
-    const violationCount = violationsResult.records[0]?.get('violationCount').toNumber() || 0
-    console.log(`✅ Created ${violationCount} policy violations`)
-    
-  } finally {
-    await session.close()
-  }
-}
-
 async function seed(options: { clear?: boolean } = {}) {
   const driver = await getDriver()
   
@@ -804,9 +360,6 @@ async function seed(options: { clear?: boolean } = {}) {
     await seedTechnologies(driver, fixtureData.technologies)
     await seedVersions(driver, fixtureData.versions)
     await seedPolicies(driver, fixtureData.policies)
-    await seedSystems(driver, fixtureData.systems)
-    await seedRepositories(driver, fixtureData.repositories)
-    await seedComponents(driver, fixtureData.components)
     
     console.log('')
     
@@ -820,18 +373,8 @@ async function seed(options: { clear?: boolean } = {}) {
     
     console.log('')
     
-    // Create USES relationships (inferred from system ownership)
-    await createUsesRelationships(driver)
-    
-    console.log('')
-    
     // Create policy enforcement relationships
     await createPolicyRelationships(driver)
-    
-    console.log('')
-    
-    // Create violation scenarios
-    await createViolationScenarios(driver)
     
     console.log('\n✅ Database seeding completed successfully!\n')
     
@@ -843,10 +386,7 @@ async function seed(options: { clear?: boolean } = {}) {
         MATCH (tech:Technology) WITH teams, count(tech) as technologies
         MATCH (v:Version) WITH teams, technologies, count(v) as versions
         MATCH (p:Policy) WITH teams, technologies, versions, count(p) as policies
-        MATCH (s:System) WITH teams, technologies, versions, policies, count(s) as systems
-        MATCH (r:Repository) WITH teams, technologies, versions, policies, systems, count(r) as repositories
-        MATCH (c:Component) WITH teams, technologies, versions, policies, systems, repositories, count(c) as components
-        RETURN teams, technologies, versions, policies, systems, repositories, components
+        RETURN teams, technologies, versions, policies
       `)
       
       if (result.records.length > 0) {
@@ -856,9 +396,9 @@ async function seed(options: { clear?: boolean } = {}) {
         console.log(`   Technologies: ${record.get('technologies')}`)
         console.log(`   Versions: ${record.get('versions')}`)
         console.log(`   Policies: ${record.get('policies')}`)
-        console.log(`   Systems: ${record.get('systems')}`)
-        console.log(`   Repositories: ${record.get('repositories')}`)
-        console.log(`   Components: ${record.get('components')}`)
+        console.log('')
+        console.log('💡 To add systems, repositories, and components, run:')
+        console.log('   npm run seed:github')
         console.log('')
       }
     } finally {
