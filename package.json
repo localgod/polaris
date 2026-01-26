@@ -80,7 +80,7 @@
   "devDependencies": {
     "@amiceli/vitest-cucumber": "^6.2.0",
     "@cucumber/cucumber": "^12.5.0",
-    "@cucumber/gherkin": "^37.0.0",
+    "@cucumber/gherkin": "^38.0.0",
     "@cucumber/messages": "^31.2.0",
     "@cyclonedx/cdxgen": "^12.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
