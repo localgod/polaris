@@ -4,16 +4,15 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  css: ['~/assets/css/main.css'],
+
   modules: [
     '@nuxt/eslint',
     '@nuxt/image',
     '@nuxt/test-utils',
-    '@nuxtjs/tailwindcss',
     '@nuxt/content',
-    // '@nuxt/ui', // Temporarily disabled - has compatibility issue with Nuxt 4 (@nuxtjs/color-mode@3.5.2)
     'nuxt-neo4j',
-    '@sidebase/nuxt-auth',
-    '@scalar/nuxt'
+    '@sidebase/nuxt-auth'
   ],
 
   auth: {
@@ -61,14 +60,4 @@ export default defineNuxtConfig({
     }
   },
 
-  scalar: {
-    url: '/api/openapi.json',
-    pathRouting: {
-      basePath: '/api-docs'
-    },
-    darkMode: true,
-    metaData: {
-      title: 'Polaris API Documentation'
-    }
-  }
 })

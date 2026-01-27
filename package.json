@@ -83,18 +83,18 @@
     "@cucumber/gherkin": "^38.0.0",
     "@cucumber/messages": "^31.2.0",
     "@cyclonedx/cdxgen": "^12.0.0",
-    "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.57.0",
-    "@scalar/nuxt": "^0.5.40",
+
     "@sidebase/nuxt-auth": "^1.1.1",
     "@types/node": "^25.0.6",
     "@types/swagger-jsdoc": "^6.0.4",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "markdownlint-cli": "^0.47.0",
+    "next-auth": "4.22.1",
+    "patch-package": "^8.0.1",
     "swagger-jsdoc": "^6.2.8",
     "tsx": "^4.21.0",
-    "vitest": "^4.0.16",
-    "next-auth": "4.22.1"
+    "vitest": "^4.0.16"
   }
 }

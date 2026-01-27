@@ -1,53 +1,44 @@
 <template>
   <NuxtLayout name="default">
-    <div class="space-y-6">
-      <UiCard>
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Documentation</h1>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">Enterprise Technology Catalog</p>
-        </div>
+    <div class="space-y">
+      <div>
+        <h1>Documentation</h1>
+        <p class="text-muted" style="margin-top: 0.5rem;">Learn about Polaris features and architecture</p>
+      </div>
 
-        <div class="mt-6 prose dark:prose-invert max-w-none">
-          <p class="text-gray-600 dark:text-gray-300">
-            Polaris is an enterprise technology catalog that helps organizations manage their technology landscape.
-            It provides visibility into systems, components, technologies, and their relationships.
-          </p>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Key Features</h3>
-          <ul class="space-y-2 text-gray-600 dark:text-gray-300">
-            <li class="flex items-start gap-2">
-              <svg class="w-5 h-5 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Technology lifecycle management with the TIME framework</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <svg class="w-5 h-5 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Team-based approval workflows for technology adoption</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <svg class="w-5 h-5 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Policy compliance tracking and violation detection</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <svg class="w-5 h-5 text-success-600 dark:text-success-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Graph-based relationship tracking between systems and technologies</span>
-            </li>
-          </ul>
-          
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mt-6 mb-3">Getting Started</h3>
-          <p class="text-gray-600 dark:text-gray-300">
-            Use the navigation tree on the left to explore different sections of the documentation. 
-            Start with the <strong>Features</strong> section to understand core concepts, or jump to 
-            <strong>Architecture</strong> to learn about the technical implementation.
-          </p>
-        </div>
-      </UiCard>
+      <div class="grid grid-cols-2">
+        <UiCard>
+          <template #header>
+            <h2>Features</h2>
+          </template>
+          <div class="space-y" style="--space: 0.5rem;">
+            <NuxtLink to="/docs/features/time-framework" style="display: block; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem;">
+              <strong>TIME Framework</strong>
+              <p class="text-sm text-muted">Technology lifecycle management</p>
+            </NuxtLink>
+            <NuxtLink to="/docs/features/team-approvals" style="display: block; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem;">
+              <strong>Team Approvals</strong>
+              <p class="text-sm text-muted">Approval workflow for technologies</p>
+            </NuxtLink>
+          </div>
+        </UiCard>
+
+        <UiCard>
+          <template #header>
+            <h2>Architecture</h2>
+          </template>
+          <div class="space-y" style="--space: 0.5rem;">
+            <NuxtLink to="/docs/architecture/graph-model" style="display: block; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem;">
+              <strong>Graph Model</strong>
+              <p class="text-sm text-muted">Neo4j data model and relationships</p>
+            </NuxtLink>
+            <NuxtLink to="/api-reference" style="display: block; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem;">
+              <strong>API Reference</strong>
+              <p class="text-sm text-muted">REST API documentation</p>
+            </NuxtLink>
+          </div>
+        </UiCard>
+      </div>
     </div>
   </NuxtLayout>
 </template>

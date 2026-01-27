@@ -1,29 +1,28 @@
 <template>
   <NuxtLayout name="default">
-    <div class="space-y-6">
+    <div class="space-y">
       <!-- Header -->
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Technologies</h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          Approved technologies and their versions
-        </p>
+        <h1>Technologies</h1>
+        <p class="text-muted" style="margin-top: 0.5rem;">Approved technologies and their versions</p>
       </div>
 
-      <!-- Loading/Error States -->
+      <!-- Loading State -->
       <UiCard v-if="pending">
-        <div class="text-center py-12">
-          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"/>
-          <p class="mt-4 text-gray-600 dark:text-gray-300">Loading technologies...</p>
+        <div class="text-center" style="padding: 3rem;">
+          <div class="spinner" style="margin: 0 auto;"/>
+          <p class="text-muted" style="margin-top: 1rem;">Loading technologies...</p>
         </div>
       </UiCard>
 
+      <!-- Error State -->
       <UiCard v-else-if="error">
-        <div class="flex items-center gap-4 text-error-600 dark:text-error-400">
-          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 class="text-lg font-semibold">Error Loading Technologies</h3>
+            <h3>Error Loading Technologies</h3>
             <p class="text-sm">{{ error.message }}</p>
           </div>
         </div>
@@ -32,63 +31,57 @@
       <!-- Content -->
       <template v-else-if="data?.data">
         <!-- Summary -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-3">
           <UiCard>
             <div class="text-center">
-              <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Technologies</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ count }}</p>
+              <p class="text-sm text-muted">Total Technologies</p>
+              <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ count }}</p>
             </div>
           </UiCard>
           <UiCard>
             <div class="text-center">
-              <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Categories</p>
-              <p class="mt-2 text-3xl font-bold text-primary-600 dark:text-primary-400">{{ uniqueCategories.length }}</p>
+              <p class="text-sm text-muted">Categories</p>
+              <p class="text-3xl font-bold text-primary" style="margin-top: 0.5rem;">{{ uniqueCategories.length }}</p>
             </div>
           </UiCard>
           <UiCard>
             <div class="text-center">
-              <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Vendors</p>
-              <p class="mt-2 text-3xl font-bold text-success-600 dark:text-success-400">{{ uniqueVendors.length }}</p>
+              <p class="text-sm text-muted">Vendors</p>
+              <p class="text-3xl font-bold text-success" style="margin-top: 0.5rem;">{{ uniqueVendors.length }}</p>
             </div>
           </UiCard>
         </div>
 
         <!-- Technologies Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-3">
           <UiCard v-for="tech in data.data" :key="tech.name">
             <template #header>
               <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ tech.name }}</h3>
-                <p v-if="tech.vendor" class="text-sm text-gray-500 dark:text-gray-300">{{ tech.vendor }}</p>
+                <h3>{{ tech.name }}</h3>
+                <p v-if="tech.vendor" class="text-sm text-muted">{{ tech.vendor }}</p>
               </div>
             </template>
 
-            <div class="space-y-3">
-              <div v-if="tech.category" class="flex items-center justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-300">Category</span>
-                <UiBadge variant="neutral" size="sm">{{ tech.category }}</UiBadge>
+            <div class="space-y" style="--space: 0.75rem;">
+              <div v-if="tech.category" class="flex justify-between text-sm">
+                <span class="text-muted">Category</span>
+                <UiBadge variant="neutral">{{ tech.category }}</UiBadge>
               </div>
               
-              <div v-if="tech.approvedVersionRange" class="flex items-center justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-300">Version Range</span>
-                <code class="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{{ tech.approvedVersionRange }}</code>
+              <div v-if="tech.approvedVersionRange" class="flex justify-between text-sm">
+                <span class="text-muted">Version Range</span>
+                <code>{{ tech.approvedVersionRange }}</code>
               </div>
               
-              <div v-if="tech.ownerTeam" class="flex items-center justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-300">Owner</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ tech.ownerTeam }}</span>
+              <div v-if="tech.ownerTeam" class="flex justify-between text-sm">
+                <span class="text-muted">Owner</span>
+                <span class="font-medium">{{ tech.ownerTeam }}</span>
               </div>
             </div>
 
             <template #footer>
-              <NuxtLink 
-                :to="`/technologies/${encodeURIComponent(tech.name)}`"
-                class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 inline-flex items-center gap-2"
-              >
-                View Details
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+              <NuxtLink :to="`/technologies/${encodeURIComponent(tech.name)}`">
+                View Details →
               </NuxtLink>
             </template>
           </UiCard>
