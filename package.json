@@ -94,9 +94,9 @@
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "markdownlint-cli": "^0.47.0",
+    "next-auth": "4.22.1",
     "swagger-jsdoc": "^6.2.8",
     "tsx": "^4.21.0",
-    "vitest": "^4.0.16",
-    "next-auth": "4.22.1"
+    "vitest": "^4.0.16"
   }
 }
