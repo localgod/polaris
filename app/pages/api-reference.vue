@@ -1,80 +1,320 @@
 <template>
   <NuxtLayout name="default">
-    <div class="space-y-6">
+    <div class="space-y">
       <!-- Header -->
-      <div class="flex items-center justify-between">
+      <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">API Reference</h1>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            Interactive documentation for the Polaris REST API
+          <h1>API Reference</h1>
+          <p class="text-muted" style="margin-top: 0.5rem;">
+            {{ spec?.info?.title || 'Polaris REST API' }} v{{ spec?.info?.version || '2.0.0' }}
           </p>
         </div>
-        <a
-          href="/openapi.json"
-          download
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+        <a href="/api/openapi.json" download class="btn btn-secondary">
           Download OpenAPI Spec
         </a>
       </div>
 
-      <!-- API Reference -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <iframe
-          src="/api-docs.html"
-          class="w-full border-0"
-          style="height: 100vh; min-height: 800px;"
-          title="API Reference Documentation"
-          @load="onIframeLoad"
-        />
-      </div>
+      <!-- Loading -->
+      <UiCard v-if="pending">
+        <div class="text-center" style="padding: 3rem;">
+          <div class="spinner" style="margin: 0 auto;" />
+          <p class="text-muted" style="margin-top: 1rem;">Loading API specification...</p>
+        </div>
+      </UiCard>
+
+      <!-- Error -->
+      <UiCard v-else-if="error">
+        <div class="alert alert-error">
+          Failed to load API specification: {{ error.message }}
+        </div>
+      </UiCard>
+
+      <template v-else-if="spec">
+        <!-- Overview -->
+        <UiCard>
+          <template #header>
+            <h2>Overview</h2>
+          </template>
+          <div class="prose" v-html="renderMarkdown(spec.info?.description || '')" />
+        </UiCard>
+
+        <!-- Endpoints by Tag -->
+        <UiCard v-for="tag in spec.tags" :key="tag.name">
+          <template #header>
+            <h2>{{ tag.name }}</h2>
+            <p class="text-muted text-sm">{{ tag.description }}</p>
+          </template>
+          <div class="space-y" style="--space: 1rem;">
+            <div
+              v-for="endpoint in getEndpointsByTag(tag.name)"
+              :key="`${endpoint.method}-${endpoint.path}`"
+              style="border: 1px solid var(--color-border); border-radius: 0.5rem; overflow: hidden;"
+            >
+              <div
+                style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 1rem;"
+                :style="{ background: getMethodColor(endpoint.method) }"
+              >
+                <span
+                  style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase; min-width: 4rem;"
+                  :style="{ color: getMethodTextColor(endpoint.method) }"
+                >
+                  {{ endpoint.method }}
+                </span>
+                <code style="flex: 1; font-size: 0.875rem;">{{ endpoint.path }}</code>
+                <span v-if="endpoint.security" class="badge badge-warning" style="font-size: 0.7rem;">Auth Required</span>
+              </div>
+              <div style="padding: 0.75rem 1rem; background: #f9fafb;">
+                <p class="text-sm">{{ endpoint.summary || endpoint.description }}</p>
+                <div v-if="endpoint.parameters && endpoint.parameters.length > 0" style="margin-top: 0.75rem;">
+                  <p class="text-sm font-medium text-muted">Parameters:</p>
+                  <div style="margin-top: 0.25rem;">
+                    <span
+                      v-for="param in endpoint.parameters"
+                      :key="param.name"
+                      class="badge"
+                      :class="param.required ? 'badge-primary' : 'badge-neutral'"
+                      style="margin-right: 0.25rem; margin-bottom: 0.25rem;"
+                    >
+                      {{ param.name }}{{ param.required ? '*' : '' }}
+                    </span>
+                  </div>
+                </div>
+                <div v-if="endpoint.requestBody" style="margin-top: 0.5rem;">
+                  <span class="badge badge-primary" style="font-size: 0.7rem;">Request Body Required</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </UiCard>
+
+        <!-- Schemas -->
+        <UiCard v-if="schemaList.length > 0">
+          <template #header>
+            <h2>Data Schemas</h2>
+            <p class="text-muted text-sm">Common data structures used in API responses</p>
+          </template>
+          <div class="grid grid-cols-3">
+            <div
+              v-for="schema in schemaList"
+              :key="schema.name"
+              style="border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 1rem;"
+            >
+              <h3 class="font-semibold">{{ schema.name }}</h3>
+              <p v-if="schema.description" class="text-sm text-muted" style="margin-top: 0.25rem;">{{ schema.description }}</p>
+              <div style="margin-top: 0.5rem;">
+                <span
+                  v-for="field in schema.fields.slice(0, 5)"
+                  :key="field"
+                  class="badge badge-neutral"
+                  style="margin-right: 0.25rem; margin-bottom: 0.25rem; font-size: 0.7rem;"
+                >
+                  {{ field }}
+                </span>
+                <span v-if="schema.fields.length > 5" class="text-muted text-sm">+{{ schema.fields.length - 5 }} more</span>
+              </div>
+            </div>
+          </div>
+        </UiCard>
+      </template>
     </div>
   </NuxtLayout>
 </template>
 
 <script setup lang="ts">
-const onIframeLoad = (event: Event) => {
-  const iframe = event.target as HTMLIFrameElement
-  try {
-    // Try to adjust iframe height based on content
-    if (iframe.contentWindow) {
-      const resizeIframe = () => {
-        const body = iframe.contentWindow?.document.body
-        if (body) {
-          const height = body.scrollHeight
-          iframe.style.height = `${Math.max(height, 800)}px`
-        }
-      }
-      
-      // Initial resize
-      setTimeout(resizeIframe, 100)
-      
-      // Watch for content changes
-      const observer = new MutationObserver(resizeIframe)
-      if (iframe.contentWindow.document.body) {
-        observer.observe(iframe.contentWindow.document.body, {
-          childList: true,
-          subtree: true,
-          attributes: true
-        })
-      }
-    }
-  } catch {
-    // Cross-origin restrictions - just use fixed height
-    console.log('Using fixed iframe height due to cross-origin restrictions')
+interface OpenAPISpec {
+  openapi: string
+  info: {
+    title: string
+    version: string
+    description?: string
+  }
+  tags?: Array<{ name: string; description?: string }>
+  paths: Record<string, Record<string, PathOperation>>
+  components?: {
+    schemas?: Record<string, SchemaDefinition>
   }
 }
 
-useHead({
-  title: 'API Reference - Polaris',
-  meta: [
-    {
-      name: 'description',
-      content: 'Interactive API documentation for the Polaris technology catalog REST API'
+interface PathOperation {
+  tags?: string[]
+  summary?: string
+  description?: string
+  operationId?: string
+  parameters?: Array<{ name: string; in: string; required?: boolean }>
+  requestBody?: object
+  security?: Array<Record<string, string[]>>
+  responses: Record<string, object>
+}
+
+interface SchemaDefinition {
+  type?: string
+  description?: string
+  properties?: Record<string, object>
+  required?: string[]
+}
+
+interface Endpoint {
+  method: string
+  path: string
+  summary?: string
+  description?: string
+  tags: string[]
+  parameters?: Array<{ name: string; in: string; required?: boolean }>
+  requestBody?: object
+  security?: Array<Record<string, string[]>>
+}
+
+interface Schema {
+  name: string
+  description?: string
+  fields: string[]
+}
+
+const { data: spec, pending, error } = await useFetch<OpenAPISpec>('/api/openapi.json')
+
+const endpoints = computed<Endpoint[]>(() => {
+  if (!spec.value?.paths) return []
+  
+  const result: Endpoint[] = []
+  for (const [path, methods] of Object.entries(spec.value.paths)) {
+    for (const [method, operation] of Object.entries(methods)) {
+      if (['get', 'post', 'put', 'patch', 'delete'].includes(method)) {
+        result.push({
+          method: method.toUpperCase(),
+          path: `/api${path}`,
+          summary: operation.summary,
+          description: operation.description,
+          tags: operation.tags || ['Other'],
+          parameters: operation.parameters,
+          requestBody: operation.requestBody,
+          security: operation.security
+        })
+      }
     }
-  ]
+  }
+  return result
+})
+
+const schemaList = computed<Schema[]>(() => {
+  if (!spec.value?.components?.schemas) return []
+  
+  const excludeSchemas = ['ApiSuccessResponse', 'ApiSingleResourceResponse', 'ApiErrorResponse']
+  
+  return Object.entries(spec.value.components.schemas)
+    .filter(([name]) => !excludeSchemas.includes(name))
+    .map(([name, schema]) => ({
+      name,
+      description: schema.description,
+      fields: schema.properties ? Object.keys(schema.properties) : []
+    }))
+})
+
+function getEndpointsByTag(tagName: string): Endpoint[] {
+  return endpoints.value.filter(e => e.tags.includes(tagName))
+}
+
+function getMethodColor(method: string): string {
+  const colors: Record<string, string> = {
+    GET: '#e7f5e7',
+    POST: '#e7f0ff',
+    PUT: '#fff4e5',
+    PATCH: '#fff4e5',
+    DELETE: '#ffe7e7'
+  }
+  return colors[method] || '#f3f4f6'
+}
+
+function getMethodTextColor(method: string): string {
+  const colors: Record<string, string> = {
+    GET: '#15803d',
+    POST: '#1d4ed8',
+    PUT: '#b45309',
+    PATCH: '#b45309',
+    DELETE: '#b91c1c'
+  }
+  return colors[method] || '#374151'
+}
+
+function renderMarkdown(text: string): string {
+  // Simple markdown rendering for the description
+  return text
+    .replace(/^# (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^### (.+)$/gm, '<h5>$1</h5>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(.+)$/gm, (match) => {
+      if (match.startsWith('<')) return match
+      return `<p>${match}</p>`
+    })
+    .replace(/<p><\/p>/g, '')
+    .replace(/<p>(<[hul])/g, '$1')
+    .replace(/(<\/[hul][^>]*>)<\/p>/g, '$1')
+}
+
+useHead({
+  title: 'API Reference - Polaris'
 })
 </script>
+
+<style scoped>
+.prose h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.prose li {
+  margin: 0.25rem 0;
+}
+
+.prose p {
+  margin: 0.5rem 0;
+}
+
+.prose pre {
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  border: 1px solid #334155;
+}
+
+.prose pre code {
+  color: #f1f5f9;
+  background: transparent;
+}
+
+.prose code {
+  font-family: ui-monospace, monospace;
+  background: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+</style>

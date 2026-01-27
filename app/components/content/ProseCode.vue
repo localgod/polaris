@@ -1,6 +1,6 @@
 <template>
-  <div v-if="language === 'mermaid'" class="mermaid-container my-8">
-    <div ref="mermaidEl" class="mermaid bg-white p-6 rounded-lg border border-gray-200 overflow-x-auto">
+  <div v-if="language === 'mermaid'" class="mermaid-container">
+    <div ref="mermaidEl" class="mermaid">
       {{ code }}
     </div>
   </div>
@@ -57,7 +57,7 @@ onMounted(async () => {
     } catch (error) {
       console.error('Mermaid rendering error:', error)
       if (mermaidEl.value) {
-        mermaidEl.value.innerHTML = `<pre class="text-red-600">Error rendering diagram: ${error}</pre>`
+        mermaidEl.value.innerHTML = `<pre style="color: var(--color-error);">Error rendering diagram: ${error}</pre>`
       }
     }
   }
@@ -67,6 +67,7 @@ onMounted(async () => {
 <style scoped>
 .mermaid-container {
   width: 100%;
+  margin: 2rem 0;
 }
 
 .mermaid {
@@ -74,6 +75,11 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   min-height: 200px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  overflow-x: auto;
 }
 
 :deep(svg) {

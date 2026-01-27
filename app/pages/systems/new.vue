@@ -1,99 +1,61 @@
 <template>
   <NuxtLayout name="default">
-    <div class="max-w-3xl mx-auto space-y-6">
+    <div style="max-width: 48rem; margin: 0 auto;" class="space-y">
       <!-- Header -->
       <div>
-        <NuxtLink 
-          to="/systems"
-          class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mb-4"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Systems
+        <NuxtLink to="/systems" style="display: inline-block; margin-bottom: 1rem;">
+          ← Back to Systems
         </NuxtLink>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Create New System</h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          Add a new deployable application or service
-        </p>
+        <h1>Create New System</h1>
+        <p class="text-muted" style="margin-top: 0.5rem;">Add a new deployable application or service</p>
       </div>
 
       <!-- Form -->
       <UiCard>
-        <form class="space-y-6" @submit.prevent="handleSubmit">
+        <form class="space-y" @submit.prevent="handleSubmit">
           <!-- Name -->
           <div>
-            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              System Name <span class="text-error-600">*</span>
-            </label>
+            <label for="name">System Name <span class="text-error">*</span></label>
             <input
               id="name"
               v-model="formData.name"
               type="text"
               required
               pattern="[a-z0-9-]+"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              :class="{ 'border-error-600 dark:border-error-400': fieldErrors.name }"
               placeholder="e.g., customer-portal"
               @blur="validateField('name')"
             >
-            <p v-if="fieldErrors.name" class="mt-1 text-sm text-error-600 dark:text-error-400">
-              {{ fieldErrors.name }}
-            </p>
+            <p v-if="fieldErrors.name" class="text-error text-sm" style="margin-top: 0.25rem;">{{ fieldErrors.name }}</p>
           </div>
 
           <!-- Domain -->
           <div>
-            <label for="domain" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Domain <span class="text-error-600">*</span>
-            </label>
+            <label for="domain">Domain <span class="text-error">*</span></label>
             <input
               id="domain"
               v-model="formData.domain"
               type="text"
               required
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              :class="{ 'border-error-600 dark:border-error-400': fieldErrors.domain }"
               placeholder="e.g., customer-experience"
               @blur="validateField('domain')"
             >
-            <p v-if="fieldErrors.domain" class="mt-1 text-sm text-error-600 dark:text-error-400">
-              {{ fieldErrors.domain }}
-            </p>
+            <p v-if="fieldErrors.domain" class="text-error text-sm" style="margin-top: 0.25rem;">{{ fieldErrors.domain }}</p>
           </div>
 
           <!-- Owner Team -->
           <div>
-            <label for="ownerTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Owner Team <span class="text-error-600">*</span>
-            </label>
-            <select
-              id="ownerTeam"
-              v-model="formData.ownerTeam"
-              required
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
+            <label for="ownerTeam">Owner Team <span class="text-error">*</span></label>
+            <select id="ownerTeam" v-model="formData.ownerTeam" required>
               <option value="">Select a team</option>
-              <option v-for="team in teams" :key="team.name" :value="team.name">
-                {{ team.name }}
-              </option>
+              <option v-for="team in teams" :key="team.name" :value="team.name">{{ team.name }}</option>
             </select>
-            <p v-if="teamsError" class="mt-1 text-sm text-error-600 dark:text-error-400">
-              Failed to load teams
-            </p>
+            <p v-if="teamsError" class="text-error text-sm" style="margin-top: 0.25rem;">Failed to load teams</p>
           </div>
 
           <!-- Business Criticality -->
           <div>
-            <label for="businessCriticality" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Business Criticality <span class="text-error-600">*</span>
-            </label>
-            <select
-              id="businessCriticality"
-              v-model="formData.businessCriticality"
-              required
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
+            <label for="businessCriticality">Business Criticality <span class="text-error">*</span></label>
+            <select id="businessCriticality" v-model="formData.businessCriticality" required>
               <option value="">Select criticality level</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
@@ -104,15 +66,8 @@
 
           <!-- Environment -->
           <div>
-            <label for="environment" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Environment <span class="text-error-600">*</span>
-            </label>
-            <select
-              id="environment"
-              v-model="formData.environment"
-              required
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
+            <label for="environment">Environment <span class="text-error">*</span></label>
+            <select id="environment" v-model="formData.environment" required>
               <option value="">Select environment</option>
               <option value="dev">Development</option>
               <option value="test">Test</option>
@@ -123,112 +78,53 @@
 
           <!-- Repositories -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              SCM Repositories
-            </label>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              Add repository URLs for this system
-            </p>
-            <div class="space-y-3">
+            <label>SCM Repositories</label>
+            <p class="text-sm text-muted" style="margin-bottom: 0.75rem;">Add repository URLs for this system</p>
+            <div class="space-y" style="--space: 0.75rem;">
               <div
                 v-for="(repo, index) in formData.repositories"
                 :key="index"
-                class="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-3"
+                style="border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 1rem;"
               >
-                <div class="flex items-start justify-between">
-                  <h4 class="text-sm font-medium text-gray-900 dark:text-white">Repository {{ index + 1 }}</h4>
-                  <button
-                    type="button"
-                    class="text-error-600 hover:text-error-700 dark:text-error-400 dark:hover:text-error-300"
-                    @click="removeRepository(index)"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                <div class="flex justify-between items-center" style="margin-bottom: 0.75rem;">
+                  <strong class="text-sm">Repository {{ index + 1 }}</strong>
+                  <button type="button" class="text-error" style="background: none; border: none;" @click="removeRepository(index)">
+                    Remove
                   </button>
                 </div>
-                
-                <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Repository URL <span class="text-error-600">*</span>
-                  </label>
+                <div style="margin-bottom: 0.5rem;">
+                  <label class="text-sm">Repository URL <span class="text-error">*</span></label>
                   <input
                     v-model="repo.url"
                     type="url"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="https://github.com/org/repo"
                     @blur="autoFillRepository(repo)"
                   >
                 </div>
-                
                 <div>
-                  <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Repository Name
-                  </label>
-                  <input
-                    v-model="repo.name"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Auto-filled from URL"
-                  >
+                  <label class="text-sm">Repository Name</label>
+                  <input v-model="repo.name" type="text" placeholder="Auto-filled from URL">
                 </div>
               </div>
-              
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium border border-primary-600 dark:border-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-                @click="addRepository"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Add Repository
+              <button type="button" class="btn btn-secondary" @click="addRepository">
+                + Add Repository
               </button>
             </div>
           </div>
 
           <!-- Error Message -->
-          <div v-if="errorMessage" class="p-4 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg">
-            <div class="flex items-center gap-3">
-              <svg class="w-5 h-5 text-error-600 dark:text-error-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p class="text-sm text-error-600 dark:text-error-400">{{ errorMessage }}</p>
-            </div>
-          </div>
+          <div v-if="errorMessage" class="alert alert-error">{{ errorMessage }}</div>
 
           <!-- Success Message -->
-          <div v-if="successMessage" class="p-4 bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800 rounded-lg">
-            <div class="flex items-center gap-3">
-              <svg class="w-5 h-5 text-success-600 dark:text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <p class="text-sm text-success-600 dark:text-success-400">{{ successMessage }}</p>
-            </div>
-          </div>
+          <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
 
           <!-- Actions -->
-          <div class="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              type="submit"
-              :disabled="isSubmitting"
-              class="inline-flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
-            >
-              <svg v-if="isSubmitting" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
+          <div class="flex items-center" style="gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+            <button type="submit" :disabled="isSubmitting" class="btn btn-primary">
               {{ isSubmitting ? 'Saving...' : 'Save System' }}
             </button>
-            <NuxtLink 
-              to="/systems"
-              class="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              Cancel
-            </NuxtLink>
+            <NuxtLink to="/systems" class="btn btn-secondary">Cancel</NuxtLink>
           </div>
         </form>
       </UiCard>
@@ -283,33 +179,19 @@ const teams = computed(() => teamsData.value?.data || [])
 
 function extractRepoName(url: string): string {
   if (!url) return ''
-  
-  // Remove .git suffix first
   url = url.replace(/\.git$/, '')
-  
-  // Extract last part of path
   const match = url.match(/\/([^/]+?)$/)
-  if (match) {
-    return match[1]
-  }
-  
+  if (match) return match[1]
   return ''
 }
 
 function autoFillRepository(repo: SystemFormData['repositories'][0]) {
   if (!repo.url) return
-  
-  // Extract name from URL if not already set
-  if (!repo.name) {
-    repo.name = extractRepoName(repo.url)
-  }
+  if (!repo.name) repo.name = extractRepoName(repo.url)
 }
 
 function addRepository() {
-  formData.value.repositories.push({
-    url: '',
-    name: ''
-  })
+  formData.value.repositories.push({ url: '', name: '' })
 }
 
 function removeRepository(index: number) {
@@ -350,22 +232,12 @@ async function handleSubmit() {
 
     if (response.success) {
       successMessage.value = 'System created successfully!'
-      
-      // Redirect to systems list after a short delay
-      setTimeout(() => {
-        navigateTo('/systems')
-      }, 1500)
+      setTimeout(() => navigateTo('/systems'), 1500)
     } else {
       errorMessage.value = response.error || 'Failed to create system'
     }
   } catch (error: unknown) {
-    const err = error as { 
-      statusCode?: number
-      data?: { message?: string, error?: string }
-      message?: string 
-    }
-    
-    // Handle specific status codes
+    const err = error as { statusCode?: number; data?: { message?: string; error?: string }; message?: string }
     if (err.statusCode === 409) {
       errorMessage.value = err.data?.message || 'A system with this name already exists'
     } else if (err.statusCode === 422) {
