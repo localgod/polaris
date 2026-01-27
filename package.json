@@ -68,12 +68,14 @@
     "@nuxt/eslint": "^1.12.1",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^3.23.0",
+    "@nuxt/ui": "^4.4.0",
     "ajv": "^8.17.1",
     "better-sqlite3": "^12.6.0",
     "eslint": "^9.39.2",
     "mermaid": "^11.12.2",
     "nuxt": "^4.2.2",
     "nuxt-neo4j": "^0.0.4",
+    "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vue": "^3.5.26"
   },
@@ -92,9 +94,9 @@
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "markdownlint-cli": "^0.47.0",
+    "next-auth": "4.22.1",
     "swagger-jsdoc": "^6.2.8",
     "tsx": "^4.21.0",
-    "vitest": "^4.0.16",
-    "next-auth": "4.22.1"
+    "vitest": "^4.0.16"
   }
 }
