@@ -1,6 +1,8 @@
 <template>
-  <div>
-    <NuxtRouteAnnouncer />
+    <UApp>
+          <NuxtRouteAnnouncer />
     <NuxtPage :key="$route.fullPath" />
-  </div>
+    </UApp>
+
+
 </template>
