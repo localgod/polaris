@@ -1,4 +1,9 @@
 /* Base styles - minimal CSS to maintain functionality without Tailwind */
+
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+
 :root {
   --color-primary: #0ea5e9;
   --color-success: #22c55e;

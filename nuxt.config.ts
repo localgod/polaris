@@ -12,7 +12,8 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     '@nuxt/content',
     'nuxt-neo4j',
-    '@sidebase/nuxt-auth'
+    '@sidebase/nuxt-auth',
+    '@nuxt/ui'
   ],
 
   auth: {
