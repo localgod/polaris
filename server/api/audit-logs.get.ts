@@ -93,7 +93,10 @@ export default defineEventHandler(async (event) => {
     
     return {
       success: true,
-      ...result
+      data: result.data,
+      count: result.data.length,
+      total: result.count,
+      filters: result.filters
     }
   } catch (error) {
     console.error('Audit log fetch error:', error)

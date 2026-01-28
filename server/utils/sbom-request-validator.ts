@@ -6,7 +6,7 @@
  * without HTTP context.
  */
 
-export interface ValidationResult {
+export interface RequestValidationResult {
   valid: boolean
   error?: {
     code: string
@@ -25,7 +25,7 @@ export interface ValidationResult {
  * @param url - The repositoryUrl value to validate
  * @returns Validation result with error details if invalid
  */
-export function validateRepositoryUrl(url: unknown): ValidationResult {
+export function validateRepositoryUrl(url: unknown): RequestValidationResult {
   if (url === undefined || url === null) {
     return {
       valid: false,
@@ -73,7 +73,7 @@ export function validateRepositoryUrl(url: unknown): ValidationResult {
  * @param sbom - The SBOM value to validate
  * @returns Validation result with error details if invalid
  */
-export function validateSbomStructure(sbom: unknown): ValidationResult {
+export function validateSbomStructure(sbom: unknown): RequestValidationResult {
   if (sbom === undefined || sbom === null) {
     return {
       valid: false,
@@ -114,7 +114,7 @@ export interface SbomRequest {
  * @param request - The request body to validate
  * @returns Validation result with error details if invalid
  */
-export function validateSbomRequest(request: SbomRequest): ValidationResult {
+export function validateSbomRequest(request: SbomRequest): RequestValidationResult {
   // Validate repositoryUrl first
   const urlResult = validateRepositoryUrl(request.repositoryUrl)
   if (!urlResult.valid) {

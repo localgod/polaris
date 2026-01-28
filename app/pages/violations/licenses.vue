@@ -7,14 +7,7 @@
         <p class="text-muted" style="margin-top: 0.5rem;">Components using non-compliant licenses</p>
       </div>
 
-      <UiCard v-if="pending">
-        <div class="text-center" style="padding: 3rem;">
-          <div class="spinner" style="margin: 0 auto;" />
-          <p class="text-muted" style="margin-top: 1rem;">Loading license violations...</p>
-        </div>
-      </UiCard>
-
-      <UiCard v-else-if="error">
+      <UiCard v-if="error">
         <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
           <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -26,56 +19,34 @@
         </div>
       </UiCard>
 
-      <template v-else-if="data">
+      <template v-else>
         <UiCard>
-          <div class="text-center">
-            <p class="text-sm text-muted">Total License Violations</p>
-            <p class="text-3xl font-bold text-error" style="margin-top: 0.5rem;">{{ data.count }}</p>
-          </div>
-        </UiCard>
+          <UTable
+            :data="violations"
+            :columns="columns"
+            :loading="pending"
+            class="flex-1"
+          >
+            <template #empty>
+              <div class="text-center" style="padding: 2rem;">
+                <svg style="margin: 0 auto; width: 3rem; height: 3rem; color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 style="margin-top: 1rem;">No License Violations!</h3>
+                <p class="text-muted" style="margin-top: 0.5rem;">All components use compliant licenses.</p>
+              </div>
+            </template>
+          </UTable>
 
-        <UiCard v-if="data.count === 0">
-          <div class="text-center" style="padding: 2rem;">
-            <svg style="margin: 0 auto; width: 3rem; height: 3rem; color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 style="margin-top: 1rem;">No License Violations!</h3>
-            <p class="text-muted" style="margin-top: 0.5rem;">All components use compliant licenses.</p>
+          <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
+            <UPagination
+              v-model:page="page"
+              :total="total"
+              :items-per-page="pageSize"
+              :sibling-count="1"
+              show-edges
+            />
           </div>
-        </UiCard>
-
-        <UiCard v-else>
-          <table>
-            <thead>
-              <tr>
-                <th>Component</th>
-                <th>License</th>
-                <th>System</th>
-                <th>Team</th>
-                <th>Severity</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(violation, index) in data.data" :key="index">
-                <td>
-                  <strong>{{ violation.component.name }}</strong>
-                  <br><code class="text-sm">{{ violation.component.version }}</code>
-                </td>
-                <td>
-                  <UiBadge :variant="getCategoryVariant(violation.license.category)">
-                    {{ violation.license.id || violation.license.name }}
-                  </UiBadge>
-                </td>
-                <td>{{ violation.system }}</td>
-                <td>{{ violation.team }}</td>
-                <td>
-                  <UiBadge :variant="getSeverityVariant(violation.policy.severity)">
-                    {{ violation.policy.severity }}
-                  </UiBadge>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </UiCard>
       </template>
     </div>
@@ -83,6 +54,9 @@
 </template>
 
 <script setup lang="ts">
+import { h } from 'vue'
+import type { TableColumn } from '@nuxt/ui'
+
 interface LicenseViolation {
   team: string
   system: string
@@ -110,9 +84,10 @@ interface LicenseViolationsResponse {
   success: boolean
   data: LicenseViolation[]
   count: number
+  total?: number
 }
 
-const { data, pending, error } = await useFetch<LicenseViolationsResponse>('/api/policies/license-violations')
+const UiBadge = resolveComponent('UiBadge')
 
 function getCategoryVariant(category: string) {
   const variants: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -132,6 +107,60 @@ function getSeverityVariant(severity: string) {
   }
   return variants[severity] || 'neutral'
 }
+
+const columns: TableColumn<LicenseViolation>[] = [
+  {
+    accessorKey: 'component',
+    header: 'Component',
+    cell: ({ row }) => {
+      const component = row.original.component
+      return h('div', {}, [
+        h('strong', {}, component.name),
+        h('br'),
+        h('code', { class: 'text-sm' }, component.version)
+      ])
+    }
+  },
+  {
+    accessorKey: 'license',
+    header: 'License',
+    cell: ({ row }) => {
+      const license = row.original.license
+      return h(UiBadge, { variant: getCategoryVariant(license.category) }, () => license.id || license.name)
+    }
+  },
+  {
+    accessorKey: 'system',
+    header: 'System'
+  },
+  {
+    accessorKey: 'team',
+    header: 'Team'
+  },
+  {
+    accessorKey: 'policy',
+    header: 'Severity',
+    cell: ({ row }) => {
+      const severity = row.original.policy.severity
+      return h(UiBadge, { variant: getSeverityVariant(severity) }, () => severity)
+    }
+  }
+]
+
+const page = ref(1)
+const pageSize = 20
+
+const queryParams = computed(() => ({
+  limit: pageSize,
+  offset: (page.value - 1) * pageSize
+}))
+
+const { data, pending, error } = await useFetch<LicenseViolationsResponse>('/api/policies/license-violations', {
+  query: queryParams
+})
+
+const violations = computed(() => data.value?.data || [])
+const total = computed(() => data.value?.total || data.value?.count || 0)
 
 useHead({ title: 'License Violations - Polaris' })
 </script>

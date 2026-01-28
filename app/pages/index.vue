@@ -7,37 +7,8 @@
         <p class="text-muted" style="margin-top: 0.5rem;">Enterprise Technology Catalog Overview</p>
       </div>
 
-      <!-- Database Status -->
-      <UiCard v-if="dbStatus">
-        <div class="flex items-center" style="gap: 1rem;">
-          <div
-:style="{ 
-            width: '3rem', 
-            height: '3rem', 
-            borderRadius: '50%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            background: dbStatus.status === 'healthy' ? '#dcfce7' : '#fee2e2'
-          }">
-            <svg v-if="dbStatus.status === 'healthy'" width="24" height="24" fill="none" stroke="#16a34a" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <svg v-else width="24" height="24" fill="none" stroke="#dc2626" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <div>
-            <h3 :style="{ color: dbStatus.status === 'healthy' ? 'var(--color-success)' : 'var(--color-error)' }">
-              Database {{ dbStatus.status === 'healthy' ? 'Healthy' : 'Unhealthy' }}
-            </h3>
-            <p class="text-sm text-muted">{{ dbStatus.database }} - {{ dbStatus.timestamp }}</p>
-          </div>
-        </div>
-      </UiCard>
-
       <!-- Quick Stats -->
-      <div class="grid grid-cols-4">
+      <div class="grid grid-cols-6">
         <NuxtLink to="/technologies" style="text-decoration: none;">
           <UiStatCard label="Technologies" :value="stats.technologies || '—'" variant="primary" />
         </NuxtLink>
@@ -48,7 +19,13 @@
           <UiStatCard label="Components" :value="stats.components || '—'" variant="warning" />
         </NuxtLink>
         <NuxtLink to="/teams" style="text-decoration: none;">
-          <UiStatCard label="Teams" :value="stats.teams || '—'" variant="error" />
+          <UiStatCard label="Teams" :value="stats.teams || '—'" variant="neutral" />
+        </NuxtLink>
+        <NuxtLink to="/policies" style="text-decoration: none;">
+          <UiStatCard label="Policies" :value="stats.policies || '—'" variant="neutral" />
+        </NuxtLink>
+        <NuxtLink to="/violations/licenses" style="text-decoration: none;">
+          <UiStatCard label="License Violations" :value="stats.licenseViolations || '—'" variant="error" />
         </NuxtLink>
       </div>
 
@@ -104,25 +81,35 @@
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse, Technology, System, Component, Team } from '~~/types/api'
+import type { ApiResponse, Technology, System, Component, Team, Policy } from '~~/types/api'
 
-const { data: dbStatus } = await useFetch('/api/health')
+interface LicenseViolationsResponse {
+  success: boolean
+  count: number
+  total?: number
+}
 
 const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
 const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
 const { data: compData } = await useFetch<ApiResponse<Component>>('/api/components')
 const { data: teamData } = await useFetch<ApiResponse<Team>>('/api/teams')
+const { data: policyData } = await useFetch<ApiResponse<Policy>>('/api/policies')
+const { data: violationsData } = await useFetch<LicenseViolationsResponse>('/api/policies/license-violations?limit=1')
 
 const techCount = useApiCount(techData)
 const sysCount = useApiCount(sysData)
 const compCount = useApiCount(compData)
 const teamCount = useApiCount(teamData)
+const policyCount = useApiCount(policyData)
+const violationsCount = computed(() => violationsData.value?.total || violationsData.value?.count || 0)
 
 const stats = computed(() => ({
   technologies: techCount.value,
   systems: sysCount.value,
   components: compCount.value,
-  teams: teamCount.value
+  teams: teamCount.value,
+  policies: policyCount.value,
+  licenseViolations: violationsCount.value
 }))
 
 useHead({

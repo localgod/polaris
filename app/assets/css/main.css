@@ -233,6 +233,14 @@ code {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.grid-cols-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.grid-cols-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
 /* Spacing */
 .space-y > * + * {
   margin-top: 1.5rem;
@@ -336,23 +344,6 @@ label {
   margin-bottom: 0.25rem;
 }
 
-/* Tables */
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-}
-
-th {
-  font-weight: 600;
-  background: #f9fafb;
-}
-
 /* Alerts */
 .alert {
   padding: 1rem;
@@ -406,7 +397,9 @@ th {
   
   .grid-cols-2,
   .grid-cols-3,
-  .grid-cols-4 {
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6 {
     grid-template-columns: 1fr;
   }
 }

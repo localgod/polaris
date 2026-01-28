@@ -216,15 +216,24 @@ export class PolicyService {
     // Business logic: validate filters
     this.validateFilters(filters)
     
-    // Fetch license violations from repository
-    const violations = await this.policyRepo.findLicenseViolations(filters)
+    // Fetch license violations from repository (without pagination to get total count)
+    const { limit, offset, ...repoFilters } = filters
+    const allViolations = await this.policyRepo.findLicenseViolations(repoFilters)
     
-    // Business logic: calculate summary
-    const summary = this.calculateLicenseSummary(violations)
+    // Business logic: calculate summary from all violations
+    const summary = this.calculateLicenseSummary(allViolations)
+    
+    // Apply pagination if specified
+    let paginatedViolations = allViolations
+    if (limit !== undefined && offset !== undefined) {
+      paginatedViolations = allViolations.slice(offset, offset + limit)
+    } else if (limit !== undefined) {
+      paginatedViolations = allViolations.slice(0, limit)
+    }
     
     return {
-      data: violations,
-      count: violations.length,
+      data: paginatedViolations,
+      count: allViolations.length,
       summary
     }
   }

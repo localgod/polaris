@@ -6,14 +6,7 @@
         <p class="text-muted" style="margin-top: 0.5rem;">Licenses discovered in components across all systems</p>
       </div>
 
-      <UiCard v-if="pending || statsPending || deniedPending">
-        <div class="text-center" style="padding: 3rem;">
-          <div class="spinner" style="margin: 0 auto;" />
-          <p class="text-muted" style="margin-top: 1rem;">Loading licenses...</p>
-        </div>
-      </UiCard>
-
-      <UiCard v-else-if="error || statsError || deniedError">
+      <UiCard v-if="error || statsError || deniedError">
         <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
           <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -25,9 +18,9 @@
         </div>
       </UiCard>
 
-      <template v-else-if="data && stats">
+      <template v-else>
         <!-- Statistics Cards -->
-        <div class="grid grid-cols-4">
+        <div v-if="stats" class="grid grid-cols-4">
           <UiCard>
             <div class="text-center">
               <p class="text-sm text-muted">Total Licenses</p>
@@ -56,47 +49,28 @@
 
         <!-- Licenses Table -->
         <UiCard>
-          <table>
-            <thead>
-              <tr>
-                <th>License</th>
-                <th>Category</th>
-                <th>OSI</th>
-                <th>Components</th>
-                <th>Policy Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="license in data.data" :key="license.spdxId">
-                <td>
-                  <strong>{{ license.name }}</strong>
-                  <br><code class="text-sm">{{ license.spdxId }}</code>
-                </td>
-                <td>
-                  <UiBadge :variant="getCategoryVariant(license.category)">{{ license.category }}</UiBadge>
-                </td>
-                <td>
-                  <UiBadge :variant="license.osiApproved ? 'success' : 'neutral'">
-                    {{ license.osiApproved ? 'Yes' : 'No' }}
-                  </UiBadge>
-                </td>
-                <td>{{ license.componentCount }}</td>
-                <td>
-                  <button
-                    class="toggle-btn"
-                    :class="{ 'toggle-denied': isLicenseDenied(license.spdxId) }"
-                    :disabled="togglingLicense === license.spdxId"
-                    @click="toggleLicense(license.spdxId)"
-                  >
-                    <span class="toggle-slider" />
-                    <span class="toggle-label">
-                      {{ togglingLicense === license.spdxId ? '...' : (isLicenseDenied(license.spdxId) ? 'Denied' : 'Allowed') }}
-                    </span>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <UTable
+            :data="licenses"
+            :columns="columns"
+            :loading="pending || statsPending || deniedPending"
+            class="flex-1"
+          >
+            <template #empty>
+              <div class="text-center text-muted" style="padding: 3rem;">
+                No licenses found.
+              </div>
+            </template>
+          </UTable>
+
+          <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
+            <UPagination
+              v-model:page="page"
+              :total="total"
+              :items-per-page="pageSize"
+              :sibling-count="1"
+              show-edges
+            />
+          </div>
         </UiCard>
       </template>
     </div>
@@ -104,6 +78,9 @@
 </template>
 
 <script setup lang="ts">
+import { h } from 'vue'
+import type { TableColumn } from '@nuxt/ui'
+
 interface License {
   spdxId: string
   name: string
@@ -122,6 +99,7 @@ interface LicenseResponse {
   success: boolean
   data: License[]
   count: number
+  total?: number
 }
 
 interface StatsResponse {
@@ -134,10 +112,27 @@ interface DeniedResponse {
   deniedLicenses: string[]
 }
 
-const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses')
+const UiBadge = resolveComponent('UiBadge')
+const UDropdownMenu = resolveComponent('UDropdownMenu')
+const UButton = resolveComponent('UButton')
+
+const page = ref(1)
+const pageSize = 20
+
+const queryParams = computed(() => ({
+  limit: pageSize,
+  offset: (page.value - 1) * pageSize
+}))
+
+const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses', {
+  query: queryParams
+})
 const { data: stats, pending: statsPending, error: statsError } = await useFetch<StatsResponse>('/api/licenses/statistics')
 const { data: deniedData, pending: deniedPending, error: deniedError, refresh: refreshDenied } = await useFetch<DeniedResponse>('/api/licenses/denied')
 
+const total = computed(() => data.value?.total || data.value?.count || 0)
+
+const licenses = computed(() => data.value?.data || [])
 const deniedLicenses = computed(() => deniedData.value?.deniedLicenses || [])
 const togglingLicense = ref<string | null>(null)
 
@@ -171,6 +166,100 @@ async function toggleLicense(spdxId: string) {
     togglingLicense.value = null
   }
 }
+
+const columns: TableColumn<License>[] = [
+  {
+    accessorKey: 'name',
+    header: 'License'
+  },
+  {
+    accessorKey: 'category',
+    header: 'Category',
+    cell: ({ row }) => {
+      const category = row.getValue('category') as string
+      return h(UiBadge, { variant: getCategoryVariant(category) }, () => category)
+    }
+  },
+  {
+    accessorKey: 'osiApproved',
+    header: 'OSI',
+    cell: ({ row }) => {
+      const osiApproved = row.getValue('osiApproved') as boolean
+      return h(UiBadge, { variant: osiApproved ? 'success' : 'neutral' }, () => osiApproved ? 'Yes' : 'No')
+    }
+  },
+  {
+    accessorKey: 'componentCount',
+    header: 'Components'
+  },
+  {
+    id: 'policyStatus',
+    header: 'Policy Status',
+    cell: ({ row }) => {
+      const spdxId = row.original.spdxId
+      const isDenied = isLicenseDenied(spdxId)
+      const isToggling = togglingLicense.value === spdxId
+
+      return h('button', {
+        class: ['toggle-btn', isDenied ? 'toggle-denied' : ''],
+        disabled: isToggling,
+        onClick: () => toggleLicense(spdxId)
+      }, [
+        h('span', { class: 'toggle-slider' }),
+        h('span', { class: 'toggle-label' }, isToggling ? '...' : (isDenied ? 'Denied' : 'Allowed'))
+      ])
+    }
+  },
+  {
+    id: 'actions',
+    header: '',
+    meta: {
+      class: {
+        th: 'w-10',
+        td: 'text-right'
+      }
+    },
+    cell: ({ row }) => {
+      const license = row.original
+      const isDenied = isLicenseDenied(license.spdxId)
+
+      const items = [
+        [
+          {
+            label: 'View Details',
+            icon: 'i-lucide-eye',
+            onSelect: () => navigateTo(`/licenses/${encodeURIComponent(license.spdxId)}`)
+          },
+          {
+            label: 'View Components',
+            icon: 'i-lucide-package',
+            onSelect: () => navigateTo(`/components?license=${encodeURIComponent(license.spdxId)}`)
+          }
+        ],
+        [
+          {
+            label: isDenied ? 'Allow License' : 'Deny License',
+            icon: isDenied ? 'i-lucide-check' : 'i-lucide-ban',
+            color: isDenied ? 'success' : 'error',
+            onSelect: () => toggleLicense(license.spdxId)
+          }
+        ]
+      ]
+
+      return h(UDropdownMenu, {
+        items,
+        content: { align: 'end' }
+      }, {
+        default: () => h(UButton, {
+          icon: 'i-lucide-ellipsis-vertical',
+          color: 'neutral',
+          variant: 'ghost',
+          size: 'sm'
+        })
+      })
+    }
+  }
+]
 
 useHead({ title: 'Licenses - Polaris' })
 </script>

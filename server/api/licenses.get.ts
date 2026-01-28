@@ -33,6 +33,18 @@ import type { License } from '../repositories/license.repository'
  *         schema:
  *           type: string
  *         description: Search by license ID or name
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of results per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Pagination offset
  *     responses:
  *       200:
  *         description: Successfully retrieved licenses
@@ -72,6 +84,9 @@ import type { License } from '../repositories/license.repository'
  *                           componentCount:
  *                             type: integer
  *                             description: Number of components using this license
+ *                     total:
+ *                       type: integer
+ *                       description: Total number of licenses
  *       500:
  *         description: Failed to fetch licenses
  *         content:
@@ -82,6 +97,8 @@ import type { License } from '../repositories/license.repository'
 export default defineEventHandler(async (event): Promise<ApiResponse<License>> => {
   try {
     const query = getQuery(event)
+    const limit = query.limit ? parseInt(query.limit as string, 10) : 50
+    const offset = query.offset ? parseInt(query.offset as string, 10) : 0
     const filters = {
       category: query.category as string | undefined,
       osiApproved: query.osiApproved === 'true' ? true : query.osiApproved === 'false' ? false : undefined,
@@ -90,12 +107,15 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License>> =
     }
     
     const licenseRepo = new LicenseRepository()
-    const licenses = await licenseRepo.findAll(filters)
+    const allLicenses = await licenseRepo.findAll(filters)
+    const total = allLicenses.length
+    const paginatedLicenses = allLicenses.slice(offset, offset + limit)
     
     return {
       success: true,
-      data: licenses,
-      count: licenses.length
+      data: paginatedLicenses,
+      count: paginatedLicenses.length,
+      total
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch licenses'

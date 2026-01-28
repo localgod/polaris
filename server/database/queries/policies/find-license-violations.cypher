@@ -23,8 +23,8 @@ WHERE
   OR
   // Allowlist mode (default): violation if license is NOT allowed
   ((policy.licenseMode = 'allowlist' OR policy.licenseMode IS NULL) AND NOT (policy)-[:ALLOWS_LICENSE]->(license))
+{{AND_CONDITIONS}}
 OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(policy)
-{{WHERE_CONDITIONS}}
 RETURN team.name as teamName,
        system.name as systemName,
        component.name as componentName,

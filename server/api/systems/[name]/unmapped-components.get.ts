@@ -22,37 +22,47 @@ import { SystemService } from '../../../services/system.service'
  *           type: string
  *         description: System name
  *         example: web-portal
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of results per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Pagination offset
  *     responses:
  *       200:
  *         description: Unmapped components retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
- *                 - type: object
- *                   properties:
- *                     data:
- *                       type: object
- *                       properties:
- *                         system:
- *                           type: string
- *                         components:
- *                           type: array
- *                           items:
- *                             $ref: '#/components/schemas/UnmappedComponent'
- *                         count:
- *                           type: integer
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/UnmappedComponent'
+ *                 count:
+ *                   type: integer
+ *                   description: Number of items in current page
+ *                 total:
+ *                   type: integer
+ *                   description: Total number of unmapped components
  *             example:
  *               success: true
  *               data:
- *                 system: web-portal
- *                 components:
- *                   - name: "@company/internal-ui"
- *                     version: "2.1.0"
- *                     packageManager: npm
- *                     license: proprietary
- *                 count: 1
+ *                 - name: "@company/internal-ui"
+ *                   version: "2.1.0"
+ *                   packageManager: npm
+ *                   license: proprietary
+ *               count: 1
+ *               total: 1
  *       400:
  *         description: System name is required
  *       404:
@@ -72,13 +82,20 @@ export default defineEventHandler(async (event) => {
     }
     
     const systemName = decodeURIComponent(rawName)
+    const query = getQuery(event)
+    const limit = query.limit ? parseInt(query.limit as string, 10) : 50
+    const offset = query.offset ? parseInt(query.offset as string, 10) : 0
     
     const systemService = new SystemService()
     const result = await systemService.findUnmappedComponents(systemName)
+    const total = result.components.length
+    const paginatedData = result.components.slice(offset, offset + limit)
 
     return {
       success: true,
-      data: result
+      data: paginatedData,
+      count: paginatedData.length,
+      total
     }
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) {
@@ -88,11 +105,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: false,
       error: errorMessage,
-      data: {
-        system: '',
-        components: [],
-        count: 0
-      }
+      data: []
     }
   }
 })

@@ -6,14 +6,7 @@
         <p class="text-muted" style="margin-top: 0.5rem;">Organizational teams and their responsibilities</p>
       </div>
 
-      <UiCard v-if="pending">
-        <div class="text-center" style="padding: 3rem;">
-          <div class="spinner" style="margin: 0 auto;"/>
-          <p class="text-muted" style="margin-top: 1rem;">Loading teams...</p>
-        </div>
-      </UiCard>
-
-      <UiCard v-else-if="error">
+      <UiCard v-if="error">
         <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
           <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -25,41 +18,127 @@
         </div>
       </UiCard>
 
-      <template v-else-if="data">
-        <UiCard>
+      <template v-else>
+        <UiCard v-if="data">
           <div class="text-center">
             <p class="text-sm text-muted">Total Teams</p>
             <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ count }}</p>
           </div>
         </UiCard>
 
-        <div class="grid grid-cols-3">
-          <UiCard v-for="team in data.data" :key="team.name">
-            <template #header>
-              <h3>{{ team.name }}</h3>
+        <UiCard>
+          <UTable
+            :data="teams"
+            :columns="columns"
+            :loading="pending"
+            class="flex-1"
+          >
+            <template #empty>
+              <div class="text-center text-muted" style="padding: 3rem;">
+                No teams found.
+              </div>
             </template>
-            <div class="space-y" style="--space: 0.5rem;">
-              <div v-if="team.email" class="text-sm">
-                <span class="text-muted">Email:</span>
-                <a :href="`mailto:${team.email}`" style="margin-left: 0.5rem;">{{ team.email }}</a>
-              </div>
-              <div v-if="team.responsibilityArea" class="text-sm">
-                <span class="text-muted">Area:</span>
-                <span style="margin-left: 0.5rem;">{{ team.responsibilityArea }}</span>
-              </div>
-            </div>
-          </UiCard>
-        </div>
+          </UTable>
+
+          <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
+            <UPagination
+              v-model:page="page"
+              :total="total"
+              :items-per-page="pageSize"
+              :sibling-count="1"
+              show-edges
+            />
+          </div>
+        </UiCard>
       </template>
     </div>
   </NuxtLayout>
 </template>
 
 <script setup lang="ts">
+import { h } from 'vue'
+import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Team } from '~~/types/api'
 
-const { data, pending, error } = await useFetch<ApiResponse<Team>>('/api/teams')
+const UDropdownMenu = resolveComponent('UDropdownMenu')
+const UButton = resolveComponent('UButton')
+
+const columns: TableColumn<Team>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => h('strong', {}, row.getValue('name') as string)
+  },
+  {
+    accessorKey: 'email',
+    header: 'Email',
+    cell: ({ row }) => {
+      const email = row.getValue('email') as string | undefined
+      if (!email) return h('span', { class: 'text-muted' }, '—')
+      return h('a', { href: `mailto:${email}` }, email)
+    }
+  },
+  {
+    accessorKey: 'responsibilityArea',
+    header: 'Responsibility Area',
+    cell: ({ row }) => {
+      const area = row.getValue('responsibilityArea') as string | undefined
+      if (!area) return h('span', { class: 'text-muted' }, '—')
+      return area
+    }
+  },
+  {
+    id: 'actions',
+    header: '',
+    meta: {
+      class: {
+        th: 'w-10',
+        td: 'text-right'
+      }
+    },
+    cell: ({ row }) => {
+      const team = row.original
+
+      const items = [
+        [
+          {
+            label: 'View Details',
+            icon: 'i-lucide-eye',
+            onSelect: () => navigateTo(`/teams/${encodeURIComponent(team.name)}`)
+          }
+        ]
+      ]
+
+      return h(UDropdownMenu, {
+        items,
+        content: { align: 'end' }
+      }, {
+        default: () => h(UButton, {
+          icon: 'i-lucide-ellipsis-vertical',
+          color: 'neutral',
+          variant: 'ghost',
+          size: 'sm'
+        })
+      })
+    }
+  }
+]
+
+const page = ref(1)
+const pageSize = 20
+
+const queryParams = computed(() => ({
+  limit: pageSize,
+  offset: (page.value - 1) * pageSize
+}))
+
+const { data, pending, error } = await useFetch<ApiResponse<Team>>('/api/teams', {
+  query: queryParams
+})
+
+const teams = computed(() => data.value?.data || [])
 const count = useApiCount(data)
+const total = computed(() => data.value?.total || data.value?.count || 0)
 
 useHead({ title: 'Teams - Polaris' })
 </script>

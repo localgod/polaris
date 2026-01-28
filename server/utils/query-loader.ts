@@ -43,9 +43,12 @@ export function clearQueryCache(): void {
  */
 export function injectWhereConditions(query: string, conditions: string[]): string {
   if (conditions.length === 0) {
-    return query.replace('{{WHERE_CONDITIONS}}', '')
+    return query.replace('{{WHERE_CONDITIONS}}', '').replace('{{AND_CONDITIONS}}', '')
   }
   
   const whereClause = `WHERE ${conditions.join(' AND ')}`
-  return query.replace('{{WHERE_CONDITIONS}}', whereClause)
+  const andClause = `AND ${conditions.join(' AND ')}`
+  return query
+    .replace('{{WHERE_CONDITIONS}}', whereClause)
+    .replace('{{AND_CONDITIONS}}', andClause)
 }
