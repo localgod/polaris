@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Header -->
-      <div>
+      <div class="page-header">
         <h1>Technologies</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Approved technologies and their versions</p>
+        <p>Approved technologies and their versions</p>
       </div>
 
       <!-- Error State -->
@@ -70,7 +70,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">
@@ -175,13 +175,19 @@ const count = useApiCount(data)
 const total = computed(() => data.value?.total || data.value?.count || 0)
 
 const uniqueCategories = computed(() => {
-  if (!data.value?.data) return []
-  return [...new Set(data.value.data.map((t: Technology) => t.category).filter(Boolean))]
+  const categories = new Set<string>()
+  technologies.value.forEach(tech => {
+    if (tech.category) categories.add(tech.category)
+  })
+  return Array.from(categories)
 })
 
 const uniqueVendors = computed(() => {
-  if (!data.value?.data) return []
-  return [...new Set(data.value.data.map((t: Technology) => t.vendor).filter(Boolean))]
+  const vendors = new Set<string>()
+  technologies.value.forEach(tech => {
+    if (tech.vendor) vendors.add(tech.vendor)
+  })
+  return Array.from(vendors)
 })
 
 useHead({

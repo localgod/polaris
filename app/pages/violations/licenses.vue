@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
-        <NuxtLink to="/violations" style="display: inline-block; margin-bottom: 1rem;">← Back to Violations</NuxtLink>
+      <div class="page-header">
+        <NuxtLink to="/violations" style="display: inline-block; margin-bottom: 0.5rem;">← Back to Violations</NuxtLink>
         <h1>License Violations</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Components using non-compliant licenses</p>
+        <p>Components using non-compliant licenses</p>
       </div>
 
       <UiCard v-if="error">
@@ -50,7 +50,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

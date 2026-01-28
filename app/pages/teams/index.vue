@@ -1,9 +1,9 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
+      <div class="page-header">
         <h1>Teams</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Organizational teams and their responsibilities</p>
+        <p>Organizational teams and their responsibilities</p>
       </div>
 
       <UiCard v-if="error">
@@ -19,13 +19,6 @@
       </UiCard>
 
       <template v-else>
-        <UiCard v-if="data">
-          <div class="text-center">
-            <p class="text-sm text-muted">Total Teams</p>
-            <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ count }}</p>
-          </div>
-        </UiCard>
-
         <UiCard>
           <UTable
             :data="teams"
@@ -52,7 +45,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">
@@ -137,7 +130,6 @@ const { data, pending, error } = await useFetch<ApiResponse<Team>>('/api/teams',
 })
 
 const teams = computed(() => data.value?.data || [])
-const count = useApiCount(data)
 const total = computed(() => data.value?.total || data.value?.count || 0)
 
 useHead({ title: 'Teams - Polaris' })

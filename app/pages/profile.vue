@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Header -->
-      <div>
+      <div class="page-header">
         <h1>Profile</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Your account information and team memberships</p>
+        <p>Your account information and team memberships</p>
       </div>
 
       <!-- Not Authenticated -->
@@ -14,7 +14,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
           <h3 style="margin-top: 1rem;">Not Signed In</h3>
-          <p class="text-muted" style="margin-top: 0.5rem;">Sign in to view your profile</p>
+          <p>Sign in to view your profile</p>
           <div style="margin-top: 1.5rem;">
             <NuxtLink to="/auth/signin" class="btn btn-primary">Sign In</NuxtLink>
           </div>
@@ -105,7 +105,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

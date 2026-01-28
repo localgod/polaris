@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Header -->
-      <div>
+      <div class="page-header">
         <h1>Registered Users</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Manage all users registered in the application</p>
+        <p>Manage all users registered in the application</p>
       </div>
 
       <!-- Error State -->
@@ -38,7 +38,7 @@
         </div>
       </UiCard>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

@@ -1,11 +1,11 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Header -->
       <div class="flex justify-between items-center">
         <div>
           <h1>API Reference</h1>
-          <p class="text-muted" style="margin-top: 0.5rem;">
+          <p>
             {{ spec?.info?.title || 'Polaris REST API' }} v{{ spec?.info?.version || '2.0.0' }}
           </p>
         </div>
@@ -117,7 +117,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

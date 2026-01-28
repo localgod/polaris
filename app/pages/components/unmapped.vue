@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
-        <NuxtLink to="/components" style="display: inline-block; margin-bottom: 1rem;">← Back to Components</NuxtLink>
+      <div class="page-header">
+        <NuxtLink to="/components" style="display: inline-block; margin-bottom: 0.5rem;">← Back to Components</NuxtLink>
         <h1>Unmapped Components</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Components not yet mapped to approved technologies</p>
+        <p>Components not yet mapped to approved technologies</p>
       </div>
 
       <UiCard v-if="error">
@@ -57,7 +57,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

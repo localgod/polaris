@@ -1,13 +1,13 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div style="max-width: 48rem; margin: 0 auto;" class="space-y">
       <!-- Header -->
-      <div>
-        <NuxtLink to="/systems" style="display: inline-block; margin-bottom: 1rem;">
+      <div class="page-header">
+        <NuxtLink to="/systems" style="display: inline-block; margin-bottom: 0.5rem;">
           ← Back to Systems
         </NuxtLink>
         <h1>Create New System</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Add a new deployable application or service</p>
+        <p>Add a new deployable application or service</p>
       </div>
 
       <!-- Form -->
@@ -129,8 +129,7 @@
         </form>
       </UiCard>
     </div>
-  </NuxtLayout>
-</template>
+  </template>
 
 <script setup lang="ts">
 interface SystemFormData {

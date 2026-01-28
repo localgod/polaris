@@ -1,9 +1,9 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
+      <div class="page-header">
         <h1>Policies</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Governance and compliance rules</p>
+        <p>Governance and compliance rules</p>
       </div>
 
       <UiCard v-if="error">
@@ -45,7 +45,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

@@ -1,9 +1,9 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
+      <div class="page-header">
         <h1>License Inventory</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Licenses discovered in components across all systems</p>
+        <p>Licenses discovered in components across all systems</p>
       </div>
 
       <UiCard v-if="error || statsError || deniedError">
@@ -74,7 +74,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">
@@ -89,17 +89,17 @@ interface License {
   componentCount: number
 }
 
-interface LicenseStats {
-  total: number
-  osiApproved: number
-  byCategory: Record<string, number>
-}
-
 interface LicenseResponse {
   success: boolean
   data: License[]
   count: number
   total?: number
+}
+
+interface LicenseStats {
+  total: number
+  osiApproved: number
+  byCategory: Record<string, number>
 }
 
 interface StatsResponse {

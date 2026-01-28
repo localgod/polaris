@@ -4,9 +4,19 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  // SPA-like behavior with client-side navigation
+  ssr: true,
+  
+  app: {
+    // Smooth page transitions
+    pageTransition: { name: 'page', mode: 'out-in' },
+    layoutTransition: { name: 'layout', mode: 'out-in' }
+  },
+
   css: ['~/assets/css/main.css'],
 
   modules: [
+    '@nuxt/ui',
     '@nuxt/eslint',
     '@nuxt/image',
     '@nuxt/test-utils',
@@ -15,6 +25,10 @@ export default defineNuxtConfig({
     '@sidebase/nuxt-auth',
     '@nuxt/ui'
   ],
+
+  ui: {
+    colorMode: false
+  },
 
   auth: {
     // baseURL will be auto-detected from request origin if not set

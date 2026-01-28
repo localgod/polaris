@@ -1,9 +1,9 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
+      <div class="page-header">
         <h1>Audit Log</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Track changes across the system</p>
+        <p>Track changes across the system</p>
       </div>
 
       <UiCard v-if="error">
@@ -77,7 +77,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

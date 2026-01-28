@@ -3,7 +3,7 @@
     <div style="max-width: 28rem; width: 100%;">
       <div class="text-center">
         <h2 class="text-3xl font-bold">Sign in to Polaris</h2>
-        <p class="text-muted" style="margin-top: 0.5rem;">Enterprise Technology Catalog</p>
+        <p>Enterprise Technology Catalog</p>
       </div>
 
       <UiCard style="margin-top: 2rem;">

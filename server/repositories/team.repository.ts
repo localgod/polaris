@@ -138,7 +138,28 @@ export class TeamRepository extends BaseRepository {
       return null
     }
     
-    return records[0].get('team')
+    const team = records[0].get('team')
+    return {
+      name: team.name,
+      email: team.email,
+      responsibilityArea: team.responsibilityArea,
+      technologyCount: this.toNumber(team.technologyCount),
+      systemCount: this.toNumber(team.systemCount),
+      usedTechnologyCount: this.toNumber(team.usedTechnologyCount),
+      memberCount: this.toNumber(team.memberCount)
+    }
+  }
+  
+  /**
+   * Convert Neo4j Integer to JavaScript number
+   */
+  private toNumber(value: unknown): number {
+    if (value === null || value === undefined) return 0
+    if (typeof value === 'number') return value
+    if (typeof value === 'object' && 'toNumber' in value) {
+      return (value as { toNumber: () => number }).toNumber()
+    }
+    return 0
   }
 
   /**

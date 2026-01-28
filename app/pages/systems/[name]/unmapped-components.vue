@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <div>
         <NuxtLink to="/systems" style="display: inline-block; margin-bottom: 1rem;">← Back to Systems</NuxtLink>
         <h1>Unmapped Components: {{ systemName }}</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Components not yet mapped to approved technologies</p>
+        <p>Components not yet mapped to approved technologies</p>
       </div>
 
       <UiCard v-if="error">
@@ -23,7 +23,7 @@
         <UiCard v-if="data">
           <div class="text-center">
             <p class="text-sm text-muted">Unmapped Components</p>
-            <p class="text-3xl font-bold text-warning" style="margin-top: 0.5rem;">{{ data.count }}</p>
+            <p class="text-3xl font-bold text-warning" style="margin-top: 0.5rem;">{{ total }}</p>
           </div>
         </UiCard>
 
@@ -57,7 +57,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

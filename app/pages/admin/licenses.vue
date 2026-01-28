@@ -1,9 +1,9 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
+      <div class="page-header">
         <h1>License Administration</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Manage license definitions and policies</p>
+        <p>Manage license definitions and policies</p>
       </div>
 
       <UiCard v-if="error">
@@ -43,7 +43,7 @@
         </div>
       </UiCard>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

@@ -1,8 +1,8 @@
 <template>
-    <UApp>
-          <NuxtRouteAnnouncer />
-    <NuxtPage :key="$route.fullPath" />
-    </UApp>
-
-
+  <UApp>
+    <NuxtRouteAnnouncer />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </UApp>
 </template>

@@ -1,11 +1,11 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Header -->
       <div class="flex justify-between items-center">
-        <div>
+        <div class="page-header">
           <h1>Systems</h1>
-          <p class="text-muted" style="margin-top: 0.5rem;">Deployable applications and services</p>
+          <p>Deployable applications and services</p>
         </div>
         <NuxtLink to="/systems/new" class="btn btn-primary">
           + Create System
@@ -87,7 +87,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

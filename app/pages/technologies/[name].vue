@@ -1,5 +1,5 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Loading State -->
       <UiCard v-if="pending">
@@ -184,7 +184,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">
