@@ -28,8 +28,12 @@
             class="flex-1"
           >
             <template #empty>
-              <div class="text-center text-muted" style="padding: 3rem;">
-                No license violations found.
+              <div class="text-center" style="padding: 2rem;">
+                <svg style="margin: 0 auto; width: 3rem; height: 3rem; color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 style="margin-top: 1rem;">No License Violations!</h3>
+                <p class="text-muted" style="margin-top: 0.5rem;">All components use compliant licenses.</p>
               </div>
             </template>
           </UTable>

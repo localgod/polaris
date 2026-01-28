@@ -40,7 +40,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h3 style="margin-top: 1rem;">All Components Mapped!</h3>
-                <p>Every component in this system is mapped to an approved technology.</p>
+                <p class="text-muted" style="margin-top: 0.5rem;">Every component in this system is mapped to an approved technology.</p>
               </div>
             </template>
           </UTable>

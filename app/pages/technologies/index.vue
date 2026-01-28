@@ -21,6 +21,28 @@
       </UiCard>
 
       <template v-else>
+        <!-- Summary -->
+        <div class="grid grid-cols-3">
+          <UiCard>
+            <div class="text-center">
+              <p class="text-sm text-muted">Total Technologies</p>
+              <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ count }}</p>
+            </div>
+          </UiCard>
+          <UiCard>
+            <div class="text-center">
+              <p class="text-sm text-muted">Categories</p>
+              <p class="text-3xl font-bold text-primary" style="margin-top: 0.5rem;">{{ uniqueCategories.length }}</p>
+            </div>
+          </UiCard>
+          <UiCard>
+            <div class="text-center">
+              <p class="text-sm text-muted">Vendors</p>
+              <p class="text-3xl font-bold text-success" style="margin-top: 0.5rem;">{{ uniqueVendors.length }}</p>
+            </div>
+          </UiCard>
+        </div>
+
         <!-- Technologies Table -->
         <UiCard>
           <UTable
@@ -149,7 +171,24 @@ const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/t
 })
 
 const technologies = computed(() => data.value?.data || [])
+const count = useApiCount(data)
 const total = computed(() => data.value?.total || data.value?.count || 0)
+
+const uniqueCategories = computed(() => {
+  const categories = new Set<string>()
+  technologies.value.forEach(tech => {
+    if (tech.category) categories.add(tech.category)
+  })
+  return Array.from(categories)
+})
+
+const uniqueVendors = computed(() => {
+  const vendors = new Set<string>()
+  technologies.value.forEach(tech => {
+    if (tech.vendor) vendors.add(tech.vendor)
+  })
+  return Array.from(vendors)
+})
 
 useHead({
   title: 'Technologies - Polaris'

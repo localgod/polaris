@@ -19,6 +19,37 @@
       </UiCard>
 
       <template v-else>
+        <!-- Filters -->
+        <UiCard v-if="data">
+          <div class="flex" style="flex-wrap: wrap; gap: 1rem;">
+            <div style="flex: 1; min-width: 200px;">
+              <label>Entity Type</label>
+              <select v-model="selectedEntityType" @change="applyFilters">
+                <option value="">All Types</option>
+                <option v-for="type in data.filters.entityTypes" :key="type" :value="type">{{ type }}</option>
+              </select>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+              <label>Operation</label>
+              <select v-model="selectedOperation" @change="applyFilters">
+                <option value="">All Operations</option>
+                <option v-for="op in data.filters.operations" :key="op" :value="op">{{ op }}</option>
+              </select>
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button class="btn btn-secondary" @click="clearFilters">Clear Filters</button>
+            </div>
+          </div>
+        </UiCard>
+
+        <!-- Summary -->
+        <UiCard v-if="data">
+          <div class="text-center">
+            <p class="text-sm text-muted">Total Entries</p>
+            <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ data.count }}</p>
+          </div>
+        </UiCard>
+
         <!-- Audit Log Table -->
         <UiCard>
           <UTable
@@ -29,7 +60,7 @@
           >
             <template #empty>
               <div class="text-center text-muted" style="padding: 3rem;">
-                No audit log entries found.
+                No audit log entries found matching your filters.
               </div>
             </template>
           </UTable>
@@ -120,20 +151,39 @@ const columns: TableColumn<AuditEntry>[] = [
   }
 ]
 
+const selectedEntityType = ref('')
+const selectedOperation = ref('')
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = {
+    limit: pageSize,
+    offset: (page.value - 1) * pageSize
+  }
+  if (selectedEntityType.value) params.entityType = selectedEntityType.value
+  if (selectedOperation.value) params.operation = selectedOperation.value
+  return params
+})
 
-const { data, pending, error } = await useFetch<AuditResponse>('/api/audit-logs', {
+const { data, pending, error, refresh } = await useFetch<AuditResponse>('/api/audit-logs', {
   query: queryParams
 })
 
 const entries = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
+
+function applyFilters() {
+  page.value = 1
+  refresh()
+}
+
+function clearFilters() {
+  selectedEntityType.value = ''
+  selectedOperation.value = ''
+  page.value = 1
+  refresh()
+}
 
 useHead({ title: 'Audit Log - Polaris' })
 </script>
