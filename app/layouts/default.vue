@@ -4,10 +4,18 @@
     <aside class="w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col">
       <!-- Logo -->
       <div class="p-4 border-b border-gray-200 dark:border-gray-800">
-        <NuxtLink to="/" class="flex items-center gap-2">
-          <UIcon name="i-lucide-zap" class="w-6 h-6 text-primary" />
-          <span class="text-xl font-bold">Polaris</span>
-        </NuxtLink>
+        <div class="flex items-center justify-between">
+          <NuxtLink to="/" class="flex items-center gap-2">
+            <UIcon name="i-lucide-zap" class="w-6 h-6 text-primary" />
+            <span class="text-xl font-bold">Polaris</span>
+          </NuxtLink>
+          <ClientOnly>
+            <UColorModeButton color="neutral" variant="ghost" />
+            <template #fallback>
+              <div class="w-8 h-8" />
+            </template>
+          </ClientOnly>
+        </div>
       </div>
 
       <!-- Navigation -->
@@ -66,6 +74,8 @@
           class="w-full"
         />
       </nav>
+
+
     </aside>
 
     <!-- Main Content -->
