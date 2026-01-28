@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <div class="flex justify-between items-center">
-        <div>
+        <div class="page-header">
           <h1>Components</h1>
-          <p class="text-muted" style="margin-top: 0.5rem;">
+          <p>
             <template v-if="licenseFilter">
               Components with license: <strong>{{ licenseFilter }}</strong>
               <NuxtLink to="/components" style="margin-left: 0.5rem;">(clear filter)</NuxtLink>
@@ -56,7 +56,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

@@ -1,11 +1,11 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Header -->
       <div class="flex justify-between items-center">
-        <div>
+        <div class="page-header">
           <h1>Systems</h1>
-          <p class="text-muted" style="margin-top: 0.5rem;">Deployable applications and services</p>
+          <p>Deployable applications and services</p>
         </div>
         <NuxtLink to="/systems/new" class="btn btn-primary">
           + Create System
@@ -26,34 +26,6 @@
       </UiCard>
 
       <template v-else>
-        <!-- Summary Stats -->
-        <div v-if="data" class="grid grid-cols-4">
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Total Systems</p>
-              <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ data.count }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Critical</p>
-              <p class="text-3xl font-bold text-error" style="margin-top: 0.5rem;">{{ criticalityCounts.critical }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">High</p>
-              <p class="text-3xl font-bold text-warning" style="margin-top: 0.5rem;">{{ criticalityCounts.high }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Medium/Low</p>
-              <p class="text-3xl font-bold text-success" style="margin-top: 0.5rem;">{{ criticalityCounts.medium + criticalityCounts.low }}</p>
-            </div>
-          </UiCard>
-        </div>
-
         <!-- Systems Table -->
         <UiCard>
           <UTable
@@ -63,14 +35,8 @@
             class="flex-1"
           >
             <template #empty>
-              <div class="text-center" style="padding: 3rem;">
-                <svg style="margin: 0 auto; width: 3rem; height: 3rem; color: var(--color-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <h3 style="margin-top: 1rem;">No Systems Found</h3>
-                <p class="text-muted" style="margin-top: 0.5rem;">
-                  The database appears to be empty. Try running: <code>npm run seed</code>
-                </p>
+              <div class="text-center text-muted" style="padding: 3rem;">
+                No systems found.
               </div>
             </template>
           </UTable>
@@ -87,7 +53,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">
@@ -223,18 +189,6 @@ const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems',
 
 const systems = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
-
-const criticalityCounts = computed(() => {
-  if (!data.value?.data) return { critical: 0, high: 0, medium: 0, low: 0 }
-  const counts = { critical: 0, high: 0, medium: 0, low: 0 }
-  data.value.data.forEach(sys => {
-    if (sys.businessCriticality === 'critical') counts.critical++
-    else if (sys.businessCriticality === 'high') counts.high++
-    else if (sys.businessCriticality === 'medium') counts.medium++
-    else if (sys.businessCriticality === 'low') counts.low++
-  })
-  return counts
-})
 
 useHead({
   title: 'Systems - Polaris'

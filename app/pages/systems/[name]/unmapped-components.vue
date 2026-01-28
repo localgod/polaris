@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <div>
         <NuxtLink to="/systems" style="display: inline-block; margin-bottom: 1rem;">← Back to Systems</NuxtLink>
         <h1>Unmapped Components: {{ systemName }}</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Components not yet mapped to approved technologies</p>
+        <p>Components not yet mapped to approved technologies</p>
       </div>
 
       <UiCard v-if="error">
@@ -23,7 +23,7 @@
         <UiCard v-if="data">
           <div class="text-center">
             <p class="text-sm text-muted">Unmapped Components</p>
-            <p class="text-3xl font-bold text-warning" style="margin-top: 0.5rem;">{{ data.count }}</p>
+            <p class="text-3xl font-bold text-warning" style="margin-top: 0.5rem;">{{ total }}</p>
           </div>
         </UiCard>
 
@@ -40,7 +40,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h3 style="margin-top: 1rem;">All Components Mapped!</h3>
-                <p class="text-muted" style="margin-top: 0.5rem;">Every component in this system is mapped to an approved technology.</p>
+                <p>Every component in this system is mapped to an approved technology.</p>
               </div>
             </template>
           </UTable>
@@ -57,7 +57,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

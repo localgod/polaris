@@ -1,58 +1,30 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
+      <div class="page-header">
         <h1>License Inventory</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Licenses discovered in components across all systems</p>
+        <p>Licenses discovered in components across all systems</p>
       </div>
 
-      <UiCard v-if="error || statsError || deniedError">
+      <UiCard v-if="error || deniedError">
         <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
           <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
             <h3>Error</h3>
-            <p class="text-sm">{{ error?.message || statsError?.message || deniedError?.message }}</p>
+            <p class="text-sm">{{ error?.message || deniedError?.message }}</p>
           </div>
         </div>
       </UiCard>
 
       <template v-else>
-        <!-- Statistics Cards -->
-        <div v-if="stats" class="grid grid-cols-4">
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Total Licenses</p>
-              <p class="text-3xl font-bold" style="margin-top: 0.25rem;">{{ stats.data[0]?.total || 0 }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Permissive</p>
-              <p class="text-3xl font-bold text-success" style="margin-top: 0.25rem;">{{ stats.data[0]?.byCategory?.permissive || 0 }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Copyleft</p>
-              <p class="text-3xl font-bold text-warning" style="margin-top: 0.25rem;">{{ stats.data[0]?.byCategory?.copyleft || 0 }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Denied</p>
-              <p class="text-3xl font-bold text-error" style="margin-top: 0.25rem;">{{ deniedLicenses.length }}</p>
-            </div>
-          </UiCard>
-        </div>
-
         <!-- Licenses Table -->
         <UiCard>
           <UTable
             :data="licenses"
             :columns="columns"
-            :loading="pending || statsPending || deniedPending"
+            :loading="pending || deniedPending"
             class="flex-1"
           >
             <template #empty>
@@ -74,7 +46,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">
@@ -89,22 +61,11 @@ interface License {
   componentCount: number
 }
 
-interface LicenseStats {
-  total: number
-  osiApproved: number
-  byCategory: Record<string, number>
-}
-
 interface LicenseResponse {
   success: boolean
   data: License[]
   count: number
   total?: number
-}
-
-interface StatsResponse {
-  success: boolean
-  data: LicenseStats[]
 }
 
 interface DeniedResponse {
@@ -127,7 +88,6 @@ const queryParams = computed(() => ({
 const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses', {
   query: queryParams
 })
-const { data: stats, pending: statsPending, error: statsError } = await useFetch<StatsResponse>('/api/licenses/statistics')
 const { data: deniedData, pending: deniedPending, error: deniedError, refresh: refreshDenied } = await useFetch<DeniedResponse>('/api/licenses/denied')
 
 const total = computed(() => data.value?.total || data.value?.count || 0)

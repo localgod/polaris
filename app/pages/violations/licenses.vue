@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
-      <div>
-        <NuxtLink to="/violations" style="display: inline-block; margin-bottom: 1rem;">← Back to Violations</NuxtLink>
+      <div class="page-header">
+        <NuxtLink to="/violations" style="display: inline-block; margin-bottom: 0.5rem;">← Back to Violations</NuxtLink>
         <h1>License Violations</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Components using non-compliant licenses</p>
+        <p>Components using non-compliant licenses</p>
       </div>
 
       <UiCard v-if="error">
@@ -28,12 +28,8 @@
             class="flex-1"
           >
             <template #empty>
-              <div class="text-center" style="padding: 2rem;">
-                <svg style="margin: 0 auto; width: 3rem; height: 3rem; color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 style="margin-top: 1rem;">No License Violations!</h3>
-                <p class="text-muted" style="margin-top: 0.5rem;">All components use compliant licenses.</p>
+              <div class="text-center text-muted" style="padding: 3rem;">
+                No license violations found.
               </div>
             </template>
           </UTable>
@@ -50,7 +46,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

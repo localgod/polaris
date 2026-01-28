@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <div class="flex justify-between items-center">
-        <div>
+        <div class="page-header">
           <h1>Policy Violations</h1>
-          <p class="text-muted" style="margin-top: 0.5rem;">Technologies and licenses used without approval</p>
+          <p>Technologies and licenses used without approval</p>
         </div>
         <NuxtLink to="/violations/licenses" class="btn btn-primary">View License Violations</NuxtLink>
       </div>
@@ -29,40 +29,9 @@
       </UiCard>
 
       <template v-else-if="data">
-        <div class="grid grid-cols-4">
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Total Violations</p>
-              <p class="text-3xl font-bold text-error" style="margin-top: 0.25rem;">{{ data.count }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Critical</p>
-              <p class="text-3xl font-bold text-error" style="margin-top: 0.25rem;">{{ data.summary?.critical || 0 }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Error</p>
-              <p class="text-3xl font-bold text-warning" style="margin-top: 0.25rem;">{{ data.summary?.error || 0 }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Warning</p>
-              <p class="text-3xl font-bold" style="margin-top: 0.25rem;">{{ data.summary?.warning || 0 }}</p>
-            </div>
-          </UiCard>
-        </div>
-
         <UiCard v-if="data.count === 0">
-          <div class="text-center" style="padding: 2rem;">
-            <svg style="margin: 0 auto; width: 3rem; height: 3rem; color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 style="margin-top: 1rem;">No Violations!</h3>
-            <p class="text-muted" style="margin-top: 0.5rem;">All technologies are properly approved.</p>
+          <div class="text-center text-muted" style="padding: 3rem;">
+            No violations found.
           </div>
         </UiCard>
 
@@ -102,7 +71,7 @@
         </div>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">

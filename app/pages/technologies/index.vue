@@ -1,10 +1,10 @@
 <template>
-  <NuxtLayout name="default">
+  
     <div class="space-y">
       <!-- Header -->
-      <div>
+      <div class="page-header">
         <h1>Technologies</h1>
-        <p class="text-muted" style="margin-top: 0.5rem;">Approved technologies and their versions</p>
+        <p>Approved technologies and their versions</p>
       </div>
 
       <!-- Error State -->
@@ -21,28 +21,6 @@
       </UiCard>
 
       <template v-else>
-        <!-- Summary -->
-        <div class="grid grid-cols-3">
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Total Technologies</p>
-              <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ count }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Categories</p>
-              <p class="text-3xl font-bold text-primary" style="margin-top: 0.5rem;">{{ uniqueCategories.length }}</p>
-            </div>
-          </UiCard>
-          <UiCard>
-            <div class="text-center">
-              <p class="text-sm text-muted">Vendors</p>
-              <p class="text-3xl font-bold text-success" style="margin-top: 0.5rem;">{{ uniqueVendors.length }}</p>
-            </div>
-          </UiCard>
-        </div>
-
         <!-- Technologies Table -->
         <UiCard>
           <UTable
@@ -70,7 +48,7 @@
         </UiCard>
       </template>
     </div>
-  </NuxtLayout>
+  
 </template>
 
 <script setup lang="ts">
@@ -171,18 +149,7 @@ const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/t
 })
 
 const technologies = computed(() => data.value?.data || [])
-const count = useApiCount(data)
 const total = computed(() => data.value?.total || data.value?.count || 0)
-
-const uniqueCategories = computed(() => {
-  if (!data.value?.data) return []
-  return [...new Set(data.value.data.map((t: Technology) => t.category).filter(Boolean))]
-})
-
-const uniqueVendors = computed(() => {
-  if (!data.value?.data) return []
-  return [...new Set(data.value.data.map((t: Technology) => t.vendor).filter(Boolean))]
-})
 
 useHead({
   title: 'Technologies - Polaris'
