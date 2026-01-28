@@ -26,9 +26,7 @@ export default defineNuxtConfig({
     '@nuxt/ui'
   ],
 
-  ui: {
-    colorMode: false
-  },
+
 
   auth: {
     // baseURL will be auto-detected from request origin if not set
