@@ -7,6 +7,8 @@ export interface ViolationFilters {
   technology?: string
   system?: string
   license?: string
+  limit?: number
+  offset?: number
 }
 
 export interface PolicyFilters {

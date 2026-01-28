@@ -3,6 +3,7 @@ import type { ApiResponse } from '~~/types/api'
 
 /**
  * Extract count from API response with proper type narrowing
+ * Prefers 'total' over 'count' to support paginated responses
  * 
  * @param data - Ref containing API response
  * @returns Computed count value (0 if error or no data)
@@ -10,7 +11,9 @@ import type { ApiResponse } from '~~/types/api'
 export function useApiCount<T>(data: Ref<ApiResponse<T> | null | undefined>) {
   return computed(() => {
     if (!data.value) return 0
-    return data.value.success ? data.value.count : 0
+    if (!data.value.success) return 0
+    // Prefer total (full count) over count (page count) for paginated responses
+    return (data.value as ApiResponse<T> & { total?: number }).total || data.value.count
   })
 }
 

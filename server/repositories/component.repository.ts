@@ -7,6 +7,7 @@ export interface ComponentFilters {
   packageManager?: string
   type?: string
   technology?: string
+  license?: string
   hasLicense?: boolean
   limit?: number
   offset?: number
@@ -24,6 +25,7 @@ export class ComponentRepository extends BaseRepository {
    * - packageManager: Exact match on package manager
    * - type: Exact match on component type
    * - technology: Filter by mapped technology name
+   * - license: Filter by license SPDX ID
    * - hasLicense: Filter by license presence
    * - limit/offset: Pagination support
    * 
@@ -36,8 +38,14 @@ export class ComponentRepository extends BaseRepository {
       MATCH (c:Component)
       OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)
       OPTIONAL MATCH (s:System)-[:USES]->(c)
-      OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
     `
+    
+    // Use required MATCH for license filter, OPTIONAL otherwise
+    if (filters.license) {
+      cypher += `MATCH (c)-[:HAS_LICENSE]->(l:License)`
+    } else {
+      cypher += `OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)`
+    }
     
     // Build WHERE conditions
     const conditions: string[] = []
@@ -61,6 +69,11 @@ export class ComponentRepository extends BaseRepository {
     if (filters.technology) {
       conditions.push('t.name = $technology')
       params.technology = filters.technology
+    }
+    
+    if (filters.license) {
+      conditions.push('l.id = $license')
+      params.license = filters.license
     }
     
     if (filters.hasLicense !== undefined) {
@@ -133,7 +146,9 @@ export class ComponentRepository extends BaseRepository {
       cypher += ` OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)`
     }
     
-    if (filters.hasLicense !== undefined) {
+    if (filters.license) {
+      cypher += ` MATCH (c)-[:HAS_LICENSE]->(l:License)`
+    } else if (filters.hasLicense !== undefined) {
       cypher += ` OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)`
     }
     
@@ -159,6 +174,11 @@ export class ComponentRepository extends BaseRepository {
     if (filters.technology) {
       conditions.push('t.name = $technology')
       params.technology = filters.technology
+    }
+    
+    if (filters.license) {
+      conditions.push('l.id = $license')
+      params.license = filters.license
     }
     
     if (filters.hasLicense !== undefined) {

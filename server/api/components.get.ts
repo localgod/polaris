@@ -33,6 +33,11 @@ import { ComponentService } from '../services/component.service'
  *           type: string
  *         description: Filter by mapped technology name
  *       - in: query
+ *         name: license
+ *         schema:
+ *           type: string
+ *         description: Filter by license SPDX ID (e.g., MIT, Apache-2.0)
+ *       - in: query
  *         name: hasLicense
  *         schema:
  *           type: boolean
@@ -82,6 +87,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Component>>
       packageManager: query.packageManager as string | undefined,
       type: query.type as string | undefined,
       technology: query.technology as string | undefined,
+      license: query.license as string | undefined,
       hasLicense: query.hasLicense === 'true' ? true : query.hasLicense === 'false' ? false : undefined,
       limit: query.limit ? parseInt(query.limit as string, 10) : 50,
       offset: query.offset ? parseInt(query.offset as string, 10) : 0

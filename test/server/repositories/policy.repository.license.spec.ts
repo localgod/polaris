@@ -16,10 +16,13 @@ declare global {
 
 global.injectWhereConditions = vi.fn((query: string, conditions: string[]) => {
   if (conditions.length === 0) {
-    return query.replace('{{WHERE_CONDITIONS}}', '')
+    return query.replace('{{WHERE_CONDITIONS}}', '').replace('{{AND_CONDITIONS}}', '')
   }
   const whereClause = `WHERE ${conditions.join(' AND ')}`
-  return query.replace('{{WHERE_CONDITIONS}}', whereClause)
+  const andClause = `AND ${conditions.join(' AND ')}`
+  return query
+    .replace('{{WHERE_CONDITIONS}}', whereClause)
+    .replace('{{AND_CONDITIONS}}', andClause)
 })
 
 global.loadQuery = vi.fn(async (path: string) => {
@@ -30,8 +33,8 @@ MATCH (system)-[:USES]->(component:Component)-[:HAS_LICENSE]->(license:License)
 MATCH (policy:Policy {status: 'active', ruleType: 'license-compliance'})
 MATCH (team)-[:SUBJECT_TO]->(policy)
 WHERE NOT (policy)-[:ALLOWS_LICENSE]->(license)
+{{AND_CONDITIONS}}
 OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(policy)
-{{WHERE_CONDITIONS}}
 RETURN team.name as teamName,
        system.name as systemName,
        component.name as componentName,

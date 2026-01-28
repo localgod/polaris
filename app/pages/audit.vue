@@ -6,14 +6,7 @@
         <p class="text-muted" style="margin-top: 0.5rem;">Track changes across the system</p>
       </div>
 
-      <UiCard v-if="pending">
-        <div class="text-center" style="padding: 3rem;">
-          <div class="spinner" style="margin: 0 auto;"/>
-          <p class="text-muted" style="margin-top: 1rem;">Loading audit logs...</p>
-        </div>
-      </UiCard>
-
-      <UiCard v-else-if="error">
+      <UiCard v-if="error">
         <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
           <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -25,9 +18,9 @@
         </div>
       </UiCard>
 
-      <template v-else-if="data">
+      <template v-else>
         <!-- Filters -->
-        <UiCard>
+        <UiCard v-if="data">
           <div class="flex" style="flex-wrap: wrap; gap: 1rem;">
             <div style="flex: 1; min-width: 200px;">
               <label>Entity Type</label>
@@ -50,42 +43,47 @@
         </UiCard>
 
         <!-- Summary -->
-        <UiCard>
+        <UiCard v-if="data">
           <div class="text-center">
             <p class="text-sm text-muted">Total Entries</p>
             <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ data.count }}</p>
           </div>
         </UiCard>
 
-        <!-- Audit Log Entries -->
-        <UiCard v-if="data.data.length === 0">
-          <div class="text-center text-muted" style="padding: 2rem;">
-            No audit log entries found matching your filters.
+        <!-- Audit Log Table -->
+        <UiCard>
+          <UTable
+            :data="entries"
+            :columns="columns"
+            :loading="pending"
+            class="flex-1"
+          >
+            <template #empty>
+              <div class="text-center text-muted" style="padding: 3rem;">
+                No audit log entries found matching your filters.
+              </div>
+            </template>
+          </UTable>
+
+          <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
+            <UPagination
+              v-model:page="page"
+              :total="total"
+              :items-per-page="pageSize"
+              :sibling-count="1"
+              show-edges
+            />
           </div>
         </UiCard>
-
-        <div v-else class="space-y">
-          <UiCard v-for="entry in data.data" :key="entry.id">
-            <div class="flex justify-between items-center">
-              <div>
-                <div class="flex items-center" style="gap: 0.5rem;">
-                  <UiBadge :variant="getOperationVariant(entry.operation)">{{ entry.operation }}</UiBadge>
-                  <span class="font-medium">{{ entry.entityType }}</span>
-                  <span class="text-muted">{{ entry.entityName }}</span>
-                </div>
-                <p class="text-sm text-muted" style="margin-top: 0.5rem;">
-                  by {{ entry.performedBy }} at {{ formatDate(entry.timestamp) }}
-                </p>
-              </div>
-            </div>
-          </UiCard>
-        </div>
       </template>
     </div>
   </NuxtLayout>
 </template>
 
 <script setup lang="ts">
+import { h } from 'vue'
+import type { TableColumn } from '@nuxt/ui'
+
 interface AuditEntry {
   id: string
   entityType: string
@@ -99,17 +97,70 @@ interface AuditResponse {
   success: boolean
   data: AuditEntry[]
   count: number
+  total?: number
   filters: {
     entityTypes: string[]
     operations: string[]
   }
 }
 
+const UiBadge = resolveComponent('UiBadge')
+
+function getOperationVariant(operation: string) {
+  const variants: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
+    CREATE: 'success',
+    UPDATE: 'warning',
+    DELETE: 'error',
+    DENY_LICENSE: 'error',
+    ALLOW_LICENSE: 'success'
+  }
+  return variants[operation] || 'neutral'
+}
+
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleString()
+}
+
+const columns: TableColumn<AuditEntry>[] = [
+  {
+    accessorKey: 'operation',
+    header: 'Operation',
+    cell: ({ row }) => {
+      const operation = row.getValue('operation') as string
+      return h(UiBadge, { variant: getOperationVariant(operation) }, () => operation)
+    }
+  },
+  {
+    accessorKey: 'entityType',
+    header: 'Entity Type',
+    cell: ({ row }) => h('span', { class: 'font-medium' }, row.getValue('entityType') as string)
+  },
+  {
+    accessorKey: 'entityName',
+    header: 'Entity',
+    cell: ({ row }) => row.getValue('entityName') as string
+  },
+  {
+    accessorKey: 'performedBy',
+    header: 'Performed By'
+  },
+  {
+    accessorKey: 'timestamp',
+    header: 'Timestamp',
+    cell: ({ row }) => formatDate(row.getValue('timestamp') as string)
+  }
+]
+
 const selectedEntityType = ref('')
 const selectedOperation = ref('')
+const page = ref(1)
+const pageSize = 20
 
 const queryParams = computed(() => {
-  const params: Record<string, string> = {}
+  const params: Record<string, string | number> = {
+    limit: pageSize,
+    offset: (page.value - 1) * pageSize
+  }
   if (selectedEntityType.value) params.entityType = selectedEntityType.value
   if (selectedOperation.value) params.operation = selectedOperation.value
   return params
@@ -119,26 +170,18 @@ const { data, pending, error, refresh } = await useFetch<AuditResponse>('/api/au
   query: queryParams
 })
 
-function getOperationVariant(operation: string) {
-  const variants: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    CREATE: 'success',
-    UPDATE: 'warning',
-    DELETE: 'error'
-  }
-  return variants[operation] || 'neutral'
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString()
-}
+const entries = computed(() => data.value?.data || [])
+const total = computed(() => data.value?.total || data.value?.count || 0)
 
 function applyFilters() {
+  page.value = 1
   refresh()
 }
 
 function clearFilters() {
   selectedEntityType.value = ''
   selectedOperation.value = ''
+  page.value = 1
   refresh()
 }
 

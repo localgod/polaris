@@ -3,6 +3,7 @@ import { PolicyService } from '../../services/policy.service'
 import type { LicenseViolation } from '../../repositories/policy.repository'
 
 export interface LicenseViolationResponse extends ApiResponse<LicenseViolation> {
+  total?: number
   summary?: {
     critical: number
     error: number
@@ -132,7 +133,9 @@ export default defineEventHandler(async (event): Promise<LicenseViolationRespons
       severity: query.severity as string | undefined,
       team: query.team as string | undefined,
       system: query.system as string | undefined,
-      license: query.license as string | undefined
+      license: query.license as string | undefined,
+      limit: query.limit ? parseInt(query.limit as string, 10) : undefined,
+      offset: query.offset ? parseInt(query.offset as string, 10) : undefined
     }
     
     const policyService = new PolicyService()
@@ -141,7 +144,8 @@ export default defineEventHandler(async (event): Promise<LicenseViolationRespons
     return {
       success: true,
       data: result.data,
-      count: result.count,
+      count: result.data.length,
+      total: result.count,
       summary: result.summary
     }
   } catch (error: unknown) {

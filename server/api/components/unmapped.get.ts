@@ -17,6 +17,19 @@ import { ComponentService } from '../../services/component.service'
  *       - Identify components that need technology mapping
  *       - Find widely-used internal libraries
  *       - Discover shadow IT or unapproved dependencies
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of results per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Pagination offset
  *     responses:
  *       200:
  *         description: Unmapped components retrieved successfully
@@ -42,6 +55,10 @@ import { ComponentService } from '../../services/component.service'
  *                             type: integer
  *                 count:
  *                   type: integer
+ *                   description: Number of items in current page
+ *                 total:
+ *                   type: integer
+ *                   description: Total number of unmapped components
  *             example:
  *               success: true
  *               data:
@@ -52,17 +69,26 @@ import { ComponentService } from '../../services/component.service'
  *                   systems: ["web-portal", "admin-dashboard", "mobile-api"]
  *                   systemCount: 3
  *               count: 1
+ *               total: 1
  *       500:
  *         description: Failed to fetch unmapped components
  */
-export default defineEventHandler(async (): Promise<ApiResponse<UnmappedComponent>> => {
+export default defineEventHandler(async (event): Promise<ApiResponse<UnmappedComponent>> => {
   try {
+    const query = getQuery(event)
+    const limit = query.limit ? parseInt(query.limit as string, 10) : 50
+    const offset = query.offset ? parseInt(query.offset as string, 10) : 0
+
     const componentService = new ComponentService()
     const result = await componentService.findUnmapped()
+    const total = result.data.length
+    const paginatedData = result.data.slice(offset, offset + limit)
     
     return {
       success: true,
-      ...result
+      data: paginatedData,
+      count: paginatedData.length,
+      total
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch unmapped components'

@@ -396,13 +396,64 @@ Tests: User journeys and interactions
 | **Scope**       | Backend workflows         | Full stack               |
 | **Perspective** | Developer/System          | End user                 |
 
+## API Pagination Tests
+
+All list endpoints support consistent pagination with `limit` and `offset` parameters.
+
+### Pagination Contract
+
+Every paginated endpoint returns:
+- `count`: Number of items in the current page
+- `total`: Total number of items matching the query
+
+**Example request:**
+```
+GET /api/components?limit=20&offset=40
+```
+
+**Example response:**
+```json
+{
+  "success": true,
+  "data": [...],
+  "count": 20,
+  "total": 2300
+}
+```
+
+### Endpoints with Pagination
+
+| Endpoint | Default Limit |
+|----------|---------------|
+| `/api/components` | 50 |
+| `/api/systems` | 50 |
+| `/api/teams` | 50 |
+| `/api/technologies` | 50 |
+| `/api/licenses` | 50 |
+| `/api/policies` | 50 |
+| `/api/audit-logs` | 100 |
+| `/api/components/unmapped` | 50 |
+| `/api/systems/{name}/unmapped-components` | 50 |
+| `/api/policies/license-violations` | 50 |
+
+### Pagination Tests
+
+Tests are located in `test/server/api/pagination.spec.ts` and verify:
+- Limit parameter restricts result count
+- Offset parameter skips items correctly
+- Total remains consistent across pages
+- Empty data returned when offset exceeds total
+
+**Run pagination tests:**
+```bash
+npm run test -- --run test/server/api/pagination.spec.ts
+```
+
 ## Related Documentation
 
 - [API Testing Guide](./server/api/README.md) - Detailed API testing patterns
 - [Test Isolation](../docs/testing/test-isolation.md) - Database isolation strategy
 - [Service Layer Pattern](../docs/architecture/service-layer-pattern.md) - Architecture overview
-
-```
 
 ## Writing Tests with vitest-cucumber
 

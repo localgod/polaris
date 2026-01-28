@@ -6,10 +6,11 @@ import { checkServerHealth } from '../../fixtures/api-client'
 /**
  * Homepage UI Tests
  * 
- * These tests require a running Nuxt dev server.
- * Start the server with: npm run dev
+ * These tests require:
+ * 1. A running Nuxt dev server (npm run dev)
+ * 2. Playwright browsers installed (npx playwright install chromium)
  * 
- * Alternative: Use exec_preview or start server programmatically in CI
+ * Tests will be skipped if either requirement is not met.
  */
 
 const feature = await loadFeature('./test/app/e2e/homepage.feature')
@@ -17,35 +18,39 @@ const feature = await loadFeature('./test/app/e2e/homepage.feature')
 describeFeature(feature, ({ Scenario }) => {
   let browser: Browser
   let page: Page
-  let serverRunning = false
+  let canRunTests = false
   const appURL = process.env.NUXT_TEST_BASE_URL || 'http://localhost:3000'
 
   beforeAll(async () => {
-    serverRunning = await checkServerHealth()
+    const serverRunning = await checkServerHealth()
     
     if (!serverRunning) {
       console.warn('\n⚠️  Nuxt dev server not running. Start with: npm run dev')
+      console.warn('   UI tests will be skipped.\n')
+      return
+    }
+
+    // Check if Playwright browsers are installed
+    try {
+      browser = await chromium.launch({ headless: true })
+      canRunTests = true
+    } catch {
+      console.warn('\n⚠️  Playwright browsers not installed. Run: npx playwright install chromium')
       console.warn('   UI tests will be skipped.\n')
     }
   })
 
   Scenario('Homepage loads successfully', ({ Given, When, Then, And }) => {
     Given('the application server is running', () => {
-      if (!serverRunning) {
-        console.log('   ⏭️  Skipping - server not available')
+      if (!canRunTests) {
+        console.log('   ⏭️  Skipping - prerequisites not met')
         return
       }
-      expect(serverRunning).toBe(true)
+      expect(canRunTests).toBe(true)
     })
 
     When('I navigate to the homepage', async () => {
-      if (!serverRunning) return
-      
-      if (!browser) {
-        browser = await chromium.launch({
-          headless: true,
-        })
-      }
+      if (!canRunTests) return
       
       page = await browser.newPage()
       console.log(`   Navigating to: ${appURL}`)
@@ -53,13 +58,13 @@ describeFeature(feature, ({ Scenario }) => {
     })
 
     Then('the page should load successfully', async () => {
-      if (!serverRunning) return
+      if (!canRunTests) return
       expect(page).toBeDefined()
       expect(page.url()).toBe(`${appURL}/`)
     })
 
     And('the page should contain the application title', async () => {
-      if (!serverRunning) return
+      if (!canRunTests) return
       const title = await page.title()
       expect(title).toBeTruthy()
       expect(title.length).toBeGreaterThan(0)
