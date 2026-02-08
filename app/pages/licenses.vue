@@ -47,11 +47,14 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
+const { data: session } = useAuth()
+
 interface License {
   id: string
   name: string
   category: string
   osiApproved: boolean
+  whitelisted: boolean
   componentCount: number
   url: string | null
 }
@@ -120,9 +123,46 @@ const columns: TableColumn<License>[] = [
     }
   },
   {
+    accessorKey: 'whitelisted',
+    header: 'Status',
+    cell: ({ row }) => {
+      const whitelisted = row.getValue('whitelisted') as boolean
+      return h(resolveComponent('UBadge'), {
+        color: whitelisted ? 'success' : 'neutral',
+        variant: 'subtle'
+      }, () => whitelisted ? 'Enabled' : 'Disabled')
+    }
+  },
+  {
     accessorKey: 'componentCount',
     header: 'Components',
     cell: ({ row }) => String(row.getValue('componentCount') ?? 0)
+  },
+  {
+    id: 'actions',
+    header: '',
+    meta: { class: { th: 'w-10', td: 'text-right' } },
+    cell: ({ row }) => {
+      const license = row.original
+      const isSuperuser = session.value?.user?.role === 'superuser'
+      const menuItems = [[
+        {
+          label: 'View Components',
+          icon: 'i-lucide-box',
+          onSelect: () => navigateTo(`/components?license=${encodeURIComponent(license.id)}`)
+        },
+        ...(isSuperuser
+          ? [{
+              label: license.whitelisted ? 'Disable' : 'Enable',
+              icon: license.whitelisted ? 'i-lucide-ban' : 'i-lucide-check-circle',
+              onSelect: () => toggleWhitelist(license)
+            }]
+          : [])
+      ]]
+      return h(resolveComponent('UDropdownMenu'), { items: menuItems, content: { align: 'end' as const } }, {
+        default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
+      })
+    }
   }
 ]
 
@@ -140,6 +180,19 @@ const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses'
 
 const licenses = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
+
+async function toggleWhitelist(license: License) {
+  try {
+    await $fetch('/api/admin/licenses/whitelist', {
+      method: 'PUT',
+      body: { licenseId: license.id, whitelisted: !license.whitelisted }
+    })
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Failed to update license status'
+    console.error('Toggle whitelist error:', message)
+  }
+}
 
 useHead({ title: 'License Inventory - Polaris' })
 </script>

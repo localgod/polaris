@@ -81,7 +81,7 @@ interface WhitelistUpdateResponse {
  */
 export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse> => {
   // Require superuser access
-  await requireSuperuser(event)
+  const user = await requireSuperuser(event)
 
   try {
     const body = await readBody<WhitelistUpdateRequest>(event)
@@ -116,7 +116,7 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
     // Handle single license update
     if (body.licenseId) {
       try {
-        await licenseService.updateWhitelistStatus(body.licenseId, body.whitelisted)
+        await licenseService.updateWhitelistStatus(body.licenseId, body.whitelisted, user.id)
         setResponseStatus(event, 200)
         return {
           success: true,
@@ -140,7 +140,7 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
 
     // Handle bulk license update
     if (body.licenseIds) {
-      const result = await licenseService.bulkUpdateWhitelistStatus(body.licenseIds, body.whitelisted)
+      const result = await licenseService.bulkUpdateWhitelistStatus(body.licenseIds, body.whitelisted, user.id)
       
       if (result.success) {
         setResponseStatus(event, 200)

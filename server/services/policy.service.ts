@@ -216,9 +216,26 @@ export class PolicyService {
     // Business logic: validate filters
     this.validateFilters(filters)
     
-    // Fetch license violations from repository (without pagination to get total count)
+    // Fetch both policy-based and disabled-license violations
     const { limit, offset, ...repoFilters } = filters
-    const allViolations = await this.policyRepo.findLicenseViolations(repoFilters)
+    const [policyViolations, disabledViolations] = await Promise.all([
+      this.policyRepo.findLicenseViolations(repoFilters),
+      this.policyRepo.findDisabledLicenseViolations(repoFilters)
+    ])
+
+    // Filter disabled violations by severity if specified (they always have severity 'error')
+    const filteredDisabled = repoFilters.severity
+      ? disabledViolations.filter(v => v.policy.severity === repoFilters.severity)
+      : disabledViolations
+
+    // Merge and deduplicate (a component may appear in both sets)
+    const seen = new Set<string>()
+    const allViolations = [...policyViolations, ...filteredDisabled].filter(v => {
+      const key = `${v.system}:${v.component.name}:${v.component.version}:${v.license.id}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
     
     // Business logic: calculate summary from all violations
     const summary = this.calculateLicenseSummary(allViolations)

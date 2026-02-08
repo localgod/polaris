@@ -91,9 +91,10 @@ import type { TableColumn } from '@nuxt/ui'
 interface AuditEntry {
   id: string
   entityType: string
-  entityName: string
+  entityId: string
+  entityLabel: string | null
   operation: string
-  performedBy: string
+  userId: string | null
   timestamp: string
 }
 
@@ -113,6 +114,11 @@ function getOperationColor(operation: string): 'success' | 'warning' | 'error' |
     CREATE: 'success',
     UPDATE: 'warning',
     DELETE: 'error',
+    ENABLE: 'success',
+    DISABLE: 'error',
+    ACTIVATE: 'success',
+    ARCHIVE: 'warning',
+    DEACTIVATE: 'error',
     DENY_LICENSE: 'error',
     ALLOW_LICENSE: 'success'
   }
@@ -141,13 +147,21 @@ const columns: TableColumn<AuditEntry>[] = [
     cell: ({ row }) => h('span', { class: 'font-medium' }, row.getValue('entityType') as string)
   },
   {
-    accessorKey: 'entityName',
+    accessorKey: 'entityLabel',
     header: 'Entity',
-    cell: ({ row }) => row.getValue('entityName') as string
+    cell: ({ row }) => {
+      const label = row.original.entityLabel || row.original.entityId
+      return label || '—'
+    }
   },
   {
-    accessorKey: 'performedBy',
-    header: 'Performed By'
+    accessorKey: 'userId',
+    header: 'Performed By',
+    cell: ({ row }) => {
+      const userId = row.getValue('userId') as string | null
+      if (!userId) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return userId
+    }
   },
   {
     accessorKey: 'timestamp',
