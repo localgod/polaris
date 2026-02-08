@@ -6,7 +6,7 @@
       <div class="p-4 border-b border-gray-200 dark:border-gray-800">
         <div class="flex items-center justify-between">
           <NuxtLink to="/" class="flex items-center gap-2">
-            <UIcon name="i-lucide-zap" class="w-6 h-6 text-primary" />
+            <UIcon name="i-lucide-zap" class="w-6 h-6 text-(--ui-primary)" />
             <span class="text-xl font-bold">Polaris</span>
           </NuxtLink>
           <ClientOnly>

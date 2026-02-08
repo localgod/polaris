@@ -1,111 +1,106 @@
 <template>
-  
-    <div class="space-y">
-      <!-- Header -->
-      <div class="page-header">
-        <h1>Profile</h1>
-        <p>Your account information and team memberships</p>
-      </div>
+  <div class="space-y-6">
+    <UPageHeader
+      title="Profile"
+      description="Your account information and team memberships"
+    />
 
-      <!-- Not Authenticated -->
-      <UiCard v-if="status !== 'authenticated'">
-        <div class="text-center" style="padding: 3rem;">
-          <svg style="margin: 0 auto; width: 3rem; height: 3rem; color: var(--color-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <h3 style="margin-top: 1rem;">Not Signed In</h3>
-          <p>Sign in to view your profile</p>
-          <div style="margin-top: 1.5rem;">
-            <NuxtLink to="/auth/signin" class="btn btn-primary">Sign In</NuxtLink>
+    <!-- Not Authenticated -->
+    <UCard v-if="status !== 'authenticated'">
+      <div class="text-center py-12">
+        <UIcon name="i-lucide-user" class="text-5xl text-(--ui-text-muted)" />
+        <h3 class="mt-4">Not Signed In</h3>
+        <p class="text-(--ui-text-muted) mt-2">Sign in to view your profile</p>
+        <div class="mt-6">
+          <UButton label="Sign In" to="/auth/signin" color="primary" />
+        </div>
+      </div>
+    </UCard>
+
+    <!-- Authenticated -->
+    <template v-else-if="session?.user">
+      <UCard>
+        <template #header>
+          <h2 class="text-lg font-semibold">Account Information</h2>
+        </template>
+
+        <div class="flex gap-6">
+          <UAvatar
+            v-if="session.user.image"
+            :src="session.user.image"
+            :alt="session.user.name || 'User'"
+            size="3xl"
+          />
+          <UAvatar
+            v-else
+            :text="((session.user?.name || session.user?.email || 'U')[0] || 'U').toUpperCase()"
+            size="3xl"
+          />
+
+          <div class="flex-1 space-y-3">
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Name</span>
+              <p class="font-semibold text-lg">{{ session.user.name || 'Not provided' }}</p>
+            </div>
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Email</span>
+              <p>{{ session.user.email }}</p>
+            </div>
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Provider</span>
+              <p>GitHub</p>
+            </div>
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">User ID</span>
+              <p><code>{{ session.user.id }}</code></p>
+            </div>
           </div>
         </div>
-      </UiCard>
+      </UCard>
 
-      <!-- Authenticated -->
-      <template v-else-if="session?.user">
-        <!-- User Info Card -->
-        <UiCard>
-          <template #header>
-            <h2>Account Information</h2>
-          </template>
+      <UCard>
+        <template #header>
+          <h2 class="text-lg font-semibold">Role &amp; Permissions</h2>
+        </template>
 
-          <div class="flex" style="gap: 1.5rem;">
-            <img 
-              v-if="session.user.image" 
-              :src="session.user.image" 
-              :alt="session.user.name || 'User'"
-              style="width: 6rem; height: 6rem; border-radius: 50%; border: 4px solid var(--color-primary);"
-            >
-            <div v-else class="user-avatar" style="width: 6rem; height: 6rem; font-size: 2rem;">
-              {{ ((session.user?.name || session.user?.email || 'U')[0] || 'U').toUpperCase() }}
-            </div>
-
-            <div class="space-y" style="flex: 1; --space: 1rem;">
-              <div>
-                <label class="text-sm text-muted">Name</label>
-                <p class="font-semibold text-lg">{{ session.user.name || 'Not provided' }}</p>
-              </div>
-              <div>
-                <label class="text-sm text-muted">Email</label>
-                <p>{{ session.user.email }}</p>
-              </div>
-              <div>
-                <label class="text-sm text-muted">Provider</label>
-                <p>GitHub</p>
-              </div>
-              <div>
-                <label class="text-sm text-muted">User ID</label>
-                <p><code>{{ session.user.id }}</code></p>
-              </div>
+        <div class="space-y-3">
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Role</span>
+            <div class="mt-1">
+              <UBadge :color="session.user.role === 'superuser' ? 'error' : 'primary'" variant="subtle">
+                {{ session.user.role === 'superuser' ? 'Superuser' : 'User' }}
+              </UBadge>
             </div>
           </div>
-        </UiCard>
+          <p v-if="session.user.role === 'superuser'" class="text-sm text-(--ui-text-muted)">
+            As a superuser, you have full access to all features including user management.
+          </p>
+        </div>
+      </UCard>
 
-        <!-- Role and Permissions -->
-        <UiCard>
-          <template #header>
-            <h2>Role & Permissions</h2>
-          </template>
+      <UCard>
+        <template #header>
+          <h2 class="text-lg font-semibold">Team Memberships</h2>
+        </template>
 
-          <div class="space-y" style="--space: 1rem;">
-            <div>
-              <label class="text-sm text-muted">Role</label>
-              <div style="margin-top: 0.25rem;">
-                <UiBadge :variant="session.user.role === 'superuser' ? 'error' : 'primary'">
-                  {{ session.user.role === 'superuser' ? 'Superuser' : 'User' }}
-                </UiBadge>
-              </div>
-            </div>
-            <div v-if="session.user.role === 'superuser'">
-              <p class="text-sm text-muted">As a superuser, you have full access to all features including user management.</p>
-            </div>
+        <div v-if="session.user.teams && session.user.teams.length > 0" class="space-y-2">
+          <div
+            v-for="team in session.user.teams"
+            :key="team.name"
+            class="p-3 rounded-lg bg-(--ui-bg-elevated)"
+          >
+            <strong>{{ team.name }}</strong>
+            <p v-if="team.responsibilityArea" class="text-sm text-(--ui-text-muted)">{{ team.responsibilityArea }}</p>
           </div>
-        </UiCard>
+        </div>
+        <p v-else class="text-(--ui-text-muted)">You are not a member of any teams.</p>
+      </UCard>
 
-        <!-- Team Memberships -->
-        <UiCard>
-          <template #header>
-            <h2>Team Memberships</h2>
-          </template>
-
-          <div v-if="session.user.teams && session.user.teams.length > 0" class="space-y" style="--space: 0.5rem;">
-            <div v-for="team in session.user.teams" :key="team.name" style="padding: 0.75rem; background: #f9fafb; border-radius: 0.375rem;">
-              <strong>{{ team.name }}</strong>
-              <p v-if="team.responsibilityArea" class="text-sm text-muted">{{ team.responsibilityArea }}</p>
-            </div>
-          </div>
-          <p v-else class="text-muted">You are not a member of any teams.</p>
-        </UiCard>
-
-        <!-- Sign Out -->
-        <UiCard>
-          <button class="btn btn-secondary" style="color: var(--color-error);" @click="signOut({ callbackUrl: '/' })">
-            Sign Out
-          </button>
-        </UiCard>
-      </template>
-    </div>
-  
+      <UCard>
+        <UButton label="Sign Out" color="error" variant="outline" @click="signOut({ callbackUrl: '/' })" />
+      </UCard>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">

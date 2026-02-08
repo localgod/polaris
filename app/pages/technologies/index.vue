@@ -64,46 +64,44 @@ const columns: TableColumn<Technology>[] = [
     header: 'Name',
     cell: ({ row }) => {
       const tech = row.original
-      return h('div', {}, [
-        h(resolveComponent('NuxtLink'), {
-          to: `/technologies/${encodeURIComponent(tech.name)}`,
-          class: 'font-medium hover:underline'
-        }, () => tech.name),
-        tech.description ? h('p', { class: 'text-sm text-(--ui-text-muted)' }, tech.description) : null
-      ].filter(Boolean))
+      return h(resolveComponent('NuxtLink'), {
+        to: `/technologies/${encodeURIComponent(tech.name)}`,
+        class: 'font-medium hover:underline'
+      }, () => tech.name)
     }
   },
   {
-    accessorKey: 'type',
-    header: 'Type',
+    accessorKey: 'category',
+    header: 'Category',
     cell: ({ row }) => {
-      const type = row.getValue('type') as string | undefined
-      if (!type) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle' }, () => type)
+      const category = row.getValue('category') as string | undefined
+      if (!category) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle' }, () => category)
     }
   },
   {
-    accessorKey: 'timeCategory',
+    id: 'time',
     header: 'TIME',
     cell: ({ row }) => {
-      const cat = row.getValue('timeCategory') as string | undefined
+      const approval = row.original.approvals?.[0]
+      const cat = approval?.time
       if (!cat) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return h(resolveComponent('UBadge'), { color: getTimeCategoryColor(cat), variant: 'subtle' }, () => cat)
     }
   },
   {
-    accessorKey: 'stewardTeam',
-    header: 'Steward',
+    accessorKey: 'ownerTeam',
+    header: 'Owner',
     cell: ({ row }) => {
-      const team = row.getValue('stewardTeam') as string | undefined
+      const team = row.getValue('ownerTeam') as string | undefined
       if (!team) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return team
     }
   },
   {
-    accessorKey: 'versionCount',
+    id: 'versions',
     header: 'Versions',
-    cell: ({ row }) => String(row.original.versionCount ?? 0)
+    cell: ({ row }) => String(row.original.versions?.length ?? 0)
   },
   {
     id: 'actions',
