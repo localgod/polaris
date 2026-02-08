@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y">
-    <div class="page-header">
-      <h1>Core Concepts</h1>
-      <p>Understanding Technologies vs Components in Polaris</p>
-    </div>
+  <div class="space-y-6">
+    <UPageHeader
+      title="Core Concepts"
+      description="Understanding Technologies vs Components in Polaris"
+    />
 
-    <UiCard>
+    <UCard>
       <div>
         <h2>Overview</h2>
         <p>Polaris distinguishes between <strong>Technologies</strong> (governed strategic choices) and <strong>Components</strong> (actual software artifacts in use).</p>
@@ -111,7 +111,7 @@
           <li><strong>Violations are actionable</strong> — Teams must either approve the technology or stop using it</li>
         </ul>
       </div>
-    </UiCard>
+    </UCard>
   </div>
 </template>
 

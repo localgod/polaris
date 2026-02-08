@@ -1,83 +1,87 @@
 <template>
-  
-    <div class="space-y">
-      <div class="page-header">
-        <h1>Audit Log</h1>
-        <p>Track changes across the system</p>
-      </div>
+  <div class="space-y-6">
+    <UPageHeader
+      title="Audit Log"
+      description="Track changes across the system"
+    />
 
-      <UiCard v-if="error">
-        <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
-          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <h3>Error</h3>
-            <p class="text-sm">{{ error.message }}</p>
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-alert-circle"
+      title="Error"
+      :description="error.message"
+    />
+
+    <template v-else>
+      <UCard v-if="data">
+        <div class="flex flex-wrap gap-4">
+          <div class="flex-1 min-w-50">
+            <UFormField label="Entity Type">
+              <USelect
+                v-model="selectedEntityType"
+                :items="entityTypeItems"
+                placeholder="All Types"
+                class="w-full"
+                @update:model-value="applyFilters"
+              />
+            </UFormField>
           </div>
-        </div>
-      </UiCard>
-
-      <template v-else>
-        <!-- Filters -->
-        <UiCard v-if="data">
-          <div class="flex" style="flex-wrap: wrap; gap: 1rem;">
-            <div style="flex: 1; min-width: 200px;">
-              <label>Entity Type</label>
-              <select v-model="selectedEntityType" @change="applyFilters">
-                <option value="">All Types</option>
-                <option v-for="type in data.filters.entityTypes" :key="type" :value="type">{{ type }}</option>
-              </select>
-            </div>
-            <div style="flex: 1; min-width: 200px;">
-              <label>Operation</label>
-              <select v-model="selectedOperation" @change="applyFilters">
-                <option value="">All Operations</option>
-                <option v-for="op in data.filters.operations" :key="op" :value="op">{{ op }}</option>
-              </select>
-            </div>
-            <div style="display: flex; align-items: flex-end;">
-              <button class="btn btn-secondary" @click="clearFilters">Clear Filters</button>
-            </div>
+          <div class="flex-1 min-w-50">
+            <UFormField label="Operation">
+              <USelect
+                v-model="selectedOperation"
+                :items="operationItems"
+                placeholder="All Operations"
+                class="w-full"
+                @update:model-value="applyFilters"
+              />
+            </UFormField>
           </div>
-        </UiCard>
-
-        <!-- Summary -->
-        <UiCard v-if="data">
-          <div class="text-center">
-            <p class="text-sm text-muted">Total Entries</p>
-            <p class="text-3xl font-bold" style="margin-top: 0.5rem;">{{ data.count }}</p>
-          </div>
-        </UiCard>
-
-        <!-- Audit Log Table -->
-        <UiCard>
-          <UTable
-            :data="entries"
-            :columns="columns"
-            :loading="pending"
-            class="flex-1"
-          >
-            <template #empty>
-              <div class="text-center text-muted" style="padding: 3rem;">
-                No audit log entries found matching your filters.
-              </div>
-            </template>
-          </UTable>
-
-          <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
-            <UPagination
-              v-model:page="page"
-              :total="total"
-              :items-per-page="pageSize"
-              :sibling-count="1"
-              show-edges
+          <div class="flex items-end">
+            <UButton
+              label="Clear Filters"
+              variant="outline"
+              @click="clearFilters"
             />
           </div>
-        </UiCard>
-      </template>
-    </div>
-  
+        </div>
+      </UCard>
+
+      <UCard v-if="data">
+        <div class="text-center">
+          <p class="text-sm text-(--ui-text-muted)">Total Entries</p>
+          <p class="text-3xl font-bold mt-2">{{ data.count }}</p>
+        </div>
+      </UCard>
+
+      <UCard>
+        <UTable
+          :data="entries"
+          :columns="columns"
+          :loading="pending"
+          class="flex-1"
+        >
+          <template #empty>
+            <div class="text-center text-(--ui-text-muted) py-12">
+              No audit log entries found matching your filters.
+            </div>
+          </template>
+        </UTable>
+
+        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+          <UPagination
+            v-model:page="page"
+            :total="total"
+            :items-per-page="pageSize"
+            :sibling-count="1"
+            show-edges
+          />
+        </div>
+      </UCard>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -104,17 +108,15 @@ interface AuditResponse {
   }
 }
 
-const UiBadge = resolveComponent('UiBadge')
-
-function getOperationVariant(operation: string) {
-  const variants: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
+function getOperationColor(operation: string): 'success' | 'warning' | 'error' | 'neutral' {
+  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
     CREATE: 'success',
     UPDATE: 'warning',
     DELETE: 'error',
     DENY_LICENSE: 'error',
     ALLOW_LICENSE: 'success'
   }
-  return variants[operation] || 'neutral'
+  return colors[operation] || 'neutral'
 }
 
 function formatDate(dateString: string): string {
@@ -127,7 +129,10 @@ const columns: TableColumn<AuditEntry>[] = [
     header: 'Operation',
     cell: ({ row }) => {
       const operation = row.getValue('operation') as string
-      return h(UiBadge, { variant: getOperationVariant(operation) }, () => operation)
+      return h(resolveComponent('UBadge'), {
+        color: getOperationColor(operation),
+        variant: 'subtle'
+      }, () => operation)
     }
   },
   {
@@ -172,6 +177,16 @@ const { data, pending, error, refresh } = await useFetch<AuditResponse>('/api/au
 
 const entries = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
+
+const entityTypeItems = computed(() => {
+  const types = data.value?.filters.entityTypes || []
+  return [{ label: 'All Types', value: '' }, ...types.map(t => ({ label: t, value: t }))]
+})
+
+const operationItems = computed(() => {
+  const ops = data.value?.filters.operations || []
+  return [{ label: 'All Operations', value: '' }, ...ops.map(o => ({ label: o, value: o }))]
+})
 
 function applyFilters() {
   page.value = 1

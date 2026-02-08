@@ -1,111 +1,119 @@
 <template>
-  <div class="space-y">
-    <!-- Loading State -->
-    <UiCard v-if="pending">
-      <div class="text-center" style="padding: 3rem;">
-        <div class="spinner" style="margin: 0 auto;"/>
-        <p class="text-muted" style="margin-top: 1rem;">Loading system details...</p>
-      </div>
-    </UiCard>
+  <div class="space-y-6">
+    <USkeleton v-if="pending" class="h-96 w-full" />
 
-    <!-- Error State -->
-    <UiCard v-else-if="error">
-      <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
-        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <div>
-          <h3>Error Loading System</h3>
-          <p class="text-sm">{{ error.message }}</p>
-        </div>
-      </div>
-      <div style="margin-top: 1rem;">
-        <NuxtLink to="/systems">← Back to Systems</NuxtLink>
-      </div>
-    </UiCard>
+    <UAlert
+      v-else-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-alert-circle"
+      title="Error Loading System"
+      :description="error.message"
+    >
+      <template #actions>
+        <UButton label="Back to Systems" to="/systems" variant="outline" />
+      </template>
+    </UAlert>
 
-    <!-- System Details -->
     <template v-else-if="data?.data">
-      <!-- Header -->
-      <div class="page-header">
-        <NuxtLink to="/systems" style="display: inline-block; margin-bottom: 0.5rem;">← Back to Systems</NuxtLink>
-        <div class="flex justify-between items-center">
-          <div>
-            <h1>{{ data.data.name }}</h1>
-            <p>{{ data.data.domain }}</p>
-          </div>
-          <UiBadge :variant="getCriticalityVariant(data.data.businessCriticality)">
-            {{ data.data.businessCriticality }}
-          </UiBadge>
-        </div>
+      <div class="flex justify-between items-center">
+        <UPageHeader
+          :title="data.data.name"
+          :description="data.data.domain"
+          :links="[{ label: 'Back to Systems', to: '/systems', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+        />
+        <UBadge :color="getCriticalityColor(data.data.businessCriticality)" variant="subtle" size="lg">
+          {{ data.data.businessCriticality }}
+        </UBadge>
       </div>
 
-      <!-- Stats -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <UiStatCard label="Components" :value="data.data.componentCount || 0" variant="primary" />
-        <UiStatCard label="Repositories" :value="data.data.repositoryCount || 0" variant="success" />
-        <UiStatCard label="Environment" :value="data.data.environment || '—'" variant="neutral" />
-        <UiStatCard label="Criticality" :value="data.data.businessCriticality || '—'" :variant="getCriticalityVariant(data.data.businessCriticality)" />
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Components</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.componentCount || 0 }}</p>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Repositories</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.repositoryCount || 0 }}</p>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Environment</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.environment || '—' }}</p>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Criticality</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.businessCriticality || '—' }}</p>
+          </div>
+        </UCard>
       </div>
 
-      <!-- Main Info Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Basic Information -->
-        <UiCard>
+        <UCard>
           <template #header>
-            <h2>Basic Information</h2>
+            <h2 class="text-lg font-semibold">Basic Information</h2>
           </template>
-          <div class="space-y" style="--space: 0.75rem;">
+          <div class="space-y-3">
             <div>
-              <span class="text-sm text-muted">Domain</span>
+              <span class="text-sm text-(--ui-text-muted)">Domain</span>
               <p class="font-medium">{{ data.data.domain || '—' }}</p>
             </div>
             <div>
-              <span class="text-sm text-muted">Environment</span>
+              <span class="text-sm text-(--ui-text-muted)">Environment</span>
               <p class="font-medium">{{ data.data.environment || '—' }}</p>
             </div>
             <div>
-              <span class="text-sm text-muted">Business Criticality</span>
-              <p class="font-medium" :class="getCriticalityClass(data.data.businessCriticality)">
-                {{ data.data.businessCriticality || '—' }}
+              <span class="text-sm text-(--ui-text-muted)">Business Criticality</span>
+              <p class="font-medium">
+                <UBadge :color="getCriticalityColor(data.data.businessCriticality)" variant="subtle">
+                  {{ data.data.businessCriticality || '—' }}
+                </UBadge>
               </p>
             </div>
           </div>
-        </UiCard>
+        </UCard>
 
-        <!-- Ownership -->
-        <UiCard>
+        <UCard>
           <template #header>
-            <h2>Ownership</h2>
+            <h2 class="text-lg font-semibold">Ownership</h2>
           </template>
-          <div class="space-y" style="--space: 0.75rem;">
+          <div class="space-y-3">
             <div>
-              <span class="text-sm text-muted">Owner Team</span>
+              <span class="text-sm text-(--ui-text-muted)">Owner Team</span>
               <p v-if="data.data.ownerTeam" class="font-medium">
-                <NuxtLink :to="`/teams/${encodeURIComponent(data.data.ownerTeam)}`">
+                <NuxtLink :to="`/teams/${encodeURIComponent(data.data.ownerTeam)}`" class="hover:underline">
                   {{ data.data.ownerTeam }}
                 </NuxtLink>
               </p>
-              <p v-else class="text-muted">No owner assigned</p>
+              <p v-else class="text-(--ui-text-muted)">No owner assigned</p>
             </div>
           </div>
-        </UiCard>
+        </UCard>
       </div>
 
-      <!-- Quick Actions -->
-      <UiCard>
+      <UCard>
         <template #header>
-          <h2>Quick Actions</h2>
+          <h2 class="text-lg font-semibold">Quick Actions</h2>
         </template>
         <div class="flex gap-4 flex-wrap">
-          <NuxtLink :to="`/systems/${encodeURIComponent(data.data.name)}/unmapped-components`" class="btn btn-secondary">
-            View Unmapped Components
-          </NuxtLink>
-          <NuxtLink to="/components" class="btn btn-secondary">
-            View All Components
-          </NuxtLink>
+          <UButton
+            label="View Unmapped Components"
+            :to="`/systems/${encodeURIComponent(data.data.name)}/unmapped-components`"
+            variant="outline"
+          />
+          <UButton
+            label="View All Components"
+            to="/components"
+            variant="outline"
+          />
         </div>
-      </UiCard>
+      </UCard>
     </template>
   </div>
 </template>
@@ -130,24 +138,14 @@ interface SystemResponse {
 
 const { data, pending, error } = await useFetch<SystemResponse>(() => `/api/systems/${encodeURIComponent(route.params.name as string)}`)
 
-function getCriticalityVariant(criticality: string): 'error' | 'warning' | 'success' | 'neutral' {
-  const variants: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
+function getCriticalityColor(criticality: string): 'error' | 'warning' | 'success' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
     critical: 'error',
     high: 'warning',
     medium: 'success',
     low: 'neutral'
   }
-  return variants[criticality?.toLowerCase()] || 'neutral'
-}
-
-function getCriticalityClass(criticality: string): string {
-  const classes: Record<string, string> = {
-    critical: 'text-error',
-    high: 'text-warning',
-    medium: 'text-success',
-    low: ''
-  }
-  return classes[criticality?.toLowerCase()] || ''
+  return colors[criticality?.toLowerCase()] || 'neutral'
 }
 
 useHead({
