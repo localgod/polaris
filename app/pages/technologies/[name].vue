@@ -1,254 +1,246 @@
 <template>
-  
-    <div class="space-y">
-      <!-- Loading State -->
-      <UiCard v-if="pending">
-        <div class="text-center" style="padding: 3rem;">
-          <div class="spinner" style="margin: 0 auto;"/>
-          <p class="text-muted" style="margin-top: 1rem;">Loading technology details...</p>
-        </div>
-      </UiCard>
+  <div class="space-y-6">
+    <USkeleton v-if="pending" class="h-96 w-full" />
 
-      <!-- Error State -->
-      <UiCard v-else-if="error">
-        <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
-          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <h3>Error Loading Technology</h3>
-            <p class="text-sm">{{ error.message }}</p>
-          </div>
-        </div>
-        <div style="margin-top: 1rem;">
-          <NuxtLink to="/technologies">← Back to Technologies</NuxtLink>
-        </div>
-      </UiCard>
-
-      <!-- Technology Details -->
-      <template v-else-if="data?.data">
-        <!-- Header -->
-        <div>
-          <div style="margin-bottom: 1rem;">
-            <NuxtLink to="/technologies">← Back to Technologies</NuxtLink>
-          </div>
-          <div class="flex justify-between items-center">
-            <div>
-              <h1 style="margin-bottom: 0.5rem;">{{ data.data.name }}</h1>
-              <p class="text-lg text-muted">{{ data.data.vendor }}</p>
-            </div>
-            <UiBadge
-              v-if="data.data.status"
-              :variant="data.data.status === 'approved' ? 'success' : data.data.status === 'deprecated' ? 'warning' : 'neutral'"
-            >
-              {{ data.data.status }}
-            </UiBadge>
-          </div>
-        </div>
-
-        <!-- Main Info Grid -->
-        <div class="grid grid-cols-2">
-          <!-- Basic Information -->
-          <UiCard>
-            <template #header>
-              <h2>Basic Information</h2>
-            </template>
-            <div class="space-y" style="--space: 0.75rem;">
-              <div>
-                <span class="text-sm text-muted">Category</span>
-                <p class="font-medium">{{ data.data.category }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-muted">Risk Level</span>
-                <p class="font-medium" :class="getRiskClass(data.data.riskLevel)">
-                  {{ data.data.riskLevel }}
-                </p>
-              </div>
-              <div v-if="data.data.approvedVersionRange">
-                <span class="text-sm text-muted">Approved Version Range</span>
-                <p><code>{{ data.data.approvedVersionRange }}</code></p>
-              </div>
-              <div v-if="data.data.lastReviewed">
-                <span class="text-sm text-muted">Last Reviewed</span>
-                <p class="font-medium">{{ formatDate(data.data.lastReviewed) }}</p>
-              </div>
-            </div>
-          </UiCard>
-
-          <!-- Ownership -->
-          <UiCard>
-            <template #header>
-              <h2>Ownership</h2>
-            </template>
-            <div v-if="data.data.ownerTeamName" class="space-y" style="--space: 0.75rem;">
-              <div>
-                <span class="text-sm text-muted">Team</span>
-                <p class="font-medium">{{ data.data.ownerTeamName }}</p>
-              </div>
-              <div v-if="data.data.ownerTeamEmail">
-                <span class="text-sm text-muted">Contact</span>
-                <p><a :href="`mailto:${data.data.ownerTeamEmail}`">{{ data.data.ownerTeamEmail }}</a></p>
-              </div>
-            </div>
-            <p v-else class="text-muted">No owner team assigned</p>
-          </UiCard>
-        </div>
-
-        <!-- Versions -->
-        <UiCard v-if="data.data.versions && data.data.versions.length > 0">
-          <template #header>
-            <h2>Versions</h2>
-          </template>
-          <div class="grid grid-cols-3">
-            <div
-              v-for="version in data.data.versions"
-              :key="version.version"
-              style="border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 1rem; background: #f9fafb;"
-            >
-              <div class="flex justify-between items-center" style="margin-bottom: 0.5rem;">
-                <code class="font-semibold">{{ version.version }}</code>
-                <UiBadge v-if="version.approved" variant="success">Approved</UiBadge>
-              </div>
-              <div class="text-sm space-y" style="--space: 0.25rem;">
-                <div v-if="version.releaseDate">
-                  <span class="text-muted">Released:</span> {{ formatDate(version.releaseDate) }}
-                </div>
-                <div v-if="version.eolDate">
-                  <span class="text-muted">EOL:</span> {{ formatDate(version.eolDate) }}
-                </div>
-                <div v-if="version.cvssScore !== undefined">
-                  <span class="text-muted">CVSS:</span> {{ version.cvssScore }}
-                </div>
-                <p v-if="version.notes" class="text-muted text-sm" style="margin-top: 0.5rem;">{{ version.notes }}</p>
-              </div>
-            </div>
-          </div>
-        </UiCard>
-
-        <!-- Components -->
-        <UiCard v-if="data.data.components && data.data.components.length > 0">
-          <template #header>
-            <h2>Components ({{ data.data.components.length }})</h2>
-          </template>
-          <div class="space-y" style="--space: 0.5rem;">
-            <div
-              v-for="component in data.data.components"
-              :key="`${component.name}-${component.version}`"
-              class="flex justify-between items-center"
-              style="padding: 0.75rem; background: #f9fafb; border-radius: 0.375rem;"
-            >
-              <div>
-                <span class="font-medium">{{ component.name }}</span>
-                <span class="text-muted" style="margin-left: 0.5rem;">v{{ component.version }}</span>
-              </div>
-              <UiBadge variant="primary">{{ component.packageManager }}</UiBadge>
-            </div>
-          </div>
-        </UiCard>
-
-        <!-- Systems Using This Technology -->
-        <UiCard v-if="data.data.systems && data.data.systems.length > 0">
-          <template #header>
-            <h2>Used by Systems ({{ data.data.systems.length }})</h2>
-          </template>
-          <div class="flex" style="flex-wrap: wrap; gap: 0.5rem;">
-            <UiBadge v-for="system in data.data.systems" :key="system" variant="primary">
-              {{ system }}
-            </UiBadge>
-          </div>
-        </UiCard>
-
-        <!-- Policies -->
-        <UiCard v-if="data.data.policies && data.data.policies.length > 0">
-          <template #header>
-            <h2>Applicable Policies ({{ data.data.policies.length }})</h2>
-          </template>
-          <div class="space-y" style="--space: 0.75rem;">
-            <div
-              v-for="policy in data.data.policies"
-              :key="policy.name"
-              class="flex justify-between items-center"
-              style="padding: 0.75rem; background: #f9fafb; border-radius: 0.375rem;"
-            >
-              <div>
-                <span class="font-medium">{{ policy.name }}</span>
-                <span class="text-muted text-sm" style="margin-left: 0.5rem;">({{ policy.ruleType }})</span>
-              </div>
-              <UiBadge
-                :variant="policy.severity === 'critical' || policy.severity === 'error' ? 'error' : policy.severity === 'warning' ? 'warning' : 'primary'"
-              >
-                {{ policy.severity }}
-              </UiBadge>
-            </div>
-          </div>
-        </UiCard>
+    <UAlert
+      v-else-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-alert-circle"
+      title="Error Loading Technology"
+      :description="error.message"
+    >
+      <template #actions>
+        <UButton label="Back to Technologies" to="/technologies" variant="outline" />
       </template>
-    </div>
-  
+    </UAlert>
+
+    <template v-else-if="data?.data">
+      <div class="flex justify-between items-center">
+        <UPageHeader
+          :title="data.data.name"
+          :description="data.data.description"
+          :links="[{ label: 'Back to Technologies', to: '/technologies', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+        />
+        <div class="flex gap-2">
+          <UBadge v-if="data.data.type" color="neutral" variant="subtle">
+            {{ data.data.type }}
+          </UBadge>
+          <UBadge v-if="data.data.timeCategory" :color="getTimeCategoryColor(data.data.timeCategory)" variant="subtle">
+            {{ data.data.timeCategory }}
+          </UBadge>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Versions</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.versionCount || 0 }}</p>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Components</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.componentCount || 0 }}</p>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Systems</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.systemCount || 0 }}</p>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Steward</p>
+            <p class="text-2xl font-bold mt-1">
+              <NuxtLink
+                v-if="data.data.stewardTeam"
+                :to="`/teams/${encodeURIComponent(data.data.stewardTeam)}`"
+                class="hover:underline"
+              >
+                {{ data.data.stewardTeam }}
+              </NuxtLink>
+              <span v-else class="text-(--ui-text-muted)">—</span>
+            </p>
+          </div>
+        </UCard>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <UCard>
+          <template #header>
+            <h2 class="text-lg font-semibold">Basic Information</h2>
+          </template>
+          <div class="space-y-3">
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Type</span>
+              <p class="font-medium">{{ data.data.type || '—' }}</p>
+            </div>
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">TIME Category</span>
+              <p class="font-medium">
+                <UBadge v-if="data.data.timeCategory" :color="getTimeCategoryColor(data.data.timeCategory)" variant="subtle">
+                  {{ data.data.timeCategory }}
+                </UBadge>
+                <span v-else class="text-(--ui-text-muted)">—</span>
+              </p>
+            </div>
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Version Range</span>
+              <p class="font-medium">
+                <code v-if="data.data.versionRange">{{ data.data.versionRange }}</code>
+                <span v-else class="text-(--ui-text-muted)">—</span>
+              </p>
+            </div>
+          </div>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <h2 class="text-lg font-semibold">Governance</h2>
+          </template>
+          <div class="space-y-3">
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Steward Team</span>
+              <p v-if="data.data.stewardTeam" class="font-medium">
+                <NuxtLink :to="`/teams/${encodeURIComponent(data.data.stewardTeam)}`" class="hover:underline">
+                  {{ data.data.stewardTeam }}
+                </NuxtLink>
+              </p>
+              <p v-else class="text-(--ui-text-muted)">No steward assigned</p>
+            </div>
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Risk Level</span>
+              <p class="font-medium">{{ data.data.riskLevel || '—' }}</p>
+            </div>
+          </div>
+        </UCard>
+      </div>
+
+      <UCard v-if="data.data.versions && data.data.versions.length > 0">
+        <template #header>
+          <h2 class="text-lg font-semibold">Versions ({{ data.data.versions.length }})</h2>
+        </template>
+        <UTable :data="data.data.versions" :columns="versionColumns" class="flex-1" />
+      </UCard>
+
+      <UCard v-if="data.data.policies && data.data.policies.length > 0">
+        <template #header>
+          <h2 class="text-lg font-semibold">Policies ({{ data.data.policies.length }})</h2>
+        </template>
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            v-for="policy in data.data.policies"
+            :key="policy"
+            :label="policy"
+            :to="`/policies/${encodeURIComponent(policy)}`"
+            variant="subtle"
+            color="neutral"
+            size="sm"
+          />
+        </div>
+      </UCard>
+
+      <UCard v-if="data.data.approvedByTeams && data.data.approvedByTeams.length > 0">
+        <template #header>
+          <h2 class="text-lg font-semibold">Approved By Teams ({{ data.data.approvedByTeams.length }})</h2>
+        </template>
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            v-for="team in data.data.approvedByTeams"
+            :key="team"
+            :label="team"
+            :to="`/teams/${encodeURIComponent(team)}`"
+            variant="subtle"
+            color="neutral"
+            size="sm"
+          />
+        </div>
+      </UCard>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
+import { h } from 'vue'
+import type { TableColumn } from '@nuxt/ui'
+
 const route = useRoute()
+
+interface Version {
+  version: string
+  releaseDate: string | null
+  endOfLife: string | null
+  status: string
+}
 
 interface TechnologyDetail {
   name: string
-  category: string
-  vendor: string
-  status?: string
-  approvedVersionRange: string
-  ownerTeam: string
+  description: string
+  type: string
+  timeCategory: string
+  versionRange: string
+  stewardTeam: string | null
   riskLevel: string
-  lastReviewed: string
-  ownerTeamName: string | null
-  ownerTeamEmail: string | null
-  versions: Array<{
-    version: string
-    releaseDate: string
-    eolDate: string
-    approved: boolean
-    cvssScore: number
-    notes: string
-  }>
-  components: Array<{
-    name: string
-    version: string
-    packageManager: string
-  }>
-  systems: string[]
-  policies: Array<{
-    name: string
-    severity: string
-    ruleType: string
-  }>
+  versionCount: number
+  componentCount: number
+  systemCount: number
+  versions: Version[]
+  policies: string[]
+  approvedByTeams: string[]
 }
 
-interface TechnologyDetailResponse {
+interface TechnologyResponse {
   success: boolean
   data: TechnologyDetail
-  error?: string
 }
 
-const { data, pending, error } = await useFetch<TechnologyDetailResponse>(() => `/api/technologies/${route.params.name}`)
-
-function formatDate(dateString: string): string {
-  if (!dateString) return 'N/A'
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-  } catch {
-    return dateString
+function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
+  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
+    invest: 'success',
+    tolerate: 'warning',
+    migrate: 'warning',
+    eliminate: 'error'
   }
+  return colors[category?.toLowerCase()] || 'neutral'
 }
 
-function getRiskClass(riskLevel: string): string {
-  const classes: Record<string, string> = {
-    low: 'text-success',
-    medium: 'text-warning',
-    high: 'text-error',
-    critical: 'text-error'
+const versionColumns: TableColumn<Version>[] = [
+  {
+    accessorKey: 'version',
+    header: 'Version',
+    cell: ({ row }) => h('code', {}, row.getValue('version') as string)
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string
+      const color = status === 'active' ? 'success' : status === 'deprecated' ? 'warning' : 'neutral'
+      return h(resolveComponent('UBadge'), { color, variant: 'subtle' }, () => status)
+    }
+  },
+  {
+    accessorKey: 'releaseDate',
+    header: 'Released',
+    cell: ({ row }) => {
+      const date = row.getValue('releaseDate') as string | null
+      return date ? new Date(date).toLocaleDateString() : '—'
+    }
+  },
+  {
+    accessorKey: 'endOfLife',
+    header: 'End of Life',
+    cell: ({ row }) => {
+      const date = row.getValue('endOfLife') as string | null
+      return date ? new Date(date).toLocaleDateString() : '—'
+    }
   }
-  return classes[riskLevel] || ''
-}
+]
+
+const { data, pending, error } = await useFetch<TechnologyResponse>(() => `/api/technologies/${encodeURIComponent(route.params.name as string)}`)
 
 useHead({
   title: computed(() => data.value?.data ? `${data.value.data.name} - Polaris` : 'Technology - Polaris')

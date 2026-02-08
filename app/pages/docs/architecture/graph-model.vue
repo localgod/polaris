@@ -1,25 +1,25 @@
 <template>
-  <div class="space-y">
-    <div class="page-header">
-      <h1>Graph Model</h1>
-      <p>Neo4j data model and relationships</p>
-    </div>
+  <div class="space-y-6">
+    <UPageHeader
+      title="Graph Model"
+      description="Neo4j data model and relationships"
+    />
 
-    <UiCard>
+    <UCard>
       <div>
         <h2>Overview</h2>
         <p>Polaris uses Neo4j, a graph database, to model the relationships between technologies, systems, teams, and policies. This enables powerful queries about technology usage and compliance.</p>
       </div>
-    </UiCard>
+    </UCard>
 
-    <UiCard>
+    <UCard>
       <template #header>
-        <h2 style="margin: 0;">Graph Visualization</h2>
+        <h2 class="text-lg font-semibold m-0">Graph Visualization</h2>
       </template>
-      <div ref="mermaidEl" class="mermaid-container" />
-    </UiCard>
+      <div ref="mermaidEl" class="flex justify-center items-center min-h-50 p-6 overflow-x-auto" />
+    </UCard>
 
-    <UiCard>
+    <UCard>
       <div>
         <h2>Core Nodes</h2>
         <ul>
@@ -60,7 +60,7 @@
           <li>Track all changes made by a specific user</li>
         </ul>
       </div>
-    </UiCard>
+    </UCard>
   </div>
 </template>
 
@@ -136,23 +136,14 @@ onMounted(async () => {
   catch (error) {
     console.error('Mermaid rendering error:', error)
     if (mermaidEl.value) {
-      mermaidEl.value.innerHTML = `<p style="color: var(--color-error);">Failed to render diagram</p>`
+      mermaidEl.value.textContent = 'Failed to render diagram'
     }
   }
 })
 </script>
 
 <style scoped>
-.mermaid-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-  padding: 1.5rem;
-  overflow-x: auto;
-}
-
-.mermaid-container :deep(svg) {
+div :deep(svg) {
   max-width: 100%;
   height: auto;
 }

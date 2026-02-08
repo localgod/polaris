@@ -90,25 +90,6 @@ h4 {
   background: var(--ui-bg-muted, #f9fafb);
 }
 
-/* UiStatCard component */
-.stat-card {
-  background: var(--ui-bg, white);
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-
-.stat-value {
-  font-size: 1.875rem;
-  font-weight: 600;
-  margin-top: 0.5rem;
-}
-
 /* Badges */
 .badge {
   display: inline-flex;

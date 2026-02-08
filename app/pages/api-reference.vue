@@ -1,320 +1,262 @@
 <template>
-  
-    <div class="space-y">
-      <!-- Header -->
-      <div class="flex justify-between items-center">
-        <div>
-          <h1>API Reference</h1>
-          <p>
-            {{ spec?.info?.title || 'Polaris REST API' }} v{{ spec?.info?.version || '2.0.0' }}
-          </p>
-        </div>
-        <a href="/api/openapi.json" download class="btn btn-secondary">
-          Download OpenAPI Spec
-        </a>
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1>API Reference</h1>
+        <p class="text-(--ui-text-muted)">{{ spec?.info?.title }} — v{{ spec?.info?.version }}</p>
       </div>
+      <UButton
+        v-if="spec"
+        label="Download OpenAPI Spec"
+        icon="i-lucide-download"
+        variant="outline"
+        @click="downloadSpec"
+      />
+    </div>
 
-      <!-- Loading -->
-      <UiCard v-if="pending">
-        <div class="text-center" style="padding: 3rem;">
-          <div class="spinner" style="margin: 0 auto;" />
-          <p class="text-muted" style="margin-top: 1rem;">Loading API specification...</p>
-        </div>
-      </UiCard>
+    <USkeleton v-if="loading" class="h-96 w-full" />
 
-      <!-- Error -->
-      <UiCard v-else-if="error">
-        <div class="alert alert-error">
-          Failed to load API specification: {{ error.message }}
-        </div>
-      </UiCard>
+    <UAlert
+      v-else-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-alert-circle"
+      title="Failed to load API specification"
+      :description="error?.message || 'Unknown error'"
+    />
 
-      <template v-else-if="spec">
-        <!-- Overview -->
-        <UiCard>
-          <template #header>
-            <h2>Overview</h2>
-          </template>
-          <div class="prose" v-html="renderMarkdown(spec.info?.description || '')" />
-        </UiCard>
+    <template v-else-if="spec">
+      <UCard>
+        <template #header>
+          <h2 class="text-lg font-semibold">Overview</h2>
+        </template>
+        <div class="prose-content" v-html="renderMarkdown(spec.info?.description || '')" />
+      </UCard>
 
-        <!-- Endpoints by Tag -->
-        <UiCard v-for="tag in spec.tags" :key="tag.name">
-          <template #header>
-            <h2>{{ tag.name }}</h2>
-            <p class="text-muted text-sm">{{ tag.description }}</p>
-          </template>
-          <div class="space-y" style="--space: 1rem;">
+      <UCard v-for="tag in spec.tags" :key="tag.name">
+        <template #header>
+          <div>
+            <h2 class="text-lg font-semibold">{{ tag.name }}</h2>
+            <p class="text-sm text-(--ui-text-muted)">{{ tag.description }}</p>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <div v-for="endpoint in getEndpointsByTag(tag.name)" :key="endpoint.path + endpoint.method">
             <div
-              v-for="endpoint in getEndpointsByTag(tag.name)"
-              :key="`${endpoint.method}-${endpoint.path}`"
-              style="border: 1px solid var(--color-border); border-radius: 0.5rem; overflow: hidden;"
+              class="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-(--ui-bg-elevated) transition-colors"
+              @click="toggleEndpoint(endpoint.path + endpoint.method)"
             >
-              <div
-                style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 1rem;"
-                :style="{ background: getMethodColor(endpoint.method) }"
+              <UBadge
+                :color="getMethodColor(endpoint.method)"
+                variant="subtle"
+                class="font-mono text-xs w-16 justify-center"
               >
-                <span
-                  style="font-weight: 700; font-size: 0.75rem; text-transform: uppercase; min-width: 4rem;"
-                  :style="{ color: getMethodTextColor(endpoint.method) }"
-                >
-                  {{ endpoint.method }}
-                </span>
-                <code style="flex: 1; font-size: 0.875rem;">{{ endpoint.path }}</code>
-                <span v-if="endpoint.security" class="badge badge-warning" style="font-size: 0.7rem;">Auth Required</span>
+                {{ endpoint.method }}
+              </UBadge>
+              <code class="text-sm font-mono">{{ endpoint.path }}</code>
+              <span class="text-sm text-(--ui-text-muted) ml-auto">{{ endpoint.summary }}</span>
+              <UBadge v-if="endpoint.security" color="warning" variant="subtle" size="xs">
+                Auth Required
+              </UBadge>
+            </div>
+
+            <div v-if="expandedEndpoints.has(endpoint.path + endpoint.method)" class="mt-2 ml-2 space-y-3">
+              <div v-if="endpoint.description" class="text-sm text-(--ui-text-muted) px-3">
+                {{ endpoint.description }}
               </div>
-              <div style="padding: 0.75rem 1rem; background: var(--ui-bg-muted, #f9fafb);">
-                <p class="text-sm">{{ endpoint.summary || endpoint.description }}</p>
-                <div v-if="endpoint.parameters && endpoint.parameters.length > 0" style="margin-top: 0.75rem;">
-                  <p class="text-sm font-medium text-muted">Parameters:</p>
-                  <div style="margin-top: 0.25rem;">
-                    <span
-                      v-for="param in endpoint.parameters"
-                      :key="param.name"
-                      class="badge"
-                      :class="param.required ? 'badge-primary' : 'badge-neutral'"
-                      style="margin-right: 0.25rem; margin-bottom: 0.25rem;"
+
+              <div v-if="endpoint.parameters?.length" class="px-3">
+                <h4 class="text-sm font-semibold mb-2">Parameters</h4>
+                <div class="flex flex-wrap gap-2">
+                  <UBadge
+                    v-for="param in endpoint.parameters"
+                    :key="param.name"
+                    :color="param.required ? 'primary' : 'neutral'"
+                    variant="subtle"
+                    size="sm"
+                  >
+                    {{ param.name }} ({{ param.in }})
+                  </UBadge>
+                </div>
+              </div>
+
+              <div v-if="endpoint.requestBody" class="px-3">
+                <h4 class="text-sm font-semibold mb-2">
+                  Request Body
+                  <UBadge color="primary" variant="subtle" size="xs" class="ml-2">Required</UBadge>
+                </h4>
+              </div>
+
+              <div v-if="endpoint.responses" class="px-3">
+                <h4 class="text-sm font-semibold mb-2">Responses</h4>
+                <div class="space-y-2">
+                  <div v-for="(response, code) in endpoint.responses" :key="code" class="flex items-start gap-2">
+                    <UBadge
+                      :color="getStatusColor(String(code))"
+                      variant="subtle"
+                      size="sm"
+                      class="font-mono"
                     >
-                      {{ param.name }}{{ param.required ? '*' : '' }}
-                    </span>
+                      {{ code }}
+                    </UBadge>
+                    <span class="text-sm text-(--ui-text-muted)">{{ response.description }}</span>
                   </div>
                 </div>
-                <div v-if="endpoint.requestBody" style="margin-top: 0.5rem;">
-                  <span class="badge badge-primary" style="font-size: 0.7rem;">Request Body Required</span>
-                </div>
               </div>
-            </div>
-          </div>
-        </UiCard>
 
-        <!-- Schemas -->
-        <UiCard v-if="schemaList.length > 0">
-          <template #header>
-            <h2>Data Schemas</h2>
-            <p class="text-muted text-sm">Common data structures used in API responses</p>
-          </template>
-          <div class="grid grid-cols-3">
-            <div
-              v-for="schema in schemaList"
-              :key="schema.name"
-              style="border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 1rem;"
-            >
-              <h3 class="font-semibold">{{ schema.name }}</h3>
-              <p v-if="schema.description" class="text-sm text-muted" style="margin-top: 0.25rem;">{{ schema.description }}</p>
-              <div style="margin-top: 0.5rem;">
-                <span
-                  v-for="field in schema.fields.slice(0, 5)"
-                  :key="field"
-                  class="badge badge-neutral"
-                  style="margin-right: 0.25rem; margin-bottom: 0.25rem; font-size: 0.7rem;"
-                >
-                  {{ field }}
-                </span>
-                <span v-if="schema.fields.length > 5" class="text-muted text-sm">+{{ schema.fields.length - 5 }} more</span>
+              <div v-if="getResponseSchema(endpoint)" class="px-3">
+                <h4 class="text-sm font-semibold mb-2">Response Schema</h4>
+                <UCard variant="subtle">
+                  <pre class="text-xs font-mono overflow-x-auto">{{ JSON.stringify(getResponseSchema(endpoint), null, 2) }}</pre>
+                </UCard>
               </div>
             </div>
           </div>
-        </UiCard>
-      </template>
-    </div>
-  
+        </div>
+      </UCard>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
-interface OpenAPISpec {
-  openapi: string
-  info: {
-    title: string
-    version: string
-    description?: string
-  }
-  tags?: Array<{ name: string; description?: string }>
-  paths: Record<string, Record<string, PathOperation>>
-  components?: {
-    schemas?: Record<string, SchemaDefinition>
-  }
-}
-
-interface PathOperation {
-  tags?: string[]
-  summary?: string
-  description?: string
-  operationId?: string
-  parameters?: Array<{ name: string; in: string; required?: boolean }>
-  requestBody?: object
-  security?: Array<Record<string, string[]>>
-  responses: Record<string, object>
-}
-
-interface SchemaDefinition {
-  type?: string
-  description?: string
-  properties?: Record<string, object>
-  required?: string[]
-}
-
-interface Endpoint {
-  method: string
-  path: string
-  summary?: string
-  description?: string
-  tags: string[]
-  parameters?: Array<{ name: string; in: string; required?: boolean }>
-  requestBody?: object
-  security?: Array<Record<string, string[]>>
-}
-
-interface Schema {
-  name: string
-  description?: string
-  fields: string[]
-}
-
-const { data: spec, pending, error } = await useFetch<OpenAPISpec>('/api/openapi.json')
-
-const endpoints = computed<Endpoint[]>(() => {
-  if (!spec.value?.paths) return []
-  
-  const result: Endpoint[] = []
-  for (const [path, methods] of Object.entries(spec.value.paths)) {
-    for (const [method, operation] of Object.entries(methods)) {
-      if (['get', 'post', 'put', 'patch', 'delete'].includes(method)) {
-        result.push({
-          method: method.toUpperCase(),
-          path: `/api${path}`,
-          summary: operation.summary,
-          description: operation.description,
-          tags: operation.tags || ['Other'],
-          parameters: operation.parameters,
-          requestBody: operation.requestBody,
-          security: operation.security
-        })
-      }
-    }
-  }
-  return result
-})
-
-const schemaList = computed<Schema[]>(() => {
-  if (!spec.value?.components?.schemas) return []
-  
-  const excludeSchemas = ['ApiSuccessResponse', 'ApiSingleResourceResponse', 'ApiErrorResponse']
-  
-  return Object.entries(spec.value.components.schemas)
-    .filter(([name]) => !excludeSchemas.includes(name))
-    .map(([name, schema]) => ({
-      name,
-      description: schema.description,
-      fields: schema.properties ? Object.keys(schema.properties) : []
-    }))
-})
-
-function getEndpointsByTag(tagName: string): Endpoint[] {
-  return endpoints.value.filter(e => e.tags.includes(tagName))
-}
-
-function getMethodColor(method: string): string {
-  const colors: Record<string, string> = {
-    GET: 'rgba(34, 197, 94, 0.12)',
-    POST: 'rgba(59, 130, 246, 0.12)',
-    PUT: 'rgba(245, 158, 11, 0.12)',
-    PATCH: 'rgba(245, 158, 11, 0.12)',
-    DELETE: 'rgba(239, 68, 68, 0.12)'
-  }
-  return colors[method] || 'var(--ui-bg-muted, #f3f4f6)'
-}
-
-function getMethodTextColor(method: string): string {
-  const colors: Record<string, string> = {
-    GET: 'var(--color-success)',
-    POST: 'var(--color-primary)',
-    PUT: 'var(--color-warning)',
-    PATCH: 'var(--color-warning)',
-    DELETE: 'var(--color-error)'
-  }
-  return colors[method] || 'var(--color-text)'
-}
-
-function renderMarkdown(text: string): string {
-  // Simple markdown rendering for the description
-  return text
-    .replace(/^# (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^### (.+)$/gm, '<h5>$1</h5>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(.+)$/gm, (match) => {
-      if (match.startsWith('<')) return match
-      return `<p>${match}</p>`
-    })
-    .replace(/<p><\/p>/g, '')
-    .replace(/<p>(<[hul])/g, '$1')
-    .replace(/(<\/[hul][^>]*>)<\/p>/g, '$1')
-}
+import { ref, computed } from 'vue'
 
 useHead({
   title: 'API Reference - Polaris'
 })
+
+interface OpenAPISpec {
+  info: { title: string; version: string; description?: string }
+  tags?: Array<{ name: string; description?: string }>
+  paths: Record<string, Record<string, EndpointDetail>>
+}
+
+interface EndpointDetail {
+  summary?: string
+  description?: string
+  tags?: string[]
+  parameters?: Array<{ name: string; in: string; required?: boolean }>
+  requestBody?: unknown
+  responses?: Record<string, { description: string; content?: unknown }>
+  security?: unknown[]
+}
+
+interface Endpoint extends EndpointDetail {
+  path: string
+  method: string
+}
+
+const expandedEndpoints = ref(new Set<string>())
+
+const { data: spec, status, error } = await useFetch<OpenAPISpec>('/api/openapi.json')
+const loading = computed(() => status.value === 'pending')
+
+function getMethodColor(method: string): 'success' | 'primary' | 'warning' | 'error' | 'neutral' {
+  const colors: Record<string, 'success' | 'primary' | 'warning' | 'error' | 'neutral'> = {
+    GET: 'success',
+    POST: 'primary',
+    PUT: 'warning',
+    PATCH: 'warning',
+    DELETE: 'error'
+  }
+  return colors[method] || 'neutral'
+}
+
+function getStatusColor(code: string): 'success' | 'primary' | 'warning' | 'error' | 'neutral' {
+  if (code.startsWith('2')) return 'success'
+  if (code.startsWith('3')) return 'primary'
+  if (code.startsWith('4')) return 'warning'
+  if (code.startsWith('5')) return 'error'
+  return 'neutral'
+}
+
+function toggleEndpoint(key: string) {
+  if (expandedEndpoints.value.has(key)) {
+    expandedEndpoints.value.delete(key)
+  }
+  else {
+    expandedEndpoints.value.add(key)
+  }
+}
+
+function getEndpointsByTag(tagName: string): Endpoint[] {
+  if (!spec.value) return []
+  const endpoints: Endpoint[] = []
+  for (const [path, methods] of Object.entries(spec.value.paths)) {
+    for (const [method, detail] of Object.entries(methods)) {
+      if (detail.tags?.includes(tagName)) {
+        endpoints.push({ ...detail, path, method: method.toUpperCase() })
+      }
+    }
+  }
+  return endpoints
+}
+
+function getResponseSchema(endpoint: Endpoint): unknown | null {
+  const successResponse = endpoint.responses?.['200'] || endpoint.responses?.['201']
+  if (!successResponse?.content) return null
+  const jsonContent = (successResponse.content as Record<string, { schema?: unknown }>)['application/json']
+  return jsonContent?.schema || null
+}
+
+function renderMarkdown(text: string): string {
+  return text
+    .replace(/### (.*)/g, '<h3>$1</h3>')
+    .replace(/## (.*)/g, '<h2>$1</h2>')
+    .replace(/# (.*)/g, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n- (.*)/g, '<li>$1</li>')
+}
+
+function downloadSpec() {
+  const blob = new Blob([JSON.stringify(spec.value, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'openapi-spec.json'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+
 </script>
 
 <style scoped>
-.prose h3 {
+.prose-content :deep(h3) {
   font-size: 1.1rem;
   font-weight: 600;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
 }
 
-.prose h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+.prose-content :deep(p) {
+  margin: 0.5rem 0;
+  color: var(--ui-text-muted);
 }
 
-.prose ul {
+.prose-content :deep(ul) {
   list-style: disc;
   padding-left: 1.5rem;
   margin: 0.5rem 0;
 }
 
-.prose li {
+.prose-content :deep(li) {
   margin: 0.25rem 0;
 }
 
-.prose p {
-  margin: 0.5rem 0;
-}
-
-.prose pre {
-  background: #1e293b;
-  color: #f1f5f9;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 0.75rem 0;
-  font-size: 0.875rem;
-  border: 1px solid #334155;
-}
-
-.prose pre code {
-  color: #f1f5f9;
-  background: transparent;
-}
-
-.prose code {
+.prose-content :deep(code) {
   font-family: ui-monospace, monospace;
-  background: var(--ui-bg-elevated, #f3f4f6);
+  background: var(--ui-bg-elevated);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875em;
 }
 
-.prose strong {
+.prose-content :deep(strong) {
   font-weight: 600;
 }
 </style>

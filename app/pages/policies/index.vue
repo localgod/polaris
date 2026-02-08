@@ -1,51 +1,46 @@
 <template>
-  
-    <div class="space-y">
-      <div class="page-header">
-        <h1>Policies</h1>
-        <p>Governance and compliance rules</p>
-      </div>
+  <div class="space-y-6">
+    <UPageHeader
+      title="Policies"
+      description="Governance and compliance rules"
+    />
 
-      <UiCard v-if="error">
-        <div class="flex items-center" style="gap: 1rem; color: var(--color-error);">
-          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <h3>Error</h3>
-            <p class="text-sm">{{ error.message }}</p>
-          </div>
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-alert-circle"
+      title="Error"
+      :description="error.message"
+    />
+
+    <template v-else>
+      <UCard>
+        <UTable
+          :data="policies"
+          :columns="columns"
+          :loading="pending"
+          class="flex-1"
+        >
+          <template #empty>
+            <div class="text-center text-(--ui-text-muted) py-12">
+              No policies found.
+            </div>
+          </template>
+        </UTable>
+
+        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+          <UPagination
+            v-model:page="page"
+            :total="total"
+            :items-per-page="pageSize"
+            :sibling-count="1"
+            show-edges
+          />
         </div>
-      </UiCard>
-
-      <template v-else>
-        <UiCard>
-          <UTable
-            :data="policies"
-            :columns="columns"
-            :loading="pending"
-            class="flex-1"
-          >
-            <template #empty>
-              <div class="text-center text-muted" style="padding: 3rem;">
-                No policies found.
-              </div>
-            </template>
-          </UTable>
-
-          <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
-            <UPagination
-              v-model:page="page"
-              :total="total"
-              :items-per-page="pageSize"
-              :sibling-count="1"
-              show-edges
-            />
-          </div>
-        </UiCard>
-      </template>
-    </div>
-  
+      </UCard>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -53,18 +48,14 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Policy } from '~~/types/api'
 
-const UiBadge = resolveComponent('UiBadge')
-const UDropdownMenu = resolveComponent('UDropdownMenu')
-const UButton = resolveComponent('UButton')
-
-function getSeverityVariant(severity: string) {
-  const variants: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
+function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
     critical: 'error',
     error: 'error',
     warning: 'warning',
     info: 'neutral'
   }
-  return variants[severity] || 'neutral'
+  return colors[severity] || 'neutral'
 }
 
 const columns: TableColumn<Policy>[] = [
@@ -75,7 +66,7 @@ const columns: TableColumn<Policy>[] = [
       const policy = row.original
       return h('div', {}, [
         h('strong', {}, policy.name),
-        policy.description ? h('p', { class: 'text-sm text-muted' }, policy.description) : null
+        policy.description ? h('p', { class: 'text-sm text-(--ui-text-muted)' }, policy.description) : null
       ].filter(Boolean))
     }
   },
@@ -84,7 +75,7 @@ const columns: TableColumn<Policy>[] = [
     header: 'Type',
     cell: ({ row }) => {
       const ruleType = row.getValue('ruleType') as string | undefined
-      if (!ruleType) return h('span', { class: 'text-muted' }, '—')
+      if (!ruleType) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return ruleType
     }
   },
@@ -93,8 +84,8 @@ const columns: TableColumn<Policy>[] = [
     header: 'Severity',
     cell: ({ row }) => {
       const severity = row.getValue('severity') as string | undefined
-      if (!severity) return h('span', { class: 'text-muted' }, '—')
-      return h(UiBadge, { variant: getSeverityVariant(severity) }, () => severity)
+      if (!severity) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(resolveComponent('UBadge'), { color: getSeverityColor(severity), variant: 'subtle' }, () => severity)
     }
   },
   {
@@ -102,7 +93,7 @@ const columns: TableColumn<Policy>[] = [
     header: 'Scope',
     cell: ({ row }) => {
       const scope = row.getValue('scope') as string | undefined
-      if (!scope) return h('span', { class: 'text-muted' }, '—')
+      if (!scope) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return scope
     }
   },
@@ -111,7 +102,7 @@ const columns: TableColumn<Policy>[] = [
     header: 'Enforced By',
     cell: ({ row }) => {
       const enforcedBy = row.getValue('enforcedBy') as string | undefined
-      if (!enforcedBy) return h('span', { class: 'text-muted' }, '—')
+      if (!enforcedBy) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return enforcedBy
     }
   },
@@ -120,8 +111,8 @@ const columns: TableColumn<Policy>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue('status') as string | undefined
-      if (!status) return h('span', { class: 'text-muted' }, '—')
-      return h(UiBadge, { variant: status === 'active' ? 'success' : 'neutral' }, () => status)
+      if (!status) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(resolveComponent('UBadge'), { color: status === 'active' ? 'success' : 'neutral', variant: 'subtle' }, () => status)
     }
   },
   {
@@ -146,11 +137,11 @@ const columns: TableColumn<Policy>[] = [
         ]
       ]
 
-      return h(UDropdownMenu, {
+      return h(resolveComponent('UDropdownMenu'), {
         items,
         content: { align: 'end' }
       }, {
-        default: () => h(UButton, {
+        default: () => h(resolveComponent('UButton'), {
           icon: 'i-lucide-ellipsis-vertical',
           color: 'neutral',
           variant: 'ghost',

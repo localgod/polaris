@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y">
-    <div class="page-header">
-      <h1>Audit Trail</h1>
-      <p>Tracking data changes for compliance and security</p>
-    </div>
+  <div class="space-y-6">
+    <UPageHeader
+      title="Audit Trail"
+      description="Tracking data changes for compliance and security"
+    />
 
-    <UiCard>
+    <UCard>
       <div>
         <h2>Overview</h2>
         <p>Polaris includes an audit trail system that automatically tracks all data changes across the platform. Every create, update, delete, and approval operation is logged with context about who made the change, when, why, and what specifically changed.</p>
@@ -107,7 +107,7 @@
           <li><strong>ISO 27001</strong> — Information security management</li>
         </ul>
       </div>
-    </UiCard>
+    </UCard>
   </div>
 </template>
 
