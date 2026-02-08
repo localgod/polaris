@@ -158,9 +158,9 @@ const docsMenuItems = computed<NavigationMenuItem[][]>(() => [
       type: 'label'
     },
     {
-      label: 'Overview',
+      label: 'Core Concepts',
       icon: 'i-lucide-book-open',
-      to: '/docs'
+      to: '/docs/concepts'
     },
     {
       label: 'TIME Framework',
@@ -171,6 +171,11 @@ const docsMenuItems = computed<NavigationMenuItem[][]>(() => [
       label: 'Team Approvals',
       icon: 'i-lucide-check-circle',
       to: '/docs/features/team-approvals'
+    },
+    {
+      label: 'Audit Trail',
+      icon: 'i-lucide-clipboard-list',
+      to: '/docs/features/audit-trail'
     },
     {
       label: 'Graph Model',

@@ -63,7 +63,7 @@
                 <code style="flex: 1; font-size: 0.875rem;">{{ endpoint.path }}</code>
                 <span v-if="endpoint.security" class="badge badge-warning" style="font-size: 0.7rem;">Auth Required</span>
               </div>
-              <div style="padding: 0.75rem 1rem; background: #f9fafb;">
+              <div style="padding: 0.75rem 1rem; background: var(--ui-bg-muted, #f9fafb);">
                 <p class="text-sm">{{ endpoint.summary || endpoint.description }}</p>
                 <div v-if="endpoint.parameters && endpoint.parameters.length > 0" style="margin-top: 0.75rem;">
                   <p class="text-sm font-medium text-muted">Parameters:</p>
@@ -215,24 +215,24 @@ function getEndpointsByTag(tagName: string): Endpoint[] {
 
 function getMethodColor(method: string): string {
   const colors: Record<string, string> = {
-    GET: '#e7f5e7',
-    POST: '#e7f0ff',
-    PUT: '#fff4e5',
-    PATCH: '#fff4e5',
-    DELETE: '#ffe7e7'
+    GET: 'rgba(34, 197, 94, 0.12)',
+    POST: 'rgba(59, 130, 246, 0.12)',
+    PUT: 'rgba(245, 158, 11, 0.12)',
+    PATCH: 'rgba(245, 158, 11, 0.12)',
+    DELETE: 'rgba(239, 68, 68, 0.12)'
   }
-  return colors[method] || '#f3f4f6'
+  return colors[method] || 'var(--ui-bg-muted, #f3f4f6)'
 }
 
 function getMethodTextColor(method: string): string {
   const colors: Record<string, string> = {
-    GET: '#15803d',
-    POST: '#1d4ed8',
-    PUT: '#b45309',
-    PATCH: '#b45309',
-    DELETE: '#b91c1c'
+    GET: 'var(--color-success)',
+    POST: 'var(--color-primary)',
+    PUT: 'var(--color-warning)',
+    PATCH: 'var(--color-warning)',
+    DELETE: 'var(--color-error)'
   }
-  return colors[method] || '#374151'
+  return colors[method] || 'var(--color-text)'
 }
 
 function renderMarkdown(text: string): string {
@@ -308,7 +308,7 @@ useHead({
 
 .prose code {
   font-family: ui-monospace, monospace;
-  background: #f3f4f6;
+  background: var(--ui-bg-elevated, #f3f4f6);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875em;

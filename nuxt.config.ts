@@ -20,7 +20,6 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/image',
     '@nuxt/test-utils',
-    '@nuxt/content',
     'nuxt-neo4j',
     '@sidebase/nuxt-auth',
     '@nuxt/ui'
@@ -36,25 +35,6 @@ export default defineNuxtConfig({
       type: 'authjs'
     },
     globalAppMiddleware: false // We'll protect specific routes/actions, not the whole app
-  },
-
-  content: {
-    // @ts-expect-error - Nuxt Content v3.7.1 type definitions don't include highlight property
-    // This is a valid configuration option but types are outdated
-    // See: https://content.nuxt.com/get-started/configuration#highlight
-    highlight: {
-      theme: {
-        default: 'github-light',
-        dark: 'github-dark'
-      },
-      preload: ['cypher', 'typescript', 'javascript', 'bash', 'json', 'yaml', 'mermaid']
-    },
-    markdown: {
-      toc: {
-        depth: 3,
-        searchDepth: 3
-      }
-    }
   },
 
   neo4j: {

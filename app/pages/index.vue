@@ -134,7 +134,7 @@
         title="Documentation"
         description="Learn about Polaris features"
         icon="i-lucide-book-open"
-        to="/docs"
+        to="/docs/concepts"
         variant="subtle"
       />
     </div>
