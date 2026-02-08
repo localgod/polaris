@@ -1,13 +1,12 @@
 <template>
   <div class="space-y">
     <div class="page-header">
-      <NuxtLink to="/docs" style="display: inline-block; margin-bottom: 0.5rem;">← Back to Documentation</NuxtLink>
       <h1>TIME Framework</h1>
       <p>Technology lifecycle management methodology</p>
     </div>
     
     <UiCard>
-      <div class="prose">
+      <div>
         <h2>Overview</h2>
         <p>The TIME framework categorizes technologies based on their lifecycle stage and organizational adoption strategy:</p>
         

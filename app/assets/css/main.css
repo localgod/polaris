@@ -1,15 +1,20 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-/* Custom color variables */
+/* Custom color variables - mapped to Nuxt UI theme tokens for dark mode support */
 :root {
   --color-primary: #0ea5e9;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-border: #e5e7eb;
+  --color-text: var(--ui-text, #111827);
+  --color-text-muted: var(--ui-text-muted, #6b7280);
+  --color-border: var(--ui-border, #e5e7eb);
+}
+
+/* Base text color for dark mode support */
+body {
+  color: var(--ui-text, #111827);
 }
 
 /* Typography */
@@ -64,7 +69,7 @@ h4 {
 
 /* UiCard component */
 .card {
-  background: white;
+  background: var(--ui-bg, white);
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   overflow: hidden;
@@ -82,12 +87,12 @@ h4 {
 .card-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--color-border);
-  background: #f9fafb;
+  background: var(--ui-bg-muted, #f9fafb);
 }
 
 /* UiStatCard component */
 .stat-card {
-  background: white;
+  background: var(--ui-bg, white);
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   padding: 1.5rem;
@@ -125,8 +130,8 @@ h4 {
 }
 
 .badge-neutral {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--ui-bg-elevated, #f3f4f6);
+  color: var(--color-text);
 }
 
 /* Buttons */
@@ -153,13 +158,13 @@ h4 {
 }
 
 .btn-secondary {
-  background: white;
+  background: var(--ui-bg, white);
   border-color: var(--color-border);
   color: var(--color-text);
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: var(--ui-bg-muted, #f9fafb);
 }
 
 /* Forms */
@@ -210,6 +215,24 @@ label {
 .alert-error {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th, td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+th {
+  background: var(--ui-bg-muted, #f9fafb);
+  font-weight: 600;
 }
 
 /* Spacing */

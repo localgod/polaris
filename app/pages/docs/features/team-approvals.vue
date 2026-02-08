@@ -1,13 +1,12 @@
 <template>
   <div class="space-y">
     <div class="page-header">
-      <NuxtLink to="/docs" style="display: inline-block; margin-bottom: 0.5rem;">← Back to Documentation</NuxtLink>
       <h1>Team Approvals</h1>
       <p>Technology approval workflow for teams</p>
     </div>
     
     <UiCard>
-      <div class="prose">
+      <div>
         <h2>Overview</h2>
         <p>Team approvals allow organizations to control which technologies teams can use. This ensures compliance with organizational standards while giving teams flexibility within approved boundaries.</p>
         
