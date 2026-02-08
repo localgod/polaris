@@ -119,6 +119,7 @@ interface CreateSystemResponse {
 }
 
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateSystemResponse>> => {
+  await requireAuth(event)
   const body = await readBody<CreateSystemRequest>(event)
   
   try {

@@ -1,44 +1,45 @@
 <template>
-  
-    <div class="space-y">
-      <!-- Header -->
-      <div class="page-header">
-        <h1>Registered Users</h1>
-        <p>Manage all users registered in the application</p>
+  <div class="space-y-6">
+    <!-- Header -->
+    <UPageHeader
+      title="Registered Users"
+      description="Manage all users registered in the application"
+    />
+
+    <!-- Error State -->
+    <UAlert
+      v-if="error"
+      color="error"
+      :title="error.message || 'Failed to load users'"
+      icon="i-lucide-circle-x"
+    />
+
+    <!-- Users Table -->
+    <UCard v-else>
+      <UTable
+        :data="users"
+        :columns="columns"
+        :loading="pending"
+        class="flex-1"
+      >
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-12">
+            No users found.
+          </div>
+        </template>
+      </UTable>
+
+      <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+        <UPagination
+          v-model:page="page"
+          :total="total"
+          :items-per-page="pageSize"
+          :sibling-count="1"
+          show-edges
+        />
       </div>
-
-      <!-- Error State -->
-      <div v-if="error" class="alert alert-error">
-        {{ error.message || 'Failed to load users' }}
-      </div>
-
-      <!-- Users Table -->
-      <UiCard v-else>
-        <UTable
-          :data="users"
-          :columns="columns"
-          :loading="pending"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center text-muted" style="padding: 3rem;">
-              No users found.
-            </div>
-          </template>
-        </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UiCard>
-    </div>
-  
+    </UCard>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -64,7 +65,8 @@ interface UsersResponse {
   total?: number
 }
 
-const UiBadge = resolveComponent('UiBadge')
+const UBadge = resolveComponent('UBadge')
+const UAvatar = resolveComponent('UAvatar')
 
 const columns: TableColumn<User>[] = [
   {
@@ -74,17 +76,20 @@ const columns: TableColumn<User>[] = [
       const user = row.original
       const initial = ((user.name || user.email || 'U')[0] || 'U').toUpperCase()
 
-      return h('div', { class: 'flex items-center', style: 'gap: 0.75rem;' }, [
+      return h('div', { class: 'flex items-center gap-3' }, [
         user.avatarUrl
-          ? h('img', {
+          ? h(UAvatar, {
               src: user.avatarUrl,
-              alt: user.name,
-              style: 'width: 2.5rem; height: 2.5rem; border-radius: 50%;'
+              alt: user.name || 'User',
+              size: 'lg'
             })
-          : h('div', { class: 'user-avatar' }, initial),
+          : h(UAvatar, {
+              text: initial,
+              size: 'lg'
+            }),
         h('div', {}, [
           h('div', { class: 'font-medium' }, user.name || 'Unknown'),
-          h('div', { class: 'text-sm text-muted' }, user.email)
+          h('div', { class: 'text-sm text-(--ui-text-muted)' }, user.email)
         ])
       ])
     }
@@ -98,8 +103,9 @@ const columns: TableColumn<User>[] = [
     header: 'Role',
     cell: ({ row }) => {
       const role = row.getValue('role') as string
-      return h(UiBadge, {
-        variant: role === 'superuser' ? 'error' : 'primary'
+      return h(UBadge, {
+        color: role === 'superuser' ? 'error' : 'primary',
+        variant: 'subtle'
       }, () => role)
     }
   },

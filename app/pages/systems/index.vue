@@ -6,6 +6,7 @@
         description="Deployable applications and services"
       />
       <UButton
+        v-if="status === 'authenticated'"
         label="+ Create System"
         to="/systems/new"
         color="primary"
@@ -22,33 +23,6 @@
     />
 
     <template v-else>
-      <div v-if="data" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Total Systems</p>
-            <p class="text-3xl font-bold mt-2">{{ data.count }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Critical</p>
-            <p class="text-3xl font-bold text-(--ui-color-error-500) mt-2">{{ criticalityCounts.critical }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">High</p>
-            <p class="text-3xl font-bold text-(--ui-color-warning-500) mt-2">{{ criticalityCounts.high }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Medium/Low</p>
-            <p class="text-3xl font-bold text-(--ui-color-success-500) mt-2">{{ criticalityCounts.medium + criticalityCounts.low }}</p>
-          </div>
-        </UCard>
-      </div>
-
       <UCard>
         <UTable
           :data="systems"
@@ -84,6 +58,8 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+
+const { status } = useAuth()
 
 interface System {
   name: string
@@ -170,17 +146,6 @@ const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems',
 const systems = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
 
-const criticalityCounts = computed(() => {
-  if (!data.value?.data) return { critical: 0, high: 0, medium: 0, low: 0 }
-  const counts = { critical: 0, high: 0, medium: 0, low: 0 }
-  data.value.data.forEach(sys => {
-    if (sys.businessCriticality === 'critical') counts.critical++
-    else if (sys.businessCriticality === 'high') counts.high++
-    else if (sys.businessCriticality === 'medium') counts.medium++
-    else if (sys.businessCriticality === 'low') counts.low++
-  })
-  return counts
-})
 
 useHead({ title: 'Systems - Polaris' })
 </script>
