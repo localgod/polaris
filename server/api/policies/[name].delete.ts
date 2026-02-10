@@ -17,11 +17,17 @@ import { PolicyService } from '../../services/policy.service'
  *         schema:
  *           type: string
  *         description: Policy name
+ *     security:
+ *       - sessionAuth: []
  *     responses:
  *       204:
  *         description: Policy deleted successfully
  *       400:
  *         description: Policy name is required
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Superuser access required
  *       404:
  *         description: Policy not found
  */
