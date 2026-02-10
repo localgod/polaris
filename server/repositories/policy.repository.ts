@@ -77,6 +77,7 @@ export interface Policy {
   governedVersions: GovernedVersion[]
   allowedLicenses?: string[]
   deniedLicenses?: string[]
+  technologyCount: number
 }
 
 export interface CreatePolicyInput {
@@ -234,7 +235,7 @@ export class PolicyRepository extends BaseRepository {
       return null
     }
     
-    return this.mapToPolicy(records[0])
+    return this.mapToPolicy(records[0]!)
   }
 
   /**
@@ -694,6 +695,7 @@ export class PolicyRepository extends BaseRepository {
    * Map Neo4j record to Policy domain object (for findByName)
    */
   private mapToPolicy(record: Neo4jRecord): Policy {
+    const governedTechnologies = record.get('governedTechnologies').filter((t: string) => t)
     return {
       name: record.get('name'),
       description: record.get('description'),
@@ -707,10 +709,11 @@ export class PolicyRepository extends BaseRepository {
       licenseMode: record.get('licenseMode'),
       enforcerTeam: record.get('enforcerTeam'),
       subjectTeams: record.get('subjectTeams').filter((t: string) => t),
-      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
+      governedTechnologies,
       governedVersions: record.get('governedVersions').filter((v: GovernedVersion) => v.technology),
       allowedLicenses: record.get('allowedLicenses')?.filter((l: string) => l) || [],
-      deniedLicenses: record.get('deniedLicenses')?.filter((l: string) => l) || []
+      deniedLicenses: record.get('deniedLicenses')?.filter((l: string) => l) || [],
+      technologyCount: governedTechnologies.length
     }
   }
 
@@ -718,6 +721,7 @@ export class PolicyRepository extends BaseRepository {
    * Map Neo4j record to Policy domain object (for findAll)
    */
   private mapToPolicyList(record: Neo4jRecord): Policy {
+    const governedTechnologies = record.get('governedTechnologies').filter((t: string) => t)
     return {
       name: record.get('name'),
       description: record.get('description'),
@@ -730,8 +734,9 @@ export class PolicyRepository extends BaseRepository {
       status: record.get('status'),
       enforcerTeam: record.get('enforcerTeam'),
       subjectTeams: record.get('subjectTeams').filter((t: string) => t),
-      governedTechnologies: record.get('governedTechnologies').filter((t: string) => t),
-      governedVersions: [] // Not included in list view
+      governedTechnologies,
+      governedVersions: [], // Not included in list view
+      technologyCount: governedTechnologies.length
     }
   }
 

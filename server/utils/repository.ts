@@ -69,11 +69,7 @@ export function extractRepoName(url: string): string {
   
   // Extract last part of path
   const match = url.match(/\/([^/]+?)$/)
-  if (match) {
-    return match[1]
-  }
-  
-  return ''
+  return match?.[1] ?? ''
 }
 
 /**

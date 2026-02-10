@@ -179,7 +179,7 @@ export class LicenseRepository extends BaseRepository {
       return null
     }
     
-    return this.mapToLicense(records[0])
+    return this.mapToLicense(records[0]!)
   }
 
   /**
@@ -229,7 +229,7 @@ export class LicenseRepository extends BaseRepository {
       }
     }
     
-    const record = records[0]
+    const record = records[0]!
     const categories = record.get('categories') as Array<{ category: string; count: number }>
     const byCategory: Record<string, number> = {}
     

@@ -70,7 +70,7 @@ export class TokenRepository extends BaseRepository {
       throw new Error('Failed to create token - user not found')
     }
     
-    return this.mapToToken(records[0])
+    return this.mapToToken(records[0]!)
   }
 
   /**
@@ -107,7 +107,7 @@ export class TokenRepository extends BaseRepository {
       return null
     }
     
-    const record = records[0]
+    const record = records[0]!
     return {
       token: this.mapToToken(record),
       user: record.get('user')

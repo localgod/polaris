@@ -46,10 +46,13 @@ export default defineNuxtConfig({
     }
   },
 
+  devServer: {
+    host: '0.0.0.0'  // Listen on all available network interfaces
+  },
+
   vite: {
     server: {
-      allowedHosts: ['.gitpod.dev', '.gitpod.io', 'localhost', '127.0.0.1'],
-      host: true  // Listen on all available network interfaces
+      allowedHosts: ['.gitpod.dev', '.gitpod.io', 'localhost', '127.0.0.1']
     }
   },
 

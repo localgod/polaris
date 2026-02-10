@@ -172,6 +172,7 @@ interface SbomErrorResponse {
   success: false
   error: string
   message?: string
+  hint?: string
   format?: 'cyclonedx' | 'spdx' | 'unknown'
   required?: string
   validationErrors?: Array<{

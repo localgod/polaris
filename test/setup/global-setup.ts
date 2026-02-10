@@ -3,7 +3,8 @@ import neo4j from 'neo4j-driver'
 /**
  * Global test setup
  * 
- * Runs once before all tests to ensure database is in a clean state
+ * Runs once before all tests to ensure database is in a clean state.
+ * Returns a teardown function that runs after all tests.
  */
 export default async function globalSetup() {
   const uri = process.env.NEO4J_URI || 'bolt://localhost:7687'
@@ -37,5 +38,29 @@ export default async function globalSetup() {
     console.warn('⚠️  Could not connect to Neo4j - some tests may be skipped')
   } finally {
     await driver.close()
+  }
+
+  // Return teardown function (vitest v4 pattern)
+  return async () => {
+    const teardownDriver = neo4j.driver(uri, neo4j.auth.basic(username, password))
+    
+    try {
+      const session = teardownDriver.session()
+      try {
+        await session.run(`
+          MATCH (n)
+          WHERE any(prop IN keys(n) WHERE n[prop] STARTS WITH 'test_')
+          DETACH DELETE n
+        `)
+        
+        console.log('✓ Test data cleaned up')
+      } finally {
+        await session.close()
+      }
+    } catch (error) {
+      console.warn('⚠️  Could not clean up test data:', error)
+    } finally {
+      await teardownDriver.close()
+    }
   }
 }

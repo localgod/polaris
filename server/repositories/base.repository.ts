@@ -21,7 +21,7 @@ export abstract class BaseRepository {
    */
   protected async executeQuery(
     query: string,
-    params: Record<string, unknown> = {}
+    params: Record<string, unknown> | object = {}
   ): Promise<QueryResult> {
     return await this.driver.executeQuery(query, params)
   }
@@ -38,7 +38,7 @@ export abstract class BaseRepository {
    */
   protected async executeQueryWithSession(
     query: string,
-    params: Record<string, unknown> = {}
+    params: Record<string, unknown> | object = {}
   ): Promise<QueryResult> {
     const session = this.driver.session()
     try {

@@ -96,7 +96,7 @@ export default NuxtAuthHandler({
         session.user.id = token.userId as string
         session.user.provider = token.provider as string
         session.user.role = (token.role as 'user' | 'superuser') || 'user'
-        session.user.teams = (token.teams as Array<{ name: string; email: string }>) || []
+        session.user.teams = (token.teams as Array<{ name: string; email: string | null }>) || []
       }
       return session
     },
@@ -118,10 +118,10 @@ export default NuxtAuthHandler({
           await userService.createOrUpdateUser({
             id: user.id,
             email: user.email || '',
-            name: user.name,
+            name: user.name ?? null,
             provider: account.provider,
             avatarUrl: user.image || null,
-            isSuperuser,
+            isSuperuser: Boolean(isSuperuser),
             role
           })
         } catch (error) {

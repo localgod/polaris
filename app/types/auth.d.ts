@@ -8,7 +8,7 @@ declare module 'next-auth' {
       role: 'user' | 'superuser'
       teams: Array<{
         name: string
-        email: string
+        email: string | null
       }>
     } & DefaultSession['user']
   }
@@ -19,7 +19,7 @@ declare module 'next-auth' {
     role?: 'user' | 'superuser'
     teams?: Array<{
       name: string
-      email: string
+      email: string | null
     }>
   }
 }
@@ -31,7 +31,7 @@ declare module 'next-auth/jwt' {
     role?: string
     teams?: Array<{
       name: string
-      email: string
+      email: string | null
     }>
   }
 }

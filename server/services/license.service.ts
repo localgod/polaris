@@ -169,7 +169,7 @@ export class LicenseService {
       // Collect validation errors
       const errors: string[] = []
       for (let i = 0; i < validationResults.length; i++) {
-        const result = validationResults[i]
+        const result = validationResults[i]!
         if (result.status === 'rejected') {
           // findById call failed (database error, etc.)
           const errorMsg = result.reason instanceof Error ? result.reason.message : 'Validation failed'

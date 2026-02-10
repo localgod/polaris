@@ -99,7 +99,7 @@ export class UserRepository extends BaseRepository {
       return null
     }
     
-    return this.mapToUser(records[0])
+    return this.mapToUser(records[0]!)
   }
 
   /**
@@ -116,7 +116,7 @@ export class UserRepository extends BaseRepository {
       return null
     }
     
-    const record = records[0]
+    const record = records[0]!
     return {
       role: record.get('role'),
       email: record.get('email'),

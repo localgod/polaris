@@ -138,7 +138,7 @@ export class TeamRepository extends BaseRepository {
       return null
     }
     
-    const team = records[0].get('team')
+    const team = records[0]!.get('team')
     return {
       name: team.name,
       email: team.email,
@@ -212,7 +212,7 @@ export class TeamRepository extends BaseRepository {
       throw new Error(`Team '${name}' not found`)
     }
     
-    const record = records[0]
+    const record = records[0]!
     
     return {
       team: record.get('teamName'),
@@ -265,7 +265,7 @@ export class TeamRepository extends BaseRepository {
       return null
     }
     
-    const record = records[0]
+    const record = records[0]!
     
     return {
       team: record.get('teamName'),

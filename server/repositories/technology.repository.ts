@@ -71,7 +71,7 @@ export class TechnologyRepository extends BaseRepository {
       return null
     }
     
-    return this.mapToTechnologyDetail(records[0])
+    return this.mapToTechnologyDetail(records[0]!)
   }
 
   /**
