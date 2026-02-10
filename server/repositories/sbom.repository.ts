@@ -82,10 +82,11 @@ export class SBOMRepository extends BaseRepository {
       }
     }
     
+    const record = records[0]!
     return {
-      componentsAdded: records[0].get('componentsAdded').toNumber(),
-      componentsUpdated: records[0].get('componentsUpdated').toNumber(),
-      relationshipsCreated: records[0].get('relationshipsCreated').toNumber()
+      componentsAdded: record.get('componentsAdded').toNumber(),
+      componentsUpdated: record.get('componentsUpdated').toNumber(),
+      relationshipsCreated: record.get('relationshipsCreated').toNumber()
     }
   }
 }

@@ -1,8 +1,8 @@
-import type { ApiResponse } from '~~/types/api'
+import type { ApiSuccessResponse, ApiErrorResponse } from '~~/types/api'
 import { PolicyService } from '../../services/policy.service'
 import type { LicenseViolation } from '../../repositories/policy.repository'
 
-export interface LicenseViolationResponse extends ApiResponse<LicenseViolation> {
+export type LicenseViolationResponse = (ApiSuccessResponse<LicenseViolation> & {
   total?: number
   summary?: {
     critical: number
@@ -10,7 +10,7 @@ export interface LicenseViolationResponse extends ApiResponse<LicenseViolation> 
     warning: number
     info: number
   }
-}
+}) | ApiErrorResponse
 
 /**
  * @openapi

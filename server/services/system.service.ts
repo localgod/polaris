@@ -212,26 +212,7 @@ export class SystemService {
     // Business logic: extract name if not provided
     const name = data.name || this.extractRepoName(normalizedUrl)
     
-    // Use add-repository query which uses MERGE
-    const query = await loadQuery('systems/add-repository.cypher')
-    const { records } = await this.systemRepo.executeQuery(query, {
-      systemName,
-      url: normalizedUrl,
-      name
-    })
-    
-    if (records.length === 0) {
-      throw new Error('Failed to add repository')
-    }
-    
-    return {
-      url: records[0].get('url'),
-      name: records[0].get('name'),
-      createdAt: records[0].get('createdAt')?.toString() || null,
-      updatedAt: records[0].get('updatedAt')?.toString() || null,
-      lastSbomScanAt: records[0].get('lastSbomScanAt')?.toString() || null,
-      systemCount: 1
-    }
+    return await this.systemRepo.addRepository(systemName, normalizedUrl, name)
   }
 
   /**
@@ -254,17 +235,7 @@ export class SystemService {
       })
     }
     
-    const query = await loadQuery('systems/get-repositories.cypher')
-    const { records } = await this.systemRepo.executeQuery(query, { systemName })
-    
-    const repositories = records.map(record => ({
-      url: record.get('url'),
-      name: record.get('name'),
-      createdAt: record.get('createdAt')?.toString() || null,
-      updatedAt: record.get('updatedAt')?.toString() || null,
-      lastSbomScanAt: record.get('lastSbomScanAt')?.toString() || null,
-      systemCount: 1
-    }))
+    const repositories = await this.systemRepo.getRepositories(systemName)
     
     return {
       data: repositories,
@@ -280,6 +251,6 @@ export class SystemService {
    */
   private extractRepoName(url: string): string {
     const parts = url.split('/')
-    return parts[parts.length - 1].replace('.git', '')
+    return (parts[parts.length - 1] ?? '').replace('.git', '')
   }
 }

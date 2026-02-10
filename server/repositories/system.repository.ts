@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { UnmappedComponent } from '~~/types/api'
+import type { UnmappedComponent, Repository } from '~~/types/api'
 
 export interface System {
   name: string
@@ -8,6 +8,8 @@ export interface System {
   ownerTeam: string | null
   businessCriticality: string | null
   environment: string | null
+  sourceCodeType: string | null
+  hasSourceAccess: boolean | null
   componentCount: number
   repositoryCount: number
 }
@@ -15,6 +17,7 @@ export interface System {
 export interface RepositoryInput {
   url: string
   name: string
+  isPublic?: boolean
 }
 
 export interface CreateSystemParams {
@@ -23,6 +26,8 @@ export interface CreateSystemParams {
   ownerTeam: string
   businessCriticality: string
   environment: string
+  sourceCodeType: string
+  hasSourceAccess: boolean
   repositories: RepositoryInput[]
 }
 
@@ -64,7 +69,7 @@ export class SystemRepository extends BaseRepository {
       return null
     }
     
-    return this.mapToSystemDetail(records[0])
+    return this.mapToSystemDetail(records[0]!)
   }
 
   /**
@@ -84,7 +89,7 @@ export class SystemRepository extends BaseRepository {
       return null
     }
     
-    return { name: records[0].get('name') }
+    return { name: records[0]!.get('name') }
   }
 
   /**
@@ -114,7 +119,7 @@ export class SystemRepository extends BaseRepository {
       throw new Error('Failed to create system')
     }
     
-    return records[0].get('name')
+    return records[0]!.get('name')
   }
 
   /**
@@ -157,6 +162,57 @@ export class SystemRepository extends BaseRepository {
   }
 
   /**
+   * Add a repository to a system using MERGE
+   * 
+   * @param systemName - System name
+   * @param url - Normalized repository URL
+   * @param name - Repository name
+   * @returns Created/updated repository
+   */
+  async addRepository(systemName: string, url: string, name: string): Promise<Repository> {
+    const query = await loadQuery('systems/add-repository.cypher')
+    const { records } = await this.executeQuery(query, {
+      systemName,
+      url,
+      name
+    })
+
+    if (records.length === 0) {
+      throw new Error('Failed to add repository')
+    }
+
+    const record = records[0]!
+    return {
+      url: record.get('url'),
+      name: record.get('name'),
+      createdAt: record.get('createdAt')?.toString() || null,
+      updatedAt: record.get('updatedAt')?.toString() || null,
+      lastSbomScanAt: record.get('lastSbomScanAt')?.toString() || null,
+      systemCount: 1
+    }
+  }
+
+  /**
+   * Get all repositories linked to a system
+   * 
+   * @param systemName - System name
+   * @returns Array of repositories
+   */
+  async getRepositories(systemName: string): Promise<Repository[]> {
+    const query = await loadQuery('systems/get-repositories.cypher')
+    const { records } = await this.executeQuery(query, { systemName })
+
+    return records.map(record => ({
+      url: record.get('url'),
+      name: record.get('name'),
+      createdAt: record.get('createdAt')?.toString() || null,
+      updatedAt: record.get('updatedAt')?.toString() || null,
+      lastSbomScanAt: record.get('lastSbomScanAt')?.toString() || null,
+      systemCount: 1
+    }))
+  }
+
+  /**
    * Map Neo4j record to System domain object (list view)
    */
   private mapToSystem(record: Neo4jRecord): System {
@@ -166,6 +222,8 @@ export class SystemRepository extends BaseRepository {
       ownerTeam: record.get('ownerTeam'),
       businessCriticality: record.get('businessCriticality'),
       environment: record.get('environment'),
+      sourceCodeType: record.has('sourceCodeType') ? record.get('sourceCodeType') : null,
+      hasSourceAccess: record.has('hasSourceAccess') ? record.get('hasSourceAccess') : null,
       componentCount: record.get('componentCount').toNumber(),
       repositoryCount: record.get('repositoryCount').toNumber()
     }

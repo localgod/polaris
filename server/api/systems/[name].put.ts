@@ -169,6 +169,6 @@ export default defineEventHandler(async (event) => {
   
   return {
     success: true,
-    data: records[0].get('system')
+    data: records[0]!.get('system')
   }
 })

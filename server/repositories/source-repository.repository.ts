@@ -32,7 +32,7 @@ export class SourceRepositoryRepository extends BaseRepository {
       return null
     }
     
-    return this.mapToRepository(records[0])
+    return this.mapToRepository(records[0]!)
   }
 
   /**
@@ -64,12 +64,13 @@ export class SourceRepositoryRepository extends BaseRepository {
       throw new Error('Failed to create repository')
     }
     
+    const record = records[0]!
     return {
-      url: records[0].get('url'),
-      name: records[0].get('name'),
-      createdAt: records[0].get('createdAt')?.toString() || null,
-      updatedAt: records[0].get('updatedAt')?.toString() || null,
-      lastSbomScanAt: records[0].get('lastSbomScanAt')?.toString() || null,
+      url: record.get('url'),
+      name: record.get('name'),
+      createdAt: record.get('createdAt')?.toString() || null,
+      updatedAt: record.get('updatedAt')?.toString() || null,
+      lastSbomScanAt: record.get('lastSbomScanAt')?.toString() || null,
       systemCount: 1
     }
   }

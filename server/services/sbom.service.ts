@@ -235,7 +235,7 @@ export class SBOMService {
   private extractPackageManager(purl: string | null): string | null {
     if (!purl) return null
     const match = purl.match(/^pkg:([^/]+)\//)
-    return match ? match[1] : null
+    return match?.[1] ?? null
   }
 
   /**
@@ -245,7 +245,7 @@ export class SBOMService {
     if (!purl) return null
     // Extract namespace from purl (e.g., pkg:npm/@scope/package -> @scope)
     const match = purl.match(/^pkg:[^/]+\/([^/]+)\//)
-    return match ? match[1] : null
+    return match?.[1] ?? null
   }
 
   /**
@@ -413,6 +413,6 @@ export class SBOMService {
     if (!entity) return null
     
     const match = entity.match(/^(?:Person|Organization):\s*(.+)$/)
-    return match ? match[1].trim() : entity
+    return match?.[1]?.trim() ?? entity
   }
 }
