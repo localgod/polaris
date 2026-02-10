@@ -1,11 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TeamService } from '../../../server/services/team.service'
 import { TeamRepository } from '../../../server/repositories/team.repository'
+import type { Team } from '../../../server/repositories/team.repository'
 import '../../fixtures/service-test-helper'
 
 vi.mock('../../../server/repositories/team.repository')
 
-const mockTeam = { name: 'Platform', responsibilityArea: 'Infrastructure', memberCount: 5, systemCount: 3 }
+const mockTeam: Team = {
+  name: 'Platform', email: null, responsibilityArea: 'Infrastructure',
+  technologyCount: 0, systemCount: 3, memberCount: 5
+}
 
 describe('TeamService', () => {
   let service: TeamService
@@ -17,7 +21,7 @@ describe('TeamService', () => {
 
   describe('findAll()', () => {
     it('should return teams with count', async () => {
-      vi.mocked(TeamRepository.prototype.findAll).mockResolvedValue([mockTeam as any])
+      vi.mocked(TeamRepository.prototype.findAll).mockResolvedValue([mockTeam])
 
       const result = await service.findAll()
 
@@ -29,7 +33,7 @@ describe('TeamService', () => {
 
   describe('findByName()', () => {
     it('should return team when found', async () => {
-      vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam as any)
+      vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam)
 
       const result = await service.findByName('Platform')
 

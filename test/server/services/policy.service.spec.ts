@@ -1,15 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { PolicyService } from '../../../server/services/policy.service'
 import { PolicyRepository } from '../../../server/repositories/policy.repository'
+import type { Policy, LicenseViolation } from '../../../server/repositories/policy.repository'
 import '../../fixtures/service-test-helper'
 
 vi.mock('../../../server/repositories/policy.repository')
 
-const mockPolicy = {
+const mockPolicy: Policy = {
   name: 'test-policy', description: 'Test', ruleType: 'compliance',
   severity: 'warning', status: 'active', scope: 'organization',
   licenseMode: null, allowedLicenses: [], deniedLicenses: [],
-  enforcedBy: null, createdAt: '', updatedAt: ''
+  enforcedBy: '', effectiveDate: null, expiryDate: null,
+  enforcerTeam: null, subjectTeams: [], governedTechnologies: [],
+  governedVersions: []
 }
 
 describe('PolicyService', () => {
@@ -22,7 +25,7 @@ describe('PolicyService', () => {
 
   describe('findAll()', () => {
     it('should return policies with count', async () => {
-      vi.mocked(PolicyRepository.prototype.findAll).mockResolvedValue([mockPolicy as any])
+      vi.mocked(PolicyRepository.prototype.findAll).mockResolvedValue([mockPolicy])
 
       const result = await service.findAll()
 
@@ -44,7 +47,7 @@ describe('PolicyService', () => {
 
   describe('findByName()', () => {
     it('should return policy when found', async () => {
-      vi.mocked(PolicyRepository.prototype.findByName).mockResolvedValue(mockPolicy as any)
+      vi.mocked(PolicyRepository.prototype.findByName).mockResolvedValue(mockPolicy)
 
       const result = await service.findByName('test-policy')
 
@@ -79,14 +82,14 @@ describe('PolicyService', () => {
 
   describe('getLicenseViolations()', () => {
     it('should return violations with summary', async () => {
-      const violation = {
+      const violation: LicenseViolation = {
         team: 'Team A', system: 'System 1',
         component: { name: 'pkg', version: '1.0.0', purl: 'pkg:npm/pkg@1.0.0' },
         license: { id: 'GPL-3.0', name: 'GPL-3.0', category: 'copyleft', osiApproved: true },
         policy: { name: 'No GPL', description: '', severity: 'error', ruleType: 'license-compliance', enforcedBy: null }
       }
 
-      vi.mocked(PolicyRepository.prototype.findLicenseViolations).mockResolvedValue([violation as any])
+      vi.mocked(PolicyRepository.prototype.findLicenseViolations).mockResolvedValue([violation])
 
       const result = await service.getLicenseViolations({})
 

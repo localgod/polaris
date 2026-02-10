@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TechnologyService } from '../../../server/services/technology.service'
 import { TechnologyRepository } from '../../../server/repositories/technology.repository'
+import type { TechnologyDetail } from '../../../server/repositories/technology.repository'
 
 vi.mock('../../../server/repositories/technology.repository')
 
-const mockTech = {
+const mockTech: TechnologyDetail = {
   name: 'React', category: 'framework', vendor: 'Meta',
-  ownerTeam: 'Frontend', versions: [], approvals: []
+  approvedVersionRange: null, ownerTeam: 'Frontend', riskLevel: null,
+  lastReviewed: null, ownerTeamName: null, versions: [], approvals: []
 }
 
 describe('TechnologyService', () => {
@@ -19,7 +21,7 @@ describe('TechnologyService', () => {
 
   describe('findAll()', () => {
     it('should return technologies with count', async () => {
-      vi.mocked(TechnologyRepository.prototype.findAll).mockResolvedValue([mockTech as any])
+      vi.mocked(TechnologyRepository.prototype.findAll).mockResolvedValue([mockTech])
 
       const result = await service.findAll()
 
@@ -41,7 +43,7 @@ describe('TechnologyService', () => {
 
   describe('findByName()', () => {
     it('should return technology when found', async () => {
-      vi.mocked(TechnologyRepository.prototype.findByName).mockResolvedValue(mockTech as any)
+      vi.mocked(TechnologyRepository.prototype.findByName).mockResolvedValue(mockTech)
 
       const result = await service.findByName('React')
 

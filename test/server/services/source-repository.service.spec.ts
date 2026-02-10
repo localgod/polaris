@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SourceRepositoryService } from '../../../server/services/source-repository.service'
 import { SourceRepositoryRepository } from '../../../server/repositories/source-repository.repository'
+import type { Repository } from '../../../types/api'
 
 vi.mock('../../../server/repositories/source-repository.repository')
 
@@ -14,10 +15,10 @@ describe('SourceRepositoryService', () => {
 
   describe('findAll()', () => {
     it('should return repositories with count', async () => {
-      const mockRepos = [
-        { url: 'https://github.com/org/repo', name: 'repo', systemCount: 1 }
+      const mockRepos: Repository[] = [
+        { url: 'https://github.com/org/repo', name: 'repo', createdAt: null, updatedAt: null, lastSbomScanAt: null, systemCount: 1 }
       ]
-      vi.mocked(SourceRepositoryRepository.prototype.findAll).mockResolvedValue(mockRepos as any)
+      vi.mocked(SourceRepositoryRepository.prototype.findAll).mockResolvedValue(mockRepos)
 
       const result = await service.findAll()
 

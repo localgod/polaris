@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TokenService } from '../../../server/services/token.service'
 import { TokenRepository } from '../../../server/repositories/token.repository'
+import type { TokenWithUser } from '../../../server/repositories/token.repository'
 
 vi.mock('../../../server/repositories/token.repository')
 
@@ -49,13 +50,14 @@ describe('TokenService', () => {
     })
 
     it('should return user data for valid token', async () => {
-      vi.mocked(TokenRepository.prototype.findByHash).mockResolvedValue({
+      const validToken: TokenWithUser = {
         token: {
           id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
           expiresAt: null, revoked: false, createdBy: 'user-1', description: null
         },
         user: { id: 'user-1', email: 'test@test.com', role: 'user', teams: [] }
-      } as any)
+      }
+      vi.mocked(TokenRepository.prototype.findByHash).mockResolvedValue(validToken)
 
       const result = await service.resolveToken('some-token')
 
@@ -65,13 +67,14 @@ describe('TokenService', () => {
     })
 
     it('should return null for expired token', async () => {
-      vi.mocked(TokenRepository.prototype.findByHash).mockResolvedValue({
+      const expiredToken: TokenWithUser = {
         token: {
           id: 'token-id', tokenHash: 'hash', createdAt: '2025-01-01',
           expiresAt: '2025-01-02', revoked: false, createdBy: 'user-1', description: null
         },
         user: { id: 'user-1', email: 'test@test.com', role: 'user', teams: [] }
-      } as any)
+      }
+      vi.mocked(TokenRepository.prototype.findByHash).mockResolvedValue(expiredToken)
 
       expect(await service.resolveToken('expired-token')).toBeNull()
     })

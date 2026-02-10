@@ -50,6 +50,7 @@ describe('PolicyService - create()', () => {
     vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(false)
 
     await expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       service.create({ name: 'bad-rule', ruleType: 'invalid' as any, severity: 'warning' })
     ).rejects.toThrow()
 
@@ -60,6 +61,7 @@ describe('PolicyService - create()', () => {
     vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(false)
 
     await expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       service.create({ name: 'bad-sev', ruleType: 'compliance', severity: 'invalid' as any })
     ).rejects.toThrow()
 

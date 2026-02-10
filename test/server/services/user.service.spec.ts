@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { UserService } from '../../../server/services/user.service'
 import { UserRepository } from '../../../server/repositories/user.repository'
+import type { User, UserSummary } from '../../../server/repositories/user.repository'
 
 vi.mock('../../../server/repositories/user.repository')
 
@@ -47,10 +48,14 @@ describe('UserService', () => {
 
   describe('findAll()', () => {
     it('should return users with count', async () => {
-      const mockUsers = [
-        { id: 'u1', email: 'a@test.com', name: 'A', role: 'user' }
+      const mockUsers: User[] = [
+        {
+          id: 'u1', email: 'a@test.com', name: 'A', role: 'user',
+          provider: 'github', avatarUrl: null, lastLogin: null,
+          createdAt: null, teams: [], canManage: []
+        }
       ]
-      vi.mocked(UserRepository.prototype.findAll).mockResolvedValue(mockUsers as any)
+      vi.mocked(UserRepository.prototype.findAll).mockResolvedValue(mockUsers)
 
       const result = await service.findAll()
 
@@ -61,10 +66,14 @@ describe('UserService', () => {
 
   describe('findAllSummary()', () => {
     it('should return user summaries', async () => {
-      const mockSummaries = [
-        { id: 'u1', email: 'a@test.com', name: 'A', role: 'user', teamCount: 2 }
+      const mockSummaries: UserSummary[] = [
+        {
+          id: 'u1', email: 'a@test.com', name: 'A', role: 'user',
+          provider: 'github', avatarUrl: null, lastLogin: null,
+          createdAt: null, teamCount: 2
+        }
       ]
-      vi.mocked(UserRepository.prototype.findAllSummary).mockResolvedValue(mockSummaries as any)
+      vi.mocked(UserRepository.prototype.findAllSummary).mockResolvedValue(mockSummaries)
 
       const result = await service.findAllSummary()
 
@@ -75,7 +84,12 @@ describe('UserService', () => {
 
   describe('findById()', () => {
     it('should return user when found', async () => {
-      vi.mocked(UserRepository.prototype.findById).mockResolvedValue({ id: 'u1', email: 'a@test.com' } as any)
+      const mockUser: User = {
+        id: 'u1', email: 'a@test.com', name: 'A', role: 'user',
+        provider: 'github', avatarUrl: null, lastLogin: null,
+        createdAt: null, teams: [], canManage: []
+      }
+      vi.mocked(UserRepository.prototype.findById).mockResolvedValue(mockUser)
 
       const result = await service.findById('u1')
 
