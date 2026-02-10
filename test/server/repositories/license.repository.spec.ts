@@ -1,86 +1,39 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { LicenseRepository } from '../../../server/repositories/license.repository'
-import neo4j, { type Driver, type Session } from 'neo4j-driver'
-import { cleanupTestData } from '../../fixtures/db-cleanup'
+import { getTestContext, cleanupTestData, type TestContext } from '../../fixtures/neo4j-test-helper'
+import type { Session } from 'neo4j-driver'
 
-const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687'
-const NEO4J_USERNAME = process.env.NEO4J_USERNAME || 'neo4j'
-const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || 'devpassword'
-const TEST_PREFIX = 'test_license_repo_'
+const PREFIX = 'test_license_repo_'
+let ctx: TestContext
+let licenseRepo: LicenseRepository
+let session: Session
 
-let driver: Driver | null = null
-let neo4jAvailable = false
+beforeAll(async () => { ctx = await getTestContext() })
+afterAll(async () => { if (ctx.neo4jAvailable) await cleanupTestData(ctx.driver, { prefix: PREFIX }) })
 
-beforeAll(async () => {
-  try {
-    driver = neo4j.driver(NEO4J_URI, neo4j.auth.basic(NEO4J_USERNAME, NEO4J_PASSWORD))
-    await driver.verifyAuthentication()
-    neo4jAvailable = true
-  } catch {
-    neo4jAvailable = false
-    console.warn('\n⚠️  Neo4j not available. Repository tests will be skipped.\n')
-  }
-})
-
-afterAll(async () => {
-  if (driver) {
-    await cleanupTestData(driver, { prefix: TEST_PREFIX })
-    await driver.close()
-  }
-})
+afterEach(async () => { if (session) await session.close() })
 
 describe('LicenseRepository', () => {
-  let licenseRepo: LicenseRepository
-  let session: Session | null = null
-
   beforeEach(async () => {
-    if (!neo4jAvailable || !driver) return
-    
-    licenseRepo = new LicenseRepository(driver)
-    session = driver.session()
-    
-    await cleanupTestData(driver, { prefix: TEST_PREFIX })
+    if (!ctx.neo4jAvailable) return
+    await cleanupTestData(ctx.driver, { prefix: PREFIX })
+    licenseRepo = new LicenseRepository(ctx.driver)
+    session = ctx.driver.session()
   })
 
-  describe('Class Definition', () => {
-    it('should be defined as a class', () => {
-      expect(LicenseRepository).toBeDefined()
-      expect(typeof LicenseRepository).toBe('function')
-    })
-
-    it('should have findAll method', () => {
-      expect(LicenseRepository.prototype.findAll).toBeDefined()
-    })
-
-    it('should have findById method', () => {
-      expect(LicenseRepository.prototype.findById).toBeDefined()
-    })
-
-    it('should have exists method', () => {
-      expect(LicenseRepository.prototype.exists).toBeDefined()
-    })
-
-    it('should have getStatistics method', () => {
-      expect(LicenseRepository.prototype.getStatistics).toBeDefined()
-    })
-
-    it('should have count method', () => {
-      expect(LicenseRepository.prototype.count).toBeDefined()
-    })
-  })
 
   describe('count()', () => {
     it('should return 0 when no licenses exist', async () => {
-      if (!neo4jAvailable) return
+      if (!ctx.neo4jAvailable) return
 
       // Count only test licenses by using search filter with test prefix
-      const result = await licenseRepo.count({ search: TEST_PREFIX })
+      const result = await licenseRepo.count({ search: PREFIX })
 
       expect(result).toBe(0)
     })
 
     it('should return total count of licenses', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create test licenses
       await session.run(`
@@ -105,8 +58,8 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Apache-2.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}Apache-2.0`
       })
 
       const result = await licenseRepo.count()
@@ -115,7 +68,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should filter count by category', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l1:License {
@@ -137,8 +90,8 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}GPL-3.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}GPL-3.0`
       })
 
       const permissiveCount = await licenseRepo.count({ category: 'permissive' })
@@ -150,7 +103,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should filter count by whitelisted status', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l1:License {
@@ -172,8 +125,8 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}GPL-3.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}GPL-3.0`
       })
 
       const whitelistedCount = await licenseRepo.count({ whitelisted: true })
@@ -184,7 +137,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should filter count by osiApproved status', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l1:License {
@@ -206,8 +159,8 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Custom`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}Custom`
       })
 
       const osiApprovedCount = await licenseRepo.count({ osiApproved: true })
@@ -218,7 +171,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should filter count by search term', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l1:License {
@@ -238,8 +191,8 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Apache-2.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}Apache-2.0`
       })
 
       const mitCount = await licenseRepo.count({ search: 'MIT' })
@@ -250,7 +203,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should combine multiple filters', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l1:License {
@@ -276,8 +229,8 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}GPL-3.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}GPL-3.0`
       })
 
       const filteredCount = await licenseRepo.count({ 
@@ -292,7 +245,7 @@ describe('LicenseRepository', () => {
 
   describe('findAll()', () => {
     it('should return empty array when no licenses exist', async () => {
-      if (!neo4jAvailable) return
+      if (!ctx.neo4jAvailable) return
 
       const result = await licenseRepo.findAll()
 
@@ -300,7 +253,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should return all licenses with component counts', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create test licenses
       await session.run(`
@@ -325,12 +278,12 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Apache-2.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}Apache-2.0`
       })
 
       const result = await licenseRepo.findAll()
-      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+      const testLicenses = result.filter(l => l.id.startsWith(PREFIX))
 
       expect(testLicenses.length).toBeGreaterThanOrEqual(2)
       testLicenses.forEach(license => {
@@ -342,7 +295,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should filter by category', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l1:License {
@@ -364,34 +317,34 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}GPL-3.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}GPL-3.0`
       })
 
       const result = await licenseRepo.findAll({ category: 'permissive' })
-      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+      const testLicenses = result.filter(l => l.id.startsWith(PREFIX))
 
       // Should find the MIT license we created
-      const mitLicense = testLicenses.find(l => l.id === `${TEST_PREFIX}MIT`)
+      const mitLicense = testLicenses.find(l => l.id === `${PREFIX}MIT`)
       expect(mitLicense).toBeDefined()
       expect(mitLicense?.category).toBe('permissive')
       
       // Should not find the GPL license
-      expect(testLicenses.find(l => l.id === `${TEST_PREFIX}GPL-3.0`)).toBeUndefined()
+      expect(testLicenses.find(l => l.id === `${PREFIX}GPL-3.0`)).toBeUndefined()
     })
   })
 
   describe('findById()', () => {
     it('should return null when license does not exist', async () => {
-      if (!neo4jAvailable) return
+      if (!ctx.neo4jAvailable) return
 
-      const result = await licenseRepo.findById(`${TEST_PREFIX}nonexistent`)
+      const result = await licenseRepo.findById(`${PREFIX}nonexistent`)
 
       expect(result).toBeNull()
     })
 
     it('should return license when it exists', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l:License {
@@ -405,13 +358,13 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}MIT`
+        id: `${PREFIX}MIT`
       })
 
-      const result = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      const result = await licenseRepo.findById(`${PREFIX}MIT`)
 
       expect(result).not.toBeNull()
-      expect(result?.id).toBe(`${TEST_PREFIX}MIT`)
+      expect(result?.id).toBe(`${PREFIX}MIT`)
       expect(result?.name).toBe('MIT License')
       expect(result?.osiApproved).toBe(true)
     })
@@ -419,15 +372,15 @@ describe('LicenseRepository', () => {
 
   describe('exists()', () => {
     it('should return false when license does not exist', async () => {
-      if (!neo4jAvailable) return
+      if (!ctx.neo4jAvailable) return
 
-      const result = await licenseRepo.exists(`${TEST_PREFIX}nonexistent`)
+      const result = await licenseRepo.exists(`${PREFIX}nonexistent`)
 
       expect(result).toBe(false)
     })
 
     it('should return true when license exists', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l:License {
@@ -439,10 +392,10 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}MIT`
+        id: `${PREFIX}MIT`
       })
 
-      const result = await licenseRepo.exists(`${TEST_PREFIX}MIT`)
+      const result = await licenseRepo.exists(`${PREFIX}MIT`)
 
       expect(result).toBe(true)
     })
@@ -450,7 +403,7 @@ describe('LicenseRepository', () => {
 
   describe('getStatistics()', () => {
     it('should return statistics for licenses', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l1:License {
@@ -474,8 +427,8 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}GPL-3.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}GPL-3.0`
       })
 
       const result = await licenseRepo.getStatistics()
@@ -490,7 +443,7 @@ describe('LicenseRepository', () => {
 
   describe('updateWhitelistStatus()', () => {
     it('should update whitelist status to true', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create a test license
       await session.run(`
@@ -504,20 +457,20 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}MIT`
+        id: `${PREFIX}MIT`
       })
 
       // Update whitelist status
-      const result = await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}MIT`, true)
+      const result = await licenseRepo.updateWhitelistStatus(`${PREFIX}MIT`, true)
       expect(result).toBe(true)
 
       // Verify the update
-      const license = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      const license = await licenseRepo.findById(`${PREFIX}MIT`)
       expect(license?.whitelisted).toBe(true)
     })
 
     it('should update whitelist status to false', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create a test license that is whitelisted
       await session.run(`
@@ -531,27 +484,27 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}Apache-2.0`
+        id: `${PREFIX}Apache-2.0`
       })
 
       // Update whitelist status
-      const result = await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}Apache-2.0`, false)
+      const result = await licenseRepo.updateWhitelistStatus(`${PREFIX}Apache-2.0`, false)
       expect(result).toBe(true)
 
       // Verify the update
-      const license = await licenseRepo.findById(`${TEST_PREFIX}Apache-2.0`)
+      const license = await licenseRepo.findById(`${PREFIX}Apache-2.0`)
       expect(license?.whitelisted).toBe(false)
     })
 
     it('should return false when license does not exist', async () => {
-      if (!neo4jAvailable) return
+      if (!ctx.neo4jAvailable) return
 
-      const result = await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}nonexistent`, true)
+      const result = await licenseRepo.updateWhitelistStatus(`${PREFIX}nonexistent`, true)
       expect(result).toBe(false)
     })
 
     it('should update timestamp when updating whitelist status', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create a test license with an old timestamp
       await session.run(`
@@ -565,16 +518,16 @@ describe('LicenseRepository', () => {
           updatedAt: datetime() - duration('PT1H')
         })
       `, {
-        id: `${TEST_PREFIX}MIT`
+        id: `${PREFIX}MIT`
       })
 
-      const beforeUpdate = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      const beforeUpdate = await licenseRepo.findById(`${PREFIX}MIT`)
       const beforeTimestamp = new Date(beforeUpdate!.updatedAt).getTime()
       
       // Update whitelist status
-      await licenseRepo.updateWhitelistStatus(`${TEST_PREFIX}MIT`, true)
+      await licenseRepo.updateWhitelistStatus(`${PREFIX}MIT`, true)
 
-      const afterUpdate = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      const afterUpdate = await licenseRepo.findById(`${PREFIX}MIT`)
       const afterTimestamp = new Date(afterUpdate!.updatedAt).getTime()
       
       // The updated timestamp should be later than the original
@@ -584,7 +537,7 @@ describe('LicenseRepository', () => {
 
   describe('getWhitelistedLicenses()', () => {
     it('should return only whitelisted licenses', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create test licenses with mixed whitelist status
       await session.run(`
@@ -616,13 +569,13 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Apache-2.0`,
-        id3: `${TEST_PREFIX}BSD-3-Clause`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}Apache-2.0`,
+        id3: `${PREFIX}BSD-3-Clause`
       })
 
       const result = await licenseRepo.getWhitelistedLicenses()
-      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+      const testLicenses = result.filter(l => l.id.startsWith(PREFIX))
 
       expect(testLicenses.length).toBe(2)
       testLicenses.forEach(license => {
@@ -631,7 +584,7 @@ describe('LicenseRepository', () => {
     })
 
     it('should return empty array when no licenses are whitelisted', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create test licenses that are not whitelisted
       await session.run(`
@@ -645,11 +598,11 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}GPL-3.0`
+        id1: `${PREFIX}GPL-3.0`
       })
 
       const result = await licenseRepo.getWhitelistedLicenses()
-      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+      const testLicenses = result.filter(l => l.id.startsWith(PREFIX))
 
       expect(testLicenses.length).toBe(0)
     })
@@ -657,7 +610,7 @@ describe('LicenseRepository', () => {
 
   describe('isWhitelisted()', () => {
     it('should return true when license is whitelisted', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l:License {
@@ -670,15 +623,15 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}MIT`
+        id: `${PREFIX}MIT`
       })
 
-      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}MIT`)
+      const result = await licenseRepo.isWhitelisted(`${PREFIX}MIT`)
       expect(result).toBe(true)
     })
 
     it('should return false when license is not whitelisted', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       await session.run(`
         CREATE (l:License {
@@ -691,22 +644,22 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}GPL-3.0`
+        id: `${PREFIX}GPL-3.0`
       })
 
-      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}GPL-3.0`)
+      const result = await licenseRepo.isWhitelisted(`${PREFIX}GPL-3.0`)
       expect(result).toBe(false)
     })
 
     it('should return false when license does not exist', async () => {
-      if (!neo4jAvailable) return
+      if (!ctx.neo4jAvailable) return
 
-      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}nonexistent`)
+      const result = await licenseRepo.isWhitelisted(`${PREFIX}nonexistent`)
       expect(result).toBe(false)
     })
 
     it('should return false when license has no whitelist property', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create a license without the whitelisted property
       await session.run(`
@@ -719,17 +672,17 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}Old-License`
+        id: `${PREFIX}Old-License`
       })
 
-      const result = await licenseRepo.isWhitelisted(`${TEST_PREFIX}Old-License`)
+      const result = await licenseRepo.isWhitelisted(`${PREFIX}Old-License`)
       expect(result).toBe(false)
     })
   })
 
   describe('bulkUpdateWhitelistStatus()', () => {
     it('should update multiple licenses at once', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create multiple test licenses
       await session.run(`
@@ -752,27 +705,27 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Apache-2.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}Apache-2.0`
       })
 
       // Update whitelist status for both licenses
       const updated = await licenseRepo.bulkUpdateWhitelistStatus(
-        [`${TEST_PREFIX}MIT`, `${TEST_PREFIX}Apache-2.0`],
+        [`${PREFIX}MIT`, `${PREFIX}Apache-2.0`],
         true
       )
 
       expect(updated).toBe(2)
 
       // Verify both licenses were updated
-      const mit = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
-      const apache = await licenseRepo.findById(`${TEST_PREFIX}Apache-2.0`)
+      const mit = await licenseRepo.findById(`${PREFIX}MIT`)
+      const apache = await licenseRepo.findById(`${PREFIX}Apache-2.0`)
       expect(mit?.whitelisted).toBe(true)
       expect(apache?.whitelisted).toBe(true)
     })
 
     it('should rollback entire transaction if any license does not exist', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create only one license
       await session.run(`
@@ -786,14 +739,14 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id3: `${TEST_PREFIX}BSD-3-Clause`
+        id3: `${PREFIX}BSD-3-Clause`
       })
 
       // Try to update multiple licenses (but only BSD-3-Clause exists)
       const licenseIds = [
-        `${TEST_PREFIX}MIT`,
-        `${TEST_PREFIX}Apache-2.0`,
-        `${TEST_PREFIX}BSD-3-Clause`
+        `${PREFIX}MIT`,
+        `${PREFIX}Apache-2.0`,
+        `${PREFIX}BSD-3-Clause`
       ]
       
       // Should throw an error because MIT and Apache-2.0 don't exist
@@ -802,12 +755,12 @@ describe('LicenseRepository', () => {
       ).rejects.toThrow('One or more licenses not found')
 
       // Verify BSD-3-Clause was NOT updated (rollback)
-      const bsd = await licenseRepo.findById(`${TEST_PREFIX}BSD-3-Clause`)
+      const bsd = await licenseRepo.findById(`${PREFIX}BSD-3-Clause`)
       expect(bsd?.whitelisted).toBe(false)
     })
 
     it('should handle partial updates when some licenses do not exist', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create one test license
       await session.run(`
@@ -821,31 +774,31 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id: `${TEST_PREFIX}MIT`
+        id: `${PREFIX}MIT`
       })
 
       // Try to update with one existing and one non-existing license
       await expect(
         licenseRepo.bulkUpdateWhitelistStatus(
-          [`${TEST_PREFIX}MIT`, `${TEST_PREFIX}nonexistent`],
+          [`${PREFIX}MIT`, `${PREFIX}nonexistent`],
           true
         )
       ).rejects.toThrow('One or more licenses not found')
 
       // Verify the existing license was NOT updated (rollback)
-      const mit = await licenseRepo.findById(`${TEST_PREFIX}MIT`)
+      const mit = await licenseRepo.findById(`${PREFIX}MIT`)
       expect(mit?.whitelisted).toBe(false)
     })
 
     it('should return 0 when empty array is provided', async () => {
-      if (!neo4jAvailable) return
+      if (!ctx.neo4jAvailable) return
 
       const result = await licenseRepo.bulkUpdateWhitelistStatus([], true)
       expect(result).toBe(0)
     })
 
     it('should update whitelist status to false for multiple licenses', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create test licenses that are whitelisted
       await session.run(`
@@ -868,12 +821,12 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}Apache-2.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}Apache-2.0`
       })
 
       // Update to not whitelisted
-      const licenseIds = [`${TEST_PREFIX}MIT`, `${TEST_PREFIX}Apache-2.0`]
+      const licenseIds = [`${PREFIX}MIT`, `${PREFIX}Apache-2.0`]
       const result = await licenseRepo.bulkUpdateWhitelistStatus(licenseIds, false)
       
       expect(result).toBe(2)
@@ -888,7 +841,7 @@ describe('LicenseRepository', () => {
 
   describe('findAll() with whitelisted filter', () => {
     it('should filter licenses by whitelisted status', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create test licenses with different whitelist status
       await session.run(`
@@ -920,13 +873,13 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}GPL-3.0`,
-        id3: `${TEST_PREFIX}Apache-2.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}GPL-3.0`,
+        id3: `${PREFIX}Apache-2.0`
       })
 
       const whitelistedResult = await licenseRepo.findAll({ whitelisted: true })
-      const testWhitelisted = whitelistedResult.filter(l => l.id.startsWith(TEST_PREFIX))
+      const testWhitelisted = whitelistedResult.filter(l => l.id.startsWith(PREFIX))
 
       expect(testWhitelisted.length).toBe(2)
       testWhitelisted.forEach(license => {
@@ -934,15 +887,15 @@ describe('LicenseRepository', () => {
       })
 
       const notWhitelistedResult = await licenseRepo.findAll({ whitelisted: false })
-      const testNotWhitelisted = notWhitelistedResult.filter(l => l.id.startsWith(TEST_PREFIX))
+      const testNotWhitelisted = notWhitelistedResult.filter(l => l.id.startsWith(PREFIX))
 
       expect(testNotWhitelisted.length).toBe(1)
-      expect(testNotWhitelisted[0].id).toBe(`${TEST_PREFIX}GPL-3.0`)
+      expect(testNotWhitelisted[0].id).toBe(`${PREFIX}GPL-3.0`)
       expect(testNotWhitelisted[0].whitelisted).toBe(false)
     })
 
     it('should combine whitelisted filter with other filters', async () => {
-      if (!neo4jAvailable || !session) return
+      if (!ctx.neo4jAvailable) return
 
       // Create test licenses with different properties
       await session.run(`
@@ -977,9 +930,9 @@ describe('LicenseRepository', () => {
           updatedAt: datetime()
         })
       `, {
-        id1: `${TEST_PREFIX}MIT`,
-        id2: `${TEST_PREFIX}GPL-3.0`,
-        id3: `${TEST_PREFIX}Apache-2.0`
+        id1: `${PREFIX}MIT`,
+        id2: `${PREFIX}GPL-3.0`,
+        id3: `${PREFIX}Apache-2.0`
       })
 
       // Filter by both whitelisted and category
@@ -987,10 +940,10 @@ describe('LicenseRepository', () => {
         whitelisted: true, 
         category: 'permissive' 
       })
-      const testLicenses = result.filter(l => l.id.startsWith(TEST_PREFIX))
+      const testLicenses = result.filter(l => l.id.startsWith(PREFIX))
 
       expect(testLicenses.length).toBe(1)
-      expect(testLicenses[0].id).toBe(`${TEST_PREFIX}MIT`)
+      expect(testLicenses[0].id).toBe(`${PREFIX}MIT`)
       expect(testLicenses[0].whitelisted).toBe(true)
       expect(testLicenses[0].category).toBe('permissive')
     })

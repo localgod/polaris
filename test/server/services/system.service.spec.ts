@@ -2,24 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SystemService } from '../../../server/services/system.service'
 import { SystemRepository } from '../../../server/repositories/system.repository'
 import type { System } from '../../../server/repositories/system.repository'
+import '../../fixtures/service-test-helper'
 
-// Mock the SystemRepository
 vi.mock('../../../server/repositories/system.repository')
-
-// Mock the SourceRepositoryRepository
 vi.mock('../../../server/repositories/source-repository.repository')
-
-// Mock normalizeRepoUrl utility
 vi.mock('../../../server/utils/repository', () => ({
   normalizeRepoUrl: vi.fn((url: string) => url.toLowerCase().replace(/\.git$/, ''))
 }))
-
-// Mock Nuxt's createError utility
-global.createError = vi.fn((options: { statusCode: number; message: string }) => {
-  const error = new Error(options.message) as Error & { statusCode: number }
-  error.statusCode = options.statusCode
-  return error
-})
 
 describe('SystemService', () => {
   let systemService: SystemService

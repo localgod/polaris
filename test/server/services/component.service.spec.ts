@@ -1,14 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ComponentService } from '../../../server/services/component.service'
-import type { ComponentRepository } from '../../../server/repositories/component.repository'
+import { ComponentRepository } from '../../../server/repositories/component.repository'
 import type { Component, UnmappedComponent } from '../../../types/api'
 
-// Mock the ComponentRepository
 vi.mock('../../../server/repositories/component.repository')
 
 describe('ComponentService', () => {
-  let componentService: ComponentService
-  let mockComponentRepo: ComponentRepository
+  let service: ComponentService
 
   const mockComponents: Component[] = [
     {
@@ -81,35 +79,16 @@ describe('ComponentService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    componentService = new ComponentService()
-    mockComponentRepo = componentService['componentRepo']
-  })
-
-  describe('Class Definition', () => {
-    it('should be defined as a class', () => {
-      expect(ComponentService).toBeDefined()
-      expect(typeof ComponentService).toBe('function')
-    })
-
-    it('should have findAll method', () => {
-      expect(ComponentService.prototype.findAll).toBeDefined()
-    })
-
-    it('should have findUnmapped method', () => {
-      expect(ComponentService.prototype.findUnmapped).toBeDefined()
-    })
+    service = new ComponentService()
   })
 
   describe('findAll()', () => {
     it('should return all components with correct count', async () => {
-      // Arrange
-      vi.mocked(mockComponentRepo.findAll).mockResolvedValue(mockComponents)
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue(mockComponents)
 
-      // Act
-      const result = await componentService.findAll()
+      const result = await service.findAll()
 
-      // Assert
-      expect(mockComponentRepo.findAll).toHaveBeenCalledTimes(1)
+      expect(ComponentRepository.prototype.findAll).toHaveBeenCalledOnce()
       expect(result).toEqual({
         data: mockComponents,
         count: 2
@@ -117,51 +96,34 @@ describe('ComponentService', () => {
     })
 
     it('should return empty array when no components exist', async () => {
-      // Arrange
-      vi.mocked(mockComponentRepo.findAll).mockResolvedValue([])
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue([])
 
-      // Act
-      const result = await componentService.findAll()
+      const result = await service.findAll()
 
-      // Assert
-      expect(mockComponentRepo.findAll).toHaveBeenCalledTimes(1)
-      expect(result).toEqual({
-        data: [],
-        count: 0
-      })
+      expect(result).toEqual({ data: [], count: 0 })
     })
 
     it('should calculate count correctly for single component', async () => {
-      // Arrange
-      const singleComponent = [mockComponents[0]]
-      vi.mocked(mockComponentRepo.findAll).mockResolvedValue(singleComponent)
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue([mockComponents[0]])
 
-      // Act
-      const result = await componentService.findAll()
+      const result = await service.findAll()
 
-      // Assert
       expect(result.count).toBe(1)
       expect(result.data).toHaveLength(1)
     })
 
     it('should propagate repository errors', async () => {
-      // Arrange
-      const error = new Error('Database connection failed')
-      vi.mocked(mockComponentRepo.findAll).mockRejectedValue(error)
+      vi.mocked(ComponentRepository.prototype.findAll).mockRejectedValue(new Error('Database connection failed'))
 
-      // Act & Assert
-      await expect(componentService.findAll()).rejects.toThrow('Database connection failed')
-      expect(mockComponentRepo.findAll).toHaveBeenCalledTimes(1)
+      await expect(service.findAll()).rejects.toThrow('Database connection failed')
+      expect(ComponentRepository.prototype.findAll).toHaveBeenCalledOnce()
     })
 
     it('should return components with all required properties', async () => {
-      // Arrange
-      vi.mocked(mockComponentRepo.findAll).mockResolvedValue(mockComponents)
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue(mockComponents)
 
-      // Act
-      const result = await componentService.findAll()
+      const result = await service.findAll()
 
-      // Assert
       expect(result.data[0]).toHaveProperty('name')
       expect(result.data[0]).toHaveProperty('version')
       expect(result.data[0]).toHaveProperty('packageManager')
@@ -174,14 +136,11 @@ describe('ComponentService', () => {
 
   describe('findUnmapped()', () => {
     it('should return all unmapped components with correct count', async () => {
-      // Arrange
-      vi.mocked(mockComponentRepo.findUnmapped).mockResolvedValue(mockUnmappedComponents)
+      vi.mocked(ComponentRepository.prototype.findUnmapped).mockResolvedValue(mockUnmappedComponents)
 
-      // Act
-      const result = await componentService.findUnmapped()
+      const result = await service.findUnmapped()
 
-      // Assert
-      expect(mockComponentRepo.findUnmapped).toHaveBeenCalledTimes(1)
+      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledOnce()
       expect(result).toEqual({
         data: mockUnmappedComponents,
         count: 1
@@ -189,28 +148,18 @@ describe('ComponentService', () => {
     })
 
     it('should return empty array when no unmapped components exist', async () => {
-      // Arrange
-      vi.mocked(mockComponentRepo.findUnmapped).mockResolvedValue([])
+      vi.mocked(ComponentRepository.prototype.findUnmapped).mockResolvedValue([])
 
-      // Act
-      const result = await componentService.findUnmapped()
+      const result = await service.findUnmapped()
 
-      // Assert
-      expect(mockComponentRepo.findUnmapped).toHaveBeenCalledTimes(1)
-      expect(result).toEqual({
-        data: [],
-        count: 0
-      })
+      expect(result).toEqual({ data: [], count: 0 })
     })
 
     it('should propagate repository errors', async () => {
-      // Arrange
-      const error = new Error('Query execution failed')
-      vi.mocked(mockComponentRepo.findUnmapped).mockRejectedValue(error)
+      vi.mocked(ComponentRepository.prototype.findUnmapped).mockRejectedValue(new Error('Query execution failed'))
 
-      // Act & Assert
-      await expect(componentService.findUnmapped()).rejects.toThrow('Query execution failed')
-      expect(mockComponentRepo.findUnmapped).toHaveBeenCalledTimes(1)
+      await expect(service.findUnmapped()).rejects.toThrow('Query execution failed')
+      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledOnce()
     })
   })
 })
