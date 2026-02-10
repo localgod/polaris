@@ -110,15 +110,15 @@ export class LicenseService {
    * @param whitelisted - New whitelist status
    * @returns True if license was updated successfully
    */
-  async updateWhitelistStatus(id: string, whitelisted: boolean): Promise<boolean> {
+  async updateWhitelistStatus(id: string, whitelisted: boolean, userId?: string): Promise<boolean> {
     // Verify license exists
     const license = await this.licenseRepo.findById(id)
     if (!license) {
       throw new Error(`License '${id}' not found`)
     }
     
-    // Update whitelist status
-    const updated = await this.licenseRepo.updateWhitelistStatus(id, whitelisted)
+    // Update whitelist status and create audit log
+    const updated = await this.licenseRepo.updateWhitelistStatus(id, whitelisted, userId)
     
     if (!updated) {
       throw new Error(`Failed to update whitelist status for license '${id}'`)
@@ -140,7 +140,7 @@ export class LicenseService {
    * @param whitelisted - New whitelist status
    * @returns Operation summary with success status, updated count, and any errors
    */
-  async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean): Promise<{
+  async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean, userId?: string): Promise<{
     success: boolean
     updated: number
     errors: string[]
@@ -190,7 +190,7 @@ export class LicenseService {
       }
 
       // All licenses exist, proceed with atomic bulk update
-      const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted)
+      const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted, userId)
       
       // Check if all licenses were updated (should not happen with atomic transaction, but safety check)
       if (updated < licenseIds.length) {

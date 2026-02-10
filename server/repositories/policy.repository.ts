@@ -672,6 +672,33 @@ export class PolicyRepository extends BaseRepository {
     return records.map(record => this.mapToLicenseViolation(record))
   }
 
+  async findDisabledLicenseViolations(filters: ViolationFilters): Promise<LicenseViolation[]> {
+    const query = await loadQuery('policies/find-disabled-license-violations.cypher')
+
+    const params: Record<string, string> = {}
+    const conditions: string[] = []
+
+    if (filters.team) {
+      conditions.push('team.name = $team')
+      params.team = filters.team
+    }
+
+    if (filters.system) {
+      conditions.push('system.name = $system')
+      params.system = filters.system
+    }
+
+    if (filters.license) {
+      conditions.push('license.id = $license')
+      params.license = filters.license
+    }
+
+    const finalQuery = injectWhereConditions(query, conditions)
+    const { records } = await this.executeQuery(finalQuery, params)
+
+    return records.map(record => this.mapToLicenseViolation(record))
+  }
+
   /**
    * Map Neo4j record to PolicyViolation domain object
    */

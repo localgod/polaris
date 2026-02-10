@@ -254,15 +254,32 @@ export class LicenseRepository extends BaseRepository {
    * @param whitelisted - New whitelist status
    * @returns True if license was updated
    */
-  async updateWhitelistStatus(id: string, whitelisted: boolean): Promise<boolean> {
+  async updateWhitelistStatus(id: string, whitelisted: boolean, userId?: string): Promise<boolean> {
     const cypher = `
       MATCH (l:License {id: $id})
+      WITH l, l.whitelisted as previousWhitelisted
       SET l.whitelisted = $whitelisted,
           l.updatedAt = datetime()
+      WITH l, previousWhitelisted
+      CREATE (a:AuditLog {
+        id: randomUUID(),
+        timestamp: datetime(),
+        operation: CASE $whitelisted WHEN true THEN 'ENABLE' ELSE 'DISABLE' END,
+        entityType: 'License',
+        entityId: l.id,
+        entityLabel: l.name,
+        previousStatus: CASE previousWhitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
+        newStatus: CASE $whitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
+        changedFields: ['whitelisted'],
+        reason: null,
+        source: 'API',
+        userId: $userId
+      })
+      CREATE (a)-[:AUDITS]->(l)
       RETURN count(l) as updated
     `
     
-    const { records } = await this.executeQuery(cypher, { id, whitelisted })
+    const { records } = await this.executeQuery(cypher, { id, whitelisted, userId: userId || null })
     return records[0]?.get('updated').toNumber() > 0
   }
 
@@ -302,7 +319,7 @@ export class LicenseRepository extends BaseRepository {
    * @returns Number of licenses updated
    * @throws Error if any license does not exist
    */
-  async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean): Promise<number> {
+  async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean, userId?: string): Promise<number> {
     if (licenseIds.length === 0) return 0
     
     const cypher = `
@@ -314,14 +331,31 @@ export class LicenseRepository extends BaseRepository {
       // the sizes won't match and the query returns no results (rollback)
       WHERE size(licenses) = size(requestedIds)
       
-      // If all exist, update them
+      // If all exist, update them and create audit logs
       UNWIND licenses as license
+      WITH license, license.whitelisted as previousWhitelisted
       SET license.whitelisted = $whitelisted,
           license.updatedAt = datetime()
+      WITH license, previousWhitelisted
+      CREATE (a:AuditLog {
+        id: randomUUID(),
+        timestamp: datetime(),
+        operation: CASE $whitelisted WHEN true THEN 'ENABLE' ELSE 'DISABLE' END,
+        entityType: 'License',
+        entityId: license.id,
+        entityLabel: license.name,
+        previousStatus: CASE previousWhitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
+        newStatus: CASE $whitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
+        changedFields: ['whitelisted'],
+        reason: null,
+        source: 'API',
+        userId: $userId
+      })
+      CREATE (a)-[:AUDITS]->(license)
       RETURN count(license) as updated
     `
     
-    const { records } = await this.executeQueryWithSession(cypher, { licenseIds, whitelisted })
+    const { records } = await this.executeQueryWithSession(cypher, { licenseIds, whitelisted, userId: userId || null })
     
     // If no records returned, it means some licenses don't exist
     if (records.length === 0) {
