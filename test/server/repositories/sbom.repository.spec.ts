@@ -1,43 +1,68 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { SBOMRepository } from '../../../server/repositories/sbom.repository'
+import { getTestContext, cleanupTestData, seed, type TestContext } from '../../fixtures/neo4j-test-helper'
+import type { Session } from 'neo4j-driver'
 
-/**
- * SBOM Repository Tests
- * 
- * NOTE: Integration tests with actual Neo4j database are not implemented.
- * 
- * REASON: The Neo4j JavaScript driver has serialization issues with complex nested
- * data structures (components with arrays of hashes, licenses, and external references).
- * This causes a persistent error:
- * 
- *   GQLError: 22N01: Expected the value Map{} to be of type BOOLEAN, STRING, INTEGER...
- * 
- * Multiple solutions were attempted (10+ approaches) including:
- * - Session transactions vs executeQuery
- * - Data serialization and filtering
- * - Cypher query modifications
- * - Flattened data structures
- * 
- * All attempts failed with the same driver serialization error.
- * 
- * TESTING STRATEGY:
- * - Service layer is fully tested (11/11 tests passing) with mocked repository
- * - Repository functionality is verified through integration/E2E tests
- * - Production usage confirms the implementation works correctly
- *  */
+const PREFIX = 'test_sbom_repo_'
+let ctx: TestContext
+let repo: SBOMRepository
+let session: Session
+
+beforeAll(async () => { ctx = await getTestContext() })
+afterAll(async () => { if (ctx.neo4jAvailable) await cleanupTestData(ctx.driver, { prefix: PREFIX }) })
+
+beforeEach(async () => {
+  if (!ctx.neo4jAvailable) return
+  await cleanupTestData(ctx.driver, { prefix: PREFIX })
+  repo = new SBOMRepository(ctx.driver)
+  session = ctx.driver.session()
+})
+
+afterEach(async () => { if (session) await session.close() })
 
 describe('SBOMRepository', () => {
-  describe('Class Definition', () => {
-    it('should be defined as a class', () => {
-      expect(SBOMRepository).toBeDefined()
-      expect(typeof SBOMRepository).toBe('function')
-    })
+  describe('persistSBOM()', () => {
+    it('should persist components and link to system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:System { name: $sys })
+        CREATE (:Repository { url: $url, name: $repoName })
+      `, { sys: `${PREFIX}my-system`, url: `https://github.com/${PREFIX}org/repo`, repoName: `${PREFIX}repo` })
 
-    it('should have persistSBOM method', () => {
-      expect(SBOMRepository.prototype.persistSBOM).toBeDefined()
+      const result = await repo.persistSBOM({
+        systemName: `${PREFIX}my-system`,
+        repositoryUrl: `https://github.com/${PREFIX}org/repo`,
+        format: 'cyclonedx',
+        timestamp: new Date(),
+        components: [
+          {
+            name: `${PREFIX}lodash`, version: '4.17.21',
+            purl: `pkg:npm/${PREFIX}lodash@4.17.21`, packageManager: 'npm',
+            cpe: null, bomRef: null, type: 'library', group: null, scope: null,
+            hashes: [], licenses: [], copyright: null, supplier: null,
+            author: null, publisher: null, homepage: null, description: null,
+            externalReferences: []
+          },
+          {
+            name: `${PREFIX}express`, version: '4.18.2',
+            purl: `pkg:npm/${PREFIX}express@4.18.2`, packageManager: 'npm',
+            cpe: null, bomRef: null, type: 'library', group: null, scope: null,
+            hashes: [], licenses: [], copyright: null, supplier: null,
+            author: null, publisher: null, homepage: null, description: null,
+            externalReferences: []
+          }
+        ]
+      })
+
+      expect(result.componentsAdded + result.componentsUpdated).toBeGreaterThanOrEqual(2)
+
+      const check = await session.run(`
+        MATCH (s:System { name: $sys })-[:USES]->(c:Component)
+        WHERE c.name STARTS WITH $prefix
+        RETURN count(c) as count
+      `, { sys: `${PREFIX}my-system`, prefix: PREFIX })
+
+      expect(check.records[0].get('count').toNumber()).toBeGreaterThanOrEqual(2)
     })
   })
-
-  // Integration tests with Neo4j are not implemented due to driver serialization issues
-  // See comment at the top of this file for explanation
 })
