@@ -150,15 +150,12 @@ describe('API Pagination', () => {
   })
 
   describe('GET /api/audit-logs', () => {
-    it('should return paginated results with count and total', async () => {
+    it('should require authentication', async () => {
       if (!serverAvailable) return
 
-      const response = await fetchApi('/api/audit-logs?limit=2')
-      
-      expect(response.success).toBe(true)
-      expect(response.data.length).toBeLessThanOrEqual(2)
-      expect(response.count).toBe(response.data.length)
-      expect(typeof response.total).toBe('number')
+      const response = await fetch(`${BASE_URL}/api/audit-logs?limit=2`)
+
+      expect(response.status).toBe(401)
     })
   })
 

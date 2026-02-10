@@ -9,9 +9,7 @@ import { PolicyService } from '../../services/policy.service'
  *     summary: Delete a policy
  *     description: |
  *       Deletes a policy and all its relationships.
- *       
- *       **TODO:** This endpoint should be restricted to superadmin users only.
- *       See GitHub issue for tracking.
+ *       Requires superuser access.
  *     parameters:
  *       - in: path
  *         name: name
@@ -28,9 +26,7 @@ import { PolicyService } from '../../services/policy.service'
  *         description: Policy not found
  */
 export default defineEventHandler(async (event) => {
-  // TODO: Require superuser access for deleting policies
-  // See GitHub issue #156
-  // await requireSuperuser(event)
+  await requireSuperuser(event)
   
   const rawName = getRouterParam(event, 'name')
   

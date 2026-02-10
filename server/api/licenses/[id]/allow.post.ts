@@ -43,6 +43,8 @@ import { PolicyRepository } from '../../../repositories/policy.repository'
  */
 
 export default defineEventHandler(async (event) => {
+  await requireSuperuser(event)
+
   const licenseId = getRouterParam(event, 'id')
   
   if (!licenseId) {

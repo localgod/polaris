@@ -83,6 +83,8 @@ import { SystemService } from '../../../services/system.service'
  *                   example: "System not found: my-system"
  */
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+
   const systemName = getRouterParam(event, 'name')
   
   if (!systemName) {
@@ -91,6 +93,8 @@ export default defineEventHandler(async (event) => {
       message: 'System name is required'
     })
   }
+
+  await validateTeamOwnership(event, 'System', systemName)
   
   const body = await readBody<{ url: string; name?: string }>(event)
   

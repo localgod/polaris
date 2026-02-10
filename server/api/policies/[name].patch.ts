@@ -15,8 +15,7 @@ import { PolicyService } from '../../services/policy.service'
  *       - `draft`: Policy exists but is not enforced
  *       - `archived`: Policy is disabled and hidden from active views
  *       
- *       **TODO:** This endpoint should be restricted to superadmin users only.
- *       See GitHub issue #156.
+ *       Requires superuser access.
  *     parameters:
  *       - in: path
  *         name: name
@@ -64,9 +63,7 @@ interface UpdatePolicyRequest {
 }
 
 export default defineEventHandler(async (event) => {
-  // TODO: Require superuser access for updating policies
-  // See GitHub issue #156
-  // await requireSuperuser(event)
+  await requireSuperuser(event)
   
   const rawName = getRouterParam(event, 'name')
   
