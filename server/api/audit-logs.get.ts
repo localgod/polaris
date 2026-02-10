@@ -76,6 +76,8 @@ import { AuditLogService } from '../services/audit-log.service'
  */
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+
   const query = getQuery(event)
   
   const filters = {
