@@ -46,11 +46,13 @@ jobs:
         # Test layers aligned with new test directory structure
         # integration - Complex business workflows (test:integration)
         # server-api - API endpoint integration tests (test:server:api)
+        # server-services - Service layer unit tests (test:server:services)
+        # server-repositories - Repository layer unit tests (test:server:repositories)
         # server-utils - Server utility tests (test:server:utils)
         # schema - Database schema and migration tests (test:schema)
         # app-e2e - Frontend E2E tests (test:app:e2e)
         # smoke - Critical smoke tests across all layers (test:smoke)
-        test-layer: [integration, server-api, server-utils, schema, app-e2e, smoke]
+        test-layer: [integration, server-api, server-services, server-repositories, server-utils, schema, app-e2e, smoke]
 
     services:
       neo4j:
