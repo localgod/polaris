@@ -34,6 +34,40 @@ describe('TeamRepository', () => {
 
       expect(test.length).toBeGreaterThanOrEqual(2)
     })
+
+    it('should return correct memberCount', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (u1:User { id: $u1, email: $e1, name: 'Member 1', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (u2:User { id: $u2, email: $e2, name: 'Member 2', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (u1)-[:MEMBER_OF]->(t)
+        CREATE (u2)-[:MEMBER_OF]->(t)
+      `, {
+        team: `${PREFIX}counted`,
+        u1: `${PREFIX}member1`, e1: `${PREFIX}m1@test.com`,
+        u2: `${PREFIX}member2`, e2: `${PREFIX}m2@test.com`
+      })
+
+      const result = await repo.findAll()
+      const team = result.find(t => t.name === `${PREFIX}counted`)
+
+      expect(team).toBeDefined()
+      expect(team!.memberCount).toBe(2)
+    })
+
+    it('should return 0 memberCount for team with no members', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Team { name: $team })
+      `, { team: `${PREFIX}empty` })
+
+      const result = await repo.findAll()
+      const team = result.find(t => t.name === `${PREFIX}empty`)
+
+      expect(team).toBeDefined()
+      expect(team!.memberCount).toBe(0)
+    })
   })
 
   describe('findByName()', () => {

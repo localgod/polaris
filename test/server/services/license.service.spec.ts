@@ -300,7 +300,7 @@ describe('LicenseService', () => {
       const result = await service.updateWhitelistStatus('GPL-3.0', true)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledWith('GPL-3.0')
-      expect(LicenseRepository.prototype.updateWhitelistStatus).toHaveBeenCalledWith('GPL-3.0', true)
+      expect(LicenseRepository.prototype.updateWhitelistStatus).toHaveBeenCalledWith('GPL-3.0', true, undefined)
       expect(result).toBe(true)
     })
 
@@ -311,7 +311,7 @@ describe('LicenseService', () => {
       const result = await service.updateWhitelistStatus('MIT', false)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledWith('MIT')
-      expect(LicenseRepository.prototype.updateWhitelistStatus).toHaveBeenCalledWith('MIT', false)
+      expect(LicenseRepository.prototype.updateWhitelistStatus).toHaveBeenCalledWith('MIT', false, undefined)
       expect(result).toBe(true)
     })
 
@@ -355,7 +355,7 @@ describe('LicenseService', () => {
       const result = await service.bulkUpdateWhitelistStatus(['MIT', 'Apache-2.0'], false)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledTimes(2)
-      expect(LicenseRepository.prototype.bulkUpdateWhitelistStatus).toHaveBeenCalledWith(['MIT', 'Apache-2.0'], false)
+      expect(LicenseRepository.prototype.bulkUpdateWhitelistStatus).toHaveBeenCalledWith(['MIT', 'Apache-2.0'], false, undefined)
       expect(result).toEqual({ success: true, updated: 2, errors: [] })
     })
 
