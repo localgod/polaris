@@ -320,7 +320,8 @@ export class TeamRepository extends BaseRepository {
       email: record.get('email'),
       responsibilityArea: record.get('responsibilityArea'),
       technologyCount: record.get('technologyCount').toNumber(),
-      systemCount: record.get('systemCount').toNumber()
+      systemCount: record.get('systemCount').toNumber(),
+      memberCount: this.toNumber(record.get('memberCount'))
     }
   }
 

@@ -90,7 +90,7 @@ import { UserService } from '../../../../services/user.service'
  */
 export default defineEventHandler(async (event) => {
   // Require superuser access
-  await requireSuperuser(event)
+  const currentUser = await requireSuperuser(event)
   
   const userId = getRouterParam(event, 'userId')
   
@@ -117,7 +117,8 @@ export default defineEventHandler(async (event) => {
     const user = await userService.assignTeams({
       userId,
       teams: body.teams,
-      canManage: body.canManage
+      canManage: body.canManage,
+      performedBy: currentUser.id
     })
 
     setResponseStatus(event, 200)

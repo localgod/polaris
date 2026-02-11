@@ -35,6 +35,7 @@ export interface AssignTeamsParams {
   userId: string
   teams: string[]
   canManage?: string[]
+  performedBy?: string
 }
 
 export interface CreateOrUpdateUserParams {
@@ -153,7 +154,14 @@ export class UserRepository extends BaseRepository {
    * @throws Error if user not found
    */
   async assignTeams(params: AssignTeamsParams): Promise<User> {
-    const { userId, teams, canManage } = params
+    const { userId, teams, canManage, performedBy } = params
+    
+    // Capture previous team memberships for audit
+    const previousUser = await this.findById(userId)
+    const previousTeams = previousUser?.teams
+      .map(t => t.name)
+      .filter(Boolean)
+      .sort() || []
     
     // Remove existing team memberships
     const removeQuery = await loadQuery('users/remove-team-memberships.cypher')
@@ -169,6 +177,53 @@ export class UserRepository extends BaseRepository {
     if (canManage && canManage.length > 0) {
       const manageQuery = await loadQuery('users/add-management-permissions.cypher')
       await this.executeQuery(manageQuery, { userId, teamNames: canManage })
+    }
+    
+    // Create individual audit log entries per team change
+    const newTeams = [...teams].sort()
+    const added = newTeams.filter(t => !previousTeams.includes(t))
+    const removed = previousTeams.filter(t => !newTeams.includes(t))
+    
+    const auditEvents = [
+      ...added.map(team => ({ team, operation: 'ADD_TEAM_MEMBER' as const })),
+      ...removed.map(team => ({ team, operation: 'REMOVE_TEAM_MEMBER' as const }))
+    ]
+    
+    if (auditEvents.length > 0) {
+      const auditQuery = `
+        MATCH (u:User {id: $userId})
+        OPTIONAL MATCH (performer:User {id: $performedBy})
+        UNWIND $events AS evt
+        MATCH (t:Team {name: evt.team})
+        CREATE (a:AuditLog {
+          id: randomUUID(),
+          timestamp: datetime(),
+          operation: evt.operation,
+          entityType: 'User',
+          entityId: $userId,
+          entityLabel: coalesce(u.name, u.email),
+          previousStatus: null,
+          newStatus: evt.team,
+          changedFields: ['teams'],
+          reason: CASE evt.operation
+            WHEN 'ADD_TEAM_MEMBER' THEN 'Added to team: ' + evt.team
+            WHEN 'REMOVE_TEAM_MEMBER' THEN 'Removed from team: ' + evt.team
+          END,
+          source: 'API',
+          userId: $performedBy
+        })
+        CREATE (a)-[:AUDITS]->(u)
+        CREATE (a)-[:AUDITS]->(t)
+        FOREACH (_ IN CASE WHEN performer IS NOT NULL THEN [1] ELSE [] END |
+          CREATE (a)-[:PERFORMED_BY]->(performer)
+        )
+      `
+      
+      await this.executeQuery(auditQuery, {
+        userId,
+        events: auditEvents,
+        performedBy: performedBy || 'anonymous'
+      })
     }
     
     // Fetch and return updated user

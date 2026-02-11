@@ -95,6 +95,7 @@ interface AuditEntry {
   entityLabel: string | null
   operation: string
   userId: string | null
+  userName: string | null
   timestamp: string
 }
 
@@ -158,9 +159,10 @@ const columns: TableColumn<AuditEntry>[] = [
     accessorKey: 'userId',
     header: 'Performed By',
     cell: ({ row }) => {
-      const userId = row.getValue('userId') as string | null
-      if (!userId) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return userId
+      const entry = row.original
+      const display = entry.userName || entry.userId
+      if (!display) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return display
     }
   },
   {
@@ -170,8 +172,8 @@ const columns: TableColumn<AuditEntry>[] = [
   }
 ]
 
-const selectedEntityType = ref('')
-const selectedOperation = ref('')
+const selectedEntityType = ref('all')
+const selectedOperation = ref('all')
 const page = ref(1)
 const pageSize = 20
 
@@ -180,8 +182,8 @@ const queryParams = computed(() => {
     limit: pageSize,
     offset: (page.value - 1) * pageSize
   }
-  if (selectedEntityType.value) params.entityType = selectedEntityType.value
-  if (selectedOperation.value) params.operation = selectedOperation.value
+  if (selectedEntityType.value && selectedEntityType.value !== 'all') params.entityType = selectedEntityType.value
+  if (selectedOperation.value && selectedOperation.value !== 'all') params.operation = selectedOperation.value
   return params
 })
 
@@ -194,12 +196,12 @@ const total = computed(() => data.value?.total || data.value?.count || 0)
 
 const entityTypeItems = computed(() => {
   const types = data.value?.filters.entityTypes || []
-  return [{ label: 'All Types', value: '' }, ...types.map(t => ({ label: t, value: t }))]
+  return [{ label: 'All Types', value: 'all' }, ...types.map(t => ({ label: t, value: t }))]
 })
 
 const operationItems = computed(() => {
   const ops = data.value?.filters.operations || []
-  return [{ label: 'All Operations', value: '' }, ...ops.map(o => ({ label: o, value: o }))]
+  return [{ label: 'All Operations', value: 'all' }, ...ops.map(o => ({ label: o, value: o }))]
 })
 
 function applyFilters() {
@@ -208,8 +210,8 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  selectedEntityType.value = ''
-  selectedOperation.value = ''
+  selectedEntityType.value = 'all'
+  selectedOperation.value = 'all'
   page.value = 1
   refresh()
 }
