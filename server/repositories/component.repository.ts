@@ -18,200 +18,153 @@ export interface ComponentFilters {
  */
 export class ComponentRepository extends BaseRepository {
   /**
-   * Find all components with their metadata
-   * 
-   * Supports filtering by:
-   * - search: Filter by name or purl (case-insensitive contains)
-   * - packageManager: Exact match on package manager
-   * - type: Exact match on component type
-   * - technology: Filter by mapped technology name
-   * - license: Filter by license SPDX ID
-   * - hasLicense: Filter by license presence
-   * - limit/offset: Pagination support
-   * 
-   * @param filters - Optional filters to apply
-   * @returns Array of components
+   * Build WHERE conditions and params from filters.
+   *
+   * Conditions are split into two groups:
+   * - componentConditions: reference only `c` properties, safe to place
+   *   before OPTIONAL MATCHes (avoids scoping issues in Cypher)
+   * - joinConditions: reference variables from OPTIONAL MATCH (tech, l),
+   *   must be placed after those matches
    */
-  async findAll(filters: ComponentFilters = {}): Promise<Component[]> {
-    // Build dynamic query
-    let cypher = `
-      MATCH (c:Component)
-      OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)
-      OPTIONAL MATCH (s:System)-[:USES]->(c)
-    `
-    
-    // Use required MATCH for license filter, OPTIONAL otherwise
-    if (filters.license) {
-      cypher += `MATCH (c)-[:HAS_LICENSE]->(l:License)`
-    } else {
-      cypher += `OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)`
-    }
-    
-    // Build WHERE conditions
-    const conditions: string[] = []
+  private buildFilterConditions(filters: ComponentFilters): {
+    componentConditions: string[]
+    joinConditions: string[]
+    params: Record<string, unknown>
+  } {
+    const componentConditions: string[] = []
+    const joinConditions: string[] = []
     const params: Record<string, unknown> = {}
-    
+
     if (filters.search) {
-      conditions.push('(toLower(c.name) CONTAINS toLower($search) OR toLower(c.purl) CONTAINS toLower($search))')
+      componentConditions.push('(toLower(c.name) CONTAINS toLower($search) OR toLower(c.purl) CONTAINS toLower($search) OR toLower(COALESCE(c.group, \'\')) CONTAINS toLower($search))')
       params.search = filters.search
     }
-    
+
     if (filters.packageManager) {
-      conditions.push('c.packageManager = $packageManager')
+      componentConditions.push('c.packageManager = $packageManager')
       params.packageManager = filters.packageManager
     }
-    
+
     if (filters.type) {
-      conditions.push('c.type = $type')
+      componentConditions.push('c.type = $type')
       params.type = filters.type
     }
-    
+
     if (filters.technology) {
-      conditions.push('t.name = $technology')
+      joinConditions.push('tech.name = $technology')
       params.technology = filters.technology
     }
-    
+
     if (filters.license) {
-      conditions.push('l.id = $license')
+      joinConditions.push('l.id = $license')
       params.license = filters.license
-    }
-    
-    if (filters.hasLicense !== undefined) {
+      // Filtering by a specific license implies hasLicense=true, so
+      // ignore hasLicense to avoid contradictory conditions (e.g.,
+      // license=MIT AND l IS NULL can never match).
+    } else if (filters.hasLicense !== undefined) {
       if (filters.hasLicense) {
-        conditions.push('l IS NOT NULL')
+        joinConditions.push('l IS NOT NULL')
       } else {
-        conditions.push('l IS NULL')
+        joinConditions.push('l IS NULL')
       }
     }
-    
-    // Add WHERE clause if conditions exist
-    if (conditions.length > 0) {
-      cypher += ` WHERE ${conditions.join(' AND ')}`
+
+    return { componentConditions, joinConditions, params }
+  }
+
+  /**
+   * Return the license MATCH clause for the filter phase.
+   *
+   * Only included when the WHERE clause references `l`:
+   * - Required MATCH when filtering by a specific license ID
+   * - OPTIONAL MATCH when filtering by license presence (hasLicense)
+   * - Empty when no license filtering is needed (avoids row multiplication)
+   */
+  private buildLicenseMatch(filters: ComponentFilters): string {
+    if (filters.license) {
+      return 'MATCH (c)-[:HAS_LICENSE]->(l:License)'
     }
-    
-    // Continue with aggregation and return
-    cypher += `
-      WITH c, t.name as technologyName, collect(DISTINCT s.name) as systems, 
-           collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses
-      RETURN 
-        c.name as name,
-        c.version as version,
-        c.packageManager as packageManager,
-        c.purl as purl,
-        c.cpe as cpe,
-        c.bomRef as bomRef,
-        c.type as type,
-        c.group as \`group\`,
-        c.scope as scope,
-        COALESCE(c.hashes, []) as hashes,
-        [lic IN licenses WHERE lic.id IS NOT NULL | lic] as licenses,
-        c.copyright as copyright,
-        c.supplier as supplier,
-        c.author as author,
-        c.publisher as publisher,
-        c.description as description,
-        c.homepage as homepage,
-        COALESCE(c.externalReferences, []) as externalReferences,
-        c.releaseDate as releaseDate,
-        c.publishedDate as publishedDate,
-        c.modifiedDate as modifiedDate,
-        technologyName,
-        size(systems) as systemCount
-      ORDER BY c.packageManager, c.name, c.version
-    `
-    
-    // Add pagination
+    if (filters.hasLicense !== undefined) {
+      return 'OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)'
+    }
+    return ''
+  }
+
+  /**
+   * Inject dynamic placeholders into a loaded query template.
+   */
+  private injectPlaceholders(
+    query: string,
+    replacements: Record<string, string>
+  ): string {
+    let result = query
+    for (const [placeholder, value] of Object.entries(replacements)) {
+      result = result.replace(placeholder, value)
+    }
+    return result
+  }
+
+  /**
+   * Find all components with their metadata and total count in a single query.
+   *
+   * Loads the base query from find-all.cypher and injects dynamic
+   * WHERE conditions, license MATCH, and pagination. The total count
+   * is computed before pagination so only one round-trip is needed.
+   */
+  async findAll(filters: ComponentFilters = {}): Promise<{ data: Component[]; total: number }> {
+    const baseQuery = await loadQuery('components/find-all.cypher')
+    const { componentConditions, joinConditions, params } = this.buildFilterConditions(filters)
+
+    const componentWhere = componentConditions.length > 0
+      ? `WHERE ${componentConditions.join(' AND ')}`
+      : ''
+
+    const joinWhere = joinConditions.length > 0
+      ? `WHERE ${joinConditions.join(' AND ')}`
+      : ''
+
+    let pagination = ''
     if (filters.limit !== undefined) {
-      cypher += ` SKIP toInteger($offset) LIMIT toInteger($limit)`
+      pagination = 'SKIP toInteger($offset) LIMIT toInteger($limit)'
       params.offset = filters.offset || 0
       params.limit = filters.limit
     }
-    
+
+    const cypher = this.injectPlaceholders(baseQuery, {
+      '{{COMPONENT_WHERE}}': componentWhere,
+      '{{LICENSE_MATCH}}': this.buildLicenseMatch(filters),
+      '{{JOIN_WHERE}}': joinWhere,
+      '{{PAGINATION}}': pagination
+    })
+
     const { records } = await this.executeQuery(cypher, params)
-    return records.map(record => this.mapToComponent(record))
+    const total = records.length > 0 ? records[0].get('total').toNumber() : 0
+    return {
+      data: records.map(record => this.mapToComponent(record)),
+      total
+    }
   }
 
   /**
-   * Count components matching filters (without pagination)
-   * 
-   * @param filters - Optional filters to apply
-   * @returns Total count of matching components
-   */
-  async count(filters: ComponentFilters = {}): Promise<number> {
-    let cypher = `
-      MATCH (c:Component)
-    `
-    
-    if (filters.technology) {
-      cypher += ` OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)`
-    }
-    
-    if (filters.license) {
-      cypher += ` MATCH (c)-[:HAS_LICENSE]->(l:License)`
-    } else if (filters.hasLicense !== undefined) {
-      cypher += ` OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)`
-    }
-    
-    // Build WHERE conditions (same as findAll)
-    const conditions: string[] = []
-    const params: Record<string, unknown> = {}
-    
-    if (filters.search) {
-      conditions.push('(toLower(c.name) CONTAINS toLower($search) OR toLower(c.purl) CONTAINS toLower($search))')
-      params.search = filters.search
-    }
-    
-    if (filters.packageManager) {
-      conditions.push('c.packageManager = $packageManager')
-      params.packageManager = filters.packageManager
-    }
-    
-    if (filters.type) {
-      conditions.push('c.type = $type')
-      params.type = filters.type
-    }
-    
-    if (filters.technology) {
-      conditions.push('t.name = $technology')
-      params.technology = filters.technology
-    }
-    
-    if (filters.license) {
-      conditions.push('l.id = $license')
-      params.license = filters.license
-    }
-    
-    if (filters.hasLicense !== undefined) {
-      if (filters.hasLicense) {
-        conditions.push('l IS NOT NULL')
-      } else {
-        conditions.push('l IS NULL')
-      }
-    }
-    
-    if (conditions.length > 0) {
-      cypher += ` WHERE ${conditions.join(' AND ')}`
-    }
-    
-    cypher += ` RETURN count(DISTINCT c) as total`
-    
-    const { records } = await this.executeQuery(cypher, params)
-    return records[0]?.get('total')?.toNumber() || 0
-  }
-
-  /**
-   * Find all components not mapped to a technology
-   * 
+   * Find unmapped components with database-level pagination.
+   *
    * Results are ordered by system count (most used first) to help
    * prioritize mapping efforts.
-   * 
-   * @returns Array of unmapped components
    */
-  async findUnmapped(): Promise<UnmappedComponent[]> {
+  async findUnmapped(limit: number = 50, offset: number = 0): Promise<UnmappedComponent[]> {
     const query = await loadQuery('components/find-unmapped.cypher')
-    const { records } = await this.executeQuery(query)
+    const { records } = await this.executeQuery(query, { limit, offset })
     
     return records.map(record => this.mapToUnmappedComponent(record))
+  }
+
+  /**
+   * Count all unmapped components.
+   */
+  async countUnmapped(): Promise<number> {
+    const query = await loadQuery('components/count-unmapped.cypher')
+    const { records } = await this.executeQuery(query)
+    return records[0]?.get('total')?.toNumber() || 0
   }
 
   /**

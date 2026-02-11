@@ -13,8 +13,9 @@ RETURN c.name as name,
        c.cpe as cpe,
        c.type as type,
        c.group as group,
-       hashes,
-       licenses,
+       [hash IN hashes WHERE hash.algorithm IS NOT NULL | hash] as hashes,
+       [lic IN licenses WHERE lic.id IS NOT NULL | lic] as licenses,
        systems,
        size(systems) as systemCount
 ORDER BY size(systems) DESC, c.name
+SKIP toInteger($offset) LIMIT toInteger($limit)

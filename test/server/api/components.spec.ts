@@ -55,7 +55,8 @@ describeFeature(feature, ({ Background, Scenario }) => {
       // Mock successful service response
       vi.mocked(ComponentService.prototype.findAll).mockResolvedValue({
         data: mockComponents,
-        count: mockComponents.length
+        count: mockComponents.length,
+        total: mockComponents.length
       })
 
       // Simulate API endpoint logic
@@ -108,7 +109,8 @@ describeFeature(feature, ({ Background, Scenario }) => {
       // Mock successful service response
       vi.mocked(ComponentService.prototype.findAll).mockResolvedValue({
         data: mockComponents,
-        count: mockComponents.length
+        count: mockComponents.length,
+        total: mockComponents.length
       })
 
       const componentService = new ComponentService()
@@ -169,7 +171,8 @@ describeFeature(feature, ({ Background, Scenario }) => {
       // Mock empty service response
       vi.mocked(ComponentService.prototype.findAll).mockResolvedValue({
         data: [],
-        count: 0
+        count: 0,
+        total: 0
       })
 
       const componentService = new ComponentService()

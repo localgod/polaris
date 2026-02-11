@@ -14,19 +14,17 @@ import { ComponentService } from '../services/component.service'
  *         name: search
  *         schema:
  *           type: string
- *         description: Search by component name or package URL (case-insensitive)
+ *         description: Search by component name, group, or package URL (case-insensitive)
  *       - in: query
  *         name: packageManager
  *         schema:
  *           type: string
- *           enum: [npm, maven, pypi, nuget, cargo]
- *         description: Filter by package manager
+ *         description: Filter by package manager (e.g., npm, maven, pypi, nuget, cargo)
  *       - in: query
  *         name: type
  *         schema:
  *           type: string
- *           enum: [library, framework, application]
- *         description: Filter by component type
+ *         description: Filter by component type (e.g., library, framework, application)
  *       - in: query
  *         name: technology
  *         schema:
@@ -41,18 +39,21 @@ import { ComponentService } from '../services/component.service'
  *         name: hasLicense
  *         schema:
  *           type: boolean
- *         description: Filter by license presence
+ *         description: Filter by license presence (ignored when license is also specified)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 50
+ *           minimum: 1
+ *           maximum: 200
  *         description: Number of results per page
  *       - in: query
  *         name: offset
  *         schema:
  *           type: integer
  *           default: 0
+ *           minimum: 0
  *         description: Pagination offset
  *     responses:
  *       200:
@@ -71,6 +72,12 @@ import { ComponentService } from '../services/component.service'
  *                     total:
  *                       type: integer
  *                       description: Total count of components matching filters (without pagination)
+ *       400:
+ *         description: Invalid query parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiErrorResponse'
  *       500:
  *         description: Failed to fetch components
  *         content:
@@ -80,8 +87,20 @@ import { ComponentService } from '../services/component.service'
  */
 export default defineEventHandler(async (event): Promise<ApiResponse<Component>> => {
   try {
-    // Extract query parameters
     const query = getQuery(event)
+
+    // Validate and clamp pagination parameters
+    const rawLimit = query.limit ? parseInt(query.limit as string, 10) : 50
+    const rawOffset = query.offset ? parseInt(query.offset as string, 10) : 0
+
+    if (Number.isNaN(rawLimit) || Number.isNaN(rawOffset)) {
+      setResponseStatus(event, 400)
+      return { success: false, error: 'limit and offset must be valid integers', data: [] }
+    }
+
+    const limit = Math.min(Math.max(1, rawLimit), 200)
+    const offset = Math.max(0, rawOffset)
+
     const filters = {
       search: query.search as string | undefined,
       packageManager: query.packageManager as string | undefined,
@@ -89,8 +108,8 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Component>>
       technology: query.technology as string | undefined,
       license: query.license as string | undefined,
       hasLicense: query.hasLicense === 'true' ? true : query.hasLicense === 'false' ? false : undefined,
-      limit: query.limit ? parseInt(query.limit as string, 10) : 50,
-      offset: query.offset ? parseInt(query.offset as string, 10) : 0
+      limit,
+      offset
     }
 
     const componentService = new ComponentService()
@@ -104,6 +123,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Component>>
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch components'
+    setResponseStatus(event, 500)
     return {
       success: false,
       error: errorMessage,

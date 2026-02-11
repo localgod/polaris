@@ -23,12 +23,15 @@ import { ComponentService } from '../../services/component.service'
  *         schema:
  *           type: integer
  *           default: 50
+ *           minimum: 1
+ *           maximum: 200
  *         description: Number of results per page
  *       - in: query
  *         name: offset
  *         schema:
  *           type: integer
  *           default: 0
+ *           minimum: 0
  *         description: Pagination offset
  *     responses:
  *       200:
@@ -76,22 +79,31 @@ import { ComponentService } from '../../services/component.service'
 export default defineEventHandler(async (event): Promise<ApiResponse<UnmappedComponent>> => {
   try {
     const query = getQuery(event)
-    const limit = query.limit ? parseInt(query.limit as string, 10) : 50
-    const offset = query.offset ? parseInt(query.offset as string, 10) : 0
+
+    // Validate and clamp pagination parameters
+    const rawLimit = query.limit ? parseInt(query.limit as string, 10) : 50
+    const rawOffset = query.offset ? parseInt(query.offset as string, 10) : 0
+
+    if (Number.isNaN(rawLimit) || Number.isNaN(rawOffset)) {
+      setResponseStatus(event, 400)
+      return { success: false, error: 'limit and offset must be valid integers', data: [] }
+    }
+
+    const limit = Math.min(Math.max(1, rawLimit), 200)
+    const offset = Math.max(0, rawOffset)
 
     const componentService = new ComponentService()
-    const result = await componentService.findUnmapped()
-    const total = result.data.length
-    const paginatedData = result.data.slice(offset, offset + limit)
+    const result = await componentService.findUnmapped(limit, offset)
     
     return {
       success: true,
-      data: paginatedData,
-      count: paginatedData.length,
-      total
+      data: result.data,
+      count: result.count,
+      total: result.total
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch unmapped components'
+    setResponseStatus(event, 500)
     return {
       success: false,
       error: errorMessage,
