@@ -90,6 +90,7 @@ describe('PolicyService', () => {
       }
 
       vi.mocked(PolicyRepository.prototype.findLicenseViolations).mockResolvedValue([violation])
+      vi.mocked(PolicyRepository.prototype.findDisabledLicenseViolations).mockResolvedValue([])
 
       const result = await service.getLicenseViolations({})
 
@@ -101,6 +102,7 @@ describe('PolicyService', () => {
 
     it('should return empty result when no violations', async () => {
       vi.mocked(PolicyRepository.prototype.findLicenseViolations).mockResolvedValue([])
+      vi.mocked(PolicyRepository.prototype.findDisabledLicenseViolations).mockResolvedValue([])
 
       const result = await service.getLicenseViolations({})
 

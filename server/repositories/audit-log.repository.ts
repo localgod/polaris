@@ -15,6 +15,7 @@ export interface AuditLog {
   reason: string | null
   source: string
   userId: string | null
+  userName: string | null
 }
 
 export interface AuditLogFilters {
@@ -58,7 +59,8 @@ export class AuditLogRepository extends BaseRepository {
     const query = `
       MATCH (a:AuditLog)
       ${whereClause}
-      RETURN a
+      OPTIONAL MATCH (performer:User {id: a.userId})
+      RETURN a, performer.name AS performerName
       ORDER BY a.timestamp DESC
       SKIP $offset
       LIMIT $limit
@@ -146,7 +148,8 @@ export class AuditLogRepository extends BaseRepository {
       changedFields: a.properties.changedFields || [],
       reason: a.properties.reason || null,
       source: a.properties.source || '',
-      userId: a.properties.userId || null
+      userId: a.properties.userId || null,
+      userName: record.get('performerName') || null
     }
   }
 }

@@ -102,4 +102,231 @@ describe('UserRepository', () => {
       expect(auth).toBeNull()
     })
   })
+
+  describe('findById()', () => {
+    it('should return user with teams and canManage arrays', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (u:User { id: $id, email: $email, name: 'Find User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (t1:Team { name: $t1 })
+        CREATE (t2:Team { name: $t2 })
+        CREATE (u)-[:MEMBER_OF]->(t1)
+        CREATE (u)-[:MEMBER_OF]->(t2)
+        CREATE (u)-[:CAN_MANAGE]->(t1)
+      `, {
+        id: `${PREFIX}find-user`, email: `${PREFIX}find@test.com`,
+        t1: `${PREFIX}TeamA`, t2: `${PREFIX}TeamB`
+      })
+
+      const user = await repo.findById(`${PREFIX}find-user`)
+
+      expect(user).not.toBeNull()
+      expect(user!.name).toBe('Find User')
+      expect(user!.email).toBe(`${PREFIX}find@test.com`)
+      expect(user!.teams.map(t => t.name).sort()).toEqual([`${PREFIX}TeamA`, `${PREFIX}TeamB`])
+      expect(user!.canManage).toContain(`${PREFIX}TeamA`)
+    })
+
+    it('should return null for non-existent user', async () => {
+      if (!ctx.neo4jAvailable) return
+      const user = await repo.findById(`${PREFIX}nonexistent`)
+
+      expect(user).toBeNull()
+    })
+  })
+
+  describe('findAll()', () => {
+    it('should return users ordered by createdAt descending', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:User { id: $id1, email: $e1, name: 'First', role: 'user', provider: 'github', createdAt: datetime() - duration('PT2H') })
+        CREATE (:User { id: $id2, email: $e2, name: 'Second', role: 'user', provider: 'github', createdAt: datetime() })
+      `, {
+        id1: `${PREFIX}all-1`, e1: `${PREFIX}all1@test.com`,
+        id2: `${PREFIX}all-2`, e2: `${PREFIX}all2@test.com`
+      })
+
+      const users = await repo.findAll()
+      const testUsers = users.filter(u => u.id.startsWith(PREFIX))
+
+      expect(testUsers.length).toBeGreaterThanOrEqual(2)
+      // Second user (newer) should appear before First user (older)
+      const idx1 = testUsers.findIndex(u => u.id === `${PREFIX}all-1`)
+      const idx2 = testUsers.findIndex(u => u.id === `${PREFIX}all-2`)
+      expect(idx2).toBeLessThan(idx1)
+    })
+
+    it('should include teams for each user', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (u:User { id: $id, email: $email, name: 'Team User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (t:Team { name: $team })
+        CREATE (u)-[:MEMBER_OF]->(t)
+      `, { id: `${PREFIX}all-team`, email: `${PREFIX}allteam@test.com`, team: `${PREFIX}AllTeam` })
+
+      const users = await repo.findAll()
+      const user = users.find(u => u.id === `${PREFIX}all-team`)
+
+      expect(user).toBeDefined()
+      expect(user!.teams.map(t => t.name)).toContain(`${PREFIX}AllTeam`)
+    })
+  })
+
+  describe('assignTeams()', () => {
+    it('should assign user to teams and return updated user', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:User { id: $id, email: $email, name: 'Assign User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (:Team { name: $t1 })
+        CREATE (:Team { name: $t2 })
+      `, {
+        id: `${PREFIX}assign-user`, email: `${PREFIX}assign@test.com`,
+        t1: `${PREFIX}AssignA`, t2: `${PREFIX}AssignB`
+      })
+
+      const user = await repo.assignTeams({
+        userId: `${PREFIX}assign-user`,
+        teams: [`${PREFIX}AssignA`, `${PREFIX}AssignB`]
+      })
+
+      expect(user.teams.map(t => t.name).sort()).toEqual([`${PREFIX}AssignA`, `${PREFIX}AssignB`])
+    })
+
+    it('should replace existing memberships', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (u:User { id: $id, email: $email, name: 'Replace User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (t1:Team { name: $t1 })
+        CREATE (t2:Team { name: $t2 })
+        CREATE (u)-[:MEMBER_OF]->(t1)
+      `, {
+        id: `${PREFIX}replace-user`, email: `${PREFIX}replace@test.com`,
+        t1: `${PREFIX}OldTeam`, t2: `${PREFIX}NewTeam`
+      })
+
+      const user = await repo.assignTeams({
+        userId: `${PREFIX}replace-user`,
+        teams: [`${PREFIX}NewTeam`]
+      })
+
+      const teamNames = user.teams.map(t => t.name)
+      expect(teamNames).toContain(`${PREFIX}NewTeam`)
+      expect(teamNames).not.toContain(`${PREFIX}OldTeam`)
+    })
+
+    it('should create ADD_TEAM_MEMBER audit entries for added teams', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (p:User { id: $performer, email: $pEmail, name: 'Admin', role: 'superuser', provider: 'github', createdAt: datetime() })
+        CREATE (u:User { id: $id, email: $email, name: 'Audit Add User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (:Team { name: $t1 })
+      `, {
+        performer: `${PREFIX}admin`, pEmail: `${PREFIX}admin@test.com`,
+        id: `${PREFIX}audit-add`, email: `${PREFIX}auditadd@test.com`,
+        t1: `${PREFIX}AuditTeamA`
+      })
+
+      await repo.assignTeams({
+        userId: `${PREFIX}audit-add`,
+        teams: [`${PREFIX}AuditTeamA`],
+        performedBy: `${PREFIX}admin`
+      })
+
+      const result = await session.run(`
+        MATCH (a:AuditLog {entityId: $userId, operation: 'ADD_TEAM_MEMBER'})
+        RETURN a.newStatus AS team, a.reason AS reason
+      `, { userId: `${PREFIX}audit-add` })
+
+      expect(result.records.length).toBe(1)
+      expect(result.records[0].get('team')).toBe(`${PREFIX}AuditTeamA`)
+      expect(result.records[0].get('reason')).toContain(`${PREFIX}AuditTeamA`)
+    })
+
+    it('should create REMOVE_TEAM_MEMBER audit entries for removed teams', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (p:User { id: $performer, email: $pEmail, name: 'Admin', role: 'superuser', provider: 'github', createdAt: datetime() })
+        CREATE (u:User { id: $id, email: $email, name: 'Audit Rm User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (t:Team { name: $t1 })
+        CREATE (u)-[:MEMBER_OF]->(t)
+      `, {
+        performer: `${PREFIX}admin-rm`, pEmail: `${PREFIX}adminrm@test.com`,
+        id: `${PREFIX}audit-rm`, email: `${PREFIX}auditrm@test.com`,
+        t1: `${PREFIX}AuditTeamRm`
+      })
+
+      await repo.assignTeams({
+        userId: `${PREFIX}audit-rm`,
+        teams: [],
+        performedBy: `${PREFIX}admin-rm`
+      })
+
+      const result = await session.run(`
+        MATCH (a:AuditLog {entityId: $userId, operation: 'REMOVE_TEAM_MEMBER'})
+        RETURN a.newStatus AS team, a.reason AS reason
+      `, { userId: `${PREFIX}audit-rm` })
+
+      expect(result.records.length).toBe(1)
+      expect(result.records[0].get('team')).toBe(`${PREFIX}AuditTeamRm`)
+      expect(result.records[0].get('reason')).toContain(`${PREFIX}AuditTeamRm`)
+    })
+
+    it('should not create audit entries when memberships are unchanged', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (u:User { id: $id, email: $email, name: 'No Change User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (t:Team { name: $t1 })
+        CREATE (u)-[:MEMBER_OF]->(t)
+      `, {
+        id: `${PREFIX}no-change`, email: `${PREFIX}nochange@test.com`,
+        t1: `${PREFIX}SameTeam`
+      })
+
+      await repo.assignTeams({
+        userId: `${PREFIX}no-change`,
+        teams: [`${PREFIX}SameTeam`],
+        performedBy: `${PREFIX}no-change`
+      })
+
+      const result = await session.run(`
+        MATCH (a:AuditLog {entityId: $userId})
+        WHERE a.operation IN ['ADD_TEAM_MEMBER', 'REMOVE_TEAM_MEMBER']
+        RETURN count(a) AS count
+      `, { userId: `${PREFIX}no-change` })
+
+      expect(result.records[0].get('count').toNumber()).toBe(0)
+    })
+
+    it('should link audit entries to both User and Team via AUDITS', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (p:User { id: $performer, email: $pEmail, name: 'Admin Link', role: 'superuser', provider: 'github', createdAt: datetime() })
+        CREATE (u:User { id: $id, email: $email, name: 'Link User', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (:Team { name: $t1 })
+      `, {
+        performer: `${PREFIX}admin-link`, pEmail: `${PREFIX}adminlink@test.com`,
+        id: `${PREFIX}link-user`, email: `${PREFIX}link@test.com`,
+        t1: `${PREFIX}LinkTeam`
+      })
+
+      await repo.assignTeams({
+        userId: `${PREFIX}link-user`,
+        teams: [`${PREFIX}LinkTeam`],
+        performedBy: `${PREFIX}admin-link`
+      })
+
+      const result = await session.run(`
+        MATCH (a:AuditLog {entityId: $userId, operation: 'ADD_TEAM_MEMBER'})-[:AUDITS]->(u:User {id: $userId})
+        MATCH (a)-[:AUDITS]->(t:Team {name: $team})
+        MATCH (a)-[:PERFORMED_BY]->(p:User {id: $performer})
+        RETURN a.id AS id
+      `, {
+        userId: `${PREFIX}link-user`,
+        team: `${PREFIX}LinkTeam`,
+        performer: `${PREFIX}admin-link`
+      })
+
+      expect(result.records.length).toBe(1)
+    })
+  })
 })

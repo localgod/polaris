@@ -100,6 +100,44 @@ describe('AuditLogRepository', () => {
         expect(log.operation).toBe('ACTIVATE')
       })
     })
+
+    it('should resolve userName when matching User node exists', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:User { id: $userId, email: $email, name: $name, role: 'superuser', provider: 'github', createdAt: datetime() })
+        CREATE (:AuditLog {
+          id: randomUUID(), timestamp: datetime(), operation: 'ADD_TEAM_MEMBER',
+          entityType: 'User', entityId: $entityId, entityLabel: 'Target User',
+          source: 'API', userId: $userId
+        })
+      `, {
+        userId: `${PREFIX}performer`, email: `${PREFIX}performer@test.com`,
+        name: `${PREFIX}Admin Name`, entityId: `${PREFIX}target`
+      })
+
+      const logs = await repo.findAll({ operation: 'ADD_TEAM_MEMBER' })
+      const log = logs.find(l => l.entityId === `${PREFIX}target`)
+
+      expect(log).toBeDefined()
+      expect(log!.userName).toBe(`${PREFIX}Admin Name`)
+    })
+
+    it('should return null userName when no matching User node exists', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:AuditLog {
+          id: randomUUID(), timestamp: datetime(), operation: 'REMOVE_TEAM_MEMBER',
+          entityType: 'User', entityId: $entityId, entityLabel: 'Orphan Target',
+          source: 'API', userId: $userId
+        })
+      `, { userId: `${PREFIX}ghost`, entityId: `${PREFIX}orphan-target` })
+
+      const logs = await repo.findAll({ operation: 'REMOVE_TEAM_MEMBER' })
+      const log = logs.find(l => l.entityId === `${PREFIX}orphan-target`)
+
+      expect(log).toBeDefined()
+      expect(log!.userName).toBeNull()
+    })
   })
 
   describe('count()', () => {
