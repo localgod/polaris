@@ -83,32 +83,43 @@ describe('ComponentService', () => {
   })
 
   describe('findAll()', () => {
-    it('should return all components with correct count', async () => {
-      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue(mockComponents)
+    it('should return all components with correct count and total', async () => {
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue({
+        data: mockComponents,
+        total: 2
+      })
 
       const result = await service.findAll()
 
       expect(ComponentRepository.prototype.findAll).toHaveBeenCalledOnce()
       expect(result).toEqual({
         data: mockComponents,
-        count: 2
+        count: 2,
+        total: 2
       })
     })
 
     it('should return empty array when no components exist', async () => {
-      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue([])
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue({
+        data: [],
+        total: 0
+      })
 
       const result = await service.findAll()
 
-      expect(result).toEqual({ data: [], count: 0 })
+      expect(result).toEqual({ data: [], count: 0, total: 0 })
     })
 
     it('should calculate count correctly for single component', async () => {
-      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue([mockComponents[0]])
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue({
+        data: [mockComponents[0]],
+        total: 10
+      })
 
       const result = await service.findAll()
 
       expect(result.count).toBe(1)
+      expect(result.total).toBe(10)
       expect(result.data).toHaveLength(1)
     })
 
@@ -120,7 +131,10 @@ describe('ComponentService', () => {
     })
 
     it('should return components with all required properties', async () => {
-      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue(mockComponents)
+      vi.mocked(ComponentRepository.prototype.findAll).mockResolvedValue({
+        data: mockComponents,
+        total: 2
+      })
 
       const result = await service.findAll()
 
@@ -135,24 +149,28 @@ describe('ComponentService', () => {
   })
 
   describe('findUnmapped()', () => {
-    it('should return all unmapped components with correct count', async () => {
+    it('should return unmapped components with correct count and total', async () => {
       vi.mocked(ComponentRepository.prototype.findUnmapped).mockResolvedValue(mockUnmappedComponents)
+      vi.mocked(ComponentRepository.prototype.countUnmapped).mockResolvedValue(5)
 
-      const result = await service.findUnmapped()
+      const result = await service.findUnmapped(50, 0)
 
-      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledOnce()
+      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledWith(50, 0)
+      expect(ComponentRepository.prototype.countUnmapped).toHaveBeenCalledOnce()
       expect(result).toEqual({
         data: mockUnmappedComponents,
-        count: 1
+        count: 1,
+        total: 5
       })
     })
 
     it('should return empty array when no unmapped components exist', async () => {
       vi.mocked(ComponentRepository.prototype.findUnmapped).mockResolvedValue([])
+      vi.mocked(ComponentRepository.prototype.countUnmapped).mockResolvedValue(0)
 
       const result = await service.findUnmapped()
 
-      expect(result).toEqual({ data: [], count: 0 })
+      expect(result).toEqual({ data: [], count: 0, total: 0 })
     })
 
     it('should propagate repository errors', async () => {

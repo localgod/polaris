@@ -32,7 +32,17 @@
 
     <template v-else>
       <UCard>
+        <div class="flex items-center gap-2 pb-4 border-b border-(--ui-border) mb-4">
+          <UInput
+            v-model="searchInput"
+            placeholder="Filter by name..."
+            icon="i-lucide-search"
+            class="max-w-sm"
+          />
+        </div>
+
         <UTable
+          v-model:sorting="sorting"
           :data="components"
           :columns="columns"
           :loading="pending"
@@ -60,28 +70,85 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
+import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { Column } from '@tanstack/vue-table'
 import type { ApiResponse, Component } from '~~/types/api'
+
+const UBadge = resolveComponent('UBadge')
+const UButton = resolveComponent('UButton')
+const UDropdownMenu = resolveComponent('UDropdownMenu')
+
+function getSortableHeader(column: Column<Component>, label: string) {
+  const isSorted = column.getIsSorted()
+
+  return h(UDropdownMenu, {
+    content: { align: 'start' as const },
+    items: [
+      {
+        label: 'Asc',
+        type: 'checkbox' as const,
+        icon: 'i-lucide-arrow-up-narrow-wide',
+        checked: isSorted === 'asc',
+        onSelect: () => {
+          if (isSorted === 'asc') {
+            column.clearSorting()
+          } else {
+            column.toggleSorting(false)
+          }
+        }
+      },
+      {
+        label: 'Desc',
+        type: 'checkbox' as const,
+        icon: 'i-lucide-arrow-down-wide-narrow',
+        checked: isSorted === 'desc',
+        onSelect: () => {
+          if (isSorted === 'desc') {
+            column.clearSorting()
+          } else {
+            column.toggleSorting(true)
+          }
+        }
+      }
+    ]
+  }, () => h(UButton, {
+    color: 'neutral',
+    variant: 'ghost',
+    label,
+    icon: isSorted
+      ? isSorted === 'asc'
+        ? 'i-lucide-arrow-up-narrow-wide'
+        : 'i-lucide-arrow-down-wide-narrow'
+      : 'i-lucide-arrow-up-down',
+    class: '-mx-2.5 data-[state=open]:bg-elevated'
+  }))
+}
 
 const columns: TableColumn<Component>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => h('strong', {}, row.getValue('name') as string)
+    header: ({ column }) => getSortableHeader(column, 'Name'),
+    cell: ({ row }) => {
+      const group = row.original.group
+      const name = row.getValue('name') as string
+      const displayName = group ? `${group}/${name}` : name
+      return h('strong', {}, displayName)
+    }
   },
   {
     accessorKey: 'version',
-    header: 'Version',
+    header: ({ column }) => getSortableHeader(column, 'Version'),
     cell: ({ row }) => h('code', {}, row.getValue('version') as string)
   },
   {
     accessorKey: 'packageManager',
-    header: 'Package Manager'
+    header: ({ column }) => getSortableHeader(column, 'Package Manager')
   },
   {
     accessorKey: 'licenses',
     header: 'License',
+    enableSorting: false,
     cell: ({ row }) => {
       const licenses = row.original.licenses
       if (!licenses || licenses.length === 0) {
@@ -89,7 +156,7 @@ const columns: TableColumn<Component>[] = [
       }
 
       const badges = licenses.slice(0, 2).map(lic =>
-        h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle', class: 'mr-1', key: lic.id || lic.name },
+        h(UBadge, { color: 'neutral', variant: 'subtle', class: 'mr-1', key: lic.id || lic.name },
           () => lic.id || lic.name || 'Unknown')
       )
 
@@ -102,19 +169,21 @@ const columns: TableColumn<Component>[] = [
   },
   {
     accessorKey: 'type',
-    header: 'Type',
+    header: ({ column }) => getSortableHeader(column, 'Type'),
     cell: ({ row }) => {
       const type = row.getValue('type') as string | undefined
       if (!type) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(resolveComponent('UBadge'), { color: 'primary', variant: 'subtle' }, () => type)
+      return h(UBadge, { color: 'primary', variant: 'subtle' }, () => type)
     }
   },
   {
     accessorKey: 'systemCount',
-    header: 'Systems',
+    header: ({ column }) => getSortableHeader(column, 'Systems'),
     cell: ({ row }) => row.original.systemCount || 0
   }
 ]
+
+const sorting = ref([])
 
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
@@ -122,10 +191,25 @@ const licenseFilter = computed(() => route.query.license as string | undefined)
 const page = ref(1)
 const pageSize = 20
 
+const searchInput = ref('')
+const debouncedSearch = ref('')
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(searchInput, (value) => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    debouncedSearch.value = value
+    page.value = 1
+  }, 300)
+})
+
 const queryParams = computed(() => {
   const params: Record<string, string | number> = {
     limit: pageSize,
     offset: (page.value - 1) * pageSize
+  }
+  if (debouncedSearch.value) {
+    params.search = debouncedSearch.value
   }
   if (licenseFilter.value) {
     params.license = licenseFilter.value

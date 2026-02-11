@@ -15,64 +15,51 @@ export class ComponentService {
   }
 
   /**
-   * Get all components with optional filtering and pagination
-   * 
-   * Business rules:
-   * - Default limit is 50 components per page
-   * - Search is case-insensitive
-   * - Returns total count for pagination
-   * 
-   * @param filters - Optional filters to apply
-   * @returns Array of components with count and total
+   * Get all components with optional filtering and pagination.
+   *
+   * Data and total count are fetched in a single database query.
    */
   async findAll(filters: ComponentFilters = {}): Promise<{ 
     data: Component[]
     count: number
     total: number 
   }> {
-    // Set defaults
     const limit = filters.limit !== undefined ? filters.limit : 50
     const offset = filters.offset || 0
     
-    // Apply filters with pagination
     const filtersWithPagination = {
       ...filters,
       limit,
       offset
     }
     
-    // Get filtered components
-    const components = await this.componentRepo.findAll(filtersWithPagination)
-    
-    // Get total count (without pagination)
-    const total = await this.componentRepo.count(filters)
+    const { data, total } = await this.componentRepo.findAll(filtersWithPagination)
     
     return {
-      data: components,
-      count: components.length,
+      data,
+      count: data.length,
       total
     }
   }
 
   /**
-   * Get all unmapped components
-   * 
+   * Get unmapped components with pagination.
+   *
    * Retrieves components not mapped to a known technology, ordered by
    * system count to help prioritize mapping efforts.
-   * 
-   * Use cases:
-   * - Identify components that need technology mapping
-   * - Find widely-used internal libraries
-   * - Discover shadow IT or unapproved dependencies
-   * 
-   * @returns Array of unmapped components with count
    */
-  async findUnmapped(): Promise<{ data: UnmappedComponent[]; count: number }> {
-    const components = await this.componentRepo.findUnmapped()
+  async findUnmapped(limit: number = 50, offset: number = 0): Promise<{
+    data: UnmappedComponent[]
+    count: number
+    total: number
+  }> {
+    const components = await this.componentRepo.findUnmapped(limit, offset)
+    const total = await this.componentRepo.countUnmapped()
     
     return {
       data: components,
-      count: components.length
+      count: components.length,
+      total
     }
   }
 }
