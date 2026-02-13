@@ -127,10 +127,13 @@ const columns: TableColumn<Technology>[] = [
     id: 'time',
     header: 'TIME',
     cell: ({ row }) => {
-      const approval = row.original.approvals?.[0]
-      const cat = approval?.time
-      if (!cat) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(resolveComponent('UBadge'), { color: getTimeCategoryColor(cat), variant: 'subtle' }, () => cat)
+      const approvals = (row.original.approvals || []).filter((a: { team?: string; time?: string }) => a.team && a.time)
+      if (approvals.length === 0) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h('div', { class: 'flex flex-wrap gap-1' }, approvals.map((a: { team: string; time: string }) =>
+        h(resolveComponent('UTooltip'), { text: a.team }, {
+          default: () => h(resolveComponent('UBadge'), { color: getTimeCategoryColor(a.time), variant: 'subtle', size: 'xs' }, () => `${a.team}: ${a.time}`)
+        })
+      ))
     }
   },
   {

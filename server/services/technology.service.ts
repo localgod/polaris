@@ -1,5 +1,14 @@
-import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams } from '../repositories/technology.repository'
+import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
 import type { Technology } from '~~/types/api'
+
+export interface SetApprovalInput {
+  technologyName: string
+  teamName: string
+  time: string
+  versionConstraint?: string
+  notes?: string
+  userId: string
+}
 
 export interface CreateTechnologyInput {
   name: string
@@ -8,6 +17,7 @@ export interface CreateTechnologyInput {
   ownerTeam?: string
   componentName?: string
   componentPackageManager?: string
+  userId: string
 }
 
 /**
@@ -82,7 +92,8 @@ export class TechnologyService {
       vendor: input.vendor || null,
       ownerTeam: input.ownerTeam || null,
       componentName: input.componentName || null,
-      componentPackageManager: input.componentPackageManager || null
+      componentPackageManager: input.componentPackageManager || null,
+      userId: input.userId
     }
 
     return await this.techRepo.create(params)
@@ -102,9 +113,10 @@ export class TechnologyService {
    * Delete a technology
    *
    * @param name - Technology name
+   * @param userId - ID of the user performing the deletion
    * @throws 404 if technology not found
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     const exists = await this.techRepo.exists(name)
 
     if (!exists) {
@@ -114,6 +126,39 @@ export class TechnologyService {
       })
     }
 
-    await this.techRepo.delete(name)
+    await this.techRepo.delete(name, userId)
+  }
+
+  /**
+   * Set or update a team's TIME approval for a technology
+   */
+  async setApproval(input: SetApprovalInput): Promise<{ time: string; team: string }> {
+    const validTimeValues = ['tolerate', 'invest', 'migrate', 'eliminate']
+    if (!validTimeValues.includes(input.time)) {
+      throw createError({
+        statusCode: 422,
+        message: `Invalid TIME value. Must be one of: ${validTimeValues.join(', ')}`
+      })
+    }
+
+    const exists = await this.techRepo.exists(input.technologyName)
+    if (!exists) {
+      throw createError({
+        statusCode: 404,
+        message: `Technology '${input.technologyName}' not found`
+      })
+    }
+
+    const params: UpsertApprovalParams = {
+      technologyName: input.technologyName,
+      teamName: input.teamName,
+      time: input.time,
+      approvedBy: input.userId,
+      versionConstraint: input.versionConstraint || null,
+      notes: input.notes || null,
+      userId: input.userId
+    }
+
+    return await this.techRepo.upsertApproval(params)
   }
 }

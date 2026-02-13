@@ -2,6 +2,16 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Technology } from '~~/types/api'
 
+export interface UpsertApprovalParams {
+  technologyName: string
+  teamName: string
+  time: string
+  approvedBy: string
+  versionConstraint: string | null
+  notes: string | null
+  userId: string
+}
+
 export interface CreateTechnologyParams {
   name: string
   category: string
@@ -9,6 +19,7 @@ export interface CreateTechnologyParams {
   ownerTeam: string | null
   componentName: string | null
   componentPackageManager: string | null
+  userId: string
 }
 
 export interface TechnologyDetail extends Technology {
@@ -103,7 +114,8 @@ export class TechnologyRepository extends BaseRepository {
       vendor: params.vendor || null,
       ownerTeam: params.ownerTeam || null,
       componentName: params.componentName || null,
-      componentPackageManager: params.componentPackageManager || null
+      componentPackageManager: params.componentPackageManager || null,
+      userId: params.userId
     })
 
     if (records.length === 0) {
@@ -133,9 +145,9 @@ export class TechnologyRepository extends BaseRepository {
   /**
    * Delete a technology and all its relationships
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     const query = await loadQuery('technologies/delete.cypher')
-    await this.executeQuery(query, { name })
+    await this.executeQuery(query, { name, userId })
   }
 
   /**
@@ -153,6 +165,23 @@ export class TechnologyRepository extends BaseRepository {
       ownerTeamName: record.get('ownerTeamName'),
       versions: record.get('versions').filter((v: string) => v),
       approvals: record.get('approvals').filter((a: { team?: string }) => a.team)
+    }
+  }
+
+  /**
+   * Create or update a team's APPROVES relationship on a technology
+   */
+  async upsertApproval(params: UpsertApprovalParams): Promise<{ time: string; team: string }> {
+    const query = await loadQuery('technologies/upsert-approval.cypher')
+    const { records } = await this.executeQuery(query, params)
+
+    if (records.length === 0) {
+      throw new Error('Failed to set approval — technology or team not found')
+    }
+
+    return {
+      time: records[0]!.get('time'),
+      team: records[0]!.get('team')
     }
   }
 

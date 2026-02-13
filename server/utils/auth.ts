@@ -2,28 +2,25 @@ import { getServerSession } from '#auth'
 import type { H3Event } from 'h3'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { TokenService } from '../services/token.service'
+import { UserService } from '../services/user.service'
+
+const IMPERSONATE_COOKIE = 'polaris-impersonate'
 
 /**
- * Get the current user from session OR Bearer token
- * 
- * Authentication flow:
- * 1. Check for Authorization: Bearer <token> header
- * 2. If token present, resolve to user
- * 3. Otherwise, fall back to session authentication
+ * Get the real (non-impersonated) user from session or Bearer token
  */
-export async function getCurrentUser(event: H3Event) {
+async function getRealUser(event: H3Event) {
   // Check for Bearer token first
   const authHeader = getHeader(event, 'authorization')
   
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7)
     
     try {
       const tokenService = new TokenService()
       const resolved = await tokenService.resolveToken(token)
       
       if (resolved) {
-        // Return user in same format as session
         return {
           id: resolved.user.id,
           email: resolved.user.email,
@@ -32,15 +29,53 @@ export async function getCurrentUser(event: H3Event) {
         }
       }
     } catch (error) {
-      // Invalid token - fall through to session check
       console.error('Token resolution failed:', error)
     }
   }
   
-  // Fall back to session authentication
   const session = await getServerSession(event)
   return session?.user || null
 }
+
+/**
+ * Get the current user from session OR Bearer token.
+ * If the real user is a superuser and has an active impersonation cookie,
+ * returns the impersonated user's data instead.
+ */
+export async function getCurrentUser(event: H3Event) {
+  const realUser = await getRealUser(event)
+  if (!realUser) return null
+
+  const impersonateUserId = getCookie(event, IMPERSONATE_COOKIE)
+  if (!impersonateUserId || realUser.role !== 'superuser') {
+    return realUser
+  }
+
+  // Load the impersonated user's data
+  try {
+    const userService = new UserService()
+    const authData = await userService.getAuthData(impersonateUserId)
+    if (authData) {
+      return {
+        id: impersonateUserId,
+        email: authData.email,
+        role: authData.role,
+        teams: authData.teams || []
+      }
+    }
+  } catch (error) {
+    console.error('Impersonation lookup failed:', error)
+  }
+
+  // Target user not found — fall back to real user
+  return realUser
+}
+
+/**
+ * Get the real user, ignoring impersonation.
+ * Used by impersonation endpoints to verify superuser status.
+ */
+export { getRealUser }
 
 /**
  * Check if the current user is authenticated
