@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await service.delete(name)
+  await service.delete(name, user.id)
 
   setResponseStatus(event, 204)
   return null

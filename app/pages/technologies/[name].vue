@@ -128,12 +128,100 @@
       </div>
 
       <!-- Technology Approvals -->
-      <UCard v-if="tech.technologyApprovals && tech.technologyApprovals.length > 0">
+      <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold">Approvals ({{ tech.technologyApprovals.length }})</h2>
+          <div class="flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Approvals ({{ tech.technologyApprovals?.length || 0 }})</h2>
+            <UButton
+              v-if="userTeams.length > 0"
+              label="Set TIME Category"
+              icon="i-lucide-clock"
+              size="sm"
+              variant="outline"
+              @click="openApprovalModal()"
+            />
+          </div>
         </template>
-        <UTable :data="tech.technologyApprovals" :columns="approvalColumns" class="flex-1" />
+        <UTable
+          v-if="tech.technologyApprovals && tech.technologyApprovals.length > 0"
+          :data="tech.technologyApprovals"
+          :columns="approvalColumns"
+          class="flex-1"
+        />
+        <div v-else class="text-center text-(--ui-text-muted) py-8">
+          No approvals yet.
+        </div>
       </UCard>
+
+      <!-- Set TIME Category Modal -->
+      <UModal v-model:open="approvalModalOpen">
+        <template #header>
+          <h3 class="text-lg font-semibold">Set TIME Category</h3>
+        </template>
+        <template #body>
+          <form class="space-y-4" @submit.prevent="submitApproval">
+            <UFormField label="Team" required>
+              <USelect
+                v-model="approvalForm.teamName"
+                :items="teamSelectItems"
+                placeholder="Select your team"
+                @update:model-value="onTeamChange"
+              />
+            </UFormField>
+
+            <UFormField label="TIME Category" required>
+              <USelect
+                v-model="approvalForm.time"
+                :items="timeItems"
+                placeholder="Select TIME category"
+              />
+            </UFormField>
+
+            <UFormField label="Version Constraint">
+              <UInput
+                v-model="approvalForm.versionConstraint"
+                placeholder="e.g., >=18.0.0 <19.0.0"
+              />
+            </UFormField>
+
+            <UFormField label="Notes">
+              <UTextarea
+                v-model="approvalForm.notes"
+                placeholder="Reason for this categorization..."
+                :rows="3"
+              />
+            </UFormField>
+
+            <UAlert
+              v-if="existingApproval"
+              color="info"
+              variant="subtle"
+              icon="i-lucide-info"
+              :description="`This will update the existing '${existingApproval.time}' approval from ${existingApproval.team}.`"
+            />
+
+            <UAlert
+              v-if="approvalError"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-alert-circle"
+              :description="approvalError"
+            />
+          </form>
+        </template>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <UButton label="Cancel" variant="outline" @click="approvalModalOpen = false" />
+            <UButton
+              label="Save"
+              color="primary"
+              :loading="approvalSubmitting"
+              :disabled="!approvalForm.teamName || !approvalForm.time"
+              @click="submitApproval"
+            />
+          </div>
+        </template>
+      </UModal>
 
       <!-- Versions -->
       <UCard v-if="tech.versions && tech.versions.length > 0">
@@ -202,6 +290,11 @@ import type { TableColumn } from '@nuxt/ui'
 import type { TechnologyApproval } from '~~/types/api'
 
 const route = useRoute()
+const { data: session } = useAuth()
+
+const userTeams = computed(() =>
+  (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
+)
 
 interface VersionDetail {
   version: string
@@ -381,7 +474,7 @@ const componentColumns: TableColumn<ComponentRef>[] = [
   }
 ]
 
-const { data, pending, error } = await useFetch<TechnologyResponse>(() => `/api/technologies/${encodeURIComponent(route.params.name as string)}`)
+const { data, pending, error, refresh } = await useFetch<TechnologyResponse>(() => `/api/technologies/${encodeURIComponent(route.params.name as string)}`)
 
 const tech = computed(() => data.value?.data || null)
 
@@ -389,6 +482,85 @@ const timeCategory = computed(() => {
   const approval = tech.value?.technologyApprovals?.[0]
   return approval?.time || null
 })
+
+// Approval modal state
+const approvalModalOpen = ref(false)
+const approvalSubmitting = ref(false)
+const approvalError = ref('')
+const approvalForm = ref({
+  teamName: '',
+  time: '',
+  versionConstraint: '',
+  notes: ''
+})
+
+const teamSelectItems = computed(() =>
+  userTeams.value.map(name => ({ label: name, value: name }))
+)
+
+const timeItems = [
+  { label: 'Invest — strategic, worth continued investment', value: 'invest' },
+  { label: 'Tolerate — keep running, minimize investment', value: 'tolerate' },
+  { label: 'Migrate — move to a newer alternative', value: 'migrate' },
+  { label: 'Eliminate — phase out and decommission', value: 'eliminate' }
+]
+
+const existingApproval = computed(() => {
+  if (!approvalForm.value.teamName || !tech.value?.technologyApprovals) return null
+  return tech.value.technologyApprovals.find(a => a.team === approvalForm.value.teamName) || null
+})
+
+function onTeamChange() {
+  const existing = existingApproval.value
+  if (existing) {
+    approvalForm.value.time = existing.time || ''
+    approvalForm.value.versionConstraint = existing.versionConstraint || ''
+    approvalForm.value.notes = existing.notes || ''
+  } else {
+    approvalForm.value.time = ''
+    approvalForm.value.versionConstraint = ''
+    approvalForm.value.notes = ''
+  }
+}
+
+function openApprovalModal() {
+  approvalError.value = ''
+  approvalForm.value = {
+    teamName: userTeams.value.length === 1 ? userTeams.value[0]! : '',
+    time: '',
+    versionConstraint: '',
+    notes: ''
+  }
+  // Pre-fill if single team and existing approval
+  if (userTeams.value.length === 1) {
+    onTeamChange()
+  }
+  approvalModalOpen.value = true
+}
+
+async function submitApproval() {
+  approvalSubmitting.value = true
+  approvalError.value = ''
+
+  try {
+    await $fetch(`/api/technologies/${encodeURIComponent(tech.value!.name)}/approvals`, {
+      method: 'POST',
+      body: {
+        teamName: approvalForm.value.teamName,
+        time: approvalForm.value.time,
+        versionConstraint: approvalForm.value.versionConstraint || undefined,
+        notes: approvalForm.value.notes || undefined
+      }
+    })
+    approvalModalOpen.value = false
+    await refresh()
+  } catch (err: unknown) {
+    const error = err as { data?: { message?: string }; message?: string }
+    approvalError.value = error.data?.message || error.message || 'Failed to set approval'
+  } finally {
+    approvalSubmitting.value = false
+  }
+}
 
 useHead({
   title: computed(() => tech.value ? `${tech.value.name} - Polaris` : 'Technology - Polaris')

@@ -59,12 +59,12 @@ interface CreateTechnologyResponse {
 }
 
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateTechnologyResponse>> => {
-  await requireAuth(event)
+  const user = await requireAuth(event)
   const body = await readBody<CreateTechnologyRequest>(event)
 
   try {
     const service = new TechnologyService()
-    const name = await service.create(body)
+    const name = await service.create({ ...body, userId: user.id })
 
     setResponseStatus(event, 201)
     return {

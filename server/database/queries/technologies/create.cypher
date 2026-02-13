@@ -18,4 +18,17 @@ CALL (t) {
          OR c.packageManager = $componentPackageManager)
   MERGE (c)-[:IS_VERSION_OF]->(t)
 }
+WITH t
+CREATE (a:AuditLog {
+  id: randomUUID(),
+  timestamp: datetime(),
+  operation: 'CREATE',
+  entityType: 'Technology',
+  entityId: t.name,
+  entityLabel: t.name,
+  changedFields: ['name', 'category', 'vendor'],
+  source: 'API',
+  userId: $userId
+})
+CREATE (a)-[:AUDITS]->(t)
 RETURN t.name as name
