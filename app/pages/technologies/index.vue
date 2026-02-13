@@ -40,6 +40,37 @@
         </div>
       </UCard>
     </template>
+
+    <UModal v-model:open="deleteModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">Delete Technology</h3>
+      </template>
+      <template #body>
+        <p>
+          Are you sure you want to delete <strong>{{ deleteTarget }}</strong>?
+          This will remove the technology and all its relationships.
+        </p>
+        <UAlert
+          v-if="deleteError"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-alert-circle"
+          :description="deleteError"
+          class="mt-4"
+        />
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" variant="outline" @click="deleteModalOpen = false" />
+          <UButton
+            label="Delete"
+            color="error"
+            :loading="deleteLoading"
+            @click="confirmDelete"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -47,6 +78,19 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Technology } from '~~/types/api'
+
+const { data: session } = useAuth()
+
+const isSuperuser = computed(() => session.value?.user?.role === 'superuser')
+const userTeams = computed(() =>
+  (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
+)
+
+function canDeleteTechnology(tech: Technology): boolean {
+  if (isSuperuser.value) return true
+  if (!tech.ownerTeamName) return false
+  return userTeams.value.includes(tech.ownerTeamName)
+}
 
 function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -109,15 +153,53 @@ const columns: TableColumn<Technology>[] = [
     meta: { class: { th: 'w-10', td: 'text-right' } },
     cell: ({ row }) => {
       const tech = row.original
-      const items = [[
+      const viewGroup = [
         { label: 'View Details', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/technologies/${encodeURIComponent(tech.name)}`) }
-      ]]
+      ]
+      const items: { label: string; icon: string; onSelect: () => void }[][] = [viewGroup]
+
+      if (canDeleteTechnology(tech)) {
+        items.push([
+          { label: 'Delete', icon: 'i-lucide-trash-2', onSelect: () => openDeleteModal(tech.name) }
+        ])
+      }
+
       return h(resolveComponent('UDropdownMenu'), { items, content: { align: 'end' } }, {
         default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
       })
     }
   }
 ]
+
+// Delete modal state
+const deleteModalOpen = ref(false)
+const deleteTarget = ref('')
+const deleteLoading = ref(false)
+const deleteError = ref('')
+
+function openDeleteModal(name: string) {
+  deleteTarget.value = name
+  deleteError.value = ''
+  deleteModalOpen.value = true
+}
+
+async function confirmDelete() {
+  deleteLoading.value = true
+  deleteError.value = ''
+
+  try {
+    await $fetch(`/api/technologies/${encodeURIComponent(deleteTarget.value)}`, {
+      method: 'DELETE'
+    })
+    deleteModalOpen.value = false
+    await refreshNuxtData()
+  } catch (err: unknown) {
+    const error = err as { data?: { message?: string }; message?: string }
+    deleteError.value = error.data?.message || error.message || 'Failed to delete technology'
+  } finally {
+    deleteLoading.value = false
+  }
+}
 
 const page = ref(1)
 const pageSize = 20
