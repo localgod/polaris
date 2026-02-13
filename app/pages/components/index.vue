@@ -75,6 +75,8 @@ import type { TableColumn } from '@nuxt/ui'
 import type { Column } from '@tanstack/vue-table'
 import type { ApiResponse, Component } from '~~/types/api'
 
+const { status } = useAuth()
+
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
@@ -180,6 +182,65 @@ const columns: TableColumn<Component>[] = [
     accessorKey: 'systemCount',
     header: ({ column }) => getSortableHeader(column, 'Systems'),
     cell: ({ row }) => row.original.systemCount || 0
+  },
+  {
+    id: 'actions',
+    header: '',
+    meta: { class: { th: 'w-10', td: 'text-right' } },
+    cell: ({ row }) => {
+      const component = row.original
+      const items: { label: string, icon: string, onSelect: () => void }[][] = []
+      const group: { label: string, icon: string, onSelect: () => void }[] = []
+
+      if (component.purl) {
+        group.push({
+          label: 'Copy PURL',
+          icon: 'i-lucide-copy',
+          onSelect: () => navigator.clipboard.writeText(component.purl!)
+        })
+      }
+
+      if (component.homepage) {
+        group.push({
+          label: 'Visit Homepage',
+          icon: 'i-lucide-external-link',
+          onSelect: () => window.open(component.homepage!, '_blank')
+        })
+      }
+
+      if (component.technologyName) {
+        group.push({
+          label: 'View Technology',
+          icon: 'i-lucide-cpu',
+          onSelect: () => navigateTo(`/technologies/${encodeURIComponent(component.technologyName!)}`)
+        })
+      }
+
+      if (group.length > 0) {
+        items.push(group)
+      }
+
+      if (!component.technologyName && status.value === 'authenticated') {
+        const query: Record<string, string> = {
+          name: component.name,
+          componentName: component.name
+        }
+        if (component.group) query.componentGroup = component.group
+        if (component.packageManager) query.componentPackageManager = component.packageManager
+        if (component.type) query.componentType = component.type
+        items.push([{
+          label: 'Create Technology',
+          icon: 'i-lucide-plus',
+          onSelect: () => navigateTo({ path: '/technologies/new', query })
+        }])
+      }
+
+      if (items.length === 0) return null
+
+      return h(UDropdownMenu, { items, content: { align: 'end' as const } }, {
+        default: () => h(UButton, { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
+      })
+    }
   }
 ]
 
