@@ -133,8 +133,9 @@ interface CreatePolicyRequest {
 
 export default defineEventHandler(async (event) => {
   // Authenticate
+  let user
   try {
-    await requireAuth(event)
+    user = await requireAuth(event)
   } catch {
     setResponseStatus(event, 401)
     return {
@@ -199,7 +200,8 @@ export default defineEventHandler(async (event) => {
       enforcedBy: body.enforcedBy,
       licenseMode: body.licenseMode,
       allowedLicenses: body.allowedLicenses,
-      deniedLicenses: body.deniedLicenses
+      deniedLicenses: body.deniedLicenses,
+      userId: user.id
     }
 
     const result = await policyService.create(input)

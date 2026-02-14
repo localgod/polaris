@@ -113,7 +113,7 @@ describe('SystemRepository', () => {
         name: `${PREFIX}new-system`, domain: 'Platform',
         ownerTeam: 'Platform Team', businessCriticality: 'high',
         environment: 'prod', sourceCodeType: 'internal',
-        hasSourceAccess: true, repositories: []
+        hasSourceAccess: true, repositories: [], userId: 'test-user'
       })
 
       expect(name).toBe(`${PREFIX}new-system`)
@@ -128,7 +128,7 @@ describe('SystemRepository', () => {
         name: `${PREFIX}full`, domain: 'Customer',
         ownerTeam: `${PREFIX}Customer Team`, businessCriticality: 'critical',
         environment: 'staging', sourceCodeType: 'open-source',
-        hasSourceAccess: true, repositories: []
+        hasSourceAccess: true, repositories: [], userId: 'test-user'
       })
 
       const sys = await repo.findByName(`${PREFIX}full`)
@@ -146,7 +146,7 @@ describe('SystemRepository', () => {
       await seed(ctx.driver, `CREATE (:System { name: $name, domain: 'Test' })`, { name: `${PREFIX}to-delete` })
 
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(true)
-      await repo.delete(`${PREFIX}to-delete`)
+      await repo.delete(`${PREFIX}to-delete`, 'test-user')
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
     })
 
@@ -158,7 +158,7 @@ describe('SystemRepository', () => {
         CREATE (s)-[:USES]->(c)
       `, { sys: `${PREFIX}sys-rels`, comp: `${PREFIX}comp` })
 
-      await repo.delete(`${PREFIX}sys-rels`)
+      await repo.delete(`${PREFIX}sys-rels`, 'test-user')
 
       const result = await session.run(`
         MATCH (c:Component { name: $comp })

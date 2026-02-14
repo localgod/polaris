@@ -91,7 +91,8 @@ describe('SystemService', () => {
       domain: 'Platform',
       ownerTeam: 'Platform Team',
       businessCriticality: 'medium',
-      environment: 'dev'
+      environment: 'dev',
+      userId: 'user-123'
     }
 
     it('should create system with valid input', async () => {
@@ -238,16 +239,16 @@ describe('SystemService', () => {
       vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(true)
       vi.mocked(SystemRepository.prototype.delete).mockResolvedValue()
 
-      await systemService.delete('polaris-api')
+      await systemService.delete('polaris-api', 'user-123')
 
       expect(SystemRepository.prototype.exists).toHaveBeenCalledWith('polaris-api')
-      expect(SystemRepository.prototype.delete).toHaveBeenCalledWith('polaris-api')
+      expect(SystemRepository.prototype.delete).toHaveBeenCalledWith('polaris-api', 'user-123')
     })
 
     it('should throw error when system does not exist', async () => {
       vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
 
-      await expect(systemService.delete('nonexistent')).rejects.toThrow('not found')
+      await expect(systemService.delete('nonexistent', 'user-123')).rejects.toThrow('not found')
       expect(SystemRepository.prototype.delete).not.toHaveBeenCalled()
     })
   })

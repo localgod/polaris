@@ -1699,35 +1699,23 @@
             "schema": {
               "type": "string"
             },
-            "description": "Search by component name or package URL (case-insensitive)"
+            "description": "Search by component name, group, or package URL (case-insensitive)"
           },
           {
             "in": "query",
             "name": "packageManager",
             "schema": {
-              "type": "string",
-              "enum": [
-                "npm",
-                "maven",
-                "pypi",
-                "nuget",
-                "cargo"
-              ]
+              "type": "string"
             },
-            "description": "Filter by package manager"
+            "description": "Filter by package manager (e.g., npm, maven, pypi, nuget, cargo)"
           },
           {
             "in": "query",
             "name": "type",
             "schema": {
-              "type": "string",
-              "enum": [
-                "library",
-                "framework",
-                "application"
-              ]
+              "type": "string"
             },
-            "description": "Filter by component type"
+            "description": "Filter by component type (e.g., library, framework, application)"
           },
           {
             "in": "query",
@@ -1739,18 +1727,28 @@
           },
           {
             "in": "query",
+            "name": "license",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by license SPDX ID (e.g., MIT, Apache-2.0)"
+          },
+          {
+            "in": "query",
             "name": "hasLicense",
             "schema": {
               "type": "boolean"
             },
-            "description": "Filter by license presence"
+            "description": "Filter by license presence (ignored when license is also specified)"
           },
           {
             "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
-              "default": 50
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200
             },
             "description": "Number of results per page"
           },
@@ -1759,7 +1757,8 @@
             "name": "offset",
             "schema": {
               "type": "integer",
-              "default": 0
+              "default": 0,
+              "minimum": 0
             },
             "description": "Pagination offset"
           }
@@ -1794,6 +1793,16 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Failed to fetch components",
             "content": {
@@ -1814,6 +1823,29 @@
         ],
         "summary": "Get all unmapped components",
         "description": "Retrieves all components across all systems that are not mapped to a known technology.\n\nResults are ordered by system count (most used first) to help prioritize mapping efforts.\n\n**Use Cases:**\n- Identify components that need technology mapping\n- Find widely-used internal libraries\n- Discover shadow IT or unapproved dependencies\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Unmapped components retrieved successfully",
@@ -1850,7 +1882,12 @@
                       }
                     },
                     "count": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Number of items in current page"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of unmapped components"
                     }
                   }
                 },
@@ -1870,7 +1907,8 @@
                       "systemCount": 3
                     }
                   ],
-                  "count": 1
+                  "count": 1,
+                  "total": 1
                 }
               }
             }
@@ -1970,6 +2008,24 @@
               "type": "string"
             },
             "description": "Search by license ID or name"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
           }
         ],
         "responses": {
@@ -2024,6 +2080,10 @@
                               }
                             }
                           }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of licenses"
                         }
                       }
                     }
@@ -2409,6 +2469,24 @@
               ]
             },
             "description": "Filter by policy rule type"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
           }
         ],
         "responses": {
@@ -2429,6 +2507,10 @@
                           "items": {
                             "$ref": "#/components/schemas/Policy"
                           }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of policies"
                         }
                       }
                     }
@@ -2630,7 +2712,7 @@
           "Policies"
         ],
         "summary": "Delete a policy",
-        "description": "Deletes a policy and all its relationships.\n\n**TODO:** This endpoint should be restricted to superadmin users only.\nSee GitHub issue for tracking.\n",
+        "description": "Deletes a policy and all its relationships.\nRequires superuser access.\n",
         "parameters": [
           {
             "in": "path",
@@ -2642,12 +2724,23 @@
             "description": "Policy name"
           }
         ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
         "responses": {
           "204": {
             "description": "Policy deleted successfully"
           },
           "400": {
             "description": "Policy name is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
           },
           "404": {
             "description": "Policy not found"
@@ -2752,7 +2845,7 @@
           "Policies"
         ],
         "summary": "Update a policy",
-        "description": "Updates a policy's status or other properties.\n\nStatus values:\n- `active`: Policy is enforced, violations are detected\n- `draft`: Policy exists but is not enforced\n- `archived`: Policy is disabled and hidden from active views\n\n**TODO:** This endpoint should be restricted to superadmin users only.\nSee GitHub issue #156.\n",
+        "description": "Updates a policy's status or other properties.\n\nStatus values:\n- `active`: Policy is enforced, violations are detected\n- `draft`: Policy exists but is not enforced\n- `archived`: Policy is disabled and hidden from active views\n\nRequires superuser access.\n",
         "parameters": [
           {
             "in": "path",
@@ -3425,6 +3518,26 @@
         ],
         "summary": "List all systems",
         "description": "Retrieves a list of all systems with their metadata, component counts, and repository counts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved systems",
@@ -3443,6 +3556,10 @@
                           "items": {
                             "$ref": "#/components/schemas/System"
                           }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of systems"
                         }
                       }
                     }
@@ -4085,6 +4202,24 @@
             },
             "description": "System name",
             "example": "web-portal"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
           }
         ],
         "responses": {
@@ -4093,48 +4228,39 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
                     },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "system": {
-                              "type": "string"
-                            },
-                            "components": {
-                              "type": "array",
-                              "items": {
-                                "$ref": "#/components/schemas/UnmappedComponent"
-                              }
-                            },
-                            "count": {
-                              "type": "integer"
-                            }
-                          }
-                        }
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UnmappedComponent"
                       }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Number of items in current page"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of unmapped components"
                     }
-                  ]
+                  }
                 },
                 "example": {
                   "success": true,
-                  "data": {
-                    "system": "web-portal",
-                    "components": [
-                      {
-                        "name": "@company/internal-ui",
-                        "version": "2.1.0",
-                        "packageManager": "npm",
-                        "license": "proprietary"
-                      }
-                    ],
-                    "count": 1
-                  }
+                  "data": [
+                    {
+                      "name": "@company/internal-ui",
+                      "version": "2.1.0",
+                      "packageManager": "npm",
+                      "license": "proprietary"
+                    }
+                  ],
+                  "count": 1,
+                  "total": 1
                 }
               }
             }
@@ -4158,6 +4284,26 @@
         ],
         "summary": "List all teams",
         "description": "Retrieves a list of all teams with their technology and system counts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved teams",
@@ -4176,6 +4322,10 @@
                           "items": {
                             "$ref": "#/components/schemas/Team"
                           }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of teams"
                         }
                       }
                     }
@@ -4659,6 +4809,26 @@
         ],
         "summary": "List all technologies",
         "description": "Retrieves a list of all technologies with their versions and approvals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved technologies",
@@ -4677,6 +4847,10 @@
                           "items": {
                             "$ref": "#/components/schemas/Technology"
                           }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of technologies"
                         }
                       }
                     }
@@ -4696,9 +4870,116 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Create a new technology",
+        "description": "Creates a new technology entry, optionally linking it to a source component",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "category"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique technology name"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "language",
+                      "framework",
+                      "library",
+                      "database",
+                      "platform",
+                      "tool",
+                      "runtime",
+                      "other"
+                    ]
+                  },
+                  "vendor": {
+                    "type": "string"
+                  },
+                  "ownerTeam": {
+                    "type": "string"
+                  },
+                  "componentName": {
+                    "type": "string",
+                    "description": "Component name — all versions with this name and packageManager will be linked"
+                  },
+                  "componentPackageManager": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Technology created"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "409": {
+            "description": "Technology already exists"
+          },
+          "422": {
+            "description": "Invalid field values"
+          }
+        }
       }
     },
     "/technologies/{name}": {
+      "delete": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Delete a technology",
+        "description": "Deletes a technology and all its relationships. Requires superuser role or membership in the technology's owner team.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Technology deleted"
+          },
+          "400": {
+            "description": "Technology name is required"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - user is not a superuser and does not belong to the owner team"
+          },
+          "404": {
+            "description": "Technology not found"
+          }
+        }
+      },
       "get": {
         "tags": [
           "Technologies"
@@ -4815,6 +5096,77 @@
         }
       }
     },
+    "/technologies/{name}/approvals": {
+      "post": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Set a team's TIME approval for a technology",
+        "description": "Creates or updates a team's APPROVES relationship on a technology. The user must be a member of the specified team or a superuser.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "teamName",
+                  "time"
+                ],
+                "properties": {
+                  "teamName": {
+                    "type": "string"
+                  },
+                  "time": {
+                    "type": "string",
+                    "enum": [
+                      "tolerate",
+                      "invest",
+                      "migrate",
+                      "eliminate"
+                    ]
+                  },
+                  "versionConstraint": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approval set"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "403": {
+            "description": "User is not a member of the specified team"
+          },
+          "404": {
+            "description": "Technology not found"
+          },
+          "422": {
+            "description": "Invalid TIME value"
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "tags": [
@@ -4827,27 +5179,63 @@
             "sessionAuth": []
           }
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved users",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/User"
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "teamCount": {
-                            "type": "integer"
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/User"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "teamCount": {
+                                "type": "integer"
+                              }
+                            }
                           }
-                        }
+                        ]
                       }
-                    ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Number of items in current page"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of items"
+                    }
                   }
                 }
               }

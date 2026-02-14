@@ -92,7 +92,7 @@ export class PolicyService {
    * @param name - Policy name
    * @throws Error if policy not found
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     // Business logic: check if policy exists
     const exists = await this.policyRepo.exists(name)
     
@@ -104,7 +104,7 @@ export class PolicyService {
     }
     
     // Delete the policy
-    await this.policyRepo.delete(name)
+    await this.policyRepo.delete(name, userId)
   }
 
   /**
@@ -173,7 +173,7 @@ export class PolicyService {
       })
     }
     
-    // Create the policy
+    // Create the policy (userId is part of CreatePolicyInput)
     return await this.policyRepo.create(input)
   }
 
@@ -189,7 +189,7 @@ export class PolicyService {
    * @param input - Status update input
    * @returns Updated policy and previous status
    */
-  async updateStatus(name: string, input: UpdatePolicyStatusInput): Promise<UpdatePolicyResult> {
+  async updateStatus(name: string, input: UpdatePolicyStatusInput, userId: string): Promise<UpdatePolicyResult> {
     // Validate status
     if (input.status) {
       const validStatuses = ['active', 'draft', 'archived']
@@ -202,7 +202,7 @@ export class PolicyService {
     }
     
     // Update the policy
-    return await this.policyRepo.updateStatus(name, input)
+    return await this.policyRepo.updateStatus(name, input, userId)
   }
 
   /**

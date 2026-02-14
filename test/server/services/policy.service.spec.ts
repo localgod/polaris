@@ -67,15 +67,15 @@ describe('PolicyService', () => {
       vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(true)
       vi.mocked(PolicyRepository.prototype.delete).mockResolvedValue(undefined)
 
-      await service.delete('test-policy')
+      await service.delete('test-policy', 'user-123')
 
-      expect(PolicyRepository.prototype.delete).toHaveBeenCalledWith('test-policy')
+      expect(PolicyRepository.prototype.delete).toHaveBeenCalledWith('test-policy', 'user-123')
     })
 
     it('should throw when policy does not exist', async () => {
       vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(false)
 
-      await expect(service.delete('nonexistent')).rejects.toThrow()
+      await expect(service.delete('nonexistent', 'user-123')).rejects.toThrow()
       expect(PolicyRepository.prototype.delete).not.toHaveBeenCalled()
     })
   })

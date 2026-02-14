@@ -32,7 +32,7 @@ import { PolicyService } from '../../services/policy.service'
  *         description: Policy not found
  */
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const user = await requireSuperuser(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   const name = decodeURIComponent(rawName)
   
   const policyService = new PolicyService()
-  await policyService.delete(name)
+  await policyService.delete(name, user.id)
   
   setResponseStatus(event, 204)
   return null

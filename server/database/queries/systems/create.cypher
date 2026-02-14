@@ -20,4 +20,18 @@ FOREACH (repo IN CASE WHEN size(repos) > 0 THEN repos ELSE [] END |
     SET rel2.since = COALESCE(rel2.since, datetime())
 )
 
+WITH s
+CREATE (a:AuditLog {
+  id: randomUUID(),
+  timestamp: datetime(),
+  operation: 'CREATE',
+  entityType: 'System',
+  entityId: s.name,
+  entityLabel: s.name,
+  changedFields: ['name', 'domain', 'businessCriticality', 'environment'],
+  source: 'API',
+  userId: $userId
+})
+CREATE (a)-[:AUDITS]->(s)
+
 RETURN s.name as name

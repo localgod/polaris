@@ -8,6 +8,7 @@ export interface ProcessSBOMInput {
   sbom: unknown
   repositoryUrl: string
   format: 'cyclonedx' | 'spdx'
+  userId: string
 }
 
 export interface ProcessSBOMResult {

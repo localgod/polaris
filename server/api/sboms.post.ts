@@ -196,8 +196,9 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
   }
 
   // 2. Authenticate (token or session)
+  let user
   try {
-    await requireAuth(event)
+    user = await requireAuth(event)
   } catch {
     setResponseStatus(event, 401)
     return {
@@ -255,7 +256,8 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     const processResult = await sbomService.processSBOM({
       sbom: validatedBody.sbom,
       repositoryUrl: validatedBody.repositoryUrl,
-      format: result.format as 'cyclonedx' | 'spdx'
+      format: result.format as 'cyclonedx' | 'spdx',
+      userId: user.id
     })
 
     setResponseStatus(event, 200)

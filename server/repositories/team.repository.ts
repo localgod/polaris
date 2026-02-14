@@ -193,9 +193,9 @@ export class TeamRepository extends BaseRepository {
    * 
    * @param name - Team name
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     const query = await loadQuery('teams/delete.cypher')
-    await this.executeQuery(query, { name })
+    await this.executeQuery(query, { name, userId })
   }
 
   /**

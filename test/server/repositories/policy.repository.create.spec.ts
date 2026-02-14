@@ -30,7 +30,8 @@ describe('PolicyRepository - Create Policy', () => {
       if (!ctx.neo4jAvailable) return
       const result = await repo.create({
         name: `${PREFIX}basic-policy`, description: 'A basic test policy',
-        ruleType: 'compliance', severity: 'warning', scope: 'organization', status: 'active'
+        ruleType: 'compliance', severity: 'warning', scope: 'organization', status: 'active',
+        userId: 'test-user'
       })
 
       expect(result.policy.name).toBe(`${PREFIX}basic-policy`)
@@ -49,7 +50,8 @@ describe('PolicyRepository - Create Policy', () => {
       const result = await repo.create({
         name: `${PREFIX}deny-gpl`, description: 'Deny GPL licenses',
         ruleType: 'license-compliance', severity: 'error', scope: 'organization',
-        licenseMode: 'denylist', deniedLicenses: [`${PREFIX}GPL-3.0`]
+        licenseMode: 'denylist', deniedLicenses: [`${PREFIX}GPL-3.0`],
+        userId: 'test-user'
       })
 
       expect(result.policy.ruleType).toBe('license-compliance')
@@ -65,7 +67,8 @@ describe('PolicyRepository - Create Policy', () => {
       const result = await repo.create({
         name: `${PREFIX}allow-mit`, description: 'Only allow MIT',
         ruleType: 'license-compliance', severity: 'error', scope: 'organization',
-        licenseMode: 'allowlist', allowedLicenses: [`${PREFIX}MIT-allow`]
+        licenseMode: 'allowlist', allowedLicenses: [`${PREFIX}MIT-allow`],
+        userId: 'test-user'
       })
 
       expect(result.policy.licenseMode).toBe('allowlist')
@@ -75,7 +78,8 @@ describe('PolicyRepository - Create Policy', () => {
     it('should create policy with draft status', async () => {
       if (!ctx.neo4jAvailable) return
       const result = await repo.create({
-        name: `${PREFIX}draft-policy`, ruleType: 'compliance', severity: 'info', status: 'draft'
+        name: `${PREFIX}draft-policy`, ruleType: 'compliance', severity: 'info', status: 'draft',
+        userId: 'test-user'
       })
 
       expect(result.policy.status).toBe('draft')
@@ -84,7 +88,8 @@ describe('PolicyRepository - Create Policy', () => {
     it('should create SUBJECT_TO relationships for organization scope', async () => {
       if (!ctx.neo4jAvailable) return
       await repo.create({
-        name: `${PREFIX}org-policy`, ruleType: 'compliance', severity: 'warning', scope: 'organization'
+        name: `${PREFIX}org-policy`, ruleType: 'compliance', severity: 'warning', scope: 'organization',
+        userId: 'test-user'
       })
 
       const result = await session.run(`

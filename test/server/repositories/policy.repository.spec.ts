@@ -91,7 +91,7 @@ describe('PolicyRepository', () => {
       `, { name: `${PREFIX}to-delete`, team: `${PREFIX}team` })
 
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(true)
-      await repo.delete(`${PREFIX}to-delete`)
+      await repo.delete(`${PREFIX}to-delete`, 'test-user')
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
     })
   })

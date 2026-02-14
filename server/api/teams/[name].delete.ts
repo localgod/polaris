@@ -45,7 +45,7 @@ import { TeamService } from '../../services/team.service'
  */
 export default defineEventHandler(async (event) => {
   // Require superuser access for deleting teams
-  await requireSuperuser(event)
+  const user = await requireSuperuser(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
   const name = decodeURIComponent(rawName)
   
   const teamService = new TeamService()
-  await teamService.delete(name)
+  await teamService.delete(name, user.id)
   
   setResponseStatus(event, 204)
   return null

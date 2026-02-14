@@ -83,7 +83,7 @@ import { SystemService } from '../../../services/system.service'
  *                   example: "System not found: my-system"
  */
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
+  const user = await requireAuth(event)
 
   const systemName = getRouterParam(event, 'name')
   
@@ -116,7 +116,7 @@ export default defineEventHandler(async (event) => {
   }
   
   const systemService = new SystemService()
-  const repository = await systemService.addRepository(systemName, body)
+  const repository = await systemService.addRepository(systemName, body, user.id)
   
   setResponseStatus(event, 201)
   return {
