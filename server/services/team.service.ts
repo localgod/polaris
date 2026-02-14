@@ -46,7 +46,7 @@ export class TeamService {
    * @param name - Team name
    * @throws Error if team not found or owns systems
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     // Business logic: check if team exists
     const exists = await this.teamRepo.exists(name)
     
@@ -68,7 +68,7 @@ export class TeamService {
     }
     
     // Delete the team
-    await this.teamRepo.delete(name)
+    await this.teamRepo.delete(name, userId)
   }
 
   /**

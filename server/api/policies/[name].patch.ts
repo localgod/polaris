@@ -63,7 +63,7 @@ interface UpdatePolicyRequest {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const user = await requireSuperuser(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -109,7 +109,7 @@ export default defineEventHandler(async (event) => {
     const result = await policyService.updateStatus(name, {
       status: body.status,
       reason: body.reason
-    })
+    }, user.id)
     
     return {
       success: true,

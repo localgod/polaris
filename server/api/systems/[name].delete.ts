@@ -31,7 +31,7 @@ import { SystemService } from '../../services/system.service'
  */
 export default defineEventHandler(async (event) => {
   // Require authorization (authenticated + team membership)
-  await requireAuthorization(event)
+  const user = await requireAuthorization(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   await validateTeamOwnership(event, 'System', name)
   
   const systemService = new SystemService()
-  await systemService.delete(name)
+  await systemService.delete(name, user.id)
   
   setResponseStatus(event, 204)
   return null

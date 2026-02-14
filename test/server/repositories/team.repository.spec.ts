@@ -129,7 +129,7 @@ describe('TeamRepository', () => {
       await seed(ctx.driver, `CREATE (:Team { name: $n })`, { n: `${PREFIX}to-delete` })
 
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(true)
-      await repo.delete(`${PREFIX}to-delete`)
+      await repo.delete(`${PREFIX}to-delete`, 'test-user')
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
     })
   })

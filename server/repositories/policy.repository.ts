@@ -91,6 +91,7 @@ export interface CreatePolicyInput {
   licenseMode?: 'allowlist' | 'denylist'
   allowedLicenses?: string[]
   deniedLicenses?: string[]
+  userId: string
 }
 
 export interface CreatePolicyResult {
@@ -256,9 +257,9 @@ export class PolicyRepository extends BaseRepository {
    * 
    * @param name - Policy name
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     const query = await loadQuery('policies/delete.cypher')
-    await this.executeQuery(query, { name })
+    await this.executeQuery(query, { name, userId })
   }
 
   /**
@@ -296,6 +297,24 @@ export class PolicyRepository extends BaseRepository {
       enforcedBy: input.enforcedBy || 'Security',
       licenseMode: input.licenseMode || null
     })
+
+    // Audit log for policy creation
+    const auditQuery = `
+      MATCH (p:Policy {name: $name})
+      CREATE (a:AuditLog {
+        id: randomUUID(),
+        timestamp: datetime(),
+        operation: 'CREATE',
+        entityType: 'Policy',
+        entityId: p.name,
+        entityLabel: p.name,
+        changedFields: ['name', 'ruleType', 'severity', 'scope', 'status'],
+        source: 'API',
+        userId: $userId
+      })
+      CREATE (a)-[:AUDITS]->(p)
+    `
+    await this.executeQuery(auditQuery, { name: input.name, userId: input.userId })
     
     let relationshipsCreated = 0
     
@@ -534,6 +553,7 @@ export class PolicyRepository extends BaseRepository {
         entityType: 'Policy',
         entityId: p.name,
         entityLabel: p.name,
+        changedFields: ['deniedLicenses'],
         licenseId: l.id,
         licenseName: l.name,
         source: 'API',
@@ -588,6 +608,7 @@ export class PolicyRepository extends BaseRepository {
         entityType: 'Policy',
         entityId: p.name,
         entityLabel: p.name,
+        changedFields: ['deniedLicenses'],
         licenseId: l.id,
         licenseName: l.name,
         source: 'API',

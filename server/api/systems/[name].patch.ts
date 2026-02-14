@@ -56,7 +56,7 @@
  *         description: Validation error - invalid field values
  */
 export default defineEventHandler(async (event) => {
-  await requireAuthorization(event)
+  const user = await requireAuthorization(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -126,9 +126,25 @@ export default defineEventHandler(async (event) => {
     params.environment = body.environment
   }
 
+  const changedFields = updates.map(u => u.split(' = ')[0]!.replace('s.', ''))
+  params.userId = user.id
+
   const query = `
     MATCH (s:System {name: $name})
     SET ${updates.join(', ')}
+    WITH s
+    CREATE (a:AuditLog {
+      id: randomUUID(),
+      timestamp: datetime(),
+      operation: 'UPDATE',
+      entityType: 'System',
+      entityId: s.name,
+      entityLabel: s.name,
+      changedFields: ${JSON.stringify(changedFields)},
+      source: 'API',
+      userId: $userId
+    })
+    CREATE (a)-[:AUDITS]->(s)
     RETURN s {
       .*,
       ownerTeam: [(s)<-[:OWNS]-(t:Team) | t.name][0]

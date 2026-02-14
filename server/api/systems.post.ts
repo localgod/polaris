@@ -119,12 +119,12 @@ interface CreateSystemResponse {
 }
 
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateSystemResponse>> => {
-  await requireAuth(event)
+  const user = await requireAuth(event)
   const body = await readBody<CreateSystemRequest>(event)
   
   try {
     const systemService = new SystemService()
-    const name = await systemService.create(body)
+    const name = await systemService.create({ ...body, userId: user.id })
 
     setResponseStatus(event, 201)
     return {

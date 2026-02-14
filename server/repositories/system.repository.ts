@@ -29,6 +29,7 @@ export interface CreateSystemParams {
   sourceCodeType: string
   hasSourceAccess: boolean
   repositories: RepositoryInput[]
+  userId: string
 }
 
 export interface UnmappedComponentsResult {
@@ -127,9 +128,9 @@ export class SystemRepository extends BaseRepository {
    * 
    * @param name - System name
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     const query = await loadQuery('systems/delete.cypher')
-    await this.executeQuery(query, { name })
+    await this.executeQuery(query, { name, userId })
   }
 
   /**
@@ -169,12 +170,13 @@ export class SystemRepository extends BaseRepository {
    * @param name - Repository name
    * @returns Created/updated repository
    */
-  async addRepository(systemName: string, url: string, name: string): Promise<Repository> {
+  async addRepository(systemName: string, url: string, name: string, userId: string): Promise<Repository> {
     const query = await loadQuery('systems/add-repository.cypher')
     const { records } = await this.executeQuery(query, {
       systemName,
       url,
-      name
+      name,
+      userId
     })
 
     if (records.length === 0) {

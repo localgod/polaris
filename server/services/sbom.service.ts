@@ -87,6 +87,15 @@ export class SBOMService {
     // 6. Update repository last scan timestamp
     await this.sourceRepoRepo.updateLastScan(normalizedUrl)
     
+    // 7. Audit log for SBOM import
+    await this.sbomRepo.createAuditLog({
+      systemName: system.name,
+      userId: input.userId,
+      format: input.format,
+      componentsAdded: result.componentsAdded,
+      componentsUpdated: result.componentsUpdated
+    })
+    
     return {
       systemName: system.name,
       repositoryUrl: normalizedUrl,

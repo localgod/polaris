@@ -67,7 +67,7 @@
  *         description: Validation error - invalid field values
  */
 export default defineEventHandler(async (event) => {
-  await requireAuthorization(event)
+  const user = await requireAuthorization(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -145,6 +145,20 @@ export default defineEventHandler(async (event) => {
     // Create new ownership
     MERGE (team)-[:OWNS]->(s)
     
+    WITH s, team
+    CREATE (a:AuditLog {
+      id: randomUUID(),
+      timestamp: datetime(),
+      operation: 'UPDATE',
+      entityType: 'System',
+      entityId: s.name,
+      entityLabel: s.name,
+      changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description', 'sourceCodeType', 'hasSourceAccess'],
+      source: 'API',
+      userId: $userId
+    })
+    CREATE (a)-[:AUDITS]->(s)
+    
     RETURN s {
       .*,
       ownerTeam: team.name
@@ -157,7 +171,8 @@ export default defineEventHandler(async (event) => {
     environment: body.environment,
     description: body.description || null,
     sourceCodeType: body.sourceCodeType || 'unknown',
-    hasSourceAccess: body.hasSourceAccess || false
+    hasSourceAccess: body.hasSourceAccess || false,
+    userId: user.id
   })
   
   if (records.length === 0) {

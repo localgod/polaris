@@ -13,6 +13,7 @@ export interface CreateSystemInput {
   sourceCodeType?: string
   hasSourceAccess?: boolean
   repositories?: RepositoryInput[]
+  userId: string
 }
 
 /**
@@ -123,7 +124,8 @@ export class SystemService {
       environment: input.environment,
       sourceCodeType,
       hasSourceAccess,
-      repositories
+      repositories,
+      userId: input.userId
     }
 
     return await this.systemRepo.create(params)
@@ -139,7 +141,7 @@ export class SystemService {
    * @param name - System name
    * @throws Error if system not found
    */
-  async delete(name: string): Promise<void> {
+  async delete(name: string, userId: string): Promise<void> {
     // Business logic: check if system exists
     const exists = await this.systemRepo.exists(name)
     
@@ -151,7 +153,7 @@ export class SystemService {
     }
     
     // Delete the system
-    await this.systemRepo.delete(name)
+    await this.systemRepo.delete(name, userId)
   }
 
   /**
@@ -196,7 +198,7 @@ export class SystemService {
   async addRepository(systemName: string, data: {
     url: string
     name?: string
-  }): Promise<Repository> {
+  }, userId: string): Promise<Repository> {
     // Business logic: validate system exists
     const system = await this.systemRepo.findByName(systemName)
     if (!system) {
@@ -212,7 +214,7 @@ export class SystemService {
     // Business logic: extract name if not provided
     const name = data.name || this.extractRepoName(normalizedUrl)
     
-    return await this.systemRepo.addRepository(systemName, normalizedUrl, name)
+    return await this.systemRepo.addRepository(systemName, normalizedUrl, name, userId)
   }
 
   /**
