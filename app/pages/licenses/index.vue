@@ -87,15 +87,10 @@ const columns: TableColumn<License>[] = [
     header: ({ column }) => getSortableHeader(column, 'SPDX ID'),
     cell: ({ row }) => {
       const license = row.original
-      if (license.url) {
-        return h('a', {
-          href: license.url,
-          target: '_blank',
-          rel: 'noopener noreferrer',
-          class: 'font-medium hover:underline'
-        }, license.id)
-      }
-      return h('span', { class: 'font-medium' }, license.id)
+      return h(resolveComponent('NuxtLink'), {
+        to: `/licenses/${encodeURIComponent(license.id)}`,
+        class: 'font-medium hover:underline'
+      }, () => license.id)
     }
   },
   {
@@ -150,9 +145,9 @@ const columns: TableColumn<License>[] = [
       const isSuperuser = session.value?.user?.role === 'superuser'
       const menuItems = [[
         {
-          label: 'View Components',
-          icon: 'i-lucide-box',
-          onSelect: () => navigateTo(`/components?license=${encodeURIComponent(license.id)}`)
+          label: 'View Details',
+          icon: 'i-lucide-file-text',
+          onSelect: () => navigateTo(`/licenses/${encodeURIComponent(license.id)}`)
         },
         ...(isSuperuser
           ? [{

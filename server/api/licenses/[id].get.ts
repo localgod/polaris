@@ -1,6 +1,7 @@
 import type { ApiResponse } from '~~/types/api'
 import { LicenseRepository } from '../../repositories/license.repository'
 import type { License } from '../../repositories/license.repository'
+import spdxFull from 'spdx-license-list/full'
 
 /**
  * @openapi
@@ -10,7 +11,9 @@ import type { License } from '../../repositories/license.repository'
  *       - Licenses
  *       - License Compliance
  *     summary: Get license details
- *     description: Retrieves detailed information about a specific license including usage statistics
+ *     description: |
+ *       Retrieves detailed information about a specific license including
+ *       usage statistics and full license text from the SPDX license list.
  *     parameters:
  *       - in: path
  *         name: id
@@ -45,7 +48,7 @@ import type { License } from '../../repositories/license.repository'
  *                             type: string
  *                           category:
  *                             type: string
- *                           text:
+ *                           licenseText:
  *                             type: string
  *                           deprecated:
  *                             type: boolean
@@ -64,10 +67,10 @@ import type { License } from '../../repositories/license.repository'
  *             schema:
  *               $ref: '#/components/schemas/ApiErrorResponse'
  */
-export default defineEventHandler(async (event): Promise<ApiResponse<License>> => {
+export default defineEventHandler(async (event): Promise<ApiResponse<License & { licenseText?: string }>> => {
   try {
     const id = getRouterParam(event, 'id')
-    
+
     if (!id) {
       return {
         success: false,
@@ -75,10 +78,10 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License>> =
         data: []
       }
     }
-    
+
     const licenseRepo = new LicenseRepository()
     const license = await licenseRepo.findById(id)
-    
+
     if (!license) {
       return {
         success: false,
@@ -86,10 +89,19 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License>> =
         data: []
       }
     }
-    
+
+    // Enrich with SPDX data (license text, canonical URL, OSI status)
+    const spdxData = (spdxFull as Record<string, { name: string; url: string; osiApproved: boolean; licenseText: string }>)[id]
+    const enriched = {
+      ...license,
+      licenseText: spdxData?.licenseText || license.text || null,
+      url: license.url || spdxData?.url || null,
+      osiApproved: license.osiApproved ?? spdxData?.osiApproved ?? null
+    }
+
     return {
       success: true,
-      data: [license],
+      data: [enriched],
       count: 1
     }
   } catch (error: unknown) {

@@ -17,6 +17,16 @@ export interface License {
   componentCount?: number
 }
 
+export interface LicenseComponent {
+  name: string
+  version: string
+  packageManager: string
+  type: string | null
+  purl: string | null
+  systemCount: number
+  technologyName: string | null
+}
+
 export interface LicenseFilters {
   category?: string
   osiApproved?: boolean
@@ -385,6 +395,55 @@ export class LicenseRepository extends BaseRepository {
     }
     
     return updatedCount
+  }
+
+  /**
+   * Find components that use a specific license, with pagination
+   */
+  async findComponentsByLicenseId(
+    licenseId: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{ data: LicenseComponent[]; total: number }> {
+    const cypher = `
+      MATCH (c:Component)-[:HAS_LICENSE]->(l:License {id: $licenseId})
+      WITH count(DISTINCT c) as total
+      MATCH (c:Component)-[:HAS_LICENSE]->(l:License {id: $licenseId})
+      OPTIONAL MATCH (s:System)-[:USES]->(c)
+      OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)
+      WITH c, total, count(DISTINCT s) as systemCount, t.name as technologyName
+      ORDER BY c.packageManager ASC, c.name ASC, c.version ASC
+      SKIP toInteger($offset) LIMIT toInteger($limit)
+      RETURN c.name as name,
+             c.version as version,
+             c.packageManager as packageManager,
+             c.type as type,
+             c.purl as purl,
+             systemCount,
+             technologyName,
+             total
+    `
+
+    const { records } = await this.executeQuery(cypher, {
+      licenseId,
+      limit,
+      offset
+    })
+
+    const total = records.length > 0 ? records[0].get('total').toNumber() : 0
+
+    return {
+      data: records.map(record => ({
+        name: record.get('name'),
+        version: record.get('version'),
+        packageManager: record.get('packageManager'),
+        type: record.get('type'),
+        purl: record.get('purl'),
+        systemCount: record.get('systemCount').toNumber(),
+        technologyName: record.get('technologyName')
+      })),
+      total
+    }
   }
 
   /**
