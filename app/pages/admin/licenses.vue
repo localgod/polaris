@@ -14,6 +14,8 @@
 
     <UCard v-else>
       <UTable
+        v-model:sorting="sorting"
+          :manual-sorting="true"
         :data="licenses"
         :columns="columns"
         :loading="pending"
@@ -42,6 +44,8 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+
+const { getSortableHeader } = useSortableTable()
 
 interface License {
   spdxId: string
@@ -72,16 +76,16 @@ function getCategoryColor(category: string) {
 const columns: TableColumn<License>[] = [
   {
     accessorKey: 'spdxId',
-    header: 'SPDX ID',
+    header: ({ column }) => getSortableHeader(column, 'SPDX ID'),
     cell: ({ row }) => h('code', {}, row.getValue('spdxId') as string)
   },
   {
     accessorKey: 'name',
-    header: 'Name'
+    header: ({ column }) => getSortableHeader(column, 'Name')
   },
   {
     accessorKey: 'category',
-    header: 'Category',
+    header: ({ column }) => getSortableHeader(column, 'Category'),
     cell: ({ row }) => {
       const category = row.getValue('category') as string
       return h(UBadge, { color: getCategoryColor(category), variant: 'subtle' }, () => category)
@@ -89,7 +93,7 @@ const columns: TableColumn<License>[] = [
   },
   {
     accessorKey: 'osiApproved',
-    header: 'OSI Approved',
+    header: ({ column }) => getSortableHeader(column, 'OSI Approved'),
     cell: ({ row }) => {
       const osiApproved = row.getValue('osiApproved') as boolean
       return h(UBadge, { color: osiApproved ? 'success' : 'neutral', variant: 'subtle' }, () => osiApproved ? 'Yes' : 'No')
@@ -98,17 +102,24 @@ const columns: TableColumn<License>[] = [
   {
     id: 'actions',
     header: 'Actions',
+    enableSorting: false,
     cell: () => h(UButton, { variant: 'outline', size: 'xs', label: 'Edit' })
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses', {
   query: queryParams

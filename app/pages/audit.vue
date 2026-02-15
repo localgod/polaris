@@ -58,6 +58,8 @@
 
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="entries"
           :columns="columns"
           :loading="pending"
@@ -87,6 +89,8 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+
+const { getSortableHeader } = useSortableTable()
 
 interface AuditEntry {
   id: string
@@ -133,7 +137,7 @@ function formatDate(dateString: string): string {
 const columns: TableColumn<AuditEntry>[] = [
   {
     accessorKey: 'operation',
-    header: 'Operation',
+    header: ({ column }) => getSortableHeader(column, 'Operation'),
     cell: ({ row }) => {
       const operation = row.getValue('operation') as string
       return h(resolveComponent('UBadge'), {
@@ -144,12 +148,12 @@ const columns: TableColumn<AuditEntry>[] = [
   },
   {
     accessorKey: 'entityType',
-    header: 'Entity Type',
+    header: ({ column }) => getSortableHeader(column, 'Entity Type'),
     cell: ({ row }) => h('span', { class: 'font-medium' }, row.getValue('entityType') as string)
   },
   {
     accessorKey: 'entityLabel',
-    header: 'Entity',
+    header: ({ column }) => getSortableHeader(column, 'Entity'),
     cell: ({ row }) => {
       const label = row.original.entityLabel || row.original.entityId
       return label || '—'
@@ -157,7 +161,7 @@ const columns: TableColumn<AuditEntry>[] = [
   },
   {
     accessorKey: 'userId',
-    header: 'Performed By',
+    header: ({ column }) => getSortableHeader(column, 'Performed By'),
     cell: ({ row }) => {
       const entry = row.original
       const display = entry.userName || entry.userId
@@ -167,11 +171,13 @@ const columns: TableColumn<AuditEntry>[] = [
   },
   {
     accessorKey: 'timestamp',
-    header: 'Timestamp',
+    header: ({ column }) => getSortableHeader(column, 'Timestamp'),
     cell: ({ row }) => formatDate(row.getValue('timestamp') as string)
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const selectedEntityType = ref('all')
 const selectedOperation = ref('all')
 const page = ref(1)
@@ -184,6 +190,10 @@ const queryParams = computed(() => {
   }
   if (selectedEntityType.value && selectedEntityType.value !== 'all') params.entityType = selectedEntityType.value
   if (selectedOperation.value && selectedOperation.value !== 'all') params.operation = selectedOperation.value
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
   return params
 })
 

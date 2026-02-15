@@ -135,7 +135,9 @@ export default defineEventHandler(async (event): Promise<LicenseViolationRespons
       system: query.system as string | undefined,
       license: query.license as string | undefined,
       limit: query.limit ? parseInt(query.limit as string, 10) : undefined,
-      offset: query.offset ? parseInt(query.offset as string, 10) : undefined
+      offset: query.offset ? parseInt(query.offset as string, 10) : undefined,
+      sortBy: query.sortBy as string | undefined,
+      sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
     }
     
     const policyService = new PolicyService()

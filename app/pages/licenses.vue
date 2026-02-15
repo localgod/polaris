@@ -17,6 +17,8 @@
     <template v-else>
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="licenses"
           :columns="columns"
           :loading="pending"
@@ -47,6 +49,7 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
+const { getSortableHeader } = useSortableTable()
 const { data: session } = useAuth()
 
 interface License {
@@ -81,7 +84,7 @@ function getCategoryColor(category: string): 'success' | 'warning' | 'error' | '
 const columns: TableColumn<License>[] = [
   {
     accessorKey: 'id',
-    header: 'SPDX ID',
+    header: ({ column }) => getSortableHeader(column, 'SPDX ID'),
     cell: ({ row }) => {
       const license = row.original
       if (license.url) {
@@ -97,11 +100,11 @@ const columns: TableColumn<License>[] = [
   },
   {
     accessorKey: 'name',
-    header: 'Name'
+    header: ({ column }) => getSortableHeader(column, 'Name')
   },
   {
     accessorKey: 'category',
-    header: 'Category',
+    header: ({ column }) => getSortableHeader(column, 'Category'),
     cell: ({ row }) => {
       const category = row.getValue('category') as string
       if (!category) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -113,7 +116,7 @@ const columns: TableColumn<License>[] = [
   },
   {
     accessorKey: 'osiApproved',
-    header: 'OSI Approved',
+    header: ({ column }) => getSortableHeader(column, 'OSI Approved'),
     cell: ({ row }) => {
       const approved = row.getValue('osiApproved') as boolean
       return h(resolveComponent('UBadge'), {
@@ -124,7 +127,7 @@ const columns: TableColumn<License>[] = [
   },
   {
     accessorKey: 'whitelisted',
-    header: 'Status',
+    header: ({ column }) => getSortableHeader(column, 'Status'),
     cell: ({ row }) => {
       const whitelisted = row.getValue('whitelisted') as boolean
       return h(resolveComponent('UBadge'), {
@@ -135,7 +138,7 @@ const columns: TableColumn<License>[] = [
   },
   {
     accessorKey: 'componentCount',
-    header: 'Components',
+    header: ({ column }) => getSortableHeader(column, 'Components'),
     cell: ({ row }) => String(row.getValue('componentCount') ?? 0)
   },
   {
@@ -166,13 +169,19 @@ const columns: TableColumn<License>[] = [
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses', {
   query: queryParams

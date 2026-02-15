@@ -447,10 +447,10 @@ async function processRepository(config: RepositoryConfig, apiToken: string): Pr
 }
 
 /**
- * Run fixture seeding (teams, technologies, policies, approvals)
+ * Run fixture seeding (teams, infrastructure technologies, policies, approvals)
  */
 async function seedFixtures(clear: boolean): Promise<void> {
-  console.log('\n📋 Seeding governance data (teams, technologies, policies)...\n')
+  console.log('\n📋 Seeding governance data (teams, infrastructure technologies, policies)...\n')
   
   try {
     const clearFlag = clear ? ' -- --clear' : ''
@@ -636,6 +636,131 @@ async function createTeamSystemRelationships(): Promise<void> {
 }
 
 /**
+ * Create technologies from SBOM-discovered components.
+ *
+ * Reads the component_technologies section from the fixture file and, for each
+ * entry where the component actually exists in the database, creates a Technology
+ * node linked to all matching components via IS_VERSION_OF. Then applies
+ * stewardship, policy, and TIME approval relationships.
+ */
+async function createTechnologiesFromComponents(apiToken: string): Promise<void> {
+  console.log('\n🔧 Creating technologies from discovered components...\n')
+
+  const fixturesPath = join(process.cwd(), 'schema/fixtures/tech-catalog.json')
+  if (!existsSync(fixturesPath)) {
+    console.log('  ⚠️  Fixtures file not found, skipping')
+    return
+  }
+
+  const fixtures = JSON.parse(readFileSync(fixturesPath, 'utf-8'))
+  const componentTechs = fixtures.component_technologies
+  if (!componentTechs || componentTechs.length === 0) {
+    console.log('  ℹ️  No component_technologies defined in fixtures')
+    return
+  }
+
+  const baseUrl = getApiBaseUrl()
+
+  // Step 1: Create technologies via the API (links components automatically)
+  for (const ct of componentTechs) {
+    try {
+      const response = await fetch(`${baseUrl}/api/technologies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`
+        },
+        body: JSON.stringify({
+          name: ct.technology.name,
+          category: ct.technology.category,
+          vendor: ct.technology.vendor,
+          ownerTeam: ct.ownerTeam,
+          componentName: ct.componentName,
+          componentPackageManager: ct.packageManager
+        })
+      })
+
+      if (response.ok) {
+        console.log(`  ✅ Created technology: ${ct.technology.name} (from component: ${ct.componentName})`)
+      } else if (response.status === 409) {
+        console.log(`  ℹ️  Technology already exists: ${ct.technology.name}`)
+      } else {
+        const err = await response.json()
+        console.warn(`  ⚠️  Failed to create ${ct.technology.name}: ${err.message || response.status}`)
+        continue
+      }
+    } catch (error) {
+      console.warn(`  ⚠️  Error creating ${ct.technology.name}: ${error instanceof Error ? error.message : error}`)
+      continue
+    }
+  }
+
+  // Step 2: Apply stewardship, policies, and approvals via Cypher
+  const driver = getDriver()
+  const session = driver.session()
+
+  try {
+    // Stewardship relationships
+    for (const ct of componentTechs) {
+      for (const teamName of ct.stewardTeams || []) {
+        await session.run(`
+          MATCH (team:Team {name: $team})
+          MATCH (tech:Technology {name: $technology})
+          MERGE (team)-[:STEWARDED_BY]->(tech)
+        `, { team: teamName, technology: ct.technology.name })
+      }
+    }
+    console.log('  ✅ Stewardship relationships created')
+
+    // Policy relationships
+    for (const ct of componentTechs) {
+      for (const policyName of ct.policies || []) {
+        await session.run(`
+          MATCH (pol:Policy {name: $policy})
+          MATCH (tech:Technology {name: $technology})
+          MERGE (pol)-[:GOVERNS]->(tech)
+        `, { policy: policyName, technology: ct.technology.name })
+      }
+    }
+    console.log('  ✅ Policy relationships created')
+
+    // TIME approvals
+    for (const ct of componentTechs) {
+      for (const approval of ct.approvals || []) {
+        await session.run(`
+          MATCH (team:Team {name: $team})
+          MATCH (tech:Technology {name: $technology})
+          MERGE (team)-[a:APPROVES]->(tech)
+          SET a.time = $time,
+              a.approvedAt = CASE WHEN $approvedAt IS NOT NULL THEN datetime($approvedAt) ELSE datetime() END,
+              a.deprecatedAt = CASE WHEN $deprecatedAt IS NOT NULL THEN datetime($deprecatedAt) ELSE null END,
+              a.eolDate = CASE WHEN $eolDate IS NOT NULL THEN date($eolDate) ELSE null END,
+              a.migrationTarget = $migrationTarget,
+              a.notes = $notes,
+              a.approvedBy = $approvedBy,
+              a.versionConstraint = $versionConstraint
+        `, {
+          team: approval.team,
+          technology: ct.technology.name,
+          time: approval.time,
+          approvedAt: approval.approvedAt || null,
+          deprecatedAt: approval.deprecatedAt || null,
+          eolDate: approval.eolDate || null,
+          migrationTarget: approval.migrationTarget || null,
+          notes: approval.notes || null,
+          approvedBy: approval.approvedBy || null,
+          versionConstraint: approval.versionConstraint || null
+        })
+      }
+    }
+    console.log('  ✅ TIME approvals created')
+  } finally {
+    await session.close()
+    await driver.close()
+  }
+}
+
+/**
  * Main seeding function
  */
 async function seedFromGitHub(options: SeedOptions): Promise<void> {
@@ -655,8 +780,8 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
     process.exit(1)
   }
   
-  // Always seed fixtures first (governance data: teams, technologies, policies)
-  // This ensures the governance structure exists before adding systems/components
+  // Seed fixtures first (teams, infrastructure technologies, policies, approvals)
+  // SBOM-discoverable technologies (React, Vue, etc.) are created later from components
   await seedFixtures(options.clear)
   
   // Create temp directory
@@ -682,6 +807,11 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
         console.error(`\n❌ Failed to process ${config.url}\n`)
       }
     }
+    
+    // Create technologies from discovered components
+    // This uses component_technologies from fixtures to create Technology nodes
+    // linked to SBOM-discovered components, then applies governance data
+    await createTechnologiesFromComponents(apiToken)
     
     // Create team-system relationships from fixtures
     // This links teams to the systems we just created from GitHub

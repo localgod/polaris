@@ -46,6 +46,7 @@
           :data="components"
           :columns="columns"
           :loading="pending"
+          :manual-sorting="true"
           class="flex-1"
         >
           <template #empty>
@@ -72,60 +73,14 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
-import type { Column } from '@tanstack/vue-table'
 import type { ApiResponse, Component } from '~~/types/api'
 
 const { status } = useAuth()
+const { getSortableHeader } = useSortableTable()
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
-
-function getSortableHeader(column: Column<Component>, label: string) {
-  const isSorted = column.getIsSorted()
-
-  return h(UDropdownMenu, {
-    content: { align: 'start' as const },
-    items: [
-      {
-        label: 'Asc',
-        type: 'checkbox' as const,
-        icon: 'i-lucide-arrow-up-narrow-wide',
-        checked: isSorted === 'asc',
-        onSelect: () => {
-          if (isSorted === 'asc') {
-            column.clearSorting()
-          } else {
-            column.toggleSorting(false)
-          }
-        }
-      },
-      {
-        label: 'Desc',
-        type: 'checkbox' as const,
-        icon: 'i-lucide-arrow-down-wide-narrow',
-        checked: isSorted === 'desc',
-        onSelect: () => {
-          if (isSorted === 'desc') {
-            column.clearSorting()
-          } else {
-            column.toggleSorting(true)
-          }
-        }
-      }
-    ]
-  }, () => h(UButton, {
-    color: 'neutral',
-    variant: 'ghost',
-    label,
-    icon: isSorted
-      ? isSorted === 'asc'
-        ? 'i-lucide-arrow-up-narrow-wide'
-        : 'i-lucide-arrow-down-wide-narrow'
-      : 'i-lucide-arrow-up-down',
-    class: '-mx-2.5 data-[state=open]:bg-elevated'
-  }))
-}
 
 const columns: TableColumn<Component>[] = [
   {
@@ -246,6 +201,8 @@ const columns: TableColumn<Component>[] = [
 
 const sorting = ref([])
 
+watch(sorting, () => { page.value = 1 })
+
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 
@@ -274,6 +231,10 @@ const queryParams = computed(() => {
   }
   if (licenseFilter.value) {
     params.license = licenseFilter.value
+  }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
   }
   return params
 })

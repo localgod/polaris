@@ -1,6 +1,16 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Technology } from '~~/types/api'
+import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+
+const technologySortConfig: SortConfig = {
+  allowedFields: {
+    name: 't.name',
+    category: 't.category',
+    ownerTeam: 'team.name'
+  },
+  defaultOrderBy: 't.category ASC, t.name ASC'
+}
 
 export interface UpsertApprovalParams {
   technologyName: string
@@ -68,8 +78,10 @@ export class TechnologyRepository extends BaseRepository {
    * 
    * @returns Array of technologies
    */
-  async findAll(): Promise<Technology[]> {
-    const query = await loadQuery('technologies/find-all.cypher')
+  async findAll(sort?: SortParams): Promise<Technology[]> {
+    let query = await loadQuery('technologies/find-all.cypher')
+    const orderBy = buildOrderByClause(sort || {}, technologySortConfig)
+    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
     const { records } = await this.executeQuery(query)
     
     return records.map(record => this.mapToTechnology(record))

@@ -17,6 +17,8 @@
     <!-- Users Table -->
     <UCard v-else>
       <UTable
+        v-model:sorting="sorting"
+          :manual-sorting="true"
         :data="users"
         :columns="columns"
         :loading="pending"
@@ -107,6 +109,8 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+
+const { getSortableHeader } = useSortableTable()
 
 interface UserTeam {
   name: string
@@ -232,7 +236,7 @@ async function saveTeamMemberships() {
 const columns: TableColumn<User>[] = [
   {
     accessorKey: 'name',
-    header: 'User',
+    header: ({ column }) => getSortableHeader(column, 'User'),
     cell: ({ row }) => {
       const user = row.original
       const initial = ((user.name || user.email || 'U')[0] || 'U').toUpperCase()
@@ -257,11 +261,11 @@ const columns: TableColumn<User>[] = [
   },
   {
     accessorKey: 'provider',
-    header: 'Provider'
+    header: ({ column }) => getSortableHeader(column, 'Provider')
   },
   {
     accessorKey: 'role',
-    header: 'Role',
+    header: ({ column }) => getSortableHeader(column, 'Role'),
     cell: ({ row }) => {
       const role = row.getValue('role') as string
       return h(UBadge, {
@@ -272,12 +276,12 @@ const columns: TableColumn<User>[] = [
   },
   {
     accessorKey: 'teamCount',
-    header: 'Teams',
+    header: ({ column }) => getSortableHeader(column, 'Teams'),
     cell: ({ row }) => row.original.teamCount || 0
   },
   {
     accessorKey: 'lastLogin',
-    header: 'Last Login',
+    header: ({ column }) => getSortableHeader(column, 'Last Login'),
     cell: ({ row }) => {
       const lastLogin = row.getValue('lastLogin') as string | null
       return lastLogin ? formatDate(lastLogin) : 'Never'
@@ -285,7 +289,7 @@ const columns: TableColumn<User>[] = [
   },
   {
     accessorKey: 'createdAt',
-    header: 'Created',
+    header: ({ column }) => getSortableHeader(column, 'Created'),
     cell: ({ row }) => formatDate(row.getValue('createdAt') as string)
   },
   {
@@ -329,13 +333,19 @@ const columns: TableColumn<User>[] = [
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<UsersResponse>('/api/users', {
   query: queryParams

@@ -1,4 +1,5 @@
 import { UserRepository, type User, type UserSummary, type AssignTeamsParams, type CreateOrUpdateUserParams, type UserAuthData } from '../repositories/user.repository'
+import type { SortParams } from '../utils/sorting'
 
 /**
  * Service for user-related business logic
@@ -72,8 +73,8 @@ export class UserService {
    * 
    * @returns Array of user summaries
    */
-  async findAllSummary(): Promise<UserSummary[]> {
-    return await this.userRepo.findAllSummary()
+  async findAllSummary(sort?: SortParams): Promise<UserSummary[]> {
+    return await this.userRepo.findAllSummary(sort)
   }
 
   /**

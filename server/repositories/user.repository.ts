@@ -1,5 +1,18 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+
+const userSortConfig: SortConfig = {
+  allowedFields: {
+    name: 'u.name',
+    provider: 'u.provider',
+    role: 'u.role',
+    teamCount: 'teamCount',
+    lastLogin: 'u.lastLogin',
+    createdAt: 'u.createdAt'
+  },
+  defaultOrderBy: 'u.createdAt DESC'
+}
 
 export interface UserTeam {
   name: string
@@ -79,8 +92,10 @@ export class UserRepository extends BaseRepository {
    * 
    * @returns Array of user summaries
    */
-  async findAllSummary(): Promise<UserSummary[]> {
-    const query = await loadQuery('users/find-all-summary.cypher')
+  async findAllSummary(sort?: SortParams): Promise<UserSummary[]> {
+    let query = await loadQuery('users/find-all-summary.cypher')
+    const orderBy = buildOrderByClause(sort || {}, userSortConfig)
+    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
     const { records } = await this.executeQuery(query)
     
     return records.map(record => this.mapToUserSummary(record))

@@ -85,7 +85,9 @@ export default defineEventHandler(async (event) => {
     operation: query.operation as string | undefined,
     userId: query.userId as string | undefined,
     limit: query.limit ? parseInt(query.limit as string, 10) : 100,
-    offset: query.offset ? parseInt(query.offset as string, 10) : 0
+    offset: query.offset ? parseInt(query.offset as string, 10) : 0,
+    sortBy: query.sortBy as string | undefined,
+    sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
   }
 
   const auditLogService = new AuditLogService()

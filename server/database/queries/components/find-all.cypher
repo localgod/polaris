@@ -4,10 +4,11 @@ MATCH (c:Component)
 OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(tech:Technology)
 {{LICENSE_MATCH}}
 {{JOIN_WHERE}}
-WITH collect({c: c, tech: tech}) as allRows, count(c) as total
+{{PRE_AGGREGATION}}
+WITH collect({c: c, tech: tech{{PRE_AGG_COLLECT}}}) as allRows, count(c) as total
 UNWIND allRows as row
-WITH row.c as c, row.tech as tech, total
-ORDER BY c.packageManager, c.name, c.version
+WITH row.c as c, row.tech as tech, total{{PRE_AGG_UNWIND}}
+ORDER BY {{PRE_ORDER_BY}}
 {{PAGINATION}}
 // Phase 2: fetch related data only for the paginated subset
 OPTIONAL MATCH (sys:System)-[:USES]->(c)
@@ -43,4 +44,4 @@ RETURN c.name as name,
        tech.name as technologyName,
        systemCount,
        total
-ORDER BY c.packageManager, c.name, c.version
+ORDER BY {{ORDER_BY}}

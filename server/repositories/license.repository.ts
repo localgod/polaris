@@ -1,5 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import { buildOrderByClause, type SortConfig } from '../utils/sorting'
 
 export interface License {
   id: string
@@ -24,6 +25,20 @@ export interface LicenseFilters {
   search?: string
   limit?: number
   offset?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+const licenseSortConfig: SortConfig = {
+  allowedFields: {
+    spdxId: 'l.id',
+    name: 'l.name',
+    category: 'l.category',
+    osiApproved: 'l.osiApproved',
+    status: 'l.whitelisted',
+    componentCount: 'componentCount'
+  },
+  defaultOrderBy: 'componentCount DESC, l.id ASC'
 }
 
 /**
@@ -134,7 +149,7 @@ export class LicenseRepository extends BaseRepository {
         l.createdAt as createdAt,
         l.updatedAt as updatedAt,
         componentCount
-      ORDER BY componentCount DESC, l.id
+      ORDER BY ${buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, licenseSortConfig)}
     `
     
     if (filters.limit !== undefined) {

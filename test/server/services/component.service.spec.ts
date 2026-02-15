@@ -155,7 +155,7 @@ describe('ComponentService', () => {
 
       const result = await service.findUnmapped(50, 0)
 
-      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledWith(50, 0)
+      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledWith(50, 0, undefined)
       expect(ComponentRepository.prototype.countUnmapped).toHaveBeenCalledOnce()
       expect(result).toEqual({
         data: mockUnmappedComponents,

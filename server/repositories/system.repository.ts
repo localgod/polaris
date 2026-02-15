@@ -1,6 +1,19 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { UnmappedComponent, Repository } from '~~/types/api'
+import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+
+const systemSortConfig: SortConfig = {
+  allowedFields: {
+    name: 's.name',
+    businessCriticality: 's.businessCriticality',
+    environment: 's.environment',
+    ownerTeam: 'team.name',
+    componentCount: 'componentCount',
+    repositoryCount: 'repositoryCount'
+  },
+  defaultOrderBy: 's.businessCriticality DESC, s.name ASC'
+}
 
 export interface System {
   name: string
@@ -49,8 +62,10 @@ export class SystemRepository extends BaseRepository {
    * 
    * @returns Array of systems
    */
-  async findAll(): Promise<System[]> {
-    const query = await loadQuery('systems/find-all.cypher')
+  async findAll(sort?: SortParams): Promise<System[]> {
+    let query = await loadQuery('systems/find-all.cypher')
+    const orderBy = buildOrderByClause(sort || {}, systemSortConfig)
+    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
     const { records } = await this.executeQuery(query)
     
     return records.map(record => this.mapToSystem(record))

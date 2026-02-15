@@ -107,7 +107,11 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License>> =
     }
     
     const licenseRepo = new LicenseRepository()
-    const allLicenses = await licenseRepo.findAll(filters)
+    const allLicenses = await licenseRepo.findAll({
+      ...filters,
+      sortBy: query.sortBy as string | undefined,
+      sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
+    })
     const total = allLicenses.length
     const paginatedLicenses = allLicenses.slice(offset, offset + limit)
     

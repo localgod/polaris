@@ -1,6 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Component, UnmappedComponent } from '~~/types/api'
+import { buildOrderByClause, type SortConfig } from '../utils/sorting'
 
 export interface ComponentFilters {
   search?: string
@@ -11,7 +12,24 @@ export interface ComponentFilters {
   hasLicense?: boolean
   limit?: number
   offset?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
+
+const componentSortConfig: SortConfig = {
+  allowedFields: {
+    name: 'c.name',
+    version: 'c.version',
+    packageManager: 'c.packageManager',
+    type: 'c.type',
+    systemCount: 'systemCount',
+    technologyName: 'tech.name'
+  },
+  defaultOrderBy: 'c.packageManager ASC, c.name ASC, c.version ASC'
+}
+
+// Fields computed after aggregation (Phase 2) — cannot be used in Phase 1 ORDER BY
+const postAggregationFields = new Set(['systemCount'])
 
 /**
  * Repository for component-related data access
@@ -99,7 +117,7 @@ export class ComponentRepository extends BaseRepository {
   ): string {
     let result = query
     for (const [placeholder, value] of Object.entries(replacements)) {
-      result = result.replace(placeholder, value)
+      result = result.replaceAll(placeholder, value)
     }
     return result
   }
@@ -130,10 +148,35 @@ export class ComponentRepository extends BaseRepository {
       params.limit = filters.limit
     }
 
+    const orderBy = buildOrderByClause(
+      { sortBy: filters.sortBy, sortOrder: filters.sortOrder },
+      componentSortConfig
+    )
+
+    // When sorting by a post-aggregation field (e.g. systemCount), compute it
+    // before the collect/unwind/pagination step so ORDER BY can reference it.
+    const isPostAggSort = filters.sortBy && postAggregationFields.has(filters.sortBy)
+    let preAggregation = ''
+    let preAggCollect = ''
+    let preAggUnwind = ''
+    let preOrderBy = orderBy
+
+    if (isPostAggSort) {
+      preAggregation = 'OPTIONAL MATCH (sys:System)-[:USES]->(c)\nWITH c, tech, count(DISTINCT sys) as preSystemCount'
+      preAggCollect = ', preSystemCount: preSystemCount'
+      preAggUnwind = ', row.preSystemCount as preSystemCount'
+      preOrderBy = orderBy.replace('systemCount', 'preSystemCount')
+    }
+
     const cypher = this.injectPlaceholders(baseQuery, {
       '{{COMPONENT_WHERE}}': componentWhere,
       '{{LICENSE_MATCH}}': this.buildLicenseMatch(filters),
       '{{JOIN_WHERE}}': joinWhere,
+      '{{PRE_AGGREGATION}}': preAggregation,
+      '{{PRE_AGG_COLLECT}}': preAggCollect,
+      '{{PRE_AGG_UNWIND}}': preAggUnwind,
+      '{{PRE_ORDER_BY}}': preOrderBy,
+      '{{ORDER_BY}}': orderBy,
       '{{PAGINATION}}': pagination
     })
 
@@ -151,8 +194,19 @@ export class ComponentRepository extends BaseRepository {
    * Results are ordered by system count (most used first) to help
    * prioritize mapping efforts.
    */
-  async findUnmapped(limit: number = 50, offset: number = 0): Promise<UnmappedComponent[]> {
-    const query = await loadQuery('components/find-unmapped.cypher')
+  async findUnmapped(limit: number = 50, offset: number = 0, sort?: { sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<UnmappedComponent[]> {
+    let query = await loadQuery('components/find-unmapped.cypher')
+    const unmappedSortConfig: SortConfig = {
+      allowedFields: {
+        name: 'c.name',
+        version: 'c.version',
+        packageManager: 'c.packageManager',
+        system: 'size(systems)'
+      },
+      defaultOrderBy: 'size(systems) DESC, c.name ASC'
+    }
+    const orderBy = buildOrderByClause(sort || {}, unmappedSortConfig)
+    query = query.replace(/ORDER BY .+\n/, `ORDER BY ${orderBy}\n`)
     const { records } = await this.executeQuery(query, { limit, offset })
     
     return records.map(record => this.mapToUnmappedComponent(record))

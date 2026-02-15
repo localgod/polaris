@@ -109,7 +109,9 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Component>>
       license: query.license as string | undefined,
       hasLicense: query.hasLicense === 'true' ? true : query.hasLicense === 'false' ? false : undefined,
       limit,
-      offset
+      offset,
+      sortBy: query.sortBy as string | undefined,
+      sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
     }
 
     const componentService = new ComponentService()
