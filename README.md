@@ -209,7 +209,7 @@ See [Dev Container README](.devcontainer/README.md) and [Gitpod Automations](.on
 This project uses [Vitest](https://vitest.dev/) with a three-layer testing strategy. Available test scripts are defined in `package.json`; run `npm run` to list scripts and execute the desired script by name.
 
 **For detailed testing information, see:**
-- **[Testing Documentation](docs/testing/README.md)** - Complete testing guide
+- **[Testing Documentation](test/README.md)** - Complete testing guide
 - **[Contributing Guide](CONTRIBUTING.md#testing)** - How to write tests
 
 ## Features

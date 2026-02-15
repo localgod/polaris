@@ -202,7 +202,7 @@ API Layer Tests → Service Layer Tests → Repository Layer Tests
 
 **For comprehensive testing information, see:**
 
-- **[Testing Documentation](docs/testing/README.md)** ⭐ - Start here
+- **[Testing Documentation](test/README.md)** ⭐ - Start here
   - Complete testing guide
   - Three-layer strategy explained
   - Quick start and examples
@@ -297,7 +297,7 @@ await session.run(`
 await cleanupTestData(driver, { prefix: TEST_PREFIX })
 ```
 
-See [Test Isolation Guide](docs/testing/test-isolation.md) for details.
+See the [Test Data Isolation](test/README.md#test-data-isolation) section for details.
 
 ## Database Management
 
