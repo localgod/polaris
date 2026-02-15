@@ -53,7 +53,10 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Team>> => {
     const offset = query.offset ? parseInt(query.offset as string, 10) : 0
 
     const teamService = new TeamService()
-    const result = await teamService.findAll()
+    const result = await teamService.findAll({
+      sortBy: query.sortBy as string | undefined,
+      sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
+    })
     const total = result.data.length
     const paginatedData = result.data.slice(offset, offset + limit)
     

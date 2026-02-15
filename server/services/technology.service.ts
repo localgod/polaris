@@ -1,5 +1,6 @@
 import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
 import type { Technology } from '~~/types/api'
+import type { SortParams } from '../utils/sorting'
 
 export interface SetApprovalInput {
   technologyName: string
@@ -35,8 +36,8 @@ export class TechnologyService {
    * 
    * @returns Array of technologies with count
    */
-  async findAll(): Promise<{ data: Technology[]; count: number }> {
-    const technologies = await this.techRepo.findAll()
+  async findAll(sort?: SortParams): Promise<{ data: Technology[]; count: number }> {
+    const technologies = await this.techRepo.findAll(sort)
     
     return {
       data: technologies,

@@ -17,6 +17,8 @@
     <template v-else>
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="technologies"
           :columns="columns"
           :loading="pending"
@@ -79,6 +81,7 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Technology } from '~~/types/api'
 
+const { getSortableHeader } = useSortableTable()
 const { data: session } = useAuth()
 
 const isSuperuser = computed(() => session.value?.user?.role === 'superuser')
@@ -105,7 +108,7 @@ function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error'
 const columns: TableColumn<Technology>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
       const tech = row.original
       return h(resolveComponent('NuxtLink'), {
@@ -116,7 +119,7 @@ const columns: TableColumn<Technology>[] = [
   },
   {
     accessorKey: 'category',
-    header: 'Category',
+    header: ({ column }) => getSortableHeader(column, 'Category'),
     cell: ({ row }) => {
       const category = row.getValue('category') as string | undefined
       if (!category) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -126,6 +129,7 @@ const columns: TableColumn<Technology>[] = [
   {
     id: 'time',
     header: 'TIME',
+    enableSorting: false,
     cell: ({ row }) => {
       const approvals = (row.original.approvals || []).filter((a: { team?: string; time?: string }) => a.team && a.time)
       if (approvals.length === 0) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -138,7 +142,7 @@ const columns: TableColumn<Technology>[] = [
   },
   {
     accessorKey: 'ownerTeam',
-    header: 'Owner',
+    header: ({ column }) => getSortableHeader(column, 'Owner'),
     cell: ({ row }) => {
       const team = row.getValue('ownerTeam') as string | undefined
       if (!team) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -148,11 +152,13 @@ const columns: TableColumn<Technology>[] = [
   {
     id: 'versions',
     header: 'Versions',
+    enableSorting: false,
     cell: ({ row }) => String(row.original.versions?.length ?? 0)
   },
   {
     id: 'actions',
     header: '',
+    enableSorting: false,
     meta: { class: { th: 'w-10', td: 'text-right' } },
     cell: ({ row }) => {
       const tech = row.original
@@ -204,9 +210,18 @@ async function confirmDelete() {
   }
 }
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
-const queryParams = computed(() => ({ limit: pageSize, offset: (page.value - 1) * pageSize }))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/technologies', { query: queryParams })
 

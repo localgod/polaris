@@ -17,6 +17,8 @@
     <template v-else>
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="policies"
           :columns="columns"
           :loading="pending"
@@ -48,6 +50,8 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Policy } from '~~/types/api'
 
+const { getSortableHeader } = useSortableTable()
+
 function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
   const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
     critical: 'error',
@@ -61,7 +65,7 @@ function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | '
 const columns: TableColumn<Policy>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
       const policy = row.original
       return h('div', {}, [
@@ -72,7 +76,7 @@ const columns: TableColumn<Policy>[] = [
   },
   {
     accessorKey: 'ruleType',
-    header: 'Type',
+    header: ({ column }) => getSortableHeader(column, 'Type'),
     cell: ({ row }) => {
       const ruleType = row.getValue('ruleType') as string | undefined
       if (!ruleType) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -81,7 +85,7 @@ const columns: TableColumn<Policy>[] = [
   },
   {
     accessorKey: 'severity',
-    header: 'Severity',
+    header: ({ column }) => getSortableHeader(column, 'Severity'),
     cell: ({ row }) => {
       const severity = row.getValue('severity') as string | undefined
       if (!severity) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -90,7 +94,7 @@ const columns: TableColumn<Policy>[] = [
   },
   {
     accessorKey: 'scope',
-    header: 'Scope',
+    header: ({ column }) => getSortableHeader(column, 'Scope'),
     cell: ({ row }) => {
       const scope = row.getValue('scope') as string | undefined
       if (!scope) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -99,7 +103,7 @@ const columns: TableColumn<Policy>[] = [
   },
   {
     accessorKey: 'enforcedBy',
-    header: 'Enforced By',
+    header: ({ column }) => getSortableHeader(column, 'Enforced By'),
     cell: ({ row }) => {
       const enforcedBy = row.getValue('enforcedBy') as string | undefined
       if (!enforcedBy) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -108,7 +112,7 @@ const columns: TableColumn<Policy>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: ({ column }) => getSortableHeader(column, 'Status'),
     cell: ({ row }) => {
       const status = row.getValue('status') as string | undefined
       if (!status) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -152,13 +156,19 @@ const columns: TableColumn<Policy>[] = [
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<ApiResponse<Policy>>('/api/policies', {
   query: queryParams

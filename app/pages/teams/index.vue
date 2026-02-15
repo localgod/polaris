@@ -17,6 +17,8 @@
     <template v-else>
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="teams"
           :columns="columns"
           :loading="pending"
@@ -48,10 +50,12 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Team } from '~~/types/api'
 
+const { getSortableHeader } = useSortableTable()
+
 const columns: TableColumn<Team>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
       const team = row.original
       return h('div', {}, [
@@ -65,7 +69,7 @@ const columns: TableColumn<Team>[] = [
   },
   {
     accessorKey: 'responsibilityArea',
-    header: 'Responsibility Area',
+    header: ({ column }) => getSortableHeader(column, 'Responsibility Area'),
     cell: ({ row }) => {
       const area = row.getValue('responsibilityArea') as string | undefined
       if (!area) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -74,7 +78,7 @@ const columns: TableColumn<Team>[] = [
   },
   {
     accessorKey: 'memberCount',
-    header: 'Members',
+    header: ({ column }) => getSortableHeader(column, 'Members'),
     cell: ({ row }) => {
       const count = row.getValue('memberCount') as number | undefined
       return String(count ?? 0)
@@ -117,13 +121,19 @@ const columns: TableColumn<Team>[] = [
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<ApiResponse<Team>>('/api/teams', {
   query: queryParams

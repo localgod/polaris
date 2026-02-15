@@ -240,6 +240,17 @@ export class PolicyService {
     // Business logic: calculate summary from all violations
     const summary = this.calculateLicenseSummary(allViolations)
     
+    // Apply sorting if specified
+    const { sortBy, sortOrder } = filters
+    if (sortBy && (sortBy === 'system' || sortBy === 'team')) {
+      const dir = sortOrder === 'desc' ? -1 : 1
+      allViolations.sort((a, b) => {
+        const aVal = (a[sortBy] || '').toLowerCase()
+        const bVal = (b[sortBy] || '').toLowerCase()
+        return aVal < bVal ? -dir : aVal > bVal ? dir : 0
+      })
+    }
+
     // Apply pagination if specified
     let paginatedViolations = allViolations
     if (limit !== undefined && offset !== undefined) {

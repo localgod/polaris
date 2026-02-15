@@ -33,26 +33,6 @@
   ],
   "technologies": [
     {
-      "name": "React",
-      "category": "framework",
-      "vendor": "Meta",
-      "status": "approved",
-      "approvedVersionRange": ">=18.0.0 <19.0.0",
-      "ownerTeam": "Frontend Platform",
-      "riskLevel": "low",
-      "lastReviewed": "2025-10-01"
-    },
-    {
-      "name": "Vue",
-      "category": "framework",
-      "vendor": "Vue.js Team",
-      "status": "approved",
-      "approvedVersionRange": ">=3.3.0 <4.0.0",
-      "ownerTeam": "Frontend Platform",
-      "riskLevel": "low",
-      "lastReviewed": "2025-10-01"
-    },
-    {
       "name": "Angular",
       "category": "framework",
       "vendor": "Google",
@@ -103,26 +83,6 @@
       "lastReviewed": "2025-09-20"
     },
     {
-      "name": "Express",
-      "category": "framework",
-      "vendor": "OpenJS Foundation",
-      "status": "approved",
-      "approvedVersionRange": ">=4.18.0 <5.0.0",
-      "ownerTeam": "Backend Platform",
-      "riskLevel": "low",
-      "lastReviewed": "2025-10-01"
-    },
-    {
-      "name": "TypeScript",
-      "category": "language",
-      "vendor": "Microsoft",
-      "status": "approved",
-      "approvedVersionRange": ">=5.0.0 <6.0.0",
-      "ownerTeam": "Frontend Platform",
-      "riskLevel": "low",
-      "lastReviewed": "2025-10-01"
-    },
-    {
       "name": "Docker",
       "category": "container",
       "vendor": "Docker Inc.",
@@ -131,26 +91,6 @@
       "ownerTeam": "DevOps",
       "riskLevel": "low",
       "lastReviewed": "2025-10-01"
-    },
-    {
-      "name": "jQuery",
-      "category": "library",
-      "vendor": "jQuery Foundation",
-      "status": "deprecated",
-      "approvedVersionRange": ">=3.0.0 <4.0.0",
-      "ownerTeam": "Frontend Platform",
-      "riskLevel": "high",
-      "lastReviewed": "2024-01-01"
-    },
-    {
-      "name": "Lodash",
-      "category": "library",
-      "vendor": "Lodash",
-      "status": "deprecated",
-      "approvedVersionRange": ">=4.17.0 <5.0.0",
-      "ownerTeam": "Frontend Platform",
-      "riskLevel": "medium",
-      "lastReviewed": "2024-06-01"
     },
     {
       "name": "MySQL",
@@ -174,33 +114,6 @@
     }
   ],
   "versions": [
-    {
-      "technologyName": "React",
-      "version": "18.2.0",
-      "releaseDate": "2023-06-14",
-      "eolDate": "2025-12-31",
-      "approved": true,
-      "cvssScore": 0,
-      "notes": "Stable LTS version"
-    },
-    {
-      "technologyName": "React",
-      "version": "18.3.1",
-      "releaseDate": "2024-04-26",
-      "eolDate": "2026-06-30",
-      "approved": true,
-      "cvssScore": 0,
-      "notes": "Latest stable version"
-    },
-    {
-      "technologyName": "Vue",
-      "version": "3.3.4",
-      "releaseDate": "2023-07-28",
-      "eolDate": "2025-12-31",
-      "approved": true,
-      "cvssScore": 0,
-      "notes": "Stable version"
-    },
     {
       "technologyName": "Node.js",
       "version": "20.11.0",
@@ -227,15 +140,6 @@
       "approved": true,
       "cvssScore": 0,
       "notes": "Community edition"
-    },
-    {
-      "technologyName": "TypeScript",
-      "version": "5.3.3",
-      "releaseDate": "2023-12-11",
-      "eolDate": "2026-12-31",
-      "approved": true,
-      "cvssScore": 0,
-      "notes": "Latest stable version"
     }
   ],
   "policies": [
@@ -302,80 +206,115 @@
   ],
   "relationships": {
     "technology_versions": [
-      { "technology": "React", "version": "18.2.0" },
-      { "technology": "React", "version": "18.3.1" },
-      { "technology": "Vue", "version": "3.3.4" },
-      { "technology": "Node.js", "version": "20.11.0" },
-      { "technology": "PostgreSQL", "version": "16.1" },
-      { "technology": "Neo4j", "version": "5.26.13" },
-      { "technology": "TypeScript", "version": "5.3.3" }
+      {
+        "technology": "Node.js",
+        "version": "20.11.0"
+      },
+      {
+        "technology": "PostgreSQL",
+        "version": "16.1"
+      },
+      {
+        "technology": "Neo4j",
+        "version": "5.26.13"
+      }
     ],
     "team_technologies": [
-      { "team": "Frontend Platform", "technology": "React" },
-      { "team": "Frontend Platform", "technology": "Vue" },
-      { "team": "Frontend Platform", "technology": "Angular" },
-      { "team": "Frontend Platform", "technology": "TypeScript" },
-      { "team": "Frontend Platform", "technology": "jQuery" },
-      { "team": "Frontend Platform", "technology": "Lodash" },
-      { "team": "Backend Platform", "technology": "Node.js" },
-      { "team": "Backend Platform", "technology": "Express" },
-      { "team": "Backend Platform", "technology": "Redis" },
-      { "team": "Data Platform", "technology": "PostgreSQL" },
-      { "team": "Data Platform", "technology": "Neo4j" },
-      { "team": "Data Platform", "technology": "MongoDB" },
-      { "team": "Data Platform", "technology": "MySQL" },
-      { "team": "DevOps", "technology": "Docker" },
-      { "team": "Platform Team", "technology": "TypeScript" },
-      { "team": "Platform Team", "technology": "Node.js" },
-      { "team": "Platform Team", "technology": "Vue" },
-      { "team": "Platform Team", "technology": "Neo4j" }
+      {
+        "team": "Frontend Platform",
+        "technology": "Angular"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "Node.js"
+      },
+      {
+        "team": "Backend Platform",
+        "technology": "Redis"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "PostgreSQL"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "Neo4j"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "MongoDB"
+      },
+      {
+        "team": "Data Platform",
+        "technology": "MySQL"
+      },
+      {
+        "team": "DevOps",
+        "technology": "Docker"
+      },
+      {
+        "team": "Platform Team",
+        "technology": "Node.js"
+      },
+      {
+        "team": "Platform Team",
+        "technology": "Neo4j"
+      }
     ],
     "policy_technologies": [
-      { "policy": "Technology Approval Required", "technology": "React" },
-      { "policy": "Technology Approval Required", "technology": "Vue" },
-      { "policy": "Technology Approval Required", "technology": "Angular" },
-      { "policy": "Database Version Compliance", "technology": "PostgreSQL" },
-      { "policy": "Database Version Compliance", "technology": "Neo4j" },
-      { "policy": "Database Version Compliance", "technology": "MongoDB" },
-      { "policy": "Database Version Compliance", "technology": "MySQL" },
-      { "policy": "Migration Target Required", "technology": "Angular" },
-      { "policy": "Migration Target Required", "technology": "jQuery" },
-      { "policy": "Migration Target Required", "technology": "Lodash" },
-      { "policy": "High Risk Technology Approval", "technology": "jQuery" },
-      { "policy": "EOL Warning", "technology": "React" },
-      { "policy": "EOL Warning", "technology": "Vue" }
+      {
+        "policy": "Technology Approval Required",
+        "technology": "Angular"
+      },
+      {
+        "policy": "Database Version Compliance",
+        "technology": "PostgreSQL"
+      },
+      {
+        "policy": "Database Version Compliance",
+        "technology": "Neo4j"
+      },
+      {
+        "policy": "Database Version Compliance",
+        "technology": "MongoDB"
+      },
+      {
+        "policy": "Database Version Compliance",
+        "technology": "MySQL"
+      },
+      {
+        "policy": "Migration Target Required",
+        "technology": "Angular"
+      }
     ]
   },
   "github_systems": {
     "_comment": "These systems are created by seed:github from github-repos.json. Relationships defined here are applied after GitHub seeding.",
     "team_systems": [
-      { "team": "Platform Team", "system": "Polaris Technology Catalog" },
-      { "team": "Platform Team", "system": "Catalyst" },
-      { "team": "Platform Team", "system": "TSArchi" },
-      { "team": "Platform Team", "system": "PlantKit" },
-      { "team": "Platform Team", "system": "Karla" }
+      {
+        "team": "Platform Team",
+        "system": "Polaris Technology Catalog"
+      },
+      {
+        "team": "Platform Team",
+        "system": "Catalyst"
+      },
+      {
+        "team": "Platform Team",
+        "system": "TSArchi"
+      },
+      {
+        "team": "Platform Team",
+        "system": "PlantKit"
+      },
+      {
+        "team": "Platform Team",
+        "system": "Karla"
+      }
     ]
   },
   "approvals": {
     "team_technology_approvals": [
-      {
-        "team": "Frontend Platform",
-        "technology": "React",
-        "time": "invest",
-        "approvedAt": "2024-01-15",
-        "notes": "Primary frontend framework - strategic investment",
-        "approvedBy": "Tech Lead",
-        "versionConstraint": ">=18.0.0"
-      },
-      {
-        "team": "Frontend Platform",
-        "technology": "Vue",
-        "time": "invest",
-        "approvedAt": "2024-01-15",
-        "notes": "Alternative frontend framework for specific use cases",
-        "approvedBy": "Tech Lead",
-        "versionConstraint": ">=3.3.0"
-      },
       {
         "team": "Frontend Platform",
         "technology": "Angular",
@@ -387,36 +326,6 @@
         "approvedBy": "Tech Lead"
       },
       {
-        "team": "Frontend Platform",
-        "technology": "TypeScript",
-        "time": "invest",
-        "approvedAt": "2024-01-15",
-        "notes": "Required for all new projects",
-        "approvedBy": "Tech Lead",
-        "versionConstraint": ">=5.0.0"
-      },
-      {
-        "team": "Frontend Platform",
-        "technology": "jQuery",
-        "time": "eliminate",
-        "approvedAt": "2020-01-01",
-        "deprecatedAt": "2023-01-01",
-        "eolDate": "2025-12-31",
-        "migrationTarget": "React",
-        "notes": "Phase out - do not use in any projects",
-        "approvedBy": "Tech Lead"
-      },
-      {
-        "team": "Frontend Platform",
-        "technology": "Lodash",
-        "time": "migrate",
-        "approvedAt": "2022-01-01",
-        "deprecatedAt": "2024-06-01",
-        "migrationTarget": "Native ES6+",
-        "notes": "Migrate to native JavaScript methods",
-        "approvedBy": "Tech Lead"
-      },
-      {
         "team": "Backend Platform",
         "technology": "Node.js",
         "time": "invest",
@@ -424,15 +333,6 @@
         "notes": "Primary backend runtime - strategic investment",
         "approvedBy": "Tech Lead",
         "versionConstraint": ">=20.0.0"
-      },
-      {
-        "team": "Backend Platform",
-        "technology": "Express",
-        "time": "invest",
-        "approvedAt": "2024-01-15",
-        "notes": "Primary web framework",
-        "approvedBy": "Tech Lead",
-        "versionConstraint": ">=4.18.0"
       },
       {
         "team": "Backend Platform",
@@ -489,30 +389,12 @@
       },
       {
         "team": "Platform Team",
-        "technology": "TypeScript",
-        "time": "invest",
-        "approvedAt": "2024-01-15",
-        "notes": "Primary language for all Platform Team projects",
-        "approvedBy": "Platform Lead",
-        "versionConstraint": ">=5.0.0"
-      },
-      {
-        "team": "Platform Team",
         "technology": "Node.js",
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Runtime for TypeScript projects",
         "approvedBy": "Platform Lead",
         "versionConstraint": ">=20.0.0"
-      },
-      {
-        "team": "Platform Team",
-        "technology": "Vue",
-        "time": "invest",
-        "approvedAt": "2024-01-15",
-        "notes": "Frontend framework for Polaris",
-        "approvedBy": "Platform Lead",
-        "versionConstraint": ">=3.3.0"
       },
       {
         "team": "Platform Team",
@@ -524,5 +406,183 @@
         "versionConstraint": ">=5.0.0"
       }
     ]
-  }
+  },
+  "component_technologies": [
+    {
+      "componentName": "react",
+      "packageManager": "npm",
+      "technology": {
+        "name": "React",
+        "category": "framework",
+        "vendor": "Meta"
+      },
+      "ownerTeam": "Frontend Platform",
+      "stewardTeams": [
+        "Frontend Platform"
+      ],
+      "policies": [
+        "Technology Approval Required",
+        "EOL Warning"
+      ],
+      "approvals": [
+        {
+          "team": "Frontend Platform",
+          "time": "invest",
+          "approvedAt": "2024-01-15",
+          "notes": "Primary frontend framework - strategic investment",
+          "approvedBy": "Tech Lead",
+          "versionConstraint": ">=18.0.0"
+        }
+      ]
+    },
+    {
+      "componentName": "vue",
+      "packageManager": "npm",
+      "technology": {
+        "name": "Vue",
+        "category": "framework",
+        "vendor": "Vue.js Team"
+      },
+      "ownerTeam": "Frontend Platform",
+      "stewardTeams": [
+        "Frontend Platform",
+        "Platform Team"
+      ],
+      "policies": [
+        "Technology Approval Required",
+        "EOL Warning"
+      ],
+      "approvals": [
+        {
+          "team": "Frontend Platform",
+          "time": "invest",
+          "approvedAt": "2024-01-15",
+          "notes": "Alternative frontend framework for specific use cases",
+          "approvedBy": "Tech Lead",
+          "versionConstraint": ">=3.3.0"
+        },
+        {
+          "team": "Platform Team",
+          "time": "invest",
+          "approvedAt": "2024-01-15",
+          "notes": "Frontend framework for Polaris",
+          "approvedBy": "Platform Lead",
+          "versionConstraint": ">=3.3.0"
+        }
+      ]
+    },
+    {
+      "componentName": "express",
+      "packageManager": "npm",
+      "technology": {
+        "name": "Express",
+        "category": "framework",
+        "vendor": "OpenJS Foundation"
+      },
+      "ownerTeam": "Backend Platform",
+      "stewardTeams": [
+        "Backend Platform"
+      ],
+      "policies": [],
+      "approvals": [
+        {
+          "team": "Backend Platform",
+          "time": "invest",
+          "approvedAt": "2024-01-15",
+          "notes": "Primary web framework",
+          "approvedBy": "Tech Lead",
+          "versionConstraint": ">=4.18.0"
+        }
+      ]
+    },
+    {
+      "componentName": "typescript",
+      "packageManager": "npm",
+      "technology": {
+        "name": "TypeScript",
+        "category": "language",
+        "vendor": "Microsoft"
+      },
+      "ownerTeam": "Frontend Platform",
+      "stewardTeams": [
+        "Frontend Platform",
+        "Platform Team"
+      ],
+      "policies": [],
+      "approvals": [
+        {
+          "team": "Frontend Platform",
+          "time": "invest",
+          "approvedAt": "2024-01-15",
+          "notes": "Required for all new projects",
+          "approvedBy": "Tech Lead",
+          "versionConstraint": ">=5.0.0"
+        },
+        {
+          "team": "Platform Team",
+          "time": "invest",
+          "approvedAt": "2024-01-15",
+          "notes": "Primary language for all Platform Team projects",
+          "approvedBy": "Platform Lead",
+          "versionConstraint": ">=5.0.0"
+        }
+      ]
+    },
+    {
+      "componentName": "jquery",
+      "packageManager": "npm",
+      "technology": {
+        "name": "jQuery",
+        "category": "library",
+        "vendor": "jQuery Foundation"
+      },
+      "ownerTeam": "Frontend Platform",
+      "stewardTeams": [
+        "Frontend Platform"
+      ],
+      "policies": [
+        "Migration Target Required",
+        "High Risk Technology Approval"
+      ],
+      "approvals": [
+        {
+          "team": "Frontend Platform",
+          "time": "eliminate",
+          "approvedAt": "2020-01-01",
+          "deprecatedAt": "2023-01-01",
+          "eolDate": "2025-12-31",
+          "migrationTarget": "React",
+          "notes": "Phase out - do not use in any projects",
+          "approvedBy": "Tech Lead"
+        }
+      ]
+    },
+    {
+      "componentName": "lodash",
+      "packageManager": "npm",
+      "technology": {
+        "name": "Lodash",
+        "category": "library",
+        "vendor": "Lodash"
+      },
+      "ownerTeam": "Frontend Platform",
+      "stewardTeams": [
+        "Frontend Platform"
+      ],
+      "policies": [
+        "Migration Target Required"
+      ],
+      "approvals": [
+        {
+          "team": "Frontend Platform",
+          "time": "migrate",
+          "approvedAt": "2022-01-01",
+          "deprecatedAt": "2024-06-01",
+          "migrationTarget": "Native ES6+",
+          "notes": "Migrate to native JavaScript methods",
+          "approvedBy": "Tech Lead"
+        }
+      ]
+    }
+  ]
 }

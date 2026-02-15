@@ -88,6 +88,19 @@ export default defineEventHandler(async (event) => {
     
     const systemService = new SystemService()
     const result = await systemService.findUnmappedComponents(systemName)
+    
+    // Apply sorting
+    const sortBy = query.sortBy as string | undefined
+    const sortOrder = (query.sortOrder as string)?.toLowerCase() === 'desc' ? -1 : 1
+    const sortableFields = ['name', 'version', 'packageManager', 'license'] as const
+    if (sortBy && sortableFields.includes(sortBy as typeof sortableFields[number])) {
+      result.components.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+        const aVal = String(a[sortBy] || '').toLowerCase()
+        const bVal = String(b[sortBy] || '').toLowerCase()
+        return aVal < bVal ? -sortOrder : aVal > bVal ? sortOrder : 0
+      })
+    }
+    
     const total = result.components.length
     const paginatedData = result.components.slice(offset, offset + limit)
 

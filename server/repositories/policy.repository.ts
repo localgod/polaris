@@ -1,5 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import { buildOrderByClause, type SortConfig } from '../utils/sorting'
 
 export interface ViolationFilters {
   severity?: string
@@ -9,6 +10,8 @@ export interface ViolationFilters {
   license?: string
   limit?: number
   offset?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
 export interface PolicyFilters {
@@ -16,6 +19,20 @@ export interface PolicyFilters {
   status?: string
   enforcedBy?: string
   ruleType?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+const policySortConfig: SortConfig = {
+  allowedFields: {
+    name: 'p.name',
+    ruleType: 'p.ruleType',
+    severity: "CASE p.severity WHEN 'critical' THEN 1 WHEN 'error' THEN 2 WHEN 'warning' THEN 3 WHEN 'info' THEN 4 END",
+    scope: 'p.scope',
+    enforcedBy: 'p.enforcedBy',
+    status: 'p.status'
+  },
+  defaultOrderBy: "CASE p.severity WHEN 'critical' THEN 1 WHEN 'error' THEN 2 WHEN 'warning' THEN 3 WHEN 'info' THEN 4 END ASC, p.effectiveDate DESC, p.name ASC"
 }
 
 export interface PolicyViolation {
@@ -171,15 +188,7 @@ export class PolicyRepository extends BaseRepository {
              subjectTeams,
              governedTechnologies,
              size(governedTechnologies) as technologyCount
-      ORDER BY 
-        CASE p.severity
-          WHEN 'critical' THEN 1
-          WHEN 'error' THEN 2
-          WHEN 'warning' THEN 3
-          WHEN 'info' THEN 4
-        END,
-        p.effectiveDate DESC,
-        p.name
+      ORDER BY ${buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, policySortConfig)}
     `
     
     const { records } = await this.executeQuery(cypher, params)

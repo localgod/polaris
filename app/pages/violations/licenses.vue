@@ -18,6 +18,8 @@
     <template v-else>
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="violations"
           :columns="columns"
           :loading="pending"
@@ -49,6 +51,8 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+
+const { getSortableHeader } = useSortableTable()
 
 interface LicenseViolation {
   team: string
@@ -103,6 +107,7 @@ const columns: TableColumn<LicenseViolation>[] = [
   {
     accessorKey: 'component',
     header: 'Component',
+    enableSorting: false,
     cell: ({ row }) => {
       const component = row.original.component
       return h('div', {}, [
@@ -115,6 +120,7 @@ const columns: TableColumn<LicenseViolation>[] = [
   {
     accessorKey: 'license',
     header: 'License',
+    enableSorting: false,
     cell: ({ row }) => {
       const license = row.original.license
       return h(resolveComponent('UBadge'), {
@@ -125,15 +131,16 @@ const columns: TableColumn<LicenseViolation>[] = [
   },
   {
     accessorKey: 'system',
-    header: 'System'
+    header: ({ column }) => getSortableHeader(column, 'System')
   },
   {
     accessorKey: 'team',
-    header: 'Team'
+    header: ({ column }) => getSortableHeader(column, 'Team')
   },
   {
     accessorKey: 'policy',
     header: 'Severity',
+    enableSorting: false,
     cell: ({ row }) => {
       const severity = row.original.policy.severity
       return h(resolveComponent('UBadge'), {
@@ -144,13 +151,19 @@ const columns: TableColumn<LicenseViolation>[] = [
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<LicenseViolationsResponse>('/api/policies/license-violations', {
   query: queryParams

@@ -1,5 +1,6 @@
 import { TeamRepository } from '../repositories/team.repository'
 import type { Team, TeamApprovalsResult, TeamPoliciesResult, TeamUsageResult, ApprovalStatus } from '../repositories/team.repository'
+import type { SortParams } from '../utils/sorting'
 
 /**
  * Service for team-related business logic
@@ -16,8 +17,8 @@ export class TeamService {
    * 
    * @returns Array of teams with count
    */
-  async findAll(): Promise<{ data: Team[]; count: number }> {
-    const teams = await this.teamRepo.findAll()
+  async findAll(sort?: SortParams): Promise<{ data: Team[]; count: number }> {
+    const teams = await this.teamRepo.findAll(sort)
     
     return {
       data: teams,

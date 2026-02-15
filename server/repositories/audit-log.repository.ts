@@ -1,6 +1,18 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
+import { buildOrderByClause, type SortConfig } from '../utils/sorting'
+
+const auditLogSortConfig: SortConfig = {
+  allowedFields: {
+    operation: 'a.operation',
+    entityType: 'a.entityType',
+    entityLabel: 'a.entityLabel',
+    userId: 'a.userId',
+    timestamp: 'a.timestamp'
+  },
+  defaultOrderBy: 'a.timestamp DESC'
+}
 
 export interface AuditLog {
   id: string
@@ -24,6 +36,8 @@ export interface AuditLogFilters {
   userId?: string
   limit?: number
   offset?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
 export class AuditLogRepository extends BaseRepository {
@@ -56,12 +70,13 @@ export class AuditLogRepository extends BaseRepository {
       ? `WHERE ${whereClauses.join(' AND ')}` 
       : ''
     
+    const orderBy = buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, auditLogSortConfig)
     const query = `
       MATCH (a:AuditLog)
       ${whereClause}
       OPTIONAL MATCH (performer:User {id: a.userId})
       RETURN a, performer.name AS performerName
-      ORDER BY a.timestamp DESC
+      ORDER BY ${orderBy}
       SKIP $offset
       LIMIT $limit
     `

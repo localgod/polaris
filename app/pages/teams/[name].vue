@@ -53,28 +53,28 @@
         <template #header>
           <h2 class="text-lg font-semibold">Members ({{ data.data.members.length }})</h2>
         </template>
-        <UTable :data="data.data.members" :columns="memberColumns" class="flex-1" />
+        <UTable v-model:sorting="memberSorting" :data="data.data.members" :columns="memberColumns" class="flex-1" />
       </UCard>
 
       <UCard v-if="data.data.technologies && data.data.technologies.length > 0">
         <template #header>
           <h2 class="text-lg font-semibold">Technologies ({{ data.data.technologies.length }})</h2>
         </template>
-        <UTable :data="data.data.technologies" :columns="technologyColumns" class="flex-1" />
+        <UTable v-model:sorting="technologySorting" :data="data.data.technologies" :columns="technologyColumns" class="flex-1" />
       </UCard>
 
       <UCard v-if="data.data.systems && data.data.systems.length > 0">
         <template #header>
           <h2 class="text-lg font-semibold">Systems ({{ data.data.systems.length }})</h2>
         </template>
-        <UTable :data="data.data.systems" :columns="systemColumns" class="flex-1" />
+        <UTable v-model:sorting="systemSorting" :data="data.data.systems" :columns="systemColumns" class="flex-1" />
       </UCard>
 
       <UCard v-if="data.data.approvals && data.data.approvals.length > 0">
         <template #header>
           <h2 class="text-lg font-semibold">Technology Approvals ({{ data.data.approvals.length }})</h2>
         </template>
-        <UTable :data="data.data.approvals" :columns="approvalColumns" class="flex-1" />
+        <UTable v-model:sorting="approvalSorting" :data="data.data.approvals" :columns="approvalColumns" class="flex-1" />
       </UCard>
     </template>
   </div>
@@ -83,6 +83,12 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+
+const { getSortableHeader } = useSortableTable()
+const memberSorting = ref([])
+const technologySorting = ref([])
+const systemSorting = ref([])
+const approvalSorting = ref([])
 
 const route = useRoute()
 
@@ -141,11 +147,17 @@ function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error'
 }
 
 const memberColumns: TableColumn<Member>[] = [
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'email', header: 'Email' },
+  {
+    accessorKey: 'name',
+    header: ({ column }) => getSortableHeader(column, 'Name')
+  },
+  {
+    accessorKey: 'email',
+    header: ({ column }) => getSortableHeader(column, 'Email')
+  },
   {
     accessorKey: 'role',
-    header: 'Role',
+    header: ({ column }) => getSortableHeader(column, 'Role'),
     cell: ({ row }) => {
       const role = row.getValue('role') as string
       return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle' }, () => role)
@@ -156,7 +168,7 @@ const memberColumns: TableColumn<Member>[] = [
 const technologyColumns: TableColumn<Technology>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
       const tech = row.original
       return h(resolveComponent('NuxtLink'), {
@@ -165,23 +177,29 @@ const technologyColumns: TableColumn<Technology>[] = [
       }, () => tech.name)
     }
   },
-  { accessorKey: 'type', header: 'Type' },
+  {
+    accessorKey: 'type',
+    header: ({ column }) => getSortableHeader(column, 'Type')
+  },
   {
     accessorKey: 'timeCategory',
-    header: 'TIME',
+    header: ({ column }) => getSortableHeader(column, 'TIME'),
     cell: ({ row }) => {
       const cat = row.getValue('timeCategory') as string
       if (!cat) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return h(resolveComponent('UBadge'), { color: getTimeCategoryColor(cat), variant: 'subtle' }, () => cat)
     }
   },
-  { accessorKey: 'relationship', header: 'Relationship' }
+  {
+    accessorKey: 'relationship',
+    header: ({ column }) => getSortableHeader(column, 'Relationship')
+  }
 ]
 
 const systemColumns: TableColumn<System>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
       const sys = row.original
       return h(resolveComponent('NuxtLink'), {
@@ -190,14 +208,20 @@ const systemColumns: TableColumn<System>[] = [
       }, () => sys.name)
     }
   },
-  { accessorKey: 'businessCriticality', header: 'Criticality' },
-  { accessorKey: 'environment', header: 'Environment' }
+  {
+    accessorKey: 'businessCriticality',
+    header: ({ column }) => getSortableHeader(column, 'Criticality')
+  },
+  {
+    accessorKey: 'environment',
+    header: ({ column }) => getSortableHeader(column, 'Environment')
+  }
 ]
 
 const approvalColumns: TableColumn<Approval>[] = [
   {
     accessorKey: 'technologyName',
-    header: 'Technology',
+    header: ({ column }) => getSortableHeader(column, 'Technology'),
     cell: ({ row }) => {
       const name = row.getValue('technologyName') as string
       return h(resolveComponent('NuxtLink'), {
@@ -208,7 +232,7 @@ const approvalColumns: TableColumn<Approval>[] = [
   },
   {
     accessorKey: 'timeCategory',
-    header: 'TIME Category',
+    header: ({ column }) => getSortableHeader(column, 'TIME Category'),
     cell: ({ row }) => {
       const cat = row.getValue('timeCategory') as string
       if (!cat) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
@@ -217,13 +241,16 @@ const approvalColumns: TableColumn<Approval>[] = [
   },
   {
     accessorKey: 'approvedAt',
-    header: 'Approved',
+    header: ({ column }) => getSortableHeader(column, 'Approved'),
     cell: ({ row }) => {
       const date = row.getValue('approvedAt') as string
       return date ? new Date(date).toLocaleDateString() : '—'
     }
   },
-  { accessorKey: 'approvedBy', header: 'Approved By' }
+  {
+    accessorKey: 'approvedBy',
+    header: ({ column }) => getSortableHeader(column, 'Approved By')
+  }
 ]
 
 const { data, pending, error } = await useFetch<TeamResponse>(() => `/api/teams/${encodeURIComponent(route.params.name as string)}`)

@@ -78,7 +78,11 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Policy>> =>
     const ruleType = query.ruleType as string | undefined
     
     const policyService = new PolicyService()
-    const result = await policyService.findAll({ scope, status, enforcedBy, ruleType })
+    const result = await policyService.findAll({
+      scope, status, enforcedBy, ruleType,
+      sortBy: query.sortBy as string | undefined,
+      sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
+    })
     const total = result.data.length
     const paginatedData = result.data.slice(offset, offset + limit)
     

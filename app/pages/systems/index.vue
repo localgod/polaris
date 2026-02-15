@@ -25,6 +25,8 @@
     <template v-else>
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="systems"
           :columns="columns"
           :loading="pending"
@@ -60,6 +62,7 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
 const { status } = useAuth()
+const { getSortableHeader } = useSortableTable()
 
 interface System {
   name: string
@@ -91,7 +94,7 @@ function getCriticalityColor(criticality: string): 'error' | 'warning' | 'succes
 const columns: TableColumn<System>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
       const system = row.original
       return h('div', {}, [
@@ -102,24 +105,33 @@ const columns: TableColumn<System>[] = [
   },
   {
     accessorKey: 'businessCriticality',
-    header: 'Criticality',
+    header: ({ column }) => getSortableHeader(column, 'Criticality'),
     cell: ({ row }) => {
       const criticality = row.getValue('businessCriticality') as string
       return h(resolveComponent('UBadge'), { color: getCriticalityColor(criticality), variant: 'subtle' }, () => criticality)
     }
   },
-  { accessorKey: 'environment', header: 'Environment' },
+  {
+    accessorKey: 'environment',
+    header: ({ column }) => getSortableHeader(column, 'Environment')
+  },
   {
     accessorKey: 'ownerTeam',
-    header: 'Owner',
+    header: ({ column }) => getSortableHeader(column, 'Owner'),
     cell: ({ row }) => {
       const owner = row.getValue('ownerTeam') as string | null
       if (!owner) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return h('span', { class: 'font-medium' }, owner)
     }
   },
-  { accessorKey: 'componentCount', header: 'Components' },
-  { accessorKey: 'repositoryCount', header: 'Repositories' },
+  {
+    accessorKey: 'componentCount',
+    header: ({ column }) => getSortableHeader(column, 'Components')
+  },
+  {
+    accessorKey: 'repositoryCount',
+    header: ({ column }) => getSortableHeader(column, 'Repositories')
+  },
   {
     id: 'actions',
     header: '',
@@ -137,9 +149,18 @@ const columns: TableColumn<System>[] = [
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
-const queryParams = computed(() => ({ limit: pageSize, offset: (page.value - 1) * pageSize }))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems', { query: queryParams })
 

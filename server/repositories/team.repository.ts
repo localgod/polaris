@@ -1,5 +1,15 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+
+const teamSortConfig: SortConfig = {
+  allowedFields: {
+    name: 't.name',
+    responsibilityArea: 't.responsibilityArea',
+    memberCount: 'memberCount'
+  },
+  defaultOrderBy: 't.name ASC'
+}
 
 export interface Team {
   name: string
@@ -117,8 +127,10 @@ export class TeamRepository extends BaseRepository {
    * 
    * @returns Array of teams
    */
-  async findAll(): Promise<Team[]> {
-    const query = await loadQuery('teams/find-all.cypher')
+  async findAll(sort?: SortParams): Promise<Team[]> {
+    let query = await loadQuery('teams/find-all.cypher')
+    const orderBy = buildOrderByClause(sort || {}, teamSortConfig)
+    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
     const { records } = await this.executeQuery(query)
     
     return records.map(record => this.mapToTeam(record))

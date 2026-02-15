@@ -48,12 +48,12 @@ export class ComponentService {
    * Retrieves components not mapped to a known technology, ordered by
    * system count to help prioritize mapping efforts.
    */
-  async findUnmapped(limit: number = 50, offset: number = 0): Promise<{
+  async findUnmapped(limit: number = 50, offset: number = 0, sort?: { sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<{
     data: UnmappedComponent[]
     count: number
     total: number
   }> {
-    const components = await this.componentRepo.findUnmapped(limit, offset)
+    const components = await this.componentRepo.findUnmapped(limit, offset, sort)
     const total = await this.componentRepo.countUnmapped()
     
     return {

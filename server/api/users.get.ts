@@ -70,7 +70,10 @@ export default defineEventHandler(async (event) => {
     const offset = query.offset ? parseInt(query.offset as string, 10) : 0
 
     const userService = new UserService()
-    const allUsers = await userService.findAllSummary()
+    const allUsers = await userService.findAllSummary({
+      sortBy: query.sortBy as string | undefined,
+      sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
+    })
     const total = allUsers.length
     const paginatedUsers = allUsers.slice(offset, offset + limit)
     

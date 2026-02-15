@@ -144,6 +144,7 @@
         </template>
         <UTable
           v-if="tech.technologyApprovals && tech.technologyApprovals.length > 0"
+          v-model:sorting="approvalSorting"
           :data="tech.technologyApprovals"
           :columns="approvalColumns"
           class="flex-1"
@@ -228,7 +229,7 @@
         <template #header>
           <h2 class="text-lg font-semibold">Versions ({{ tech.versions.length }})</h2>
         </template>
-        <UTable :data="tech.versions" :columns="versionColumns" class="flex-1" />
+        <UTable v-model:sorting="versionSorting" :data="tech.versions" :columns="versionColumns" class="flex-1" />
       </UCard>
 
       <!-- Components -->
@@ -236,7 +237,7 @@
         <template #header>
           <h2 class="text-lg font-semibold">Components ({{ tech.components.length }})</h2>
         </template>
-        <UTable :data="tech.components" :columns="componentColumns" class="flex-1" />
+        <UTable v-model:sorting="componentSorting" :data="tech.components" :columns="componentColumns" class="flex-1" />
       </UCard>
 
       <!-- Systems -->
@@ -288,6 +289,11 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { TechnologyApproval } from '~~/types/api'
+
+const { getSortableHeader } = useSortableTable()
+const approvalSorting = ref([])
+const versionSorting = ref([])
+const componentSorting = ref([])
 
 const route = useRoute()
 const { data: session } = useAuth()
@@ -368,12 +374,12 @@ function formatDate(dateString: string): string {
 const versionColumns: TableColumn<VersionDetail>[] = [
   {
     accessorKey: 'version',
-    header: 'Version',
+    header: ({ column }) => getSortableHeader(column, 'Version'),
     cell: ({ row }) => h('code', {}, row.getValue('version') as string)
   },
   {
     accessorKey: 'approved',
-    header: 'Status',
+    header: ({ column }) => getSortableHeader(column, 'Status'),
     cell: ({ row }) => {
       const approved = row.getValue('approved') as boolean
       const color = approved ? 'success' : 'warning'
@@ -383,7 +389,7 @@ const versionColumns: TableColumn<VersionDetail>[] = [
   },
   {
     accessorKey: 'releaseDate',
-    header: 'Released',
+    header: ({ column }) => getSortableHeader(column, 'Released'),
     cell: ({ row }) => {
       const date = row.getValue('releaseDate') as string | null
       return date ? formatDate(date) : '—'
@@ -391,7 +397,7 @@ const versionColumns: TableColumn<VersionDetail>[] = [
   },
   {
     accessorKey: 'eolDate',
-    header: 'End of Life',
+    header: ({ column }) => getSortableHeader(column, 'End of Life'),
     cell: ({ row }) => {
       const date = row.getValue('eolDate') as string | null
       return date ? formatDate(date) : '—'
@@ -399,7 +405,7 @@ const versionColumns: TableColumn<VersionDetail>[] = [
   },
   {
     accessorKey: 'notes',
-    header: 'Notes',
+    header: ({ column }) => getSortableHeader(column, 'Notes'),
     cell: ({ row }) => {
       const notes = row.getValue('notes') as string | null
       return notes || '—'
@@ -410,7 +416,7 @@ const versionColumns: TableColumn<VersionDetail>[] = [
 const approvalColumns: TableColumn<TechnologyApproval>[] = [
   {
     accessorKey: 'team',
-    header: 'Team',
+    header: ({ column }) => getSortableHeader(column, 'Team'),
     cell: ({ row }) => {
       const team = row.getValue('team') as string
       return h(resolveComponent('NuxtLink'), {
@@ -421,7 +427,7 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
   },
   {
     accessorKey: 'time',
-    header: 'TIME',
+    header: ({ column }) => getSortableHeader(column, 'TIME'),
     cell: ({ row }) => {
       const time = row.getValue('time') as string | null
       if (!time) return '—'
@@ -430,7 +436,7 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
   },
   {
     accessorKey: 'versionConstraint',
-    header: 'Version Constraint',
+    header: ({ column }) => getSortableHeader(column, 'Version Constraint'),
     cell: ({ row }) => {
       const vc = row.original.versionConstraint
       return vc ? h('code', {}, vc) : '—'
@@ -438,7 +444,7 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
   },
   {
     accessorKey: 'approvedAt',
-    header: 'Approved',
+    header: ({ column }) => getSortableHeader(column, 'Approved'),
     cell: ({ row }) => {
       const date = row.original.approvedAt
       return date ? formatDate(date) : '—'
@@ -446,12 +452,12 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
   },
   {
     accessorKey: 'approvedBy',
-    header: 'By',
+    header: ({ column }) => getSortableHeader(column, 'By'),
     cell: ({ row }) => row.original.approvedBy || '—'
   },
   {
     accessorKey: 'notes',
-    header: 'Notes',
+    header: ({ column }) => getSortableHeader(column, 'Notes'),
     cell: ({ row }) => row.original.notes || '—'
   }
 ]
@@ -459,17 +465,17 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
 const componentColumns: TableColumn<ComponentRef>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => h('strong', {}, row.getValue('name') as string)
   },
   {
     accessorKey: 'version',
-    header: 'Version',
+    header: ({ column }) => getSortableHeader(column, 'Version'),
     cell: ({ row }) => h('code', {}, row.getValue('version') as string)
   },
   {
     accessorKey: 'packageManager',
-    header: 'Package Manager',
+    header: ({ column }) => getSortableHeader(column, 'Package Manager'),
     cell: ({ row }) => row.getValue('packageManager') || '—'
   }
 ]

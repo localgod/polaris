@@ -3,6 +3,7 @@ import { SourceRepositoryRepository } from '../repositories/source-repository.re
 import type { System, CreateSystemParams, RepositoryInput, UnmappedComponentsResult } from '../repositories/system.repository'
 import type { Repository } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
+import type { SortParams } from '../utils/sorting'
 
 export interface CreateSystemInput {
   name: string
@@ -33,8 +34,8 @@ export class SystemService {
    * 
    * @returns Array of systems with count
    */
-  async findAll(): Promise<{ data: System[]; count: number }> {
-    const systems = await this.systemRepo.findAll()
+  async findAll(sort?: SortParams): Promise<{ data: System[]; count: number }> {
+    const systems = await this.systemRepo.findAll(sort)
     
     return {
       data: systems,

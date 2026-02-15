@@ -25,6 +25,8 @@
 
       <UCard>
         <UTable
+          v-model:sorting="sorting"
+          :manual-sorting="true"
           :data="components"
           :columns="columns"
           :loading="pending"
@@ -57,6 +59,8 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
+const { getSortableHeader } = useSortableTable()
+
 interface UnmappedComponent {
   name: string
   version: string
@@ -74,32 +78,38 @@ interface UnmappedResponse {
 const columns: TableColumn<UnmappedComponent>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => h('strong', {}, row.getValue('name') as string)
   },
   {
     accessorKey: 'version',
-    header: 'Version',
+    header: ({ column }) => getSortableHeader(column, 'Version'),
     cell: ({ row }) => h('code', {}, row.getValue('version') as string)
   },
   {
     accessorKey: 'packageManager',
-    header: 'Package Manager'
+    header: ({ column }) => getSortableHeader(column, 'Package Manager')
   },
   {
     accessorKey: 'system',
-    header: 'System',
+    header: ({ column }) => getSortableHeader(column, 'System'),
     cell: ({ row }) => row.getValue('system') || '—'
   }
 ]
 
+const sorting = ref([])
+watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
 
-const queryParams = computed(() => ({
-  limit: pageSize,
-  offset: (page.value - 1) * pageSize
-}))
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
 
 const { data, pending, error } = await useFetch<UnmappedResponse>('/api/components/unmapped', {
   query: queryParams

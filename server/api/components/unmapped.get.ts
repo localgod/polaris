@@ -93,7 +93,10 @@ export default defineEventHandler(async (event): Promise<ApiResponse<UnmappedCom
     const offset = Math.max(0, rawOffset)
 
     const componentService = new ComponentService()
-    const result = await componentService.findUnmapped(limit, offset)
+    const result = await componentService.findUnmapped(limit, offset, {
+      sortBy: query.sortBy as string | undefined,
+      sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
+    })
     
     return {
       success: true,
