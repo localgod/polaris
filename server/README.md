@@ -13,8 +13,10 @@ server/
 │   └── queries/           # Cypher query files (.cypher)
 ├── utils/                 # Auto-imported utilities
 ├── plugins/               # Server plugins (lifecycle hooks)
-├── middleware/            # Server middleware
-└── types/                 # TypeScript type definitions
+├── schemas/               # JSON schemas for SBOM validation
+├── scripts/               # Server-side scripts (e.g., OpenAPI generation)
+├── types/                 # TypeScript type definitions
+└── openapi.ts             # OpenAPI/Swagger specification
 ```
 
 ## Architecture Layers
@@ -123,16 +125,94 @@ ORDER BY t.category, t.name
 
 Auto-imported utilities available throughout the server:
 
-- `query-loader.ts` - Load and cache .cypher files
-- `neo4j.ts` - Neo4j helper functions
-- `auth.ts` - Authentication utilities
-- `response.ts` - Response formatters
+- `query-loader.ts` - Load, cache, and inject placeholders in .cypher files
+- `neo4j.ts` - Neo4j helper functions (e.g., `getFirstRecordOrThrow()`)
+- `auth.ts` - Authentication and authorization (`requireAuth()`, `requireSuperuser()`, `requireTeamAccess()`, etc.)
+- `response.ts` - Response formatters (`sendSuccess()`, `sendNotFound()`, `sendBadRequest()`, etc.)
+- `repository.ts` - Repository URL utilities (`normalizeRepoUrl()`, `detectScmType()`)
+- `sorting.ts` - Server-side sort utilities (`buildOrderByClause()`, `parseSortParams()`)
+- `sbom-validator.ts` - SBOM schema validation (CycloneDX, SPDX)
+- `sbom-request-validator.ts` - SBOM request input validation
+
+## Import Guide
+
+### Import Patterns
+
+Server files are bundled separately by Nitro and don't use the same module resolution as client code. Always use relative imports for server-to-server references.
+
+#### API Routes (`server/api/**/*.ts`)
+
+```typescript
+import { TechnologyService } from '../services/technology.service'
+import { PolicyService } from '../../services/policy.service'
+import type { Technology } from '~~/types/api'
+```
+
+#### Services (`server/services/*.ts`)
+
+```typescript
+import { TechnologyRepository } from '../repositories/technology.repository'
+import type { Technology } from '~~/types/api'
+```
+
+#### Repositories (`server/repositories/*.ts`)
+
+```typescript
+import { BaseRepository } from './base.repository'
+import type { Technology } from '~~/types/api'
+import type { Record as Neo4jRecord } from 'neo4j-driver'
+```
+
+#### Utils (`server/utils/*.ts`)
+
+Files in `server/utils/` are auto-imported throughout the server — no import statement needed:
+
+```typescript
+// server/repositories/technology.repository.ts
+async findAll() {
+  const query = await loadQuery('technologies/find-all.cypher') // auto-imported
+}
+```
+
+Auto-imported utilities include `loadQuery()`, `injectWhereConditions()`, `getFirstRecordOrThrow()`, `requireAuth()`, `sendSuccess()`, `sendNotFound()`, `buildOrderByClause()`, and `createError()`.
+
+### Incorrect Patterns
+
+```typescript
+// DON'T use ~/server/ — causes ENOENT in Nitro's bundled context
+import { TechnologyService } from '~/server/services/technology.service'
+
+// DON'T use @ alias — reserved for client-side code
+import { TechnologyService } from '@/server/services/technology.service'
+
+// DON'T use absolute paths
+import { TechnologyService } from '/server/services/technology.service'
+```
+
+### Quick Reference
+
+| From | To | Pattern | Example |
+| --- | --- | --- | --- |
+| API route | Service | Relative | `'../services/tech.service'` |
+| API route (nested) | Service | Relative | `'../../services/tech.service'` |
+| Service | Repository | Relative | `'../repositories/tech.repository'` |
+| Repository | Base | Relative | `'./base.repository'` |
+| Any | Types | `~~` alias | `'~~/types/api'` |
+| Any | Utils | Auto-imported | No import needed |
+| Any | Neo4j types | Package | `'neo4j-driver'` |
+
+### Troubleshooting
+
+**"Cannot find module '~/server/...'"** or **"ENOENT: no such file or directory, open '/app//server/...'"**: Change to a relative import.
+
+**"loadQuery is not defined"**: Ensure the file is in `server/utils/` — it should be auto-imported.
 
 ## Plugins (`/plugins`)
 
 Server plugins for initialization and lifecycle management:
 
 - `neo4j.ts` - Initialize Neo4j driver and verify connectivity
+- `sbom-validator.ts` - Compile SBOM JSON schemas at startup
 
 ## Benefits
 
@@ -252,10 +332,11 @@ This architecture follows Nuxt 4 best practices:
 - Yes `server/api/` - File-based routing (Nuxt convention)
 - Yes `server/utils/` - Auto-imported utilities (Nuxt convention)
 - Yes `server/plugins/` - Server plugins (Nuxt convention)
-- Yes `server/middleware/` - Server middleware (Nuxt convention)
 - Yes `server/services/` - Custom layer (not Nuxt convention, but recommended)
 - Yes `server/repositories/` - Custom layer (not Nuxt convention, but recommended)
 - Yes `server/database/` - Custom layer (not Nuxt convention, but recommended)
+- Yes `server/schemas/` - Custom layer for JSON schema files
+- Yes `server/scripts/` - Custom layer for server-side scripts
 
 ## Migration Status
 
@@ -263,13 +344,10 @@ Yes **Complete** - All 25 API endpoints migrated to 3-layer architecture
 
 ### Statistics
 
-- **Endpoints**: 25 migrated
-- **Services**: 9 service classes
-- **Repositories**: 10 repository classes  
-- **Query Files**: 34 external Cypher files
-- **Code Reduction**: -671 net lines (36% reduction)
-
-See `docs/architecture/service-layer-pattern.md` for detailed patterns and examples.
+- **Endpoints**: 51 API route handlers
+- **Services**: 12 service classes
+- **Repositories**: 12 repository classes (+ BaseRepository)
+- **Query Files**: 51 external Cypher files
 
 ## API Authentication
 

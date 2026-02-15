@@ -452,8 +452,140 @@ npm run test -- --run test/server/api/pagination.spec.ts
 ## Related Documentation
 
 - [API Testing Guide](./server/api/README.md) - Detailed API testing patterns
-- [Test Isolation](../docs/testing/test-isolation.md) - Database isolation strategy
 - [Service Layer Pattern](../docs/architecture/service-layer-pattern.md) - Architecture overview
+
+## Test Data Isolation
+
+Neo4j Community Edition doesn't support multiple databases, so tests share the same database as development. Tests use namespace-based isolation with a strict prefixing convention.
+
+### Prefix Convention
+
+All test data MUST use the pattern: `test_<feature>_`
+
+```typescript
+const TEST_PREFIX = 'test_component_repo_'
+
+// Create test data with prefix
+await session.run(`
+  CREATE (c:Component {name: $name})
+`, { name: `${TEST_PREFIX}react` })
+```
+
+Keep prefixes unique per test file or feature to avoid collisions.
+
+### Cleanup Mechanisms
+
+**Global setup** (`test/setup/global-setup.ts`) runs once before all tests and removes nodes with properties starting with `test_`:
+
+```cypher
+MATCH (n)
+WHERE any(prop IN keys(n) WHERE toString(n[prop]) STARTS WITH 'test_')
+DETACH DELETE n
+```
+
+**Individual tests** should clean up in `afterAll` or `beforeEach` hooks using the helpers in `test/helpers/db-cleanup.ts`:
+
+```typescript
+import { cleanupTestData, verifyCleanDatabase } from '../helpers/db-cleanup'
+
+beforeEach(async () => {
+  await cleanupTestData(driver, { prefix: TEST_PREFIX })
+})
+
+afterAll(async () => {
+  await cleanupTestData(driver, { prefix: TEST_PREFIX })
+  await driver.close()
+})
+```
+
+### Environment Variables
+
+```bash
+# Default (uses development database)
+NEO4J_DATABASE=neo4j
+
+# For Neo4j Enterprise Edition with multi-database support (optional)
+NEO4J_TEST_DATABASE=test
+```
+
+## Database Cleanup Helpers
+
+Available in `test/helpers/db-cleanup.ts`:
+
+### `cleanupTestData(driver, options)`
+
+```typescript
+// Clean by prefix
+await cleanupTestData(driver, { prefix: 'test_myfeature_' })
+
+// Clean specific labels
+await cleanupTestData(driver, { prefix: 'test_myfeature_', labels: ['User', 'Team'] })
+
+// Clean all test data
+await cleanupTestData(driver, { deleteAll: true })
+```
+
+### `verifyCleanDatabase(driver, prefix)`
+
+```typescript
+const isClean = await verifyCleanDatabase(driver, 'test_myfeature_')
+expect(isClean).toBe(true)
+```
+
+### `createCleanup(driver, options)`
+
+```typescript
+const cleanup = createCleanup(driver, { prefix: 'test_myfeature_' })
+afterAll(cleanup)
+```
+
+### `createIsolatedTest(driver, prefix)`
+
+```typescript
+const { session, cleanup } = await createIsolatedTest(driver, 'test_myfeature_')
+try {
+  await session.run('CREATE (n:Test {name: $name})', { name: 'test_myfeature_node' })
+} finally {
+  await cleanup()
+}
+```
+
+### `snapshotDatabase(driver)` and `compareSnapshots(before, after)`
+
+```typescript
+const before = await snapshotDatabase(driver)
+// ... code that shouldn't modify database
+const after = await snapshotDatabase(driver)
+expect(compareSnapshots(before, after)).toBe(true)
+```
+
+## Coverage Configuration
+
+### Provider and Reports
+
+Vitest uses the V8 coverage provider. Reports are generated in `text`, `html`, `json`, `lcov`, and `json-summary` formats, written to `./coverage`. See `vitest.config.ts` for details.
+
+```bash
+npm run test:coverage
+```
+
+### Excluded from Coverage
+
+These patterns are excluded (configured in `vitest.config.ts`):
+
+- `node_modules/**`, `dist/**`, `.nuxt/**`, `.output/**`
+- `**/*.d.ts`, `**/*.config.*`, `**/mockData/**`
+- `test/**`, `app/pages/**`, `app/components/**`, `app/plugins/**`
+- `server/api/**`, `server/database/queries/**`
+- `schema/scripts/**`, `server/scripts/**`
+
+### Thresholds
+
+No thresholds are currently enforced. Coverage is collected for informational purposes. As the test suite matures, target ranges may be added (e.g., 70-80% lines, 60-70% branches).
+
+### CI Integration
+
+GitHub Actions runs tests with `--coverage`, uploads per-layer coverage artifacts, and posts a coverage summary on pull requests via the Vitest coverage-report Action.
 
 ## Writing Tests with vitest-cucumber
 
