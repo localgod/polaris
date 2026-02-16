@@ -1,10 +1,18 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <UPageHeader
-      title="Registered Users"
-      description="Manage all users registered in the application"
-    />
+    <div class="flex justify-between items-start">
+      <UPageHeader
+        title="Registered Users"
+        description="Manage all users registered in the application"
+      />
+      <UButton
+        v-if="isSuperuser"
+        label="Create Technical User"
+        icon="i-lucide-user-plus"
+        @click="createUserModalOpen = true"
+      />
+    </div>
 
     <!-- Error State -->
     <UAlert
@@ -100,6 +108,66 @@
             :disabled="assignLoading"
             @click="saveTeamMemberships"
           />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Create Technical User Modal -->
+    <UModal v-model:open="createUserModalOpen" title="Create Technical User" description="Create a non-OAuth user for API access.">
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Name">
+            <UInput v-model="newUserName" placeholder="e.g. CI Pipeline" />
+          </UFormField>
+          <UFormField label="Email">
+            <UInput v-model="newUserEmail" type="email" placeholder="e.g. ci@example.com" />
+          </UFormField>
+          <UAlert v-if="createUserError" color="error" :title="createUserError" icon="i-lucide-circle-x" />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="createUserModalOpen = false" />
+          <UButton label="Create" :loading="createUserLoading" @click="createTechnicalUser" />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Generate Token Modal -->
+    <UModal v-model:open="tokenModalOpen" title="Generate API Token" description="Create a new API token for this technical user.">
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Description (optional)">
+            <UInput v-model="tokenDescription" placeholder="e.g. CI/CD pipeline" />
+          </UFormField>
+          <UFormField label="Expires in (days, leave empty for no expiration)">
+            <UInput v-model="tokenExpiresInDays" type="number" placeholder="e.g. 90" />
+          </UFormField>
+          <UAlert v-if="tokenError" color="error" :title="tokenError" icon="i-lucide-circle-x" />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="tokenModalOpen = false" />
+          <UButton label="Generate" :loading="tokenLoading" @click="generateToken" />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Token Display Modal (shown once after generation) -->
+    <UModal v-model:open="tokenDisplayOpen" title="API Token Generated" description="Copy this token now. It will not be shown again.">
+      <template #body>
+        <div class="space-y-4">
+          <UAlert color="warning" icon="i-lucide-alert-triangle" title="This token will only be shown once. Copy it now." />
+          <div class="relative">
+            <pre class="bg-(--ui-bg-elevated) p-4 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Copy" icon="i-lucide-copy" variant="outline" @click="copyToken" />
+          <UButton label="Done" @click="tokenDisplayOpen = false" />
         </div>
       </template>
     </UModal>
@@ -233,6 +301,97 @@ async function saveTeamMemberships() {
   }
 }
 
+// Create Technical User state
+const createUserModalOpen = ref(false)
+const newUserName = ref('')
+const newUserEmail = ref('')
+const createUserLoading = ref(false)
+const createUserError = ref('')
+
+async function createTechnicalUser() {
+  createUserLoading.value = true
+  createUserError.value = ''
+
+  try {
+    await $fetch('/api/admin/users', {
+      method: 'POST',
+      body: { name: newUserName.value, email: newUserEmail.value }
+    })
+    createUserModalOpen.value = false
+    newUserName.value = ''
+    newUserEmail.value = ''
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    createUserError.value = err.data?.message || err.message || 'Failed to create user'
+  } finally {
+    createUserLoading.value = false
+  }
+}
+
+// Generate Token state
+const tokenModalOpen = ref(false)
+const tokenTarget = ref<User | null>(null)
+const tokenDescription = ref('')
+const tokenExpiresInDays = ref('')
+const tokenLoading = ref(false)
+const tokenError = ref('')
+
+// Token display state
+const tokenDisplayOpen = ref(false)
+const generatedToken = ref('')
+
+function openTokenModal(user: User) {
+  tokenTarget.value = user
+  tokenDescription.value = ''
+  tokenExpiresInDays.value = ''
+  tokenError.value = ''
+  tokenModalOpen.value = true
+}
+
+async function generateToken() {
+  if (!tokenTarget.value) return
+  tokenLoading.value = true
+  tokenError.value = ''
+
+  try {
+    const result = await $fetch<{ success: boolean; data: { token: string } }>(
+      `/api/admin/users/${tokenTarget.value.id}/tokens`,
+      {
+        method: 'POST',
+        body: {
+          description: tokenDescription.value || undefined,
+          expiresInDays: tokenExpiresInDays.value ? parseInt(tokenExpiresInDays.value, 10) : undefined
+        }
+      }
+    )
+    tokenModalOpen.value = false
+    generatedToken.value = result.data.token
+    tokenDisplayOpen.value = true
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    tokenError.value = err.data?.message || err.message || 'Failed to generate token'
+  } finally {
+    tokenLoading.value = false
+  }
+}
+
+function copyToken() {
+  navigator.clipboard.writeText(generatedToken.value)
+}
+
+async function deleteTechnicalUser(user: User) {
+  if (!confirm(`Delete technical user "${user.name || user.email}"? This will also revoke all their API tokens.`)) return
+
+  try {
+    await $fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    alert(err.data?.message || err.message || 'Failed to delete user')
+  }
+}
+
 const columns: TableColumn<User>[] = [
   {
     accessorKey: 'name',
@@ -241,7 +400,10 @@ const columns: TableColumn<User>[] = [
       const user = row.original
       const initial = ((user.name || user.email || 'U')[0] || 'U').toUpperCase()
 
-      return h('div', { class: 'flex items-center gap-3' }, [
+      return h(resolveComponent('NuxtLink'), {
+        to: `/users/${encodeURIComponent(user.id)}`,
+        class: 'flex items-center gap-3 hover:underline'
+      }, () => [
         user.avatarUrl
           ? h(UAvatar, {
               src: user.avatarUrl,
@@ -311,6 +473,22 @@ const columns: TableColumn<User>[] = [
                 label: 'Manage Teams',
                 icon: 'i-lucide-users',
                 onSelect: () => openAssignModal(user)
+              }]
+            : []),
+          ...(isSuperuser.value && user.provider === 'technical'
+            ? [{
+                label: 'Generate API Token',
+                icon: 'i-lucide-key',
+                onSelect: () => openTokenModal(user)
+              }]
+            : [])
+        ],
+        [
+          ...(isSuperuser.value && user.provider === 'technical'
+            ? [{
+                label: 'Delete User',
+                icon: 'i-lucide-trash-2',
+                onSelect: () => deleteTechnicalUser(user)
               }]
             : [])
         ]

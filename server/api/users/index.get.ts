@@ -1,5 +1,5 @@
 import { getServerSession } from '#auth'
-import { UserService } from '../services/user.service'
+import { UserService } from '../../services/user.service'
 
 /**
  * @openapi
