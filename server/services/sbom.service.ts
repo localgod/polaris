@@ -2,6 +2,7 @@ import { SystemRepository } from '../repositories/system.repository'
 import { SBOMRepository } from '../repositories/sbom.repository'
 import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
 import { normalizeRepoUrl } from '../utils/repository'
+import { parseLicenseExpression } from '../utils/license-expression'
 import type {
   ProcessSBOMInput,
   ProcessSBOMResult,
@@ -308,20 +309,30 @@ export class SBOMService {
   }
 
   /**
-   * Extract CycloneDX licenses
+   * Extract CycloneDX licenses.
+   * Compound SPDX expressions are decomposed into individual licenses.
    */
   private extractCycloneDXLicenses(licenses: unknown[]): ComponentLicense[] {
     return licenses.flatMap(l => {
       const license = l as Record<string, unknown>
       if (license.expression) {
-        return [{ id: license.expression as string, name: null, url: null, text: null }]
+        const expr = license.expression as string
+        const parsed = parseLicenseExpression(expr)
+        return parsed.map(p => ({
+          id: p.id,
+          name: null,
+          url: null,
+          text: null,
+          expression: p.expression
+        }))
       } else if (license.license) {
         const lic = license.license as Record<string, unknown>
         return [{
           id: (lic.id as string) || null,
           name: (lic.name as string) || null,
           url: (lic.url as string) || null,
-          text: (lic.text as string) || null
+          text: (lic.text as string) || null,
+          expression: null
         }]
       }
       return []
@@ -329,33 +340,38 @@ export class SBOMService {
   }
 
   /**
-   * Extract SPDX licenses
+   * Extract SPDX licenses.
+   * Compound SPDX expressions are decomposed into individual licenses.
    */
   private extractSPDXLicenses(pkg: Record<string, unknown>): ComponentLicense[] {
     const licenses: ComponentLicense[] = []
-    
+
     const licenseConcluded = pkg.licenseConcluded as string | undefined
     if (licenseConcluded && licenseConcluded !== 'NOASSERTION') {
-      licenses.push({ 
-        id: licenseConcluded, 
-        name: null, 
-        url: null, 
-        text: null 
-      })
+      const parsed = parseLicenseExpression(licenseConcluded)
+      licenses.push(...parsed.map(p => ({
+        id: p.id,
+        name: null,
+        url: null,
+        text: null,
+        expression: p.expression
+      })))
     }
-    
+
     const licenseDeclared = pkg.licenseDeclared as string | undefined
-    if (licenseDeclared && 
-        licenseDeclared !== 'NOASSERTION' && 
+    if (licenseDeclared &&
+        licenseDeclared !== 'NOASSERTION' &&
         licenseDeclared !== licenseConcluded) {
-      licenses.push({ 
-        id: licenseDeclared, 
-        name: null, 
-        url: null, 
-        text: null 
-      })
+      const parsed = parseLicenseExpression(licenseDeclared)
+      licenses.push(...parsed.map(p => ({
+        id: p.id,
+        name: null,
+        url: null,
+        text: null,
+        expression: p.expression
+      })))
     }
-    
+
     return licenses
   }
 

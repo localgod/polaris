@@ -1,5 +1,10 @@
-// Add User node for authentication and authorization
-// Users authenticate via OAuth and can be associated with teams
+/*
+ * Migration: add_user_node
+ * Version: 20251024.074821
+ *
+ * Add User node for authentication and authorization.
+ * Users authenticate via OAuth and can be associated with teams.
+ */
 
 // Create User node constraint
 CREATE CONSTRAINT user_id_unique IF NOT EXISTS
