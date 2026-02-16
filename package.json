@@ -64,22 +64,22 @@
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
-    "@nuxt/eslint": "^1.13.0",
+    "@nuxt/eslint": "^1.15.1",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^3.23.0",
     "@nuxt/ui": "^4.4.0",
     "@sidebase/nuxt-auth": "^1.1.1",
-    "ajv": "^8.17.1",
+    "ajv": "^8.18.0",
     "eslint": "^9.39.2",
     "mermaid": "^11.12.2",
-    "next-auth": "4.21.1",
-    "nuxt": "4.0.0",
+    "next-auth": "4.24.13",
+    "nuxt": "4.3.1",
     "nuxt-neo4j": "^0.0.4",
     "spdx-expression-parse": "^4.0.0",
     "spdx-license-list": "^6.11.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
-    "vue": "^3.5.26"
+    "vue": "^3.5.28"
   },
   "devDependencies": {
     "@amiceli/vitest-cucumber": "^6.2.0",
