@@ -279,4 +279,19 @@ export class UserRepository extends BaseRepository {
       teamCount: record.get('teamCount').toNumber()
     }
   }
+
+  /**
+   * Delete a user and all associated tokens
+   */
+  async deleteUser(userId: string): Promise<boolean> {
+    const { records } = await this.executeQuery(`
+      MATCH (u:User {id: $userId})
+      OPTIONAL MATCH (u)-[:HAS_API_TOKEN]->(t:ApiToken)
+      WITH u, collect(t) as tokens
+      DETACH DELETE u
+      FOREACH (t IN tokens | DETACH DELETE t)
+      RETURN count(u) as deleted
+    `, { userId })
+    return records.length > 0
+  }
 }

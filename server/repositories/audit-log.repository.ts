@@ -167,4 +167,39 @@ export class AuditLogRepository extends BaseRepository {
       userName: record.get('performerName') || null
     }
   }
+
+  /**
+   * Create an audit log entry (standalone, not linked to a graph entity)
+   */
+  async create(params: {
+    operation: string
+    entityType: string
+    entityId: string
+    entityLabel: string
+    changedFields?: string[]
+    source?: string
+    userId: string
+  }): Promise<void> {
+    await this.executeQuery(`
+      CREATE (a:AuditLog {
+        id: randomUUID(),
+        timestamp: datetime(),
+        operation: $operation,
+        entityType: $entityType,
+        entityId: $entityId,
+        entityLabel: $entityLabel,
+        changedFields: $changedFields,
+        source: $source,
+        userId: $userId
+      })
+    `, {
+      operation: params.operation,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      entityLabel: params.entityLabel,
+      changedFields: params.changedFields || [],
+      source: params.source || 'API',
+      userId: params.userId
+    })
+  }
 }
