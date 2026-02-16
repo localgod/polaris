@@ -52,7 +52,8 @@ export class SBOMRepository extends BaseRepository {
         id: l.id,
         name: l.name,
         url: l.url,
-        text: l.text
+        text: l.text,
+        expression: l.expression
       }))
     )
     

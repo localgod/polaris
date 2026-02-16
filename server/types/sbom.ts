@@ -50,6 +50,7 @@ export interface ComponentLicense {
   name: string | null
   url: string | null
   text: string | null
+  expression: string | null
 }
 
 export interface ExternalReference {

@@ -136,7 +136,8 @@ FOREACH (license IN [lic IN allLicenses WHERE lic.componentIndex = compIndex AND
     l.url = COALESCE(l.url, license.url),
     l.text = COALESCE(l.text, license.text)
   MERGE (c)-[r:HAS_LICENSE]->(l)
-  ON CREATE SET r.createdAt = timestamp, r.source = 'SBOM'
+  ON CREATE SET r.createdAt = timestamp, r.source = 'SBOM', r.expression = license.expression
+  ON MATCH SET r.expression = COALESCE(license.expression, r.expression)
 )
 
 // Create ExternalReference nodes for this component

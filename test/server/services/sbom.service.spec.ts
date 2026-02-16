@@ -270,7 +270,8 @@ describe('SBOMService', () => {
         id: 'MIT',
         name: 'MIT License',
         url: null,
-        text: null
+        text: null,
+        expression: null
       })
     })
 
