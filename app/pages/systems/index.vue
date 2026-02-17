@@ -5,12 +5,22 @@
         title="Systems"
         description="Deployable applications and services"
       />
-      <UButton
-        v-if="status === 'authenticated'"
-        label="+ Create System"
-        to="/systems/new"
-        color="primary"
-      />
+      <div class="flex gap-2">
+        <UButton
+          v-if="isSuperuser"
+          label="Import from GitHub"
+          icon="i-lucide-github"
+          color="neutral"
+          variant="outline"
+          @click="showImportModal = true"
+        />
+        <UButton
+          v-if="status === 'authenticated'"
+          label="+ Create System"
+          to="/systems/new"
+          color="primary"
+        />
+      </div>
     </div>
 
     <UAlert
@@ -54,6 +64,100 @@
         </div>
       </UCard>
     </template>
+
+    <!-- Import from GitHub Modal -->
+    <UModal v-model:open="showImportModal">
+      <template #header>
+        <h3 class="text-lg font-semibold">Import System from GitHub</h3>
+      </template>
+      <template #body>
+        <form class="space-y-4" @submit.prevent="handleImport">
+          <UFormField label="GitHub Repository" required>
+            <UInput
+              v-model="importForm.repositoryUrl"
+              placeholder="owner/repo or https://github.com/owner/repo"
+            />
+            <template #help>
+              <span class="text-(--ui-text-muted)">
+                Repository metadata and dependencies will be fetched via the GitHub API.
+              </span>
+            </template>
+          </UFormField>
+
+          <UFormField label="Domain">
+            <UInput
+              v-model="importForm.domain"
+              placeholder="Development"
+            />
+          </UFormField>
+
+          <UFormField label="Owner Team">
+            <USelect
+              v-model="importForm.ownerTeam"
+              :items="importTeamItems"
+              placeholder="Select a team (optional)"
+            />
+          </UFormField>
+
+          <UFormField label="Business Criticality">
+            <USelect
+              v-model="importForm.businessCriticality"
+              :items="importCriticalityItems"
+              placeholder="medium"
+            />
+          </UFormField>
+
+          <UFormField label="Environment">
+            <USelect
+              v-model="importForm.environment"
+              :items="importEnvironmentItems"
+              placeholder="dev"
+            />
+          </UFormField>
+
+          <UAlert
+            v-if="importError"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="importError"
+          />
+
+          <UAlert
+            v-if="importResult"
+            color="success"
+            variant="subtle"
+            icon="i-lucide-check-circle"
+          >
+            <template #description>
+              <div class="space-y-1">
+                <p>System <strong>{{ importResult.systemName }}</strong> imported.</p>
+                <p class="text-sm">
+                  {{ importResult.manifestsFound }} manifest(s) found,
+                  {{ importResult.componentsAdded }} component(s) added,
+                  {{ importResult.componentsUpdated }} updated.
+                </p>
+              </div>
+            </template>
+          </UAlert>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <UButton
+              label="Cancel"
+              variant="outline"
+              @click="closeImportModal"
+            />
+            <UButton
+              type="submit"
+              :loading="isImporting"
+              :label="isImporting ? 'Importing...' : 'Import'"
+              color="primary"
+              :disabled="!importForm.repositoryUrl || !!importResult"
+            />
+          </div>
+        </form>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -61,7 +165,7 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
-const { status } = useAuth()
+const { status, data: session } = useAuth()
 const { getSortableHeader } = useSortableTable()
 
 interface System {
@@ -167,6 +271,99 @@ const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems',
 const systems = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
 
+const isSuperuser = computed(() => session.value?.user?.role === 'superuser')
+
+// --- Import from GitHub ---
+
+interface TeamsResponse {
+  success: boolean
+  data: Array<{ name: string }>
+  count: number
+}
+
+interface ImportResult {
+  systemName: string
+  repositoryUrl: string
+  manifestsFound: number
+  componentsAdded: number
+  componentsUpdated: number
+}
+
+const { data: teamsData } = await useFetch<TeamsResponse>('/api/teams')
+const importTeamItems = computed(() =>
+  (teamsData.value?.data || []).map(t => ({ label: t.name, value: t.name }))
+)
+
+const importCriticalityItems = [
+  { label: 'Critical', value: 'critical' },
+  { label: 'High', value: 'high' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'Low', value: 'low' }
+]
+
+const importEnvironmentItems = [
+  { label: 'Development', value: 'dev' },
+  { label: 'Test', value: 'test' },
+  { label: 'Staging', value: 'staging' },
+  { label: 'Production', value: 'prod' }
+]
+
+const showImportModal = ref(false)
+const isImporting = ref(false)
+const importError = ref('')
+const importResult = ref<ImportResult | null>(null)
+
+const importForm = ref({
+  repositoryUrl: '',
+  domain: '',
+  ownerTeam: '',
+  businessCriticality: '',
+  environment: ''
+})
+
+function closeImportModal() {
+  showImportModal.value = false
+  // If import succeeded, refresh the systems list
+  if (importResult.value) {
+    refreshNuxtData()
+  }
+  // Reset form state after a short delay so the modal closes smoothly
+  setTimeout(() => {
+    importForm.value = { repositoryUrl: '', domain: '', ownerTeam: '', businessCriticality: '', environment: '' }
+    importError.value = ''
+    importResult.value = null
+  }, 300)
+}
+
+async function handleImport() {
+  isImporting.value = true
+  importError.value = ''
+  importResult.value = null
+
+  try {
+    const body: Record<string, string> = {
+      repositoryUrl: importForm.value.repositoryUrl
+    }
+    if (importForm.value.domain) body.domain = importForm.value.domain
+    if (importForm.value.ownerTeam) body.ownerTeam = importForm.value.ownerTeam
+    if (importForm.value.businessCriticality) body.businessCriticality = importForm.value.businessCriticality
+    if (importForm.value.environment) body.environment = importForm.value.environment
+
+    const response = await $fetch<{ success: boolean; data: ImportResult }>('/api/admin/import/github', {
+      method: 'POST',
+      body
+    })
+
+    if (response.success) {
+      importResult.value = response.data
+    }
+  } catch (error: unknown) {
+    const err = error as { data?: { message?: string }; message?: string }
+    importError.value = err.data?.message || err.message || 'Import failed'
+  } finally {
+    isImporting.value = false
+  }
+}
 
 useHead({ title: 'Systems - Polaris' })
 </script>
