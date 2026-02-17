@@ -10,6 +10,7 @@ export interface ComponentFilters {
   technology?: string
   license?: string
   hasLicense?: boolean
+  system?: string
   limit?: number
   offset?: number
   sortBy?: string
@@ -66,6 +67,11 @@ export class ComponentRepository extends BaseRepository {
     if (filters.type) {
       componentConditions.push('c.type = $type')
       params.type = filters.type
+    }
+
+    if (filters.system) {
+      componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES]->(c) }')
+      params.system = filters.system
     }
 
     if (filters.technology) {

@@ -5,7 +5,11 @@
         title="Components"
       >
         <template #description>
-          <template v-if="licenseFilter">
+          <template v-if="systemFilter">
+            Components in system: <strong>{{ systemFilter }}</strong>
+            <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
+          </template>
+          <template v-else-if="licenseFilter">
             Components with license: <strong>{{ licenseFilter }}</strong>
             <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
           </template>
@@ -205,6 +209,7 @@ watch(sorting, () => { page.value = 1 })
 
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
+const systemFilter = computed(() => route.query.system as string | undefined)
 
 const page = ref(1)
 const pageSize = 20
@@ -231,6 +236,9 @@ const queryParams = computed(() => {
   }
   if (licenseFilter.value) {
     params.license = licenseFilter.value
+  }
+  if (systemFilter.value) {
+    params.system = systemFilter.value
   }
   if (sorting.value.length) {
     params.sortBy = sorting.value[0].id

@@ -41,6 +41,11 @@ import { ComponentService } from '../services/component.service'
  *           type: boolean
  *         description: Filter by license presence (ignored when license is also specified)
  *       - in: query
+ *         name: system
+ *         schema:
+ *           type: string
+ *         description: Filter by system name (only components used by this system)
+ *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
@@ -108,6 +113,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Component>>
       technology: query.technology as string | undefined,
       license: query.license as string | undefined,
       hasLicense: query.hasLicense === 'true' ? true : query.hasLicense === 'false' ? false : undefined,
+      system: query.system as string | undefined,
       limit,
       offset,
       sortBy: query.sortBy as string | undefined,

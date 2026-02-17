@@ -109,7 +109,7 @@
           />
           <UButton
             label="View All Components"
-            to="/components"
+            :to="`/components?system=${encodeURIComponent(data.data.name)}`"
             variant="outline"
           />
         </div>
