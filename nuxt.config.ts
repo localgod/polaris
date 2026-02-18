@@ -22,7 +22,6 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     'nuxt-neo4j',
     '@sidebase/nuxt-auth',
-    '@nuxt/ui'
   ],
 
 
@@ -38,7 +37,7 @@ export default defineNuxtConfig({
   },
 
   neo4j: {
-    uri: process.env.NEO4J_URI || 'bolt://172.19.0.2:7687',
+    uri: process.env.NEO4J_URI || 'bolt://localhost:7687',
     auth: {
       type: 'basic',
       username: process.env.NEO4J_USERNAME || 'neo4j',

@@ -27,8 +27,7 @@ describe('SystemRepository', () => {
       await seed(ctx.driver, `
         CREATE (:System {
           name: $name, domain: 'Platform', ownerTeam: 'Platform Team',
-          businessCriticality: 'high', environment: 'prod',
-          sourceCodeType: 'internal', hasSourceAccess: true
+          businessCriticality: 'high', environment: 'prod'
         })
       `, { name: `${PREFIX}polaris-api` })
 
@@ -112,8 +111,7 @@ describe('SystemRepository', () => {
       const name = await repo.create({
         name: `${PREFIX}new-system`, domain: 'Platform',
         ownerTeam: 'Platform Team', businessCriticality: 'high',
-        environment: 'prod', sourceCodeType: 'internal',
-        hasSourceAccess: true, repositories: [], userId: 'test-user'
+        environment: 'prod', repositories: [], userId: 'test-user'
       })
 
       expect(name).toBe(`${PREFIX}new-system`)
@@ -127,8 +125,7 @@ describe('SystemRepository', () => {
       await repo.create({
         name: `${PREFIX}full`, domain: 'Customer',
         ownerTeam: `${PREFIX}Customer Team`, businessCriticality: 'critical',
-        environment: 'staging', sourceCodeType: 'open-source',
-        hasSourceAccess: true, repositories: [], userId: 'test-user'
+        environment: 'staging', repositories: [], userId: 'test-user'
       })
 
       const sys = await repo.findByName(`${PREFIX}full`)

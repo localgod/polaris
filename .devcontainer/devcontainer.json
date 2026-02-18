@@ -9,7 +9,7 @@
 			"moby": false
 		},
 		"ghcr.io/devcontainers/features/node": {
-			"nodeGypDependencies": true,
+			"nodeGypDependencies": false,
 			"version": "lts",
 			"nvmVersion": "latest"
 		},

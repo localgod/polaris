@@ -11,8 +11,6 @@ export interface CreateSystemInput {
   ownerTeam: string
   businessCriticality: string
   environment: string
-  sourceCodeType?: string
-  hasSourceAccess?: boolean
   repositories?: RepositoryInput[]
   userId: string
 }
@@ -103,13 +101,6 @@ export class SystemService {
       })
     }
 
-    // Business logic: derive source code properties from repositories
-    const hasRepositories = input.repositories && input.repositories.length > 0
-    const hasSourceAccess = Boolean(hasRepositories)
-    const sourceCodeType = hasRepositories
-      ? (input.repositories!.some(r => r.isPublic) ? 'open-source' : 'proprietary')
-      : 'unknown'
-
     // Business logic: normalize repository URLs
     const repositories = (input.repositories || []).map(repo => ({
       ...repo,
@@ -123,8 +114,6 @@ export class SystemService {
       ownerTeam: input.ownerTeam,
       businessCriticality: input.businessCriticality,
       environment: input.environment,
-      sourceCodeType,
-      hasSourceAccess,
       repositories,
       userId: input.userId
     }

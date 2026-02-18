@@ -98,7 +98,6 @@ WHERE tech.riskLevel IN ["high", "critical"]
 OPTIONAL MATCH (sys:System)-[:USES]->(comp:Component)-[:IS_VERSION_OF]->(tech)
 RETURN tech.name as Technology,
        tech.riskLevel as RiskLevel,
-       tech.status as Status,
        collect(DISTINCT sys.name) as UsedInSystems
 ORDER BY tech.riskLevel DESC, tech.name;
 
@@ -137,8 +136,7 @@ RETURN sys.name as System,
        comp.version as Version,
        comp.packageManager as PackageManager,
        comp.license as License,
-       tech.name as Technology,
-       tech.status as TechStatus
+       tech.name as Technology
 ORDER BY comp.name;
 
 // Find all systems using a specific component
@@ -174,8 +172,7 @@ WHERE NOT EXISTS {
   MATCH (team:Team)-[:OWNS]->(tech)
 }
 RETURN tech.name as Technology,
-       tech.category as Category,
-       tech.status as Status;
+       tech.category as Category;
 
 // ============================================================================
 // CROSS-CUTTING ANALYSIS

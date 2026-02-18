@@ -21,8 +21,6 @@ export interface System {
   ownerTeam: string | null
   businessCriticality: string | null
   environment: string | null
-  sourceCodeType: string | null
-  hasSourceAccess: boolean | null
   componentCount: number
   repositoryCount: number
 }
@@ -39,8 +37,6 @@ export interface CreateSystemParams {
   ownerTeam: string
   businessCriticality: string
   environment: string
-  sourceCodeType: string
-  hasSourceAccess: boolean
   repositories: RepositoryInput[]
   userId: string
 }
@@ -239,8 +235,6 @@ export class SystemRepository extends BaseRepository {
       ownerTeam: record.get('ownerTeam'),
       businessCriticality: record.get('businessCriticality'),
       environment: record.get('environment'),
-      sourceCodeType: record.has('sourceCodeType') ? record.get('sourceCodeType') : null,
-      hasSourceAccess: record.has('hasSourceAccess') ? record.get('hasSourceAccess') : null,
       componentCount: record.get('componentCount').toNumber(),
       repositoryCount: record.get('repositoryCount').toNumber()
     }
@@ -258,6 +252,10 @@ export class SystemRepository extends BaseRepository {
     }
     if (system.repositoryCount && typeof system.repositoryCount === 'object' && 'low' in system.repositoryCount) {
       system.repositoryCount = system.repositoryCount.toNumber ? system.repositoryCount.toNumber() : system.repositoryCount.low
+    }
+    // Convert Neo4j DateTime to ISO string
+    if (system.lastSbomScanAt && typeof system.lastSbomScanAt === 'object' && 'toString' in system.lastSbomScanAt) {
+      system.lastSbomScanAt = system.lastSbomScanAt.toString()
     }
     
     return system

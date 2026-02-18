@@ -21,7 +21,6 @@ RETURN t.name as name,
          releaseDate: v.releaseDate,
          eolDate: v.eolDate,
          approved: v.approved,
-         cvssScore: v.cvssScore,
          notes: v.notes
        }) as versions,
        collect(DISTINCT {

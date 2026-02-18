@@ -144,10 +144,9 @@ export interface System {
   ownerTeam: string | null
   businessCriticality: string | null
   environment: string | null
-  sourceCodeType: string | null
-  hasSourceAccess: boolean | null
   componentCount: number
   repositoryCount: number
+  lastSbomScanAt: string | null
 }
 
 export interface Repository {

@@ -110,8 +110,6 @@ Edit `schema/fixtures/github-repos.json` to customize repositories:
         "ownerTeam": "Platform Team",
         "businessCriticality": "medium",
         "environment": "production",
-        "sourceCodeType": "open-source",
-        "hasSourceAccess": true
       },
       "repository": {
         "name": "lodash",
@@ -135,8 +133,6 @@ Edit `schema/fixtures/github-repos.json` to customize repositories:
 - `ownerTeam` - Team responsible for the system (required, must exist in database)
 - `businessCriticality` - `low`, `medium`, `high`, or `critical`
 - `environment` - `development`, `staging`, `production`
-- `sourceCodeType` - `proprietary`, `open-source`, `mixed`
-- `hasSourceAccess` - Boolean indicating if source code is accessible
 
 #### Repository Fields
 

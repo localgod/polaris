@@ -438,8 +438,6 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
               enum: ['dev', 'test', 'staging', 'prod'],
               nullable: true 
             },
-            sourceCodeType: { type: 'string', nullable: true },
-            hasSourceAccess: { type: 'boolean', nullable: true },
             componentCount: { type: 'integer' },
             repositoryCount: { type: 'integer' }
           }
