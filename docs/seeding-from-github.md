@@ -23,27 +23,12 @@ The GitHub seeding requires an API token for authentication.
 
 **Automatic User Creation:**
 
-The `seed:github` script automatically creates a technical user (`seed-bot@polaris.local`) if no technical users exist. You only need to generate an API token:
+The `seed:github` script automatically creates a technical user (`seed-bot@polaris.local`) if no technical users exist. You only need to generate an API token.
 
-```bash
-# Run seed:github - it will create the user automatically if needed
-npm run seed:github
+**To generate a token**, use the UI or API:
 
-# If it prompts for a token, generate one for the created user
-npx tsx schema/scripts/seed-api-token.ts seed-bot@polaris.local
-```
-
-**Manual User Creation (Optional):**
-
-If you prefer to create a custom technical user:
-
-```bash
-# Create a technical user
-npx tsx schema/scripts/create-technical-user.ts seed@example.com "Seed Bot" --superuser
-
-# Generate API token
-npx tsx schema/scripts/seed-api-token.ts seed@example.com
-```
+- **UI**: Sign in as a superuser, navigate to `/users`, select the technical user, and click "Generate API Token"
+- **API**: `POST /api/admin/users/<userId>/tokens` with a superuser bearer token
 
 Copy the generated token and add it to your `.env` file:
 
@@ -193,9 +178,7 @@ See [cdxgen documentation](https://github.com/CycloneDX/cdxgen#supported-languag
 npm run migrate:up
 npm run seed
 
-# 2. Create API token
-npx tsx schema/scripts/seed-api-token.ts frontend-platform@company.com
-# Copy token to .env as SEED_API_TOKEN
+# 2. Create API token via UI (/users) or API, then copy to .env as SEED_API_TOKEN
 
 # 3. Seed from GitHub
 npm run seed:github
@@ -246,12 +229,7 @@ npm run seed:github
 
 ### "SEED_API_TOKEN environment variable not set"
 
-The script will automatically create a technical user if none exists. Generate an API token for the user:
-
-```bash
-# The script will tell you which user email to use
-npx tsx schema/scripts/seed-api-token.ts seed-bot@polaris.local
-```
+The script will automatically create a technical user if none exists. Generate an API token for the user via the UI (`/users`) or API (`POST /api/admin/users/<userId>/tokens`).
 
 Add to `.env`:
 
@@ -329,11 +307,7 @@ jobs:
       - run: npm ci
       - run: npm run migrate:up
       - run: npm run seed
-      - run: npx tsx schema/scripts/seed-api-token.ts admin@example.com
-        env:
-          NEO4J_URI: ${{ secrets.NEO4J_URI }}
-          NEO4J_USERNAME: ${{ secrets.NEO4J_USERNAME }}
-          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+      # Generate API token via UI or API before first run, store as SEED_API_TOKEN secret
       - run: npm run seed:github
         env:
           SEED_API_TOKEN: ${{ secrets.SEED_API_TOKEN }}

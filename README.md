@@ -133,9 +133,7 @@ npm run seed
 # Seed database from GitHub repositories (generates real SBOMs)
 npm run seed:github
 
-# Create technical user for CI/CD or maintenance
-npx tsx schema/scripts/create-technical-user.ts <email> [name] [--superuser]
-npm run createuser -- <email> [name]
+# Technical users and API tokens are managed via the UI (/users) by superusers
 ```
 
 **For detailed database documentation**, see the [Contributing Guide](CONTRIBUTING.md#database-management).

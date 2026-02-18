@@ -60,7 +60,6 @@
     "seed": "tsx schema/scripts/seed.ts",
     "seed:clear": "tsx schema/scripts/seed.ts --clear",
     "seed:github": "tsx schema/scripts/seed-github.ts",
-    "createuser": "tsx schema/scripts/create-technical-user.ts",
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {

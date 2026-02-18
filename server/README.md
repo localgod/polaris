@@ -377,20 +377,12 @@ API tokens provide an alternative authentication method for programmatic access.
 
 #### Creating API Tokens
 
-Use the seed script to create a token for a user:
+API tokens are managed via the UI or API by superusers:
 
-```bash
-# Create token for a user by email
-tsx schema/scripts/seed-api-token.ts user@example.com
-```
+- **UI**: Navigate to `/users`, select a technical user, click "Generate API Token"
+- **API**: `POST /api/admin/users/<userId>/tokens` with a superuser bearer token
 
-The script will:
-1. Verify the user exists
-2. Generate a secure random token
-3. Store the SHA-256 hash in the database
-4. Display the plaintext token (one time only)
-
-**⚠️ Important**: Save the token immediately - it cannot be retrieved again!
+The token plaintext is displayed once on creation and cannot be retrieved again.
 
 #### Using API Tokens
 

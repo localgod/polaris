@@ -14,7 +14,7 @@
  *   npm run seed:github -- --repos="org/repo1,org/repo2"  # CLI repos
  * 
  * Requirements:
- *   - SEED_API_TOKEN environment variable (create with seed-api-token.ts)
+ *   - SEED_API_TOKEN environment variable (generate via UI or API)
  *   - Git installed
  *   - Internet connection
  * 
@@ -233,35 +233,50 @@ function getDriver(): neo4j.Driver {
 }
 
 /**
- * Ensure system and repository exist in database
+ * Ensure system and repository exist in database via REST API.
+ *
+ * Tries to create the system with the repository inline. If the system
+ * already exists (409), registers the repository separately.
  */
 async function ensureSystemExists(config: RepositoryConfig, apiToken: string): Promise<void> {
   console.log(`  🔍 Ensuring system exists: ${config.system.name}`)
   
   const baseUrl = getApiBaseUrl()
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiToken}`
+  }
+
+  const repoPayload = {
+    url: config.url,
+    scmType: config.repository.scmType,
+    name: config.repository.name,
+    isPublic: config.repository.isPublic,
+    requiresAuth: config.repository.requiresAuth
+  }
   
-  // Create system via API (will fail if exists, which is fine)
+  // Try to create system with repository inline
   try {
     const response = await fetch(`${baseUrl}/api/systems`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`
-      },
-      body: JSON.stringify(config.system)
+      headers,
+      body: JSON.stringify({
+        ...config.system,
+        repositories: [repoPayload]
+      })
     })
     
     if (response.ok) {
-      console.log(`  ✅ System created`)
+      console.log(`  ✅ System created with repository`)
+      return
     } else if (response.status === 409) {
-      // System already exists - this is fine
       console.log(`  ✅ System already exists`)
+      // Fall through to register repository separately
     } else {
       const error = await response.text()
       throw new Error(`Failed to create system: ${response.status} ${error}`)
     }
   } catch (error) {
-    // If it's a 409 conflict, that's okay
     if (error instanceof Error && error.message.includes('409')) {
       console.log(`  ✅ System already exists`)
     } else {
@@ -270,55 +285,44 @@ async function ensureSystemExists(config: RepositoryConfig, apiToken: string): P
     }
   }
   
-  // Create repository directly in Neo4j
-  await ensureRepositoryExists(config)
+  // System already existed — register the repository via API
+  await ensureRepositoryExists(config, apiToken)
 }
 
 /**
- * Ensure repository exists and is linked to system (using Neo4j directly)
+ * Register a repository for an existing system via REST API.
  */
-async function ensureRepositoryExists(config: RepositoryConfig): Promise<void> {
-  const driver = getDriver()
-  const session = driver.session()
-  
+async function ensureRepositoryExists(config: RepositoryConfig, apiToken: string): Promise<void> {
+  const baseUrl = getApiBaseUrl()
+  const systemName = encodeURIComponent(config.system.name)
+
   try {
-    // Create repository and link to system in one query
-    await session.run(
-      `
-      MERGE (r:Repository {url: $url})
-      SET r.scmType = $scmType,
-          r.name = $name,
-          r.description = $description,
-          r.isPublic = $isPublic,
-          r.requiresAuth = $requiresAuth,
-          r.defaultBranch = $defaultBranch,
-          r.createdAt = COALESCE(r.createdAt, datetime()),
-          r.lastSyncedAt = datetime()
-      
-      WITH r
-      MATCH (s:System {name: $systemName})
-      MERGE (s)-[:HAS_SOURCE_IN]->(r)
-      
-      RETURN r.url as url
-      `,
-      {
+    const response = await fetch(`${baseUrl}/api/systems/${systemName}/repositories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiToken}`
+      },
+      body: JSON.stringify({
         url: config.url,
-        scmType: config.repository.scmType,
-        name: config.repository.name,
-        description: config.repository.description || null,
-        isPublic: config.repository.isPublic,
-        requiresAuth: config.repository.requiresAuth,
-        defaultBranch: config.repository.defaultBranch || null,
-        systemName: config.system.name
-      }
-    )
-    
-    console.log(`  ✅ Repository created and linked to system`)
+        name: config.repository.name
+      })
+    })
+
+    if (response.ok) {
+      console.log(`  ✅ Repository registered for system`)
+    } else if (response.status === 409) {
+      console.log(`  ✅ Repository already linked to system`)
+    } else {
+      const error = await response.text()
+      throw new Error(`Failed to register repository: ${response.status} ${error}`)
+    }
   } catch (error) {
-    throw new Error(`Failed to create repository: ${error instanceof Error ? error.message : error}`)
-  } finally {
-    await session.close()
-    await driver.close()
+    if (error instanceof Error && error.message.includes('409')) {
+      console.log(`  ✅ Repository already linked to system`)
+    } else {
+      throw new Error(`Failed to register repository: ${error instanceof Error ? error.message : error}`)
+    }
   }
 }
 
@@ -590,12 +594,7 @@ async function createTeamSystemRelationships(): Promise<void> {
     return
   }
   
-  const uri = process.env.NEO4J_URI || 'bolt://localhost:7687'
-  const username = process.env.NEO4J_USERNAME || 'neo4j'
-  const password = process.env.NEO4J_PASSWORD || 'devpassword'
-  
-  const neo4jModule = await import('neo4j-driver')
-  const driver = neo4jModule.default.driver(uri, neo4jModule.default.auth.basic(username, password))
+  const driver = getDriver()
   const session = driver.session()
   
   try {
@@ -774,9 +773,9 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
   const apiToken = process.env.SEED_API_TOKEN
   if (!apiToken) {
     console.log('⚠️  SEED_API_TOKEN not found in environment\n')
-    console.log('Please create an API token for the technical user:')
-    console.log(`  npx tsx schema/scripts/seed-api-token.ts ${userEmail}`)
-    console.log('  Then add it to .env: SEED_API_TOKEN=your-token-here\n')
+    console.log(`Please generate an API token for ${userEmail} via the UI (/users)`)
+    console.log('or API (POST /api/admin/users/<userId>/tokens), then add to .env:')
+    console.log('  SEED_API_TOKEN=your-token-here\n')
     process.exit(1)
   }
   

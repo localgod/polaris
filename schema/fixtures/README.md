@@ -26,9 +26,8 @@ The `seed:github` command performs a complete seeding:
 3. Creates systems, repositories, and components
 
 ```bash
-# First time setup: create an API token (one-time)
-npm run createuser -- seed-bot@polaris.local "Seed Bot" --superuser
-npx tsx schema/scripts/seed-api-token.ts seed-bot@polaris.local
+# First time setup: create a technical user and API token via the UI (/users)
+# or via the API (POST /api/admin/users, POST /api/admin/users/<id>/tokens)
 # Add the token to .env as SEED_API_TOKEN
 
 # Full seed
