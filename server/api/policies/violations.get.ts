@@ -109,6 +109,8 @@
 import { PolicyService } from '../../services/policy.service'
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+
   try {
     const query = getQuery(event)
     const policyService = new PolicyService()

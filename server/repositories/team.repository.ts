@@ -175,6 +175,45 @@ export class TeamRepository extends BaseRepository {
   }
 
   /**
+   * Create a new team
+   *
+   * @param params - Team creation parameters
+   * @returns Created team name
+   */
+  async create(params: {
+    name: string
+    email: string | null
+    responsibilityArea: string | null
+    userId: string
+  }): Promise<string> {
+    const query = await loadQuery('teams/create.cypher')
+    const { records } = await this.executeQuery(query, params)
+    return records[0]!.get('name')
+  }
+
+  /**
+   * Update a team
+   *
+   * @param params - Team update parameters
+   * @returns Updated team name
+   */
+  async update(params: {
+    name: string
+    newName: string
+    email: string | null
+    responsibilityArea: string | null
+    changedFields: string[]
+    userId: string
+  }): Promise<string> {
+    const query = await loadQuery('teams/update.cypher')
+    const { records } = await this.executeQuery(query, params)
+    if (records.length === 0) {
+      throw new Error(`Team '${params.name}' not found`)
+    }
+    return records[0]!.get('name')
+  }
+
+  /**
    * Check if a team exists
    * 
    * @param name - Team name

@@ -165,7 +165,8 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
-const { status, data: session } = useAuth()
+const { status } = useAuth()
+const { isSuperuser } = useEffectiveRole()
 const { getSortableHeader } = useSortableTable()
 
 interface System {
@@ -270,8 +271,6 @@ const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems',
 
 const systems = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
-
-const isSuperuser = computed(() => session.value?.user?.role === 'superuser')
 
 // --- Import from GitHub ---
 

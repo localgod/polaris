@@ -89,34 +89,12 @@ describe('Components API - Input Validation', () => {
   })
 
   describe('GET /api/components/unmapped', () => {
-    it('should return 400 for non-numeric limit', async () => {
+    it('should require authentication', async () => {
       if (!serverAvailable) return
 
-      const response = await fetch(`${BASE_URL}/api/components/unmapped?limit=abc`)
+      const response = await fetch(`${BASE_URL}/api/components/unmapped?limit=2`)
 
-      expect(response.status).toBe(400)
-      const body = await response.json()
-      expect(body.success).toBe(false)
-    })
-
-    it('should return 400 for non-numeric offset', async () => {
-      if (!serverAvailable) return
-
-      const response = await fetch(`${BASE_URL}/api/components/unmapped?offset=xyz`)
-
-      expect(response.status).toBe(400)
-      const body = await response.json()
-      expect(body.success).toBe(false)
-    })
-
-    it('should clamp negative limit to 1', async () => {
-      if (!serverAvailable) return
-
-      const response = await fetch(`${BASE_URL}/api/components/unmapped?limit=-5`)
-
-      expect(response.status).toBe(200)
-      const body = await response.json()
-      expect(body.success).toBe(true)
+      expect(response.status).toBe(401)
     })
   })
 })

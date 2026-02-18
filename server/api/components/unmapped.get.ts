@@ -77,6 +77,8 @@ import { ComponentService } from '../../services/component.service'
  *         description: Failed to fetch unmapped components
  */
 export default defineEventHandler(async (event): Promise<ApiResponse<UnmappedComponent>> => {
+  await requireAuth(event)
+
   try {
     const query = getQuery(event)
 

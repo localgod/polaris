@@ -215,8 +215,7 @@ interface TeamsResponse {
   count: number
 }
 
-const { data: session } = useAuth()
-const isSuperuser = computed(() => session.value?.user?.role === 'superuser')
+const { isSuperuser } = useEffectiveRole()
 
 const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')

@@ -127,6 +127,8 @@ export type LicenseViolationResponse = (ApiSuccessResponse<LicenseViolation> & {
  *               $ref: '#/components/schemas/ApiErrorResponse'
  */
 export default defineEventHandler(async (event): Promise<LicenseViolationResponse> => {
+  await requireAuth(event)
+
   try {
     const query = getQuery(event)
     const filters = {

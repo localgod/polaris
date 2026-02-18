@@ -266,6 +266,18 @@ export class PolicyRepository extends BaseRepository {
    * 
    * @param name - Policy name
    */
+  /**
+   * Get the creator of a policy
+   */
+  async getCreator(name: string): Promise<string | null> {
+    const { records } = await this.executeQuery(
+      'MATCH (p:Policy {name: $name}) RETURN p.createdBy as createdBy',
+      { name }
+    )
+    if (records.length === 0) return null
+    return records[0]!.get('createdBy') || null
+  }
+
   async delete(name: string, userId: string): Promise<void> {
     const query = await loadQuery('policies/delete.cypher')
     await this.executeQuery(query, { name, userId })
@@ -289,6 +301,7 @@ export class PolicyRepository extends BaseRepository {
         status: $status,
         enforcedBy: $enforcedBy,
         licenseMode: $licenseMode,
+        createdBy: $userId,
         effectiveDate: date(),
         createdAt: datetime(),
         updatedAt: datetime()
@@ -304,7 +317,8 @@ export class PolicyRepository extends BaseRepository {
       scope: input.scope || 'organization',
       status: input.status || 'active',
       enforcedBy: input.enforcedBy || 'Security',
-      licenseMode: input.licenseMode || null
+      licenseMode: input.licenseMode || null,
+      userId: input.userId
     })
 
     // Audit log for policy creation

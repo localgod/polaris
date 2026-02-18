@@ -145,8 +145,7 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
 const route = useRoute()
-const { data: session } = useAuth()
-const isSuperuser = computed(() => (session.value as { user?: { role?: string } })?.user?.role === 'superuser')
+const { isSuperuser } = useEffectiveRole()
 
 interface UserTeam {
   name: string

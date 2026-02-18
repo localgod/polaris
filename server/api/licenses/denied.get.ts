@@ -26,7 +26,9 @@ import { PolicyRepository } from '../../repositories/policy.repository'
  *                     type: string
  */
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+
   const policyRepo = new PolicyRepository()
   
   try {

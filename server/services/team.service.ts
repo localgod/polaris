@@ -27,6 +27,46 @@ export class TeamService {
   }
 
   /**
+   * Create a new team
+   *
+   * Business rules:
+   * - Team name must be unique
+   * - Team name is required
+   *
+   * @param input - Team creation input
+   * @returns Created team name
+   * @throws Error if team already exists or validation fails
+   */
+  async create(input: {
+    name: string
+    email?: string | null
+    responsibilityArea?: string | null
+    userId: string
+  }): Promise<string> {
+    if (!input.name) {
+      throw createError({
+        statusCode: 400,
+        message: 'Team name is required'
+      })
+    }
+
+    const exists = await this.teamRepo.exists(input.name)
+    if (exists) {
+      throw createError({
+        statusCode: 409,
+        message: `A team with the name '${input.name}' already exists`
+      })
+    }
+
+    return await this.teamRepo.create({
+      name: input.name,
+      email: input.email || null,
+      responsibilityArea: input.responsibilityArea || null,
+      userId: input.userId
+    })
+  }
+
+  /**
    * Get a team by name
    * 
    * @param name - Team name
@@ -34,6 +74,65 @@ export class TeamService {
    */
   async findByName(name: string): Promise<Team | null> {
     return await this.teamRepo.findByName(name)
+  }
+
+  /**
+   * Update a team
+   *
+   * Business rules:
+   * - Team must exist
+   * - At least one field must be provided
+   *
+   * @param input - Team update input
+   * @returns Updated team name
+   * @throws Error if team not found or no fields provided
+   */
+  async update(input: {
+    name: string
+    newName?: string
+    email?: string | null
+    responsibilityArea?: string | null
+    userId: string
+  }): Promise<string> {
+    const exists = await this.teamRepo.exists(input.name)
+    if (!exists) {
+      throw createError({
+        statusCode: 404,
+        message: `Team '${input.name}' not found`
+      })
+    }
+
+    const changedFields: string[] = []
+    const newName = input.newName || input.name
+
+    if (input.newName && input.newName !== input.name) {
+      const nameConflict = await this.teamRepo.exists(input.newName)
+      if (nameConflict) {
+        throw createError({
+          statusCode: 409,
+          message: `A team with the name '${input.newName}' already exists`
+        })
+      }
+      changedFields.push('name')
+    }
+    if (input.email !== undefined) changedFields.push('email')
+    if (input.responsibilityArea !== undefined) changedFields.push('responsibilityArea')
+
+    if (changedFields.length === 0) {
+      throw createError({
+        statusCode: 422,
+        message: 'At least one field to update is required'
+      })
+    }
+
+    return await this.teamRepo.update({
+      name: input.name,
+      newName,
+      email: input.email ?? null,
+      responsibilityArea: input.responsibilityArea ?? null,
+      changedFields,
+      userId: input.userId
+    })
   }
 
   /**
