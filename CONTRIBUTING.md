@@ -376,30 +376,35 @@ npm run seed:clear
 
 ### Creating Technical Users
 
-For CI/CD pipelines, testing or maintenance tasks, create technical users that don't require OAuth:
+Technical users for CI/CD pipelines, testing, or maintenance are managed via the UI or API by superusers.
+
+**Via the UI:**
+
+1. Sign in as a superuser
+2. Navigate to `/users`
+3. Click "+ Create Technical User"
+4. On the user detail page, click "Generate API Token"
+
+**Via the API:**
 
 ```bash
-# Create a regular technical user
-npx tsx schema/scripts/create-technical-user.ts ci@example.com "CI Bot"
+# Create a technical user
+curl -X POST /api/admin/users \
+  -H "Authorization: Bearer <superuser-token>" \
+  -d '{"email": "ci@example.com", "name": "CI Bot", "role": "user"}'
 
-# Create a technical user with superuser privileges
-npx tsx schema/scripts/create-technical-user.ts admin@example.com "Admin Bot" --superuser
-
-# Using npm script (note the -- separator)
-npm run createuser -- ci@example.com "CI Bot"
+# Generate an API token
+curl -X POST /api/admin/users/<userId>/tokens \
+  -H "Authorization: Bearer <superuser-token>" \
+  -d '{"name": "CI Token"}'
 ```
 
 **Technical users:**
+
 - Use the `technical` provider (not OAuth)
 - Require API tokens for authentication
 - Can be assigned to teams via the admin UI or API
 - Support both regular user and superuser roles
-
-**After creating a technical user, generate an API token:**
-
-```bash
-npx tsx schema/scripts/seed-api-token.ts ci@example.com
-```
 
 The token will be displayed once and should be stored securely. Use it with the `Authorization: Bearer <token>` header for API requests.
 
