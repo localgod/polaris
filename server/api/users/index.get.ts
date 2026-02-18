@@ -1,4 +1,3 @@
-import { getServerSession } from '#auth'
 import { UserService } from '../../services/user.service'
 
 /**
@@ -55,14 +54,7 @@ import { UserService } from '../../services/user.service'
  *         description: Failed to fetch users
  */
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session || session.user?.role !== 'superuser') {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Forbidden: Superuser access required'
-    })
-  }
+  await requireSuperuser(event)
 
   try {
     const query = getQuery(event)

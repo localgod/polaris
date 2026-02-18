@@ -94,7 +94,9 @@ import { ComplianceService } from '../../services/compliance.service'
  *       500:
  *         description: Failed to fetch compliance violations
  */
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+
   try {
     const complianceService = new ComplianceService()
     const result = await complianceService.findViolations()

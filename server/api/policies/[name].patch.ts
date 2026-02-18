@@ -1,4 +1,5 @@
 import { PolicyService } from '../../services/policy.service'
+import { PolicyRepository } from '../../repositories/policy.repository'
 
 /**
  * @openapi
@@ -15,7 +16,7 @@ import { PolicyService } from '../../services/policy.service'
  *       - `draft`: Policy exists but is not enforced
  *       - `archived`: Policy is disabled and hidden from active views
  *       
- *       Requires superuser access.
+ *       Requires superuser access or policy creator.
  *     parameters:
  *       - in: path
  *         name: name
@@ -63,7 +64,7 @@ interface UpdatePolicyRequest {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = await requireSuperuser(event)
+  const user = await requireAuth(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -77,6 +78,18 @@ export default defineEventHandler(async (event) => {
   }
   
   const name = decodeURIComponent(rawName)
+
+  // Allow superusers or the policy creator
+  if (user.role !== 'superuser') {
+    const policyRepo = new PolicyRepository()
+    const creator = await policyRepo.getCreator(name)
+    if (creator !== user.id) {
+      throw createError({
+        statusCode: 403,
+        message: 'Only superusers or the policy creator can update this policy'
+      })
+    }
+  }
   
   let body: UpdatePolicyRequest
   try {

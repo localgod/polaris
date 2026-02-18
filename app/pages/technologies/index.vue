@@ -83,8 +83,8 @@ import type { ApiResponse, Technology } from '~~/types/api'
 
 const { getSortableHeader } = useSortableTable()
 const { data: session } = useAuth()
+const { isSuperuser } = useEffectiveRole()
 
-const isSuperuser = computed(() => session.value?.user?.role === 'superuser')
 const userTeams = computed(() =>
   (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
 )

@@ -50,7 +50,7 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
 const { getSortableHeader } = useSortableTable()
-const { data: session } = useAuth()
+const { isSuperuser: isSuperuserRef } = useEffectiveRole()
 
 interface License {
   id: string
@@ -142,7 +142,7 @@ const columns: TableColumn<License>[] = [
     meta: { class: { th: 'w-10', td: 'text-right' } },
     cell: ({ row }) => {
       const license = row.original
-      const isSuperuser = session.value?.user?.role === 'superuser'
+      const isSuperuser = isSuperuserRef.value
       const menuItems = [[
         {
           label: 'View Details',

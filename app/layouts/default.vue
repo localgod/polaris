@@ -170,6 +170,7 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 const { data: session, status, signOut } = useAuth()
 const { impersonation, impersonationLoading, fetchImpersonationStatus, startImpersonating, stopImpersonating } = useImpersonation()
+const { isSuperuser } = useEffectiveRole()
 
 // Fetch impersonation status on load for superusers
 watch(() => session.value?.user?.role, async (role) => {
@@ -268,8 +269,8 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
     }
   ]
 
-  // Add admin items for superusers
-  if (session.value?.user?.role === 'superuser') {
+  // Add admin items for superusers (hidden when impersonating a non-superuser)
+  if (isSuperuser.value) {
     items.push({
       label: 'Users',
       icon: 'i-lucide-user-cog',
@@ -310,6 +311,11 @@ const docsMenuItems = computed<NavigationMenuItem[][]>(() => [
       label: 'Audit Trail',
       icon: 'i-lucide-clipboard-list',
       to: '/docs/features/audit-trail'
+    },
+    {
+      label: 'Access Model',
+      icon: 'i-lucide-shield',
+      to: '/docs/access-model'
     },
     {
       label: 'Graph Model',

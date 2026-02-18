@@ -1,4 +1,5 @@
 import { PolicyService } from '../../services/policy.service'
+import { PolicyRepository } from '../../repositories/policy.repository'
 
 /**
  * @openapi
@@ -9,7 +10,7 @@ import { PolicyService } from '../../services/policy.service'
  *     summary: Delete a policy
  *     description: |
  *       Deletes a policy and all its relationships.
- *       Requires superuser access.
+ *       Requires superuser access or policy creator.
  *     parameters:
  *       - in: path
  *         name: name
@@ -32,7 +33,7 @@ import { PolicyService } from '../../services/policy.service'
  *         description: Policy not found
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireSuperuser(event)
+  const user = await requireAuth(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -44,6 +45,18 @@ export default defineEventHandler(async (event) => {
   }
   
   const name = decodeURIComponent(rawName)
+
+  // Allow superusers or the policy creator
+  if (user.role !== 'superuser') {
+    const policyRepo = new PolicyRepository()
+    const creator = await policyRepo.getCreator(name)
+    if (creator !== user.id) {
+      throw createError({
+        statusCode: 403,
+        message: 'Only superusers or the policy creator can delete this policy'
+      })
+    }
+  }
   
   const policyService = new PolicyService()
   await policyService.delete(name, user.id)
