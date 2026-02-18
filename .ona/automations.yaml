@@ -9,7 +9,7 @@ tasks:
       npm install
       echo "✅ Dependencies installed"
     triggeredBy:
-      - postEnvironmentStart
+      - postDevcontainerStart
     
   # Wait for Neo4j to be ready
   # Runs automatically on environment start

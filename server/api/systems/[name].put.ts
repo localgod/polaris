@@ -138,9 +138,7 @@ export default defineEventHandler(async (event) => {
     SET s.domain = $domain,
         s.businessCriticality = $businessCriticality,
         s.environment = $environment,
-        s.description = $description,
-        s.sourceCodeType = $sourceCodeType,
-        s.hasSourceAccess = $hasSourceAccess
+        s.description = $description
     
     // Create new ownership
     MERGE (team)-[:OWNS]->(s)
@@ -153,7 +151,7 @@ export default defineEventHandler(async (event) => {
       entityType: 'System',
       entityId: s.name,
       entityLabel: s.name,
-      changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description', 'sourceCodeType', 'hasSourceAccess'],
+      changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description'],
       source: 'API',
       userId: $userId
     })
@@ -170,8 +168,6 @@ export default defineEventHandler(async (event) => {
     businessCriticality: body.businessCriticality,
     environment: body.environment,
     description: body.description || null,
-    sourceCodeType: body.sourceCodeType || 'unknown',
-    hasSourceAccess: body.hasSourceAccess || false,
     userId: user.id
   })
   

@@ -103,14 +103,10 @@ interface CreateSystemRequest {
   ownerTeam: string
   businessCriticality: string
   environment: string
-  sourceCodeType?: string
-  hasSourceAccess?: boolean
   repositories?: Array<{
     url: string
-    scmType: string
     name: string
-    isPublic: boolean
-    requiresAuth: boolean
+    isPublic?: boolean
   }>
 }
 

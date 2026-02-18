@@ -56,17 +56,13 @@ async function testMultiSystemRepo() {
       MERGE (s1:System {name: 'test-system-1'})
       SET s1.domain = 'test',
           s1.businessCriticality = 'low',
-          s1.environment = 'dev',
-          s1.sourceCodeType = 'proprietary',
-          s1.hasSourceAccess = true
+          s1.environment = 'dev'
       MERGE (team)-[:OWNS]->(s1)
       
       MERGE (s2:System {name: 'test-system-2'})
       SET s2.domain = 'test',
           s2.businessCriticality = 'low',
-          s2.environment = 'dev',
-          s2.sourceCodeType = 'proprietary',
-          s2.hasSourceAccess = true
+          s2.environment = 'dev'
       MERGE (team)-[:OWNS]->(s2)
     `);
     console.log('✅ Systems created: test-system-1, test-system-2');

@@ -116,14 +116,10 @@ export class GitHubImportService {
         ownerTeam: input.ownerTeam || '',
         businessCriticality: input.businessCriticality || 'medium',
         environment: input.environment || 'dev',
-        sourceCodeType: metadata.private ? 'proprietary' : 'open-source',
-        hasSourceAccess: true,
         repositories: [{
           url: repoUrl,
-          scmType: 'git',
           name: metadata.name,
           isPublic: !metadata.private,
-          requiresAuth: metadata.private
         }],
         userId: input.userId
       })

@@ -27,7 +27,7 @@
         </UBadge>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <UCard>
           <div class="text-center">
             <p class="text-sm text-(--ui-text-muted)">Components</p>
@@ -50,6 +50,12 @@
           <div class="text-center">
             <p class="text-sm text-(--ui-text-muted)">Criticality</p>
             <p class="text-2xl font-bold mt-1">{{ data.data.businessCriticality || '—' }}</p>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <p class="text-sm text-(--ui-text-muted)">Last BOM Scan</p>
+            <p class="text-2xl font-bold mt-1">{{ data.data.lastSbomScanAt ? formatDate(data.data.lastSbomScanAt) : '—' }}</p>
           </div>
         </UCard>
       </div>
@@ -129,6 +135,7 @@ interface System {
   environment: string
   componentCount: number
   repositoryCount: number
+  lastSbomScanAt: string | null
 }
 
 interface SystemResponse {
@@ -137,6 +144,10 @@ interface SystemResponse {
 }
 
 const { data, pending, error } = await useFetch<SystemResponse>(() => `/api/systems/${encodeURIComponent(route.params.name as string)}`)
+
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleString()
+}
 
 function getCriticalityColor(criticality: string): 'error' | 'warning' | 'success' | 'neutral' {
   const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {

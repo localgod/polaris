@@ -29,7 +29,6 @@ interface FixtureData {
     name: string
     category: string
     vendor: string
-    status: string
     approvedVersionRange: string
     ownerTeam: string
     riskLevel: string
@@ -41,7 +40,6 @@ interface FixtureData {
     releaseDate: string
     eolDate: string
     approved: boolean
-    cvssScore: number
     notes: string
   }>
   policies: Array<{
@@ -135,7 +133,6 @@ async function seedTechnologies(driver: neo4j.Driver, technologies: FixtureData[
         MERGE (t:Technology {name: $name})
         SET t.category = $category,
             t.vendor = $vendor,
-            t.status = $status,
             t.approvedVersionRange = $approvedVersionRange,
             t.ownerTeam = $ownerTeam,
             t.riskLevel = $riskLevel,
@@ -163,7 +160,6 @@ async function seedVersions(driver: neo4j.Driver, versions: FixtureData['version
         SET v.releaseDate = date($releaseDate),
             v.eolDate = date($eolDate),
             v.approved = $approved,
-            v.cvssScore = $cvssScore,
             v.notes = $notes
         `,
         version

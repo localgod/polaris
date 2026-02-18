@@ -36,7 +36,6 @@
       "name": "Angular",
       "category": "framework",
       "vendor": "Google",
-      "status": "deprecated",
       "approvedVersionRange": ">=16.0.0 <17.0.0",
       "ownerTeam": "Frontend Platform",
       "riskLevel": "medium",
@@ -46,7 +45,6 @@
       "name": "Node.js",
       "category": "runtime",
       "vendor": "OpenJS Foundation",
-      "status": "approved",
       "approvedVersionRange": ">=20.0.0 <22.0.0",
       "ownerTeam": "Backend Platform",
       "riskLevel": "low",
@@ -56,7 +54,6 @@
       "name": "PostgreSQL",
       "category": "database",
       "vendor": "PostgreSQL Global Development Group",
-      "status": "approved",
       "approvedVersionRange": ">=15.0.0 <17.0.0",
       "ownerTeam": "Data Platform",
       "riskLevel": "low",
@@ -66,7 +63,6 @@
       "name": "Neo4j",
       "category": "database",
       "vendor": "Neo4j Inc.",
-      "status": "approved",
       "approvedVersionRange": ">=5.0.0 <6.0.0",
       "ownerTeam": "Data Platform",
       "riskLevel": "low",
@@ -76,7 +72,6 @@
       "name": "MongoDB",
       "category": "database",
       "vendor": "MongoDB Inc.",
-      "status": "experimental",
       "approvedVersionRange": ">=7.0.0 <8.0.0",
       "ownerTeam": "Data Platform",
       "riskLevel": "medium",
@@ -86,7 +81,6 @@
       "name": "Docker",
       "category": "container",
       "vendor": "Docker Inc.",
-      "status": "approved",
       "approvedVersionRange": ">=24.0.0 <26.0.0",
       "ownerTeam": "DevOps",
       "riskLevel": "low",
@@ -96,7 +90,6 @@
       "name": "MySQL",
       "category": "database",
       "vendor": "Oracle",
-      "status": "experimental",
       "approvedVersionRange": ">=8.0.0 <9.0.0",
       "ownerTeam": "Data Platform",
       "riskLevel": "medium",
@@ -106,7 +99,6 @@
       "name": "Redis",
       "category": "cache",
       "vendor": "Redis Ltd.",
-      "status": "approved",
       "approvedVersionRange": ">=7.0.0 <8.0.0",
       "ownerTeam": "Backend Platform",
       "riskLevel": "low",
@@ -120,7 +112,6 @@
       "releaseDate": "2024-01-09",
       "eolDate": "2026-04-30",
       "approved": true,
-      "cvssScore": 0,
       "notes": "LTS version"
     },
     {
@@ -129,7 +120,6 @@
       "releaseDate": "2023-11-09",
       "eolDate": "2028-11-09",
       "approved": true,
-      "cvssScore": 0,
       "notes": "Latest stable version"
     },
     {
@@ -138,7 +128,6 @@
       "releaseDate": "2024-10-01",
       "eolDate": "2027-10-01",
       "approved": true,
-      "cvssScore": 0,
       "notes": "Community edition"
     }
   ],

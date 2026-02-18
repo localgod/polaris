@@ -13,8 +13,6 @@ const mockSystems: System[] = [
     ownerTeam: 'Platform Team',
     businessCriticality: 'high',
     environment: 'prod',
-    sourceCodeType: 'internal',
-    hasSourceAccess: true,
     componentCount: 42,
     repositoryCount: 2
   },
@@ -24,8 +22,6 @@ const mockSystems: System[] = [
     ownerTeam: 'Customer Team',
     businessCriticality: 'critical',
     environment: 'prod',
-    sourceCodeType: 'internal',
-    hasSourceAccess: true,
     componentCount: 156,
     repositoryCount: 3
   }

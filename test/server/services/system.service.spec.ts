@@ -20,8 +20,6 @@ describe('SystemService', () => {
       ownerTeam: 'Platform Team',
       businessCriticality: 'high',
       environment: 'prod',
-      sourceCodeType: 'internal',
-      hasSourceAccess: true,
       componentCount: 42,
       repositoryCount: 2
     },
@@ -31,8 +29,6 @@ describe('SystemService', () => {
       ownerTeam: 'Customer Team',
       businessCriticality: 'critical',
       environment: 'prod',
-      sourceCodeType: 'internal',
-      hasSourceAccess: true,
       componentCount: 156,
       repositoryCount: 3
     }
@@ -109,9 +105,7 @@ describe('SystemService', () => {
           domain: 'Platform',
           ownerTeam: 'Platform Team',
           businessCriticality: 'medium',
-          environment: 'dev',
-          sourceCodeType: 'unknown',
-          hasSourceAccess: false
+          environment: 'dev'
         })
       )
     })
@@ -147,60 +141,6 @@ describe('SystemService', () => {
 
       await expect(systemService.create(validInput)).rejects.toThrow('already exists')
       expect(SystemRepository.prototype.create).not.toHaveBeenCalled()
-    })
-
-    it('should derive sourceCodeType as "open-source" when public repositories exist', async () => {
-      const inputWithPublicRepo = {
-        ...validInput,
-        repositories: [
-          {
-            url: 'https://github.com/org/repo',
-            scmType: 'git',
-            name: 'repo',
-            isPublic: true,
-            requiresAuth: false
-          }
-        ]
-      }
-
-      vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
-      vi.mocked(SystemRepository.prototype.create).mockResolvedValue('new-system')
-
-      await systemService.create(inputWithPublicRepo)
-
-      expect(SystemRepository.prototype.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourceCodeType: 'open-source',
-          hasSourceAccess: true
-        })
-      )
-    })
-
-    it('should derive sourceCodeType as "proprietary" when only private repositories exist', async () => {
-      const inputWithPrivateRepo = {
-        ...validInput,
-        repositories: [
-          {
-            url: 'https://github.com/org/private-repo',
-            scmType: 'git',
-            name: 'private-repo',
-            isPublic: false,
-            requiresAuth: true
-          }
-        ]
-      }
-
-      vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
-      vi.mocked(SystemRepository.prototype.create).mockResolvedValue('new-system')
-
-      await systemService.create(inputWithPrivateRepo)
-
-      expect(SystemRepository.prototype.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourceCodeType: 'proprietary',
-          hasSourceAccess: true
-        })
-      )
     })
 
     it('should normalize repository URLs', async () => {

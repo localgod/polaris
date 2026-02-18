@@ -307,7 +307,6 @@ interface VersionDetail {
   releaseDate: string | null
   eolDate: string | null
   approved: boolean
-  cvssScore: number | null
   notes: string | null
 }
 

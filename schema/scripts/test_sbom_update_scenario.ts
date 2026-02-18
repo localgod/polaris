@@ -52,27 +52,21 @@ async function testSBOMUpdateScenario() {
       MERGE (s1:System {name: 'frontend-app'})
       SET s1.domain = 'customer-experience',
           s1.businessCriticality = 'high',
-          s1.environment = 'prod',
-          s1.sourceCodeType = 'proprietary',
-          s1.hasSourceAccess = true
+          s1.environment = 'prod'
       MERGE (team)-[:OWNS]->(s1)
       MERGE (s1)-[:HAS_SOURCE_IN]->(repo)
       
       MERGE (s2:System {name: 'backend-api'})
       SET s2.domain = 'platform',
           s2.businessCriticality = 'critical',
-          s2.environment = 'prod',
-          s2.sourceCodeType = 'proprietary',
-          s2.hasSourceAccess = true
+          s2.environment = 'prod'
       MERGE (team)-[:OWNS]->(s2)
       MERGE (s2)-[:HAS_SOURCE_IN]->(repo)
       
       MERGE (s3:System {name: 'admin-service'})
       SET s3.domain = 'internal-tools',
           s3.businessCriticality = 'medium',
-          s3.environment = 'prod',
-          s3.sourceCodeType = 'proprietary',
-          s3.hasSourceAccess = true
+          s3.environment = 'prod'
       MERGE (team)-[:OWNS]->(s3)
       MERGE (s3)-[:HAS_SOURCE_IN]->(repo)
     `, { repoUrl: monorepoUrl });

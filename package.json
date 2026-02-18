@@ -60,6 +60,7 @@
     "seed": "tsx schema/scripts/seed.ts",
     "seed:clear": "tsx schema/scripts/seed.ts --clear",
     "seed:github": "tsx schema/scripts/seed-github.ts",
+    "schema:dump": "tsx schema/scripts/dump-schema.ts",
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
