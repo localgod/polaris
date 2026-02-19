@@ -22,6 +22,15 @@ export interface UpsertApprovalParams {
   userId: string
 }
 
+export interface UpdateTechnologyParams {
+  name: string
+  category: string
+  vendor: string | null
+  ownerTeam: string | null
+  lastReviewed: string | null
+  userId: string
+}
+
 export interface CreateTechnologyParams {
   name: string
   category: string
@@ -154,9 +163,15 @@ export class TechnologyRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Delete a technology and all its relationships
-   */
+  async update(params: UpdateTechnologyParams): Promise<string> {
+    const query = await loadQuery('technologies/update.cypher')
+    const { records } = await this.executeQuery(query, params)
+    if (records.length === 0) {
+      throw createError({ statusCode: 404, message: `Technology '${params.name}' not found` })
+    }
+    return records[0]!.get('name')
+  }
+
   async delete(name: string, userId: string): Promise<void> {
     const query = await loadQuery('technologies/delete.cypher')
     await this.executeQuery(query, { name, userId })
@@ -170,11 +185,9 @@ export class TechnologyRepository extends BaseRepository {
       name: record.get('name'),
       category: record.get('category'),
       vendor: record.get('vendor'),
-      approvedVersionRange: record.get('approvedVersionRange'),
-      ownerTeam: record.get('ownerTeam'),
-      riskLevel: record.get('riskLevel'),
       lastReviewed: record.get('lastReviewed')?.toString(),
       ownerTeamName: record.get('ownerTeamName'),
+      componentCount: record.get('componentCount').toInt(),
       versions: record.get('versions').filter((v: string) => v),
       approvals: record.get('approvals').filter((a: { team?: string }) => a.team)
     }
@@ -249,9 +262,6 @@ export class TechnologyRepository extends BaseRepository {
       name: record.get('name'),
       category: record.get('category'),
       vendor: record.get('vendor'),
-      approvedVersionRange: record.get('approvedVersionRange'),
-      ownerTeam: record.get('ownerTeam'),
-      riskLevel: record.get('riskLevel'),
       lastReviewed: record.get('lastReviewed')?.toString(),
       ownerTeamName: record.get('ownerTeamName'),
       ownerTeamEmail: record.get('ownerTeamEmail'),

@@ -143,6 +143,8 @@ const categoryItems = [
   { label: 'Framework', value: 'framework' },
   { label: 'Library', value: 'library' },
   { label: 'Database', value: 'database' },
+  { label: 'Cache', value: 'cache' },
+  { label: 'Container', value: 'container' },
   { label: 'Platform', value: 'platform' },
   { label: 'Tool', value: 'tool' },
   { label: 'Runtime', value: 'runtime' },

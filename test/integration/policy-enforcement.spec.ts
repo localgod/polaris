@@ -35,16 +35,12 @@ describeFeature(feature, ({ Scenario }) => {
         CREATE (react:Technology {
           name: $reactName,
           category: 'framework',
-          vendor: 'Meta',
-          status: 'approved',
-          riskLevel: 'low'
+          vendor: 'Meta'
         })
         CREATE (oldLib:Technology {
           name: $oldLibName,
           category: 'library',
-          vendor: 'Unknown',
-          status: 'deprecated',
-          riskLevel: 'high'
+          vendor: 'Unknown'
         })
       `, {
         reactName: `${testPrefix}React`,
@@ -501,16 +497,14 @@ describeFeature(feature, ({ Scenario }) => {
       try {
         const result = await session.run(`
           MATCH (policy:Policy)-[:GOVERNS]->(tech:Technology)
-          WHERE tech.riskLevel IN ['high', 'critical']
-            AND tech.name STARTS WITH $prefix
-          RETURN policy.name as policyName, tech.name as techName, tech.riskLevel as riskLevel
+          WHERE tech.name STARTS WITH $prefix
+          RETURN policy.name as policyName, tech.name as techName
         `, { prefix: testPrefix })
 
         expect(result.records.length).toBeGreaterThan(0)
         const record = result.records[0]
         expect(record.get('policyName')).toBe(`${testPrefix}OrgPolicy`)
         expect(record.get('techName')).toBe(`${testPrefix}OldLib`)
-        expect(record.get('riskLevel')).toBe('high')
       } finally {
         await session.close()
       }

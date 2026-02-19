@@ -56,8 +56,6 @@
  *                         type: string
  *                       technologyCategory:
  *                         type: string
- *                       riskLevel:
- *                         type: string
  *                       policy:
  *                         type: object
  *                         properties:
@@ -90,7 +88,6 @@
  *                 - team: frontend-team
  *                   technology: jQuery
  *                   technologyCategory: library
- *                   riskLevel: medium
  *                   policy:
  *                     name: deprecated-libraries
  *                     description: Deprecated libraries must not be used

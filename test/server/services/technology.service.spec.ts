@@ -7,8 +7,7 @@ vi.mock('../../../server/repositories/technology.repository')
 
 const mockTech: TechnologyDetail = {
   name: 'React', category: 'framework', vendor: 'Meta',
-  approvedVersionRange: null, ownerTeam: 'Frontend', riskLevel: null,
-  lastReviewed: null, ownerTeamName: null, versions: [], approvals: []
+  lastReviewed: null, ownerTeamName: null, componentCount: 0, versions: [], approvals: []
 }
 
 describe('TechnologyService', () => {

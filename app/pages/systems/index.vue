@@ -158,6 +158,72 @@
         </form>
       </template>
     </UModal>
+
+    <!-- Edit System Modal -->
+    <UModal v-model:open="showEditSystemModal">
+      <template #header>
+        <h3 class="text-lg font-semibold">Edit System: {{ editSystemForm.name }}</h3>
+      </template>
+      <template #body>
+        <form id="edit-system-form" class="space-y-4" @submit.prevent="confirmEditSystem">
+          <div>
+            <label class="block text-sm font-medium mb-1">Domain *</label>
+            <UInput v-model="editSystemForm.domain" required />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Owner Team *</label>
+            <USelect v-model="editSystemForm.ownerTeam" :items="editTeamOptions" placeholder="Select team" required />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Criticality *</label>
+              <USelect v-model="editSystemForm.businessCriticality" :items="['low', 'medium', 'high', 'critical']" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Environment *</label>
+              <USelect v-model="editSystemForm.environment" :items="['dev', 'test', 'staging', 'prod']" required />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <UTextarea v-model="editSystemForm.description" placeholder="System description" />
+          </div>
+        </form>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton type="button" label="Cancel" color="neutral" variant="outline" @click="showEditSystemModal = false" />
+          <UButton
+            type="submit"
+            form="edit-system-form"
+            :loading="isEditingSystem"
+            :label="isEditingSystem ? 'Saving...' : 'Save'"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Delete System Confirmation Modal -->
+    <UModal v-model:open="showDeleteSystemModal">
+      <template #header>
+        <h3 class="text-lg font-semibold">Delete System</h3>
+      </template>
+      <template #body>
+        <p>Are you sure you want to delete <strong>{{ deleteSystemTarget }}</strong>?</p>
+        <p class="text-sm text-(--ui-text-muted) mt-2">This will remove the system and all its component relationships. This action cannot be undone.</p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="showDeleteSystemModal = false" />
+          <UButton
+            :label="isDeletingSystem ? 'Deleting...' : 'Delete'"
+            color="error"
+            :loading="isDeletingSystem"
+            @click="confirmDeleteSystem"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -245,7 +311,11 @@ const columns: TableColumn<System>[] = [
       const system = row.original
       const items = [[
         { label: 'View Details', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/systems/${encodeURIComponent(system.name)}`) },
-        { label: 'Unmapped Components', icon: 'i-lucide-package-x', onSelect: () => navigateTo(`/systems/${encodeURIComponent(system.name)}/unmapped-components`) }
+        { label: 'Unmapped Components', icon: 'i-lucide-package-x', onSelect: () => navigateTo(`/systems/${encodeURIComponent(system.name)}/unmapped-components`) },
+        ...(isSuperuser.value ? [
+          { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEditSystemModal(system) },
+          { label: 'Delete', icon: 'i-lucide-trash-2', onSelect: () => openDeleteSystemModal(system.name) }
+        ] : [])
       ]]
       return h(resolveComponent('UDropdownMenu'), { items, content: { align: 'end' } }, {
         default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
@@ -361,6 +431,75 @@ async function handleImport() {
     importError.value = err.data?.message || err.message || 'Import failed'
   } finally {
     isImporting.value = false
+  }
+}
+
+// --- Edit System ---
+const showEditSystemModal = ref(false)
+const isEditingSystem = ref(false)
+const editSystemForm = ref({ name: '', domain: '', ownerTeam: '', businessCriticality: '', environment: '', description: '' })
+const editTeamOptions = computed(() => {
+  const teams = new Set<string>()
+  systems.value.forEach(s => { if (s.ownerTeam) teams.add(s.ownerTeam) })
+  return Array.from(teams).sort()
+})
+
+function openEditSystemModal(system: System) {
+  editSystemForm.value = {
+    name: system.name,
+    domain: system.domain || '',
+    ownerTeam: system.ownerTeam || '',
+    businessCriticality: system.businessCriticality || 'medium',
+    environment: system.environment || 'dev',
+    description: ''
+  }
+  showEditSystemModal.value = true
+}
+
+async function confirmEditSystem() {
+  isEditingSystem.value = true
+  try {
+    await $fetch(`/api/systems/${encodeURIComponent(editSystemForm.value.name)}`, {
+      method: 'PUT',
+      body: {
+        domain: editSystemForm.value.domain,
+        ownerTeam: editSystemForm.value.ownerTeam,
+        businessCriticality: editSystemForm.value.businessCriticality,
+        environment: editSystemForm.value.environment,
+        description: editSystemForm.value.description || null
+      }
+    })
+    showEditSystemModal.value = false
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    alert(err.data?.message || err.message || 'Failed to update system')
+  } finally {
+    isEditingSystem.value = false
+  }
+}
+
+// --- Delete System ---
+const showDeleteSystemModal = ref(false)
+const deleteSystemTarget = ref('')
+const isDeletingSystem = ref(false)
+
+function openDeleteSystemModal(name: string) {
+  deleteSystemTarget.value = name
+  showDeleteSystemModal.value = true
+}
+
+async function confirmDeleteSystem() {
+  isDeletingSystem.value = true
+  try {
+    await $fetch(`/api/systems/${encodeURIComponent(deleteSystemTarget.value)}`, { method: 'DELETE' })
+    showDeleteSystemModal.value = false
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    alert(err.data?.message || err.message || 'Failed to delete system')
+  } finally {
+    isDeletingSystem.value = false
   }
 }
 

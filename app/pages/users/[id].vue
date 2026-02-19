@@ -137,6 +137,28 @@
         </template>
       </UModal>
     </template>
+
+    <!-- Revoke Token Confirmation Modal -->
+    <UModal v-model:open="revokeModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">Revoke Token</h3>
+      </template>
+      <template #body>
+        <p>Are you sure you want to revoke this API token?</p>
+        <p class="text-sm text-(--ui-text-muted) mt-2">This action cannot be undone. Any integrations using this token will stop working.</p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="revokeModalOpen = false" />
+          <UButton
+            :label="revokeLoading ? 'Revoking...' : 'Revoke'"
+            color="error"
+            :loading="revokeLoading"
+            @click="confirmRevokeToken"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -260,7 +282,7 @@ const tokenColumns: TableColumn<TokenInfo>[] = [
         color: 'error',
         variant: 'ghost',
         size: 'xs',
-        onClick: () => revokeToken(token.id)
+        onClick: () => openRevokeModal(token.id)
       })
     }
   }
@@ -343,15 +365,28 @@ function copyToken() {
   navigator.clipboard.writeText(generatedToken.value)
 }
 
-async function revokeToken(tokenId: string) {
-  if (!confirm('Revoke this token? This cannot be undone.')) return
+// Revoke token modal state
+const revokeModalOpen = ref(false)
+const revokeTargetId = ref<string | null>(null)
+const revokeLoading = ref(false)
 
+function openRevokeModal(tokenId: string) {
+  revokeTargetId.value = tokenId
+  revokeModalOpen.value = true
+}
+
+async function confirmRevokeToken() {
+  if (!revokeTargetId.value) return
+  revokeLoading.value = true
   try {
-    await $fetch(`/api/admin/users/${route.params.id}/tokens/${tokenId}`, { method: 'DELETE' })
+    await $fetch(`/api/admin/users/${route.params.id}/tokens/${revokeTargetId.value}`, { method: 'DELETE' })
+    revokeModalOpen.value = false
     await refresh()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
     alert(err.data?.message || err.message || 'Failed to revoke token')
+  } finally {
+    revokeLoading.value = false
   }
 }
 </script>

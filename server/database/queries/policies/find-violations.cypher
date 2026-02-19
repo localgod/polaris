@@ -7,7 +7,6 @@ OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(policy)
 RETURN team.name as teamName,
        tech.name as technologyName,
        tech.category as technologyCategory,
-       tech.riskLevel as riskLevel,
        policy.name as policyName,
        policy.description as policyDescription,
        policy.severity as severity,

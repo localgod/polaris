@@ -39,7 +39,6 @@ export interface PolicyViolation {
   team: string
   technology: string
   technologyCategory: string
-  riskLevel: string
   policy: {
     name: string
     description: string
@@ -751,7 +750,6 @@ export class PolicyRepository extends BaseRepository {
       team: record.get('teamName'),
       technology: record.get('technologyName'),
       technologyCategory: record.get('technologyCategory'),
-      riskLevel: record.get('riskLevel'),
       policy: {
         name: record.get('policyName'),
         description: record.get('policyDescription'),

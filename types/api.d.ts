@@ -117,11 +117,9 @@ export interface Technology {
   name: string
   category: string
   vendor: string | null
-  approvedVersionRange: string | null
-  ownerTeam: string | null
-  riskLevel: string | null
   lastReviewed: string | null
   ownerTeamName: string | null
+  componentCount: number
   versions: string[]
   approvals: TechnologyApproval[]
 }

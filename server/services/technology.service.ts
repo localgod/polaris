@@ -1,6 +1,8 @@
-import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
+import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
 import type { Technology } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
+
+const VALID_CATEGORIES = ['language', 'framework', 'library', 'database', 'cache', 'container', 'platform', 'tool', 'runtime', 'other']
 
 export interface SetApprovalInput {
   technologyName: string
@@ -18,6 +20,15 @@ export interface CreateTechnologyInput {
   ownerTeam?: string
   componentName?: string
   componentPackageManager?: string
+  userId: string
+}
+
+export interface UpdateTechnologyInput {
+  name: string
+  category: string
+  vendor?: string
+  ownerTeam?: string
+  lastReviewed?: string
   userId: string
 }
 
@@ -71,11 +82,10 @@ export class TechnologyService {
       })
     }
 
-    const validCategories = ['language', 'framework', 'library', 'database', 'platform', 'tool', 'runtime', 'other']
-    if (!validCategories.includes(input.category)) {
+    if (!VALID_CATEGORIES.includes(input.category)) {
       throw createError({
         statusCode: 422,
-        message: `Invalid category. Must be one of: ${validCategories.join(', ')}`
+        message: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}`
       })
     }
 
@@ -128,6 +138,44 @@ export class TechnologyService {
     }
 
     await this.techRepo.delete(name, userId)
+  }
+
+  /**
+   * Update a technology's properties and ownership
+   */
+  async update(input: UpdateTechnologyInput): Promise<string> {
+    if (!input.category) {
+      throw createError({
+        statusCode: 400,
+        message: 'Category is required'
+      })
+    }
+
+    if (!VALID_CATEGORIES.includes(input.category)) {
+      throw createError({
+        statusCode: 422,
+        message: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}`
+      })
+    }
+
+    const exists = await this.techRepo.exists(input.name)
+    if (!exists) {
+      throw createError({
+        statusCode: 404,
+        message: `Technology '${input.name}' not found`
+      })
+    }
+
+    const params: UpdateTechnologyParams = {
+      name: input.name,
+      category: input.category,
+      vendor: input.vendor || null,
+      ownerTeam: input.ownerTeam || null,
+      lastReviewed: input.lastReviewed || null,
+      userId: input.userId
+    }
+
+    return await this.techRepo.update(params)
   }
 
   /**
