@@ -3,7 +3,7 @@ OPTIONAL MATCH (team:Team)-[:OWNS]->(t)
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
 OPTIONAL MATCH (c:Component)-[:IS_VERSION_OF]->(t)
 OPTIONAL MATCH (sys:System)-[:USES]->(c)
-OPTIONAL MATCH (p:Policy)-[:APPLIES_TO]->(t)
+OPTIONAL MATCH (p:Policy)-[:GOVERNS]->(t)
 OPTIONAL MATCH (approvalTeam:Team)-[techApproval:APPROVES]->(t)
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(approvedVersion:Version)
 OPTIONAL MATCH (versionApprovalTeam:Team)-[versionApproval:APPROVES]->(approvedVersion)
@@ -29,7 +29,9 @@ RETURN t.name as name,
        collect(DISTINCT {
          name: p.name,
          severity: p.severity,
-         ruleType: p.ruleType
+         ruleType: p.ruleType,
+         versionRange: p.versionRange,
+         status: p.status
        }) as policies,
        collect(DISTINCT {
          team: approvalTeam.name,
@@ -39,8 +41,7 @@ RETURN t.name as name,
          eolDate: techApproval.eolDate,
          migrationTarget: techApproval.migrationTarget,
          notes: techApproval.notes,
-         approvedBy: techApproval.approvedBy,
-         versionConstraint: techApproval.versionConstraint
+         approvedBy: techApproval.approvedBy
        }) as technologyApprovals,
        collect(DISTINCT {
          team: versionApprovalTeam.name,

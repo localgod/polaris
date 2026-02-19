@@ -8,7 +8,6 @@ export interface SetApprovalInput {
   technologyName: string
   teamName: string
   time: string
-  versionConstraint?: string
   notes?: string
   userId: string
 }
@@ -203,7 +202,6 @@ export class TechnologyService {
       teamName: input.teamName,
       time: input.time,
       approvedBy: input.userId,
-      versionConstraint: input.versionConstraint || null,
       notes: input.notes || null,
       userId: input.userId
     }

@@ -17,7 +17,6 @@ export interface UpsertApprovalParams {
   teamName: string
   time: string
   approvedBy: string
-  versionConstraint: string | null
   notes: string | null
   userId: string
 }
@@ -63,7 +62,6 @@ export interface TechnologyDetail extends Technology {
     migrationTarget: string | null
     notes: string | null
     approvedBy: string | null
-    versionConstraint: string | null
   }>
   versionApprovals?: Array<{
     team: string
@@ -188,6 +186,7 @@ export class TechnologyRepository extends BaseRepository {
       lastReviewed: record.get('lastReviewed')?.toString(),
       ownerTeamName: record.get('ownerTeamName'),
       componentCount: record.get('componentCount').toInt(),
+      policyCount: record.get('policyCount').toInt(),
       versions: record.get('versions').filter((v: string) => v),
       approvals: record.get('approvals').filter((a: { team?: string }) => a.team)
     }

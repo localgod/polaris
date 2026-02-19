@@ -120,6 +120,7 @@ export interface Technology {
   lastReviewed: string | null
   ownerTeamName: string | null
   componentCount: number
+  policyCount: number
   versions: string[]
   approvals: TechnologyApproval[]
 }
@@ -133,7 +134,6 @@ export interface TechnologyApproval {
   migrationTarget?: string
   notes?: string
   approvedBy?: string
-  versionConstraint?: string
 }
 
 export interface System {
