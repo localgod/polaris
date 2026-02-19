@@ -82,13 +82,6 @@
               <p class="font-medium">{{ tech.vendor || '—' }}</p>
             </div>
             <div>
-              <span class="text-sm text-(--ui-text-muted)">Approved Version Range</span>
-              <p class="font-medium">
-                <code v-if="tech.approvedVersionRange">{{ tech.approvedVersionRange }}</code>
-                <span v-else class="text-(--ui-text-muted)">—</span>
-              </p>
-            </div>
-            <div>
               <span class="text-sm text-(--ui-text-muted)">Last Reviewed</span>
               <p class="font-medium">{{ tech.lastReviewed ? formatDate(tech.lastReviewed) : '—' }}</p>
             </div>
@@ -109,10 +102,6 @@
                 <span v-if="tech.ownerTeamEmail" class="text-sm text-(--ui-text-muted) ml-2">{{ tech.ownerTeamEmail }}</span>
               </p>
               <p v-else class="text-(--ui-text-muted)">No owner assigned</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Risk Level</span>
-              <p class="font-medium">{{ tech.riskLevel || '—' }}</p>
             </div>
             <div>
               <span class="text-sm text-(--ui-text-muted)">TIME Category</span>
@@ -326,9 +315,6 @@ interface TechnologyDetailData {
   name: string
   category: string
   vendor: string | null
-  approvedVersionRange: string | null
-  ownerTeam: string | null
-  riskLevel: string | null
   lastReviewed: string | null
   ownerTeamName: string | null
   ownerTeamEmail: string | null

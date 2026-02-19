@@ -91,6 +91,7 @@
           <div class="flex justify-end gap-2 pt-2">
             <UButton
               label="Cancel"
+              color="neutral"
               variant="outline"
               @click="showCreateModal = false"
             />
@@ -146,6 +147,7 @@
           <div class="flex justify-end gap-2 pt-2">
             <UButton
               label="Cancel"
+              color="neutral"
               variant="outline"
               @click="showEditModal = false"
             />
@@ -183,6 +185,7 @@
           <div class="flex justify-end gap-2 pt-2">
             <UButton
               label="Cancel"
+              color="neutral"
               variant="outline"
               @click="showDeleteModal = false"
             />

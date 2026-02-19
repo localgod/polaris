@@ -1,15 +1,14 @@
 MATCH (t:Technology)
 OPTIONAL MATCH (team:Team)-[:OWNS]->(t)
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
+OPTIONAL MATCH (comp:Component)-[:IS_VERSION_OF]->(t)
 OPTIONAL MATCH (approvalTeam:Team)-[approval:APPROVES]->(t)
 RETURN t.name as name,
        t.category as category,
        t.vendor as vendor,
-       t.approvedVersionRange as approvedVersionRange,
-       t.ownerTeam as ownerTeam,
-       t.riskLevel as riskLevel,
        t.lastReviewed as lastReviewed,
        team.name as ownerTeamName,
+       count(DISTINCT comp) as componentCount,
        collect(DISTINCT v.version) as versions,
        collect(DISTINCT {
          team: approvalTeam.name,

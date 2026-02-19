@@ -14,15 +14,11 @@ MATCH (t:Team)
 RETURN t.name, t.email, t.responsibilityArea
 ORDER BY t.name;
 
-// List all approved technologies
-MATCH (tech:Technology {status: "approved"})
-RETURN tech.name, tech.category, tech.ownerTeam, tech.riskLevel
+// List all technologies with their owner teams
+MATCH (tech:Technology)
+OPTIONAL MATCH (team:Team)-[:OWNS]->(tech)
+RETURN tech.name, tech.category, team.name as ownerTeam
 ORDER BY tech.category, tech.name;
-
-// List deprecated technologies
-MATCH (tech:Technology {status: "deprecated"})
-RETURN tech.name, tech.category, tech.ownerTeam
-ORDER BY tech.name;
 
 // List all systems by criticality
 MATCH (s:System)
@@ -92,14 +88,14 @@ RETURN sys.name as System,
        comp.version as Version
 ORDER BY sys.businessCriticality DESC;
 
-// Find high-risk technologies and where they're used
-MATCH (tech:Technology)
-WHERE tech.riskLevel IN ["high", "critical"]
+// Find technologies with 'eliminate' TIME status and where they're used
+MATCH (team:Team)-[a:APPROVES]->(tech:Technology)
+WHERE a.time = 'eliminate'
 OPTIONAL MATCH (sys:System)-[:USES]->(comp:Component)-[:IS_VERSION_OF]->(tech)
 RETURN tech.name as Technology,
-       tech.riskLevel as RiskLevel,
+       team.name as Team,
        collect(DISTINCT sys.name) as UsedInSystems
-ORDER BY tech.riskLevel DESC, tech.name;
+ORDER BY tech.name;
 
 // ============================================================================
 // VERSION AND EOL QUERIES

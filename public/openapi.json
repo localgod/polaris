@@ -467,18 +467,6 @@
             "type": "string",
             "nullable": true
           },
-          "approvedVersionRange": {
-            "type": "string",
-            "nullable": true
-          },
-          "ownerTeam": {
-            "type": "string",
-            "nullable": true
-          },
-          "riskLevel": {
-            "type": "string",
-            "nullable": true
-          },
           "lastReviewed": {
             "type": "string",
             "nullable": true
@@ -565,14 +553,6 @@
               "staging",
               "prod"
             ],
-            "nullable": true
-          },
-          "sourceCodeType": {
-            "type": "string",
-            "nullable": true
-          },
-          "hasSourceAccess": {
-            "type": "boolean",
             "nullable": true
           },
           "componentCount": {
@@ -799,6 +779,83 @@
     }
   },
   "paths": {
+    "/admin/import/github": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Import a system from a GitHub repository",
+        "description": "Fetches repository metadata and dependency manifests from the GitHub API,\ngenerates an SBOM via cdxgen, creates the system with its repository,\nand ingests the SBOM. Superuser only.\n",
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "repositoryUrl"
+                ],
+                "properties": {
+                  "repositoryUrl": {
+                    "type": "string",
+                    "description": "GitHub repo URL or owner/repo shorthand",
+                    "example": "https://github.com/org/repo"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "description": "Business domain (defaults to Development)"
+                  },
+                  "ownerTeam": {
+                    "type": "string",
+                    "description": "Owning team name"
+                  },
+                  "businessCriticality": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "dev",
+                      "test",
+                      "staging",
+                      "prod"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "System imported successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "422": {
+            "description": "GitHub repository not accessible or no manifests found"
+          }
+        }
+      }
+    },
     "/admin/licenses/whitelist": {
       "get": {
         "tags": [
@@ -1053,6 +1110,36 @@
         }
       }
     },
+    "/admin/users/{userId}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a technical user",
+        "description": "Deletes a technical user and all associated tokens. Superuser only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
     "/admin/users/{userId}/teams": {
       "post": {
         "tags": [
@@ -1179,6 +1266,110 @@
         }
       }
     },
+    "/admin/users/{userId}/tokens": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List API tokens for a user",
+        "description": "Returns all tokens for the specified user (without hashes). Superuser only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tokens listed"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Generate an API token for a technical user",
+        "description": "Creates a new API token for the specified technical user.\nThe plaintext token is returned only once in the response.\nSuperuser only.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "expiresInDays": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Token created"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/admin/users/{userId}/tokens/{tokenId}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Revoke an API token",
+        "description": "Revokes the specified API token. Superuser only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tokenId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token revoked"
+          },
+          "404": {
+            "description": "Token not found"
+          }
+        }
+      }
+    },
     "/admin/users": {
       "get": {
         "tags": [
@@ -1270,6 +1461,46 @@
           },
           "403": {
             "description": "Superuser access required"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create a technical user",
+        "description": "Creates a non-OAuth technical user for API access. Superuser only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Technical user created"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Not authorized"
           }
         }
       }
@@ -1743,6 +1974,14 @@
           },
           {
             "in": "query",
+            "name": "system",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by system name (only components used by this system)"
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
@@ -2112,7 +2351,7 @@
           "License Compliance"
         ],
         "summary": "Get license details",
-        "description": "Retrieves detailed information about a specific license including usage statistics",
+        "description": "Retrieves detailed information about a specific license including\nusage statistics and full license text from the SPDX license list.\n",
         "parameters": [
           {
             "in": "path",
@@ -2160,7 +2399,7 @@
                               "category": {
                                 "type": "string"
                               },
-                              "text": {
+                              "licenseText": {
                                 "type": "string"
                               },
                               "deprecated": {
@@ -2251,6 +2490,47 @@
           },
           "400": {
             "description": "License ID is required"
+          }
+        }
+      }
+    },
+    "/licenses/{id}/components": {
+      "get": {
+        "tags": [
+          "Licenses"
+        ],
+        "summary": "List components using a license",
+        "description": "Returns paginated list of components that use the specified license",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "License ID (SPDX identifier)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Components retrieved successfully"
           }
         }
       }
@@ -2712,7 +2992,7 @@
           "Policies"
         ],
         "summary": "Delete a policy",
-        "description": "Deletes a policy and all its relationships.\nRequires superuser access.\n",
+        "description": "Deletes a policy and all its relationships.\nRequires superuser access or policy creator.\n",
         "parameters": [
           {
             "in": "path",
@@ -2845,7 +3125,7 @@
           "Policies"
         ],
         "summary": "Update a policy",
-        "description": "Updates a policy's status or other properties.\n\nStatus values:\n- `active`: Policy is enforced, violations are detected\n- `draft`: Policy exists but is not enforced\n- `archived`: Policy is disabled and hidden from active views\n\nRequires superuser access.\n",
+        "description": "Updates a policy's status or other properties.\n\nStatus values:\n- `active`: Policy is enforced, violations are detected\n- `draft`: Policy exists but is not enforced\n- `archived`: Policy is disabled and hidden from active views\n\nRequires superuser access or policy creator.\n",
         "parameters": [
           {
             "in": "path",
@@ -3157,9 +3437,6 @@
                           "technologyCategory": {
                             "type": "string"
                           },
-                          "riskLevel": {
-                            "type": "string"
-                          },
                           "policy": {
                             "type": "object",
                             "properties": {
@@ -3212,7 +3489,6 @@
                       "team": "frontend-team",
                       "technology": "jQuery",
                       "technologyCategory": "library",
-                      "riskLevel": "medium",
                       "policy": {
                         "name": "deprecated-libraries",
                         "description": "Deprecated libraries must not be used",
@@ -4345,6 +4621,59 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Create a new team",
+        "description": "Creates a new team. Requires superuser access.",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique team name"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Team contact email"
+                  },
+                  "responsibilityArea": {
+                    "type": "string",
+                    "description": "Area of responsibility"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Team created successfully"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "409": {
+            "description": "Team already exists"
+          }
+        }
       }
     },
     "/teams/{name}": {
@@ -4472,6 +4801,68 @@
           },
           "404": {
             "description": "Team not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Update a team",
+        "description": "Updates a team's email and/or responsibility area. Requires superuser access.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Team name"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New team name (for renaming)"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "responsibilityArea": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Team updated successfully"
+          },
+          "400": {
+            "description": "Team name is required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Team not found"
+          },
+          "422": {
+            "description": "At least one field to update is required"
           }
         }
       }
@@ -5060,9 +5451,6 @@
                     "name": "React",
                     "category": "framework",
                     "vendor": "Meta",
-                    "approvedVersionRange": ">=18.0.0 <19.0.0",
-                    "ownerTeam": "Frontend Platform",
-                    "riskLevel": "low",
                     "lastReviewed": "2025-10-01",
                     "ownerTeamName": "Frontend Platform",
                     "ownerTeamEmail": "frontend-platform@company.com",
@@ -5092,6 +5480,77 @@
           },
           "500": {
             "description": "Failed to fetch technology"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Update a technology",
+        "description": "Updates a technology's properties and ownership. Requires superuser role or membership in the technology's owner team.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "category"
+                ],
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "vendor": {
+                    "type": "string"
+                  },
+                  "ownerTeam": {
+                    "type": "string"
+                  },
+                  "lastReviewed": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Technology updated"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Technology not found"
+          },
+          "422": {
+            "description": "Validation error"
           }
         }
       }
@@ -5163,6 +5622,33 @@
           },
           "422": {
             "description": "Invalid TIME value"
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user details",
+        "description": "Returns full user details including teams, tokens (technical users), and recent audit activity. Superuser only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details"
+          },
+          "404": {
+            "description": "User not found"
           }
         }
       }

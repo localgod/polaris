@@ -100,7 +100,7 @@
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" variant="outline" @click="closeAssignModal" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="closeAssignModal" />
           <UButton
             label="Save"
             color="primary"
@@ -168,6 +168,28 @@
         <div class="flex justify-end gap-2">
           <UButton label="Copy" icon="i-lucide-copy" variant="outline" @click="copyToken" />
           <UButton label="Done" @click="tokenDisplayOpen = false" />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Delete User Confirmation Modal -->
+    <UModal v-model:open="deleteUserModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">Delete User</h3>
+      </template>
+      <template #body>
+        <p>Are you sure you want to delete <strong>{{ deleteUserTarget?.name || deleteUserTarget?.email }}</strong>?</p>
+        <p class="text-sm text-(--ui-text-muted) mt-2">This will also revoke all their API tokens. This action cannot be undone.</p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="deleteUserModalOpen = false" />
+          <UButton
+            :label="deleteUserLoading ? 'Deleting...' : 'Delete'"
+            color="error"
+            :loading="deleteUserLoading"
+            @click="confirmDeleteUser"
+          />
         </div>
       </template>
     </UModal>
@@ -379,15 +401,28 @@ function copyToken() {
   navigator.clipboard.writeText(generatedToken.value)
 }
 
-async function deleteTechnicalUser(user: User) {
-  if (!confirm(`Delete technical user "${user.name || user.email}"? This will also revoke all their API tokens.`)) return
+// Delete user modal state
+const deleteUserModalOpen = ref(false)
+const deleteUserTarget = ref<User | null>(null)
+const deleteUserLoading = ref(false)
 
+function openDeleteUserModal(user: User) {
+  deleteUserTarget.value = user
+  deleteUserModalOpen.value = true
+}
+
+async function confirmDeleteUser() {
+  if (!deleteUserTarget.value) return
+  deleteUserLoading.value = true
   try {
-    await $fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
+    await $fetch(`/api/admin/users/${deleteUserTarget.value.id}`, { method: 'DELETE' })
+    deleteUserModalOpen.value = false
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
     alert(err.data?.message || err.message || 'Failed to delete user')
+  } finally {
+    deleteUserLoading.value = false
   }
 }
 
@@ -487,7 +522,7 @@ const columns: TableColumn<User>[] = [
             ? [{
                 label: 'Delete User',
                 icon: 'i-lucide-trash-2',
-                onSelect: () => deleteTechnicalUser(user)
+                onSelect: () => openDeleteUserModal(user)
               }]
             : [])
         ]

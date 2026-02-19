@@ -64,9 +64,6 @@ import { TechnologyService } from '../../services/technology.service'
  *                 name: React
  *                 category: framework
  *                 vendor: Meta
- *                 approvedVersionRange: ">=18.0.0 <19.0.0"
- *                 ownerTeam: Frontend Platform
- *                 riskLevel: low
  *                 lastReviewed: "2025-10-01"
  *                 ownerTeamName: Frontend Platform
  *                 ownerTeamEmail: frontend-platform@company.com

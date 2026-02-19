@@ -34,7 +34,7 @@ describe('ComplianceRepository', () => {
       await seed(ctx.driver, `
         CREATE (team:Team { name: $team })
         CREATE (sys:System { name: $sys })
-        CREATE (tech:Technology { name: $tech, approvedVersionRange: '>=18.0.0 <19.0.0' })
+        CREATE (tech:Technology { name: $tech })
         CREATE (comp:Component { name: $comp, version: '17.0.0', purl: 'pkg:npm/react@17.0.0' })
         CREATE (team)-[:OWNS]->(sys)
         CREATE (sys)-[:USES]->(comp)

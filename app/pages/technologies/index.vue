@@ -1,9 +1,16 @@
 <template>
   <div class="space-y-6">
-    <UPageHeader
-      title="Technologies"
-      description="Governed technology choices across the organization"
-    />
+    <div class="flex justify-between items-center">
+      <UPageHeader
+        title="Technologies"
+        description="Governed technology choices across the organization"
+      />
+      <UButton
+        v-if="isSuperuser"
+        label="+ Create Technology"
+        to="/technologies/new"
+      />
+    </div>
 
     <UAlert
       v-if="error"
@@ -43,6 +50,52 @@
       </UCard>
     </template>
 
+    <!-- Edit Technology Modal -->
+    <UModal v-model:open="editModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">Edit Technology: {{ editForm.name }}</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Category *</label>
+            <USelect v-model="editForm.category" :items="categoryOptions" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Vendor</label>
+            <UInput v-model="editForm.vendor" placeholder="e.g. Google, Microsoft" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Owner Team</label>
+            <USelect v-model="editForm.ownerTeam" :items="teamOptions" placeholder="No owner team" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Last Reviewed</label>
+            <UInput v-model="editForm.lastReviewed" type="date" />
+          </div>
+          <UAlert
+            v-if="editError"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="editError"
+            class="mt-2"
+          />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="editModalOpen = false" />
+          <UButton
+            :loading="editLoading"
+            :label="editLoading ? 'Saving...' : 'Save'"
+            @click="confirmEdit"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Delete Technology Modal -->
     <UModal v-model:open="deleteModalOpen">
       <template #header>
         <h3 class="text-lg font-semibold">Delete Technology</h3>
@@ -63,7 +116,7 @@
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" variant="outline" @click="deleteModalOpen = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="deleteModalOpen = false" />
           <UButton
             label="Delete"
             color="error"
@@ -89,11 +142,14 @@ const userTeams = computed(() =>
   (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
 )
 
-function canDeleteTechnology(tech: Technology): boolean {
+function canManageTechnology(tech: Technology): boolean {
   if (isSuperuser.value) return true
   if (!tech.ownerTeamName) return false
   return userTeams.value.includes(tech.ownerTeamName)
 }
+
+const canEditTechnology = canManageTechnology
+const canDeleteTechnology = canManageTechnology
 
 function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -111,10 +167,23 @@ const columns: TableColumn<Technology>[] = [
     header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
       const tech = row.original
-      return h(resolveComponent('NuxtLink'), {
+      const link = h(resolveComponent('NuxtLink'), {
         to: `/technologies/${encodeURIComponent(tech.name)}`,
         class: 'font-medium hover:underline'
       }, () => tech.name)
+
+      if (tech.componentCount > 0) {
+        const icon = h(resolveComponent('UIcon'), {
+          name: 'i-lucide-puzzle',
+          class: 'size-4 text-(--ui-info) shrink-0'
+        })
+        const tooltip = h(resolveComponent('UTooltip'), {
+          text: `Linked to ${tech.componentCount} component${tech.componentCount === 1 ? '' : 's'}`
+        }, { default: () => icon })
+        return h('span', { class: 'inline-flex items-center gap-1.5' }, [link, tooltip])
+      }
+
+      return link
     }
   },
   {
@@ -141,10 +210,11 @@ const columns: TableColumn<Technology>[] = [
     }
   },
   {
-    accessorKey: 'ownerTeam',
+    accessorKey: 'ownerTeamName',
+    id: 'ownerTeam',
     header: ({ column }) => getSortableHeader(column, 'Owner'),
     cell: ({ row }) => {
-      const team = row.getValue('ownerTeam') as string | undefined
+      const team = row.original.ownerTeamName
       if (!team) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return team
     }
@@ -167,6 +237,12 @@ const columns: TableColumn<Technology>[] = [
       ]
       const items: { label: string; icon: string; onSelect: () => void }[][] = [viewGroup]
 
+      if (canEditTechnology(tech)) {
+        items.push([
+          { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEditModal(tech) }
+        ])
+      }
+
       if (canDeleteTechnology(tech)) {
         items.push([
           { label: 'Delete', icon: 'i-lucide-trash-2', onSelect: () => openDeleteModal(tech.name) }
@@ -179,6 +255,68 @@ const columns: TableColumn<Technology>[] = [
     }
   }
 ]
+
+// Edit modal state
+const editModalOpen = ref(false)
+const editLoading = ref(false)
+const editError = ref('')
+const editForm = ref<{
+  name: string
+  category: string
+  vendor: string
+  ownerTeam: string | undefined
+  lastReviewed: string
+}>({
+  name: '',
+  category: '',
+  vendor: '',
+  ownerTeam: undefined,
+  lastReviewed: ''
+})
+
+const categoryOptions = ['language', 'framework', 'library', 'database', 'cache', 'container', 'platform', 'tool', 'runtime', 'other']
+
+interface TeamsResponse { success: boolean; data: { name: string }[]; count: number }
+const { data: teamsData } = useLazyFetch<TeamsResponse>('/api/teams', { key: 'tech-edit-teams' })
+const teamOptions = computed(() =>
+  (teamsData.value?.data || []).map(t => t.name).sort()
+)
+
+function openEditModal(tech: Technology) {
+  editForm.value = {
+    name: tech.name,
+    category: tech.category || '',
+    vendor: tech.vendor || '',
+    ownerTeam: tech.ownerTeamName || undefined,
+    lastReviewed: tech.lastReviewed || ''
+  }
+  editError.value = ''
+  editModalOpen.value = true
+}
+
+async function confirmEdit() {
+  editLoading.value = true
+  editError.value = ''
+
+  try {
+    await $fetch(`/api/technologies/${encodeURIComponent(editForm.value.name)}`, {
+      method: 'PUT',
+      body: {
+        category: editForm.value.category,
+        vendor: editForm.value.vendor || null,
+        ownerTeam: editForm.value.ownerTeam || null,
+        lastReviewed: editForm.value.lastReviewed || null
+      }
+    })
+    editModalOpen.value = false
+    await refreshNuxtData()
+  } catch (err: unknown) {
+    const error = err as { data?: { message?: string }; message?: string }
+    editError.value = error.data?.message || error.message || 'Failed to update technology'
+  } finally {
+    editLoading.value = false
+  }
+}
 
 // Delete modal state
 const deleteModalOpen = ref(false)
