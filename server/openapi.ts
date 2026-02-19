@@ -415,8 +415,7 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             eolDate: { type: 'string' },
             migrationTarget: { type: 'string' },
             notes: { type: 'string' },
-            approvedBy: { type: 'string' },
-            versionConstraint: { type: 'string' }
+            approvedBy: { type: 'string' }
           }
         },
         System: {

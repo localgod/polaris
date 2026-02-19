@@ -54,7 +54,6 @@ interface FixtureData {
       migrationTarget?: string
       notes?: string
       approvedBy?: string
-      versionConstraint?: string
     }>
   }
 }
@@ -208,8 +207,7 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
             a.eolDate = CASE WHEN $eolDate IS NOT NULL THEN date($eolDate) ELSE null END,
             a.migrationTarget = $migrationTarget,
             a.notes = $notes,
-            a.approvedBy = $approvedBy,
-            a.versionConstraint = $versionConstraint
+            a.approvedBy = $approvedBy
         `,
         {
           team: approval.team,
@@ -220,8 +218,7 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
           eolDate: approval.eolDate || null,
           migrationTarget: approval.migrationTarget || null,
           notes: approval.notes || null,
-          approvedBy: approval.approvedBy || null,
-          versionConstraint: approval.versionConstraint || null
+          approvedBy: approval.approvedBy || null
         }
       )
     }

@@ -734,8 +734,7 @@ async function createTechnologiesFromComponents(apiToken: string): Promise<void>
               a.eolDate = CASE WHEN $eolDate IS NOT NULL THEN date($eolDate) ELSE null END,
               a.migrationTarget = $migrationTarget,
               a.notes = $notes,
-              a.approvedBy = $approvedBy,
-              a.versionConstraint = $versionConstraint
+              a.approvedBy = $approvedBy
         `, {
           team: approval.team,
           technology: ct.technology.name,
@@ -745,8 +744,7 @@ async function createTechnologiesFromComponents(apiToken: string): Promise<void>
           eolDate: approval.eolDate || null,
           migrationTarget: approval.migrationTarget || null,
           notes: approval.notes || null,
-          approvedBy: approval.approvedBy || null,
-          versionConstraint: approval.versionConstraint || null
+          approvedBy: approval.approvedBy || null
         })
       }
     }

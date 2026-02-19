@@ -32,7 +32,6 @@ export interface TechnologyApproval {
   migrationTarget: string | null
   notes: string | null
   approvedBy: string | null
-  versionConstraint: string | null
 }
 
 export interface VersionApproval {
@@ -114,7 +113,6 @@ export interface ApprovalStatus {
     migrationTarget?: string | null
     notes?: string | null
     approvedBy?: string | null
-    versionConstraint?: string | null
   }
 }
 

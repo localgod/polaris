@@ -35,7 +35,7 @@
         <UCard>
           <div class="text-center">
             <p class="text-sm text-(--ui-text-muted)">Versions</p>
-            <p class="text-2xl font-bold mt-1">{{ tech.versions?.length || 0 }}</p>
+            <p class="text-2xl font-bold mt-1">{{ distinctVersionCount }}</p>
           </div>
         </UCard>
         <UCard>
@@ -88,32 +88,6 @@
           </div>
         </UCard>
 
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Governance</h2>
-          </template>
-          <div class="space-y-3">
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Owner Team</span>
-              <p v-if="tech.ownerTeamName" class="font-medium">
-                <NuxtLink :to="`/teams/${encodeURIComponent(tech.ownerTeamName)}`" class="hover:underline">
-                  {{ tech.ownerTeamName }}
-                </NuxtLink>
-                <span v-if="tech.ownerTeamEmail" class="text-sm text-(--ui-text-muted) ml-2">{{ tech.ownerTeamEmail }}</span>
-              </p>
-              <p v-else class="text-(--ui-text-muted)">No owner assigned</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">TIME Category</span>
-              <p class="font-medium">
-                <UBadge v-if="timeCategory" :color="getTimeCategoryColor(timeCategory)" variant="subtle">
-                  {{ timeCategory }}
-                </UBadge>
-                <span v-else class="text-(--ui-text-muted)">—</span>
-              </p>
-            </div>
-          </div>
-        </UCard>
       </div>
 
       <!-- Technology Approvals -->
@@ -164,13 +138,6 @@
                 v-model="approvalForm.time"
                 :items="timeItems"
                 placeholder="Select TIME category"
-              />
-            </UFormField>
-
-            <UFormField label="Version Constraint">
-              <UInput
-                v-model="approvalForm.versionConstraint"
-                placeholder="e.g., >=18.0.0 <19.0.0"
               />
             </UFormField>
 
@@ -278,6 +245,7 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { TechnologyApproval } from '~~/types/api'
+import semver from 'semver'
 
 const { getSortableHeader } = useSortableTable()
 const approvalSorting = ref([])
@@ -309,6 +277,8 @@ interface PolicyRef {
   name: string
   severity: string
   ruleType: string
+  versionRange: string | null
+  status: string | null
 }
 
 interface TechnologyDetailData {
@@ -420,14 +390,6 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
     }
   },
   {
-    accessorKey: 'versionConstraint',
-    header: ({ column }) => getSortableHeader(column, 'Version Constraint'),
-    cell: ({ row }) => {
-      const vc = row.original.versionConstraint
-      return vc ? h('code', {}, vc) : '—'
-    }
-  },
-  {
     accessorKey: 'approvedAt',
     header: ({ column }) => getSortableHeader(column, 'Approved'),
     cell: ({ row }) => {
@@ -447,6 +409,20 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
   }
 ]
 
+function getVersionViolation(version: string): PolicyRef | null {
+  if (!tech.value?.policies) return null
+  const cleaned = semver.coerce(version)
+  if (!cleaned) return null
+  for (const policy of tech.value.policies) {
+    if (policy.ruleType === 'version-constraint' && policy.status === 'active' && policy.versionRange) {
+      if (!semver.satisfies(cleaned, policy.versionRange)) {
+        return policy
+      }
+    }
+  }
+  return null
+}
+
 const componentColumns: TableColumn<ComponentRef>[] = [
   {
     accessorKey: 'name',
@@ -462,12 +438,32 @@ const componentColumns: TableColumn<ComponentRef>[] = [
     accessorKey: 'packageManager',
     header: ({ column }) => getSortableHeader(column, 'Package Manager'),
     cell: ({ row }) => row.getValue('packageManager') || '—'
+  },
+  {
+    id: 'violation',
+    header: '',
+    meta: { class: { th: 'w-10' } },
+    cell: ({ row }) => {
+      const violation = getVersionViolation(row.original.version)
+      if (!violation) return ''
+      return h(resolveComponent('UTooltip'), {
+        text: `Violates "${violation.name}" (${violation.versionRange})`
+      }, () => h(resolveComponent('UIcon'), {
+        name: 'i-lucide-alert-triangle',
+        class: 'text-(--ui-error) size-5'
+      }))
+    }
   }
 ]
 
 const { data, pending, error, refresh } = await useFetch<TechnologyResponse>(() => `/api/technologies/${encodeURIComponent(route.params.name as string)}`)
 
 const tech = computed(() => data.value?.data || null)
+
+const distinctVersionCount = computed(() => {
+  const versions = tech.value?.components?.map((c: { version?: string }) => c.version).filter(Boolean)
+  return new Set(versions).size
+})
 
 const timeCategory = computed(() => {
   const approval = tech.value?.technologyApprovals?.[0]
@@ -481,7 +477,6 @@ const approvalError = ref('')
 const approvalForm = ref({
   teamName: '',
   time: '',
-  versionConstraint: '',
   notes: ''
 })
 
@@ -505,11 +500,9 @@ function onTeamChange() {
   const existing = existingApproval.value
   if (existing) {
     approvalForm.value.time = existing.time || ''
-    approvalForm.value.versionConstraint = existing.versionConstraint || ''
     approvalForm.value.notes = existing.notes || ''
   } else {
     approvalForm.value.time = ''
-    approvalForm.value.versionConstraint = ''
     approvalForm.value.notes = ''
   }
 }
@@ -519,7 +512,6 @@ function openApprovalModal() {
   approvalForm.value = {
     teamName: userTeams.value.length === 1 ? userTeams.value[0]! : '',
     time: '',
-    versionConstraint: '',
     notes: ''
   }
   // Pre-fill if single team and existing approval
@@ -539,7 +531,6 @@ async function submitApproval() {
       body: {
         teamName: approvalForm.value.teamName,
         time: approvalForm.value.time,
-        versionConstraint: approvalForm.value.versionConstraint || undefined,
         notes: approvalForm.value.notes || undefined
       }
     })

@@ -4,7 +4,6 @@ MERGE (team)-[a:APPROVES]->(t)
 SET a.time = $time,
     a.approvedAt = CASE WHEN a.approvedAt IS NULL THEN datetime() ELSE a.approvedAt END,
     a.approvedBy = $approvedBy,
-    a.versionConstraint = $versionConstraint,
     a.notes = $notes
 WITH t, team, a
 CREATE (al:AuditLog {
@@ -14,7 +13,7 @@ CREATE (al:AuditLog {
   entityType: 'TechnologyApproval',
   entityId: t.name,
   entityLabel: team.name + ' -> ' + t.name + ' (' + $time + ')',
-  changedFields: ['time', 'versionConstraint', 'notes'],
+  changedFields: ['time', 'notes'],
   source: 'API',
   userId: $userId
 })

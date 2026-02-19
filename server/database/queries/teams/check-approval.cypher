@@ -27,8 +27,7 @@ RETURN team.name as teamName,
            eolDate: techApproval.eolDate,
            migrationTarget: techApproval.migrationTarget,
            notes: techApproval.notes,
-           approvedBy: techApproval.approvedBy,
-           versionConstraint: techApproval.versionConstraint
+           approvedBy: techApproval.approvedBy
          }
          ELSE {
            level: 'default',

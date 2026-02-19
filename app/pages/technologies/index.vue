@@ -194,6 +194,62 @@
         </div>
       </template>
     </UModal>
+
+    <!-- Set TIME Modal -->
+    <UModal v-model:open="timeModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">Set TIME: {{ timeModalTech?.name }}</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Team *</label>
+            <UInput
+              v-if="timeTeamReadonly"
+              :model-value="timeForm.teamName"
+              disabled
+            />
+            <USelect
+              v-else
+              v-model="timeForm.teamName"
+              :items="timeTeamOptions"
+              placeholder="Select team"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">TIME Value *</label>
+            <USelect
+              v-model="timeForm.time"
+              :items="timeOptions"
+              placeholder="Select TIME value"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Notes</label>
+            <UTextarea v-model="timeForm.notes" placeholder="Optional notes" />
+          </div>
+          <UAlert
+            v-if="timeError"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="timeError"
+            class="mt-2"
+          />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="timeModalOpen = false" />
+          <UButton
+            :loading="timeLoading"
+            :label="timeLoading ? 'Saving...' : 'Save'"
+            :disabled="!timeForm.teamName || !timeForm.time"
+            @click="confirmSetTime"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -216,42 +272,15 @@ function canManageTechnology(tech: Technology): boolean {
   return userTeams.value.includes(tech.ownerTeamName)
 }
 
-const canEditTechnology = canManageTechnology
-const canDeleteTechnology = canManageTechnology
-
-function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    invest: 'success',
-    tolerate: 'warning',
-    migrate: 'warning',
-    eliminate: 'error'
-  }
-  return colors[category?.toLowerCase()] || 'neutral'
-}
-
 const columns: TableColumn<Technology>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => {
-      const tech = row.original
-      const link = h(resolveComponent('NuxtLink'), {
-        to: `/technologies/${encodeURIComponent(tech.name)}`,
+      return h(resolveComponent('NuxtLink'), {
+        to: `/technologies/${encodeURIComponent(row.original.name)}`,
         class: 'font-medium hover:underline'
-      }, () => tech.name)
-
-      if (tech.componentCount > 0) {
-        const icon = h(resolveComponent('UIcon'), {
-          name: 'i-lucide-puzzle',
-          class: 'size-4 text-(--ui-info) shrink-0'
-        })
-        const tooltip = h(resolveComponent('UTooltip'), {
-          text: `Linked to ${tech.componentCount} component${tech.componentCount === 1 ? '' : 's'}`
-        }, { default: () => icon })
-        return h('span', { class: 'inline-flex items-center gap-1.5' }, [link, tooltip])
-      }
-
-      return link
+      }, () => row.original.name)
     }
   },
   {
@@ -264,34 +293,22 @@ const columns: TableColumn<Technology>[] = [
     }
   },
   {
-    id: 'time',
-    header: 'TIME',
-    enableSorting: false,
+    accessorKey: 'componentCount',
+    header: ({ column }) => getSortableHeader(column, 'Components'),
     cell: ({ row }) => {
-      const approvals = (row.original.approvals || []).filter((a: { team?: string; time?: string }) => a.team && a.time)
-      if (approvals.length === 0) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h('div', { class: 'flex flex-wrap gap-1' }, approvals.map((a: { team: string; time: string }) =>
-        h(resolveComponent('UTooltip'), { text: a.team }, {
-          default: () => h(resolveComponent('UBadge'), { color: getTimeCategoryColor(a.time), variant: 'subtle', size: 'xs' }, () => `${a.team}: ${a.time}`)
-        })
-      ))
+      const count = row.original.componentCount
+      if (!count) return h('span', { class: 'text-(--ui-text-muted)' }, '0')
+      return String(count)
     }
   },
   {
-    accessorKey: 'ownerTeamName',
-    id: 'ownerTeam',
-    header: ({ column }) => getSortableHeader(column, 'Owner'),
+    accessorKey: 'policyCount',
+    header: ({ column }) => getSortableHeader(column, 'Policies'),
     cell: ({ row }) => {
-      const team = row.original.ownerTeamName
-      if (!team) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return team
+      const count = row.original.policyCount
+      if (!count) return h('span', { class: 'text-(--ui-text-muted)' }, '0')
+      return String(count)
     }
-  },
-  {
-    id: 'versions',
-    header: 'Versions',
-    enableSorting: false,
-    cell: ({ row }) => String(row.original.versions?.length ?? 0)
   },
   {
     id: 'actions',
@@ -305,6 +322,12 @@ const columns: TableColumn<Technology>[] = [
       ]
       const items: { label: string; icon: string; onSelect: () => void }[][] = [viewGroup]
 
+      if (canSetTime.value) {
+        items.push([
+          { label: 'Set TIME', icon: 'i-lucide-clock', onSelect: () => openTimeModal(tech) }
+        ])
+      }
+
       // Any authenticated user can create a policy for a technology
       if (session.value?.user) {
         items.push([
@@ -312,13 +335,13 @@ const columns: TableColumn<Technology>[] = [
         ])
       }
 
-      if (canEditTechnology(tech)) {
+      if (canManageTechnology(tech)) {
         items.push([
           { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEditModal(tech) }
         ])
       }
 
-      if (canDeleteTechnology(tech)) {
+      if (canManageTechnology(tech)) {
         items.push([
           { label: 'Delete', icon: 'i-lucide-trash-2', onSelect: () => openDeleteModal(tech.name) }
         ])
@@ -480,6 +503,80 @@ async function confirmDelete() {
     deleteError.value = error.data?.message || error.message || 'Failed to delete technology'
   } finally {
     deleteLoading.value = false
+  }
+}
+
+// Set TIME modal state
+const timeModalOpen = ref(false)
+const timeLoading = ref(false)
+const timeError = ref('')
+const timeModalTech = ref<Technology | null>(null)
+const timeForm = ref({
+  teamName: undefined as string | undefined,
+  time: undefined as string | undefined,
+  notes: ''
+})
+const timeOptions = ['invest', 'tolerate', 'migrate', 'eliminate']
+
+const canSetTime = computed(() => isSuperuser.value || userTeams.value.length > 0)
+
+const timeTeamOptions = computed(() =>
+  isSuperuser.value ? teamOptions.value : userTeams.value
+)
+
+const timeTeamReadonly = computed(() =>
+  !isSuperuser.value && userTeams.value.length === 1
+)
+
+function openTimeModal(tech: Technology) {
+  timeModalTech.value = tech
+  const defaultTeam = isSuperuser.value
+    ? undefined
+    : (userTeams.value.length === 1 ? userTeams.value[0] : undefined)
+
+  // Pre-fill TIME value if the default team already has an approval
+  const existingApproval = defaultTeam
+    ? tech.approvals?.find(a => a.team === defaultTeam)
+    : undefined
+
+  timeForm.value = {
+    teamName: defaultTeam,
+    time: existingApproval?.time || undefined,
+    notes: existingApproval?.notes || ''
+  }
+  timeError.value = ''
+  timeModalOpen.value = true
+}
+
+// When team selection changes, pre-fill the existing TIME value
+watch(() => timeForm.value.teamName, (newTeam) => {
+  if (!newTeam || !timeModalTech.value) return
+  const existing = timeModalTech.value.approvals?.find(a => a.team === newTeam)
+  timeForm.value.time = existing?.time || undefined
+  timeForm.value.notes = existing?.notes || ''
+})
+
+async function confirmSetTime() {
+  if (!timeModalTech.value || !timeForm.value.teamName || !timeForm.value.time) return
+  timeLoading.value = true
+  timeError.value = ''
+
+  try {
+    await $fetch(`/api/technologies/${encodeURIComponent(timeModalTech.value.name)}/approvals`, {
+      method: 'POST',
+      body: {
+        teamName: timeForm.value.teamName,
+        time: timeForm.value.time,
+        notes: timeForm.value.notes || undefined
+      }
+    })
+    timeModalOpen.value = false
+    await refreshNuxtData()
+  } catch (err: unknown) {
+    const error = err as { data?: { message?: string }; message?: string }
+    timeError.value = error.data?.message || error.message || 'Failed to set TIME value'
+  } finally {
+    timeLoading.value = false
   }
 }
 

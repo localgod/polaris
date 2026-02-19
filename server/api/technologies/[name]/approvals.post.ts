@@ -30,8 +30,6 @@ import { TechnologyService } from '../../../services/technology.service'
  *               time:
  *                 type: string
  *                 enum: [tolerate, invest, migrate, eliminate]
- *               versionConstraint:
- *                 type: string
  *               notes:
  *                 type: string
  *     responses:
@@ -50,7 +48,6 @@ import { TechnologyService } from '../../../services/technology.service'
 interface SetApprovalRequest {
   teamName: string
   time: string
-  versionConstraint?: string
   notes?: string
 }
 
@@ -85,7 +82,6 @@ export default defineEventHandler(async (event) => {
     technologyName,
     teamName: body.teamName,
     time: body.time,
-    versionConstraint: body.versionConstraint,
     notes: body.notes,
     userId: user.id
   })

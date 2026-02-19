@@ -208,8 +208,7 @@
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Primary backend runtime - strategic investment",
-        "approvedBy": "Tech Lead",
-        "versionConstraint": ">=20.0.0"
+        "approvedBy": "Tech Lead"
       },
       {
         "team": "Backend Platform",
@@ -217,8 +216,7 @@
         "time": "invest",
         "approvedAt": "2024-03-01",
         "notes": "Caching and session storage",
-        "approvedBy": "Tech Lead",
-        "versionConstraint": ">=7.0.0"
+        "approvedBy": "Tech Lead"
       },
       {
         "team": "Data Platform",
@@ -226,8 +224,7 @@
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Primary relational database - strategic investment",
-        "approvedBy": "Data Lead",
-        "versionConstraint": ">=15.0.0"
+        "approvedBy": "Data Lead"
       },
       {
         "team": "Data Platform",
@@ -235,8 +232,7 @@
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Graph database for relationship-heavy data",
-        "approvedBy": "Data Lead",
-        "versionConstraint": ">=5.0.0"
+        "approvedBy": "Data Lead"
       },
       {
         "team": "Data Platform",
@@ -244,8 +240,7 @@
         "time": "tolerate",
         "approvedAt": "2024-06-01",
         "notes": "Tolerated for specific document storage use cases",
-        "approvedBy": "Data Lead",
-        "versionConstraint": ">=7.0.0"
+        "approvedBy": "Data Lead"
       },
       {
         "team": "Data Platform",
@@ -261,8 +256,7 @@
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Standard containerization platform",
-        "approvedBy": "DevOps Lead",
-        "versionConstraint": ">=24.0.0"
+        "approvedBy": "DevOps Lead"
       },
       {
         "team": "Platform Team",
@@ -270,8 +264,7 @@
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Runtime for TypeScript projects",
-        "approvedBy": "Platform Lead",
-        "versionConstraint": ">=20.0.0"
+        "approvedBy": "Platform Lead"
       },
       {
         "team": "Platform Team",
@@ -279,8 +272,7 @@
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Graph database for Polaris technology catalog",
-        "approvedBy": "Platform Lead",
-        "versionConstraint": ">=5.0.0"
+        "approvedBy": "Platform Lead"
       }
     ]
   },
@@ -307,8 +299,7 @@
           "time": "invest",
           "approvedAt": "2024-01-15",
           "notes": "Primary frontend framework - strategic investment",
-          "approvedBy": "Tech Lead",
-          "versionConstraint": ">=18.0.0"
+          "approvedBy": "Tech Lead"
         }
       ]
     },
@@ -335,16 +326,14 @@
           "time": "invest",
           "approvedAt": "2024-01-15",
           "notes": "Alternative frontend framework for specific use cases",
-          "approvedBy": "Tech Lead",
-          "versionConstraint": ">=3.3.0"
+          "approvedBy": "Tech Lead"
         },
         {
           "team": "Platform Team",
           "time": "invest",
           "approvedAt": "2024-01-15",
           "notes": "Frontend framework for Polaris",
-          "approvedBy": "Platform Lead",
-          "versionConstraint": ">=3.3.0"
+          "approvedBy": "Platform Lead"
         }
       ]
     },
@@ -367,8 +356,7 @@
           "time": "invest",
           "approvedAt": "2024-01-15",
           "notes": "Primary web framework",
-          "approvedBy": "Tech Lead",
-          "versionConstraint": ">=4.18.0"
+          "approvedBy": "Tech Lead"
         }
       ]
     },
@@ -392,16 +380,14 @@
           "time": "invest",
           "approvedAt": "2024-01-15",
           "notes": "Required for all new projects",
-          "approvedBy": "Tech Lead",
-          "versionConstraint": ">=5.0.0"
+          "approvedBy": "Tech Lead"
         },
         {
           "team": "Platform Team",
           "time": "invest",
           "approvedAt": "2024-01-15",
           "notes": "Primary language for all Platform Team projects",
-          "approvedBy": "Platform Lead",
-          "versionConstraint": ">=5.0.0"
+          "approvedBy": "Platform Lead"
         }
       ]
     },
