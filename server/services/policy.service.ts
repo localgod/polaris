@@ -1,5 +1,6 @@
 import { PolicyRepository } from '../repositories/policy.repository'
-import type { Policy, ViolationFilters, PolicyFilters, PolicyViolation, LicenseViolation, CreatePolicyInput, UpdatePolicyStatusInput, UpdatePolicyResult } from '../repositories/policy.repository'
+import type { Policy, ViolationFilters, PolicyFilters, PolicyViolation, LicenseViolation, CreatePolicyInput, UpdatePolicyInput, UpdatePolicyStatusInput, UpdatePolicyResult } from '../repositories/policy.repository'
+import semver from 'semver'
 
 export interface ViolationResult {
   data: PolicyViolation[]
@@ -60,7 +61,18 @@ export class PolicyService {
     this.validateFilters(filters)
     
     // Fetch violations from repository
-    const violations = await this.policyRepo.findViolations(filters)
+    const rawViolations = await this.policyRepo.findViolations(filters)
+    
+    // Apply semver filtering for version-constraint violations.
+    // The Cypher query returns all version-constraint matches; we keep only
+    // those where the component version falls outside the policy's range.
+    const violations = rawViolations.filter(v => {
+      if (v.violationType !== 'version-out-of-range') return true
+      if (!v.policy.versionRange || !v.componentVersion) return false
+      const coerced = semver.coerce(v.componentVersion)
+      if (!coerced) return false
+      return !semver.satisfies(coerced, v.policy.versionRange)
+    })
     
     // Business logic: calculate summary
     const summary = this.calculateSummary(violations)
@@ -165,16 +177,67 @@ export class PolicyService {
     }
     
     // Business logic: validate ruleType
-    const validRuleTypes = ['approval', 'compliance', 'security', 'license-compliance']
+    const validRuleTypes = ['approval', 'compliance', 'security', 'license-compliance', 'version-constraint']
     if (!validRuleTypes.includes(input.ruleType)) {
       throw createError({
         statusCode: 400,
         message: `Invalid ruleType. Must be one of: ${validRuleTypes.join(', ')}`
       })
     }
+
+    // Business logic: validate team-scoped policies
+    if (input.scope === 'team' && !input.subjectTeam) {
+      throw createError({
+        statusCode: 400,
+        message: 'Team-scoped policies require a subjectTeam'
+      })
+    }
+
+    // Business logic: validate version-constraint policies
+    if (input.ruleType === 'version-constraint' && !input.versionRange) {
+      throw createError({
+        statusCode: 400,
+        message: 'Version-constraint policies require a versionRange (e.g., ">=18.0.0 <20.0.0")'
+      })
+    }
     
     // Create the policy (userId is part of CreatePolicyInput)
     return await this.policyRepo.create(input)
+  }
+
+  /**
+   * Update a policy's editable properties and relationships.
+   * Policy name is immutable.
+   */
+  async update(name: string, input: UpdatePolicyInput): Promise<Policy> {
+    const exists = await this.policyRepo.exists(name)
+    if (!exists) {
+      throw createError({ statusCode: 404, message: `Policy '${name}' not found` })
+    }
+
+    if (input.severity) {
+      const validSeverities = ['critical', 'error', 'warning', 'info']
+      if (!validSeverities.includes(input.severity)) {
+        throw createError({ statusCode: 400, message: `Invalid severity. Must be one of: ${validSeverities.join(', ')}` })
+      }
+    }
+
+    if (input.ruleType) {
+      const validRuleTypes = ['approval', 'compliance', 'security', 'license-compliance', 'version-constraint']
+      if (!validRuleTypes.includes(input.ruleType)) {
+        throw createError({ statusCode: 400, message: `Invalid ruleType. Must be one of: ${validRuleTypes.join(', ')}` })
+      }
+    }
+
+    if (input.scope === 'team' && !input.subjectTeam) {
+      throw createError({ statusCode: 400, message: 'Team-scoped policies require a subjectTeam' })
+    }
+
+    if (input.ruleType === 'version-constraint' && !input.versionRange) {
+      throw createError({ statusCode: 400, message: 'Version-constraint policies require a versionRange' })
+    }
+
+    return await this.policyRepo.update(name, input)
   }
 
   /**

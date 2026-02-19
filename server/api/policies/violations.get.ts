@@ -52,10 +52,19 @@
  *                     properties:
  *                       team:
  *                         type: string
+ *                       system:
+ *                         type: string
+ *                       component:
+ *                         type: string
+ *                       componentVersion:
+ *                         type: string
  *                       technology:
  *                         type: string
  *                       technologyCategory:
  *                         type: string
+ *                       violationType:
+ *                         type: string
+ *                         enum: [unapproved, eliminated, version-out-of-range]
  *                       policy:
  *                         type: object
  *                         properties:
@@ -66,6 +75,8 @@
  *                           severity:
  *                             type: string
  *                           ruleType:
+ *                             type: string
+ *                           versionRange:
  *                             type: string
  *                           enforcedBy:
  *                             type: string
@@ -86,13 +97,17 @@
  *               success: true
  *               data:
  *                 - team: frontend-team
+ *                   system: web-app
+ *                   component: jquery
+ *                   componentVersion: "3.6.0"
  *                   technology: jQuery
  *                   technologyCategory: library
+ *                   violationType: unapproved
  *                   policy:
  *                     name: deprecated-libraries
  *                     description: Deprecated libraries must not be used
  *                     severity: error
- *                     ruleType: deprecation
+ *                     ruleType: approval
  *                     enforcedBy: architecture-team
  *               count: 1
  *               summary:

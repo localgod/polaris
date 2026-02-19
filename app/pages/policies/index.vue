@@ -56,10 +56,10 @@
         <h3 class="text-lg font-semibold">Create Policy</h3>
       </template>
       <template #body>
-        <form id="create-policy-form" class="space-y-4" @submit.prevent="handleCreatePolicy">
+        <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Name *</label>
-            <UInput v-model="createForm.name" placeholder="e.g. no-deprecated-technologies" required />
+            <UInput v-model="createForm.name" placeholder="e.g. no-deprecated-technologies" />
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Description</label>
@@ -68,23 +68,101 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">Rule Type *</label>
-              <USelect v-model="createForm.ruleType" :items="ruleTypeOptions" placeholder="Select rule type" required />
+              <USelect v-model="createForm.ruleType" :items="ruleTypeOptions" placeholder="Select rule type" />
             </div>
             <div>
               <label class="block text-sm font-medium mb-1">Severity *</label>
-              <USelect v-model="createForm.severity" :items="severityOptions" placeholder="Select severity" required />
+              <USelect v-model="createForm.severity" :items="severityOptions" placeholder="Select severity" />
             </div>
           </div>
-        </form>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Scope *</label>
+              <USelect v-model="createForm.scope" :items="scopeOptions" />
+            </div>
+            <div v-if="createForm.scope === 'team'">
+              <label class="block text-sm font-medium mb-1">Subject Team *</label>
+              <USelect v-model="createForm.subjectTeam" :items="teamOptions" placeholder="Select team" />
+            </div>
+          </div>
+          <div v-if="createForm.ruleType === 'version-constraint'">
+            <label class="block text-sm font-medium mb-1">Version Range *</label>
+            <UInput v-model="createForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Governs Technology</label>
+            <USelect v-model="createForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" />
+          </div>
+        </div>
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
           <UButton label="Cancel" color="neutral" variant="outline" @click="showCreateModal = false" />
           <UButton
-            type="submit"
-            form="create-policy-form"
             :loading="isCreating"
             :label="isCreating ? 'Creating...' : 'Create'"
+            @click="handleCreatePolicy"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Edit Policy Modal -->
+    <UModal v-model:open="showEditModal">
+      <template #header>
+        <h3 class="text-lg font-semibold">Edit Policy</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Name</label>
+            <UInput :model-value="editForm.name" disabled />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <UTextarea v-model="editForm.description" placeholder="Policy description" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Rule Type *</label>
+              <USelect v-model="editForm.ruleType" :items="ruleTypeOptions" placeholder="Select rule type" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Severity *</label>
+              <USelect v-model="editForm.severity" :items="severityOptions" placeholder="Select severity" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Scope *</label>
+              <USelect v-model="editForm.scope" :items="editScopeOptions" />
+            </div>
+            <div v-if="editForm.scope === 'team'">
+              <label class="block text-sm font-medium mb-1">Subject Team *</label>
+              <USelect v-model="editForm.subjectTeam" :items="teamOptions" placeholder="Select team" />
+            </div>
+          </div>
+          <div v-if="editForm.ruleType === 'version-constraint'">
+            <label class="block text-sm font-medium mb-1">Version Range *</label>
+            <UInput v-model="editForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Governs Technology</label>
+            <USelect v-model="editForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Status</label>
+            <USelect v-model="editForm.status" :items="statusOptions" />
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="showEditModal = false" />
+          <UButton
+            :loading="isEditing"
+            :label="isEditing ? 'Saving...' : 'Save'"
+            @click="handleEditPolicy"
           />
         </div>
       </template>
@@ -119,8 +197,21 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Policy } from '~~/types/api'
 
+const { data: session } = useAuth()
 const { isSuperuser } = useEffectiveRole()
 const { getSortableHeader } = useSortableTable()
+
+const userTeams = computed(() =>
+  (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
+)
+
+function canEditPolicy(policy: Policy): boolean {
+  if (isSuperuser.value) return true
+  if (policy.scope === 'team' && policy.subjectTeam) {
+    return userTeams.value.includes(policy.subjectTeam)
+  }
+  return false
+}
 
 function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
   const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
@@ -166,9 +257,15 @@ const columns: TableColumn<Policy>[] = [
     accessorKey: 'scope',
     header: ({ column }) => getSortableHeader(column, 'Scope'),
     cell: ({ row }) => {
-      const scope = row.getValue('scope') as string | undefined
-      if (!scope) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return scope
+      const policy = row.original
+      if (!policy.scope) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (policy.scope === 'team' && policy.subjectTeam) {
+        return h('span', {}, [
+          'team: ',
+          h('strong', {}, policy.subjectTeam)
+        ])
+      }
+      return policy.scope
     }
   },
   {
@@ -202,6 +299,7 @@ const columns: TableColumn<Policy>[] = [
       const policy = row.original
 
       const isActive = policy.status === 'active'
+      const editable = canEditPolicy(policy)
       const items = [
         [
           {
@@ -209,6 +307,13 @@ const columns: TableColumn<Policy>[] = [
             icon: 'i-lucide-eye',
             onSelect: () => navigateTo(`/policies/${encodeURIComponent(policy.name)}`)
           },
+          ...(editable ? [
+            {
+              label: 'Edit',
+              icon: 'i-lucide-pencil',
+              onSelect: () => openEditModal(policy)
+            }
+          ] : []),
           ...(isSuperuser.value ? [
             {
               label: isActive ? 'Disable' : 'Enable',
@@ -263,25 +368,117 @@ const total = computed(() => data.value?.total || data.value?.count || 0)
 // Create policy modal
 const showCreateModal = ref(false)
 const isCreating = ref(false)
-const createForm = ref({ name: '', description: '', ruleType: '', severity: '' })
-const ruleTypeOptions = ['technology_restriction', 'version_requirement', 'license_compliance', 'deprecation_enforcement']
+const createForm = ref({
+  name: '',
+  description: '',
+  ruleType: undefined as string | undefined,
+  severity: undefined as string | undefined,
+  scope: 'organization',
+  subjectTeam: undefined as string | undefined,
+  versionRange: '',
+  governsTechnology: undefined as string | undefined
+})
+const ruleTypeOptions = ['approval', 'compliance', 'security', 'license-compliance', 'version-constraint']
 const severityOptions = ['critical', 'error', 'warning', 'info']
+const scopeOptions = ['organization', 'team']
+const statusOptions = ['active', 'draft', 'archived']
+
+const editScopeOptions = computed(() =>
+  isSuperuser.value ? ['organization', 'team'] : ['team']
+)
+
+interface TeamsResponse { success: boolean; data: { name: string }[] }
+const { data: teamsData } = useLazyFetch<TeamsResponse>('/api/teams', { key: 'policy-teams' })
+const teamOptions = computed(() =>
+  (teamsData.value?.data || []).map(t => t.name).sort()
+)
+
+interface TechResponse { success: boolean; data: { name: string }[] }
+const { data: techData } = useLazyFetch<TechResponse>('/api/technologies', { key: 'policy-techs' })
+const technologyOptions = computed(() =>
+  (techData.value?.data || []).map(t => t.name).sort()
+)
 
 async function handleCreatePolicy() {
   isCreating.value = true
   try {
     await $fetch('/api/policies', {
       method: 'POST',
-      body: createForm.value
+      body: {
+        name: createForm.value.name,
+        description: createForm.value.description || undefined,
+        ruleType: createForm.value.ruleType,
+        severity: createForm.value.severity,
+        scope: createForm.value.scope,
+        subjectTeam: createForm.value.scope === 'team' ? createForm.value.subjectTeam : undefined,
+        versionRange: createForm.value.ruleType === 'version-constraint' ? createForm.value.versionRange : undefined,
+        governsTechnology: createForm.value.governsTechnology || undefined
+      }
     })
     showCreateModal.value = false
-    createForm.value = { name: '', description: '', ruleType: '', severity: '' }
+    createForm.value = { name: '', description: '', ruleType: undefined, severity: undefined, scope: 'organization', subjectTeam: undefined, versionRange: '', governsTechnology: undefined }
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
     alert(err.data?.message || err.message || 'Failed to create policy')
   } finally {
     isCreating.value = false
+  }
+}
+
+// Edit policy modal
+const showEditModal = ref(false)
+const isEditing = ref(false)
+const editForm = ref({
+  name: '',
+  description: '',
+  ruleType: undefined as string | undefined,
+  severity: undefined as string | undefined,
+  scope: 'organization',
+  subjectTeam: undefined as string | undefined,
+  versionRange: '',
+  governsTechnology: undefined as string | undefined,
+  status: undefined as string | undefined
+})
+
+function openEditModal(policy: Policy) {
+  editForm.value = {
+    name: policy.name,
+    description: policy.description || '',
+    ruleType: policy.ruleType || undefined,
+    severity: policy.severity || undefined,
+    scope: policy.scope || 'organization',
+    subjectTeam: policy.subjectTeam || undefined,
+    versionRange: policy.versionRange || '',
+    governsTechnology: policy.governedTechnologies?.[0] || undefined,
+    status: policy.status || undefined
+  }
+  showEditModal.value = true
+}
+
+async function handleEditPolicy() {
+  isEditing.value = true
+  try {
+    await $fetch(`/api/policies/${encodeURIComponent(editForm.value.name)}`, {
+      method: 'PUT',
+      body: {
+        description: editForm.value.description || undefined,
+        ruleType: editForm.value.ruleType,
+        severity: editForm.value.severity,
+        scope: editForm.value.scope,
+        subjectTeam: editForm.value.scope === 'team' ? editForm.value.subjectTeam : undefined,
+        versionRange: editForm.value.ruleType === 'version-constraint' ? editForm.value.versionRange : undefined,
+        governsTechnology: editForm.value.governsTechnology || undefined,
+        status: editForm.value.status
+      }
+    })
+    showEditModal.value = false
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    alert(err.data?.message || err.message || 'Failed to update policy')
+  } finally {
+    isEditing.value = false
   }
 }
 

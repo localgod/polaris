@@ -95,6 +95,74 @@
       </template>
     </UModal>
 
+    <!-- Create Policy Modal -->
+    <UModal v-model:open="policyModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">Create Policy for {{ policyForm.governsTechnology }}</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Policy Name *</label>
+            <UInput v-model="policyForm.name" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <UInput v-model="policyForm.description" placeholder="What does this policy enforce?" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Rule Type *</label>
+              <USelect v-model="policyForm.ruleType" :items="policyRuleTypeOptions" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Severity *</label>
+              <USelect v-model="policyForm.severity" :items="policySeverityOptions" />
+            </div>
+          </div>
+          <div v-if="policyForm.ruleType === 'version-constraint'">
+            <label class="block text-sm font-medium mb-1">Version Range *</label>
+            <UInput v-model="policyForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Scope *</label>
+              <USelect
+                v-model="policyForm.scope"
+                :items="isSuperuser ? ['organization', 'team'] : ['team']"
+              />
+            </div>
+            <div v-if="policyForm.scope === 'team'">
+              <label class="block text-sm font-medium mb-1">Team *</label>
+              <USelect
+                v-model="policyForm.subjectTeam"
+                :items="isSuperuser ? teamOptions : userTeams"
+                placeholder="Select team"
+              />
+            </div>
+          </div>
+          <UAlert
+            v-if="policyError"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="policyError"
+            class="mt-2"
+          />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="policyModalOpen = false" />
+          <UButton
+            :loading="policyLoading"
+            :label="policyLoading ? 'Creating...' : 'Create Policy'"
+            @click="confirmCreatePolicy"
+          />
+        </div>
+      </template>
+    </UModal>
+
     <!-- Delete Technology Modal -->
     <UModal v-model:open="deleteModalOpen">
       <template #header>
@@ -237,6 +305,13 @@ const columns: TableColumn<Technology>[] = [
       ]
       const items: { label: string; icon: string; onSelect: () => void }[][] = [viewGroup]
 
+      // Any authenticated user can create a policy for a technology
+      if (session.value?.user) {
+        items.push([
+          { label: 'Create Policy', icon: 'i-lucide-shield', onSelect: () => openCreatePolicyModal(tech) }
+        ])
+      }
+
       if (canEditTechnology(tech)) {
         items.push([
           { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEditModal(tech) }
@@ -315,6 +390,66 @@ async function confirmEdit() {
     editError.value = error.data?.message || error.message || 'Failed to update technology'
   } finally {
     editLoading.value = false
+  }
+}
+
+// Create Policy modal state
+const policyModalOpen = ref(false)
+const policyLoading = ref(false)
+const policyError = ref('')
+const policyForm = ref({
+  name: '',
+  description: '',
+  ruleType: 'version-constraint',
+  severity: 'error' as string | undefined,
+  scope: 'team',
+  subjectTeam: undefined as string | undefined,
+  versionRange: '',
+  governsTechnology: ''
+})
+const policyRuleTypeOptions = ['approval', 'compliance', 'security', 'version-constraint']
+const policySeverityOptions = ['critical', 'error', 'warning', 'info']
+
+function openCreatePolicyModal(tech: Technology) {
+  const defaultName = `${tech.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-version-constraint`
+  policyForm.value = {
+    name: defaultName,
+    description: '',
+    ruleType: 'version-constraint',
+    severity: 'error',
+    scope: isSuperuser.value ? 'organization' : 'team',
+    subjectTeam: isSuperuser.value ? undefined : (userTeams.value[0] || undefined),
+    versionRange: '',
+    governsTechnology: tech.name
+  }
+  policyError.value = ''
+  policyModalOpen.value = true
+}
+
+async function confirmCreatePolicy() {
+  policyLoading.value = true
+  policyError.value = ''
+
+  try {
+    await $fetch('/api/policies', {
+      method: 'POST',
+      body: {
+        name: policyForm.value.name,
+        description: policyForm.value.description || undefined,
+        ruleType: policyForm.value.ruleType,
+        severity: policyForm.value.severity,
+        scope: policyForm.value.scope,
+        subjectTeam: policyForm.value.scope === 'team' ? policyForm.value.subjectTeam : undefined,
+        versionRange: policyForm.value.ruleType === 'version-constraint' ? policyForm.value.versionRange : undefined,
+        governsTechnology: policyForm.value.governsTechnology
+      }
+    })
+    policyModalOpen.value = false
+  } catch (err: unknown) {
+    const error = err as { data?: { message?: string }; message?: string }
+    policyError.value = error.data?.message || error.message || 'Failed to create policy'
+  } finally {
+    policyLoading.value = false
   }
 }
 

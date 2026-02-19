@@ -107,68 +107,6 @@
       "notes": "Community edition"
     }
   ],
-  "policies": [
-    {
-      "name": "Technology Approval Required",
-      "description": "All technologies must be explicitly approved by the responsible team before use in production systems.",
-      "ruleType": "approval",
-      "severity": "error",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Security",
-      "scope": "organization",
-      "status": "active"
-    },
-    {
-      "name": "Database Version Compliance",
-      "description": "All database technologies must use versions within the approved version range.",
-      "ruleType": "compliance",
-      "severity": "error",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Data Platform",
-      "scope": "organization",
-      "status": "active"
-    },
-    {
-      "name": "Migration Target Required",
-      "description": "Technologies marked for migration must have a migration target specified.",
-      "ruleType": "compliance",
-      "severity": "warning",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Security",
-      "scope": "organization",
-      "status": "active"
-    },
-    {
-      "name": "High Risk Technology Approval",
-      "description": "Technologies with high or critical risk levels require explicit team approval before use.",
-      "ruleType": "security",
-      "severity": "error",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Security",
-      "scope": "organization",
-      "status": "active"
-    },
-    {
-      "name": "License Compliance",
-      "description": "All components must have approved open source licenses (MIT, Apache-2.0, BSD-3-Clause, ISC).",
-      "ruleType": "compliance",
-      "severity": "error",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "Security",
-      "scope": "organization",
-      "status": "active"
-    },
-    {
-      "name": "EOL Warning",
-      "description": "Technology versions approaching end-of-life within 6 months must be flagged for upgrade.",
-      "ruleType": "compliance",
-      "severity": "warning",
-      "effectiveDate": "2025-01-01",
-      "enforcedBy": "DevOps",
-      "scope": "organization",
-      "status": "active"
-    }
-  ],
   "relationships": {
     "technology_versions": [
       {
@@ -224,32 +162,6 @@
       {
         "team": "Platform Team",
         "technology": "Neo4j"
-      }
-    ],
-    "policy_technologies": [
-      {
-        "policy": "Technology Approval Required",
-        "technology": "Angular"
-      },
-      {
-        "policy": "Database Version Compliance",
-        "technology": "PostgreSQL"
-      },
-      {
-        "policy": "Database Version Compliance",
-        "technology": "Neo4j"
-      },
-      {
-        "policy": "Database Version Compliance",
-        "technology": "MongoDB"
-      },
-      {
-        "policy": "Database Version Compliance",
-        "technology": "MySQL"
-      },
-      {
-        "policy": "Migration Target Required",
-        "technology": "Angular"
       }
     ]
   },
