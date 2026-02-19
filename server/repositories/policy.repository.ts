@@ -42,7 +42,7 @@ export interface PolicyViolation {
   componentVersion: string
   technology: string
   technologyCategory: string
-  violationType: 'unapproved' | 'eliminated' | 'version-out-of-range'
+  violationType: 'version-out-of-range'
   policy: {
     name: string
     description: string

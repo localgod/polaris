@@ -177,7 +177,7 @@ export class PolicyService {
     }
     
     // Business logic: validate ruleType
-    const validRuleTypes = ['approval', 'compliance', 'security', 'license-compliance', 'version-constraint']
+    const validRuleTypes = ['license-compliance', 'version-constraint']
     if (!validRuleTypes.includes(input.ruleType)) {
       throw createError({
         statusCode: 400,
@@ -223,7 +223,7 @@ export class PolicyService {
     }
 
     if (input.ruleType) {
-      const validRuleTypes = ['approval', 'compliance', 'security', 'license-compliance', 'version-constraint']
+      const validRuleTypes = ['license-compliance', 'version-constraint']
       if (!validRuleTypes.includes(input.ruleType)) {
         throw createError({ statusCode: 400, message: `Invalid ruleType. Must be one of: ${validRuleTypes.join(', ')}` })
       }

@@ -378,7 +378,7 @@ const createForm = ref({
   versionRange: '',
   governsTechnology: undefined as string | undefined
 })
-const ruleTypeOptions = ['approval', 'compliance', 'security', 'license-compliance', 'version-constraint']
+const ruleTypeOptions = ['license-compliance', 'version-constraint']
 const severityOptions = ['critical', 'error', 'warning', 'info']
 const scopeOptions = ['organization', 'team']
 const statusOptions = ['active', 'draft', 'archived']

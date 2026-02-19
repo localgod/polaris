@@ -51,36 +51,39 @@ describeFeature(feature, ({ Scenario }) => {
       await session.run(`
         CREATE (orgPolicy:Policy {
           name: $orgPolicyName,
-          description: 'Organization-wide security policy',
-          ruleType: 'security',
+          description: 'Organization-wide version policy',
+          ruleType: 'version-constraint',
           severity: 'error',
           effectiveDate: date('2025-01-01'),
           expiryDate: null,
           enforcedBy: $securityName,
           scope: 'organization',
-          status: 'active'
+          status: 'active',
+          versionRange: '>=18.0.0'
         })
         CREATE (domainPolicy:Policy {
           name: $domainPolicyName,
           description: 'Frontend-specific policy',
-          ruleType: 'compliance',
+          ruleType: 'version-constraint',
           severity: 'warning',
           effectiveDate: date('2025-01-01'),
           expiryDate: null,
           enforcedBy: $frontendName,
           scope: 'frontend',
-          status: 'active'
+          status: 'active',
+          versionRange: '>=16.0.0'
         })
         CREATE (expiredPolicy:Policy {
           name: $expiredPolicyName,
           description: 'Expired policy',
-          ruleType: 'compliance',
+          ruleType: 'version-constraint',
           severity: 'info',
           effectiveDate: date('2024-01-01'),
           expiryDate: date('2024-12-31'),
           enforcedBy: $securityName,
           scope: 'organization',
-          status: 'archived'
+          status: 'archived',
+          versionRange: '>=1.0.0'
         })
       `, {
         orgPolicyName: `${testPrefix}OrgPolicy`,
@@ -142,7 +145,7 @@ describeFeature(feature, ({ Scenario }) => {
     And('all properties should be set correctly', () => {
       const policy = policyResult.records[0]
       expect(policy.get('name')).toBe(`${testPrefix}OrgPolicy`)
-      expect(policy.get('ruleType')).toBe('security')
+      expect(policy.get('ruleType')).toBe('version-constraint')
       expect(policy.get('severity')).toBe('error')
       expect(policy.get('enforcedBy')).toBe(`${testPrefix}Security`)
       expect(policy.get('scope')).toBe('organization')

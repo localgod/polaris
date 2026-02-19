@@ -6,13 +6,11 @@
  *       - Policies
  *     summary: Get policy violations
  *     description: |
- *       Retrieves all policy violations across the organization.
+ *       Retrieves version-constraint policy violations across the organization.
  *       
- *       A violation occurs when:
- *       - A team uses a technology (USES relationship)
- *       - The team does not have approval for that technology (no APPROVES relationship)
- *       - An active policy governs that technology
- *       - The team is subject to that policy
+ *       A violation occurs when a component's version falls outside the
+ *       allowed range defined by an active version-constraint policy that
+ *       governs the component's technology.
  *       
  *       Results are ordered by severity (critical first) then by team and technology name.
  *     parameters:
@@ -64,7 +62,7 @@
  *                         type: string
  *                       violationType:
  *                         type: string
- *                         enum: [unapproved, eliminated, version-out-of-range]
+ *                         enum: [version-out-of-range]
  *                       policy:
  *                         type: object
  *                         properties:
@@ -102,12 +100,13 @@
  *                   componentVersion: "3.6.0"
  *                   technology: jQuery
  *                   technologyCategory: library
- *                   violationType: unapproved
+ *                   violationType: version-out-of-range
  *                   policy:
- *                     name: deprecated-libraries
- *                     description: Deprecated libraries must not be used
+ *                     name: react-version-policy
+ *                     description: React must be version 18 or higher
  *                     severity: error
- *                     ruleType: approval
+ *                     ruleType: version-constraint
+ *                     versionRange: ">=18.0.0"
  *                     enforcedBy: architecture-team
  *               count: 1
  *               summary:

@@ -9,7 +9,7 @@ vi.mock('../../../server/repositories/audit-log.repository')
 const mockPolicy: Policy = {
   name: 'Test Policy',
   description: 'A test policy',
-  ruleType: 'compliance',
+  ruleType: 'version-constraint',
   severity: 'warning',
   status: 'active',
   scope: 'organization',
@@ -31,11 +31,12 @@ beforeEach(() => {
 
 describe('POST /api/policies', () => {
   describe('Happy Paths', () => {
-    it('should create a valid compliance policy', async () => {
+    it('should create a valid version-constraint policy', async () => {
       const input: CreatePolicyInput = {
         name: 'New Policy',
-        ruleType: 'compliance',
-        severity: 'warning'
+        ruleType: 'version-constraint',
+        severity: 'warning',
+        versionRange: '>=18.0.0'
       }
 
       vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(false)
@@ -53,7 +54,7 @@ describe('POST /api/policies', () => {
       const result = await policyRepo.create(input)
       
       expect(result.policy.name).toBe('New Policy')
-      expect(result.policy.ruleType).toBe('compliance')
+      expect(result.policy.ruleType).toBe('version-constraint')
       expect(result.policy.severity).toBe('warning')
     })
 
@@ -118,8 +119,9 @@ describe('POST /api/policies', () => {
       // Test that the input type requires name, ruleType, and severity
       const validInput: CreatePolicyInput = {
         name: 'Test',
-        ruleType: 'compliance',
-        severity: 'warning'
+        ruleType: 'version-constraint',
+        severity: 'warning',
+        versionRange: '>=1.0.0'
       }
       
       expect(validInput.name).toBeDefined()

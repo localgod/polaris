@@ -26,16 +26,17 @@ describe('PolicyRepository - Create Policy', () => {
   })
 
   describe('create()', () => {
-    it('should create a basic compliance policy', async () => {
+    it('should create a basic version-constraint policy', async () => {
       if (!ctx.neo4jAvailable) return
       const result = await repo.create({
         name: `${PREFIX}basic-policy`, description: 'A basic test policy',
-        ruleType: 'compliance', severity: 'warning', scope: 'organization', status: 'active',
+        ruleType: 'version-constraint', severity: 'warning', scope: 'organization', status: 'active',
+        versionRange: '>=18.0.0',
         userId: 'test-user'
       })
 
       expect(result.policy.name).toBe(`${PREFIX}basic-policy`)
-      expect(result.policy.ruleType).toBe('compliance')
+      expect(result.policy.ruleType).toBe('version-constraint')
       expect(result.policy.severity).toBe('warning')
       expect(result.policy.status).toBe('active')
     })
@@ -78,7 +79,8 @@ describe('PolicyRepository - Create Policy', () => {
     it('should create policy with draft status', async () => {
       if (!ctx.neo4jAvailable) return
       const result = await repo.create({
-        name: `${PREFIX}draft-policy`, ruleType: 'compliance', severity: 'info', status: 'draft',
+        name: `${PREFIX}draft-policy`, ruleType: 'version-constraint', severity: 'info', status: 'draft',
+        versionRange: '>=1.0.0',
         userId: 'test-user'
       })
 
@@ -88,7 +90,8 @@ describe('PolicyRepository - Create Policy', () => {
     it('should create SUBJECT_TO relationships for organization scope', async () => {
       if (!ctx.neo4jAvailable) return
       await repo.create({
-        name: `${PREFIX}org-policy`, ruleType: 'compliance', severity: 'warning', scope: 'organization',
+        name: `${PREFIX}org-policy`, ruleType: 'version-constraint', severity: 'warning', scope: 'organization',
+        versionRange: '>=1.0.0',
         userId: 'test-user'
       })
 
@@ -111,8 +114,8 @@ describe('PolicyRepository - Update Status', () => {
 
     await seed(ctx.driver, `
       CREATE (:Policy {
-        name: $name, ruleType: 'compliance', severity: 'warning',
-        status: 'active', scope: 'organization'
+        name: $name, ruleType: 'version-constraint', severity: 'warning',
+        status: 'active', scope: 'organization', versionRange: '>=1.0.0'
       })
     `, { name: `${PREFIX}status-test` })
   })
