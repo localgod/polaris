@@ -407,7 +407,7 @@ const policyForm = ref({
   versionRange: '',
   governsTechnology: ''
 })
-const policyRuleTypeOptions = ['approval', 'compliance', 'security', 'version-constraint']
+const policyRuleTypeOptions = ['license-compliance', 'version-constraint']
 const policySeverityOptions = ['critical', 'error', 'warning', 'info']
 
 function openCreatePolicyModal(tech: Technology) {

@@ -1,18 +1,11 @@
-// Find policy violations by traversing Team→System→Component→Technology
-// Detects: unapproved usage, eliminated technologies, and version constraint violations
+// Find version-constraint policy violations by traversing Team→System→Component→Technology
+// The semver range check is applied in the service layer after fetching candidates
 MATCH (team:Team)-[:OWNS]->(sys:System)-[:USES]->(comp:Component)-[:IS_VERSION_OF]->(tech:Technology)
-MATCH (policy:Policy {status: 'active'})-[:GOVERNS]->(tech)
+MATCH (policy:Policy {status: 'active', ruleType: 'version-constraint'})-[:GOVERNS]->(tech)
 MATCH (team)-[:SUBJECT_TO]->(policy)
-OPTIONAL MATCH (team)-[approval:APPROVES]->(tech)
 OPTIONAL MATCH (enforcer:Team)-[:ENFORCES]->(policy)
-WITH team, sys, comp, tech, policy, approval, enforcer,
-     CASE
-       WHEN policy.ruleType = 'version-constraint' THEN 'version-out-of-range'
-       WHEN approval IS NULL THEN 'unapproved'
-       WHEN approval.time = 'eliminate' THEN 'eliminated'
-       ELSE null
-     END as violationType
-WHERE violationType IS NOT NULL
+WITH team, sys, comp, tech, policy, enforcer,
+     'version-out-of-range' as violationType
 {{WHERE_CONDITIONS}}
 RETURN team.name as teamName,
        sys.name as systemName,

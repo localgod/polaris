@@ -13,11 +13,11 @@ describe('PolicyService - create()', () => {
     service = new PolicyService()
   })
 
-  it('should create a basic compliance policy', async () => {
+  it('should create a version-constraint policy', async () => {
     vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(false)
     vi.mocked(PolicyRepository.prototype.create).mockResolvedValue({
       policy: {
-        name: 'test-policy', description: 'Test', ruleType: 'compliance',
+        name: 'test-policy', description: 'Test', ruleType: 'version-constraint',
         severity: 'warning', status: 'active', scope: 'organization',
         licenseMode: null, allowedLicenses: [], deniedLicenses: [],
         enforcedBy: null, createdAt: '', updatedAt: ''
@@ -27,11 +27,12 @@ describe('PolicyService - create()', () => {
 
     const result = await service.create({
       name: 'test-policy', description: 'Test',
-      ruleType: 'compliance', severity: 'warning', scope: 'organization'
+      ruleType: 'version-constraint', severity: 'warning', scope: 'organization',
+      versionRange: '>=18.0.0'
     })
 
     expect(result.policy.name).toBe('test-policy')
-    expect(result.policy.ruleType).toBe('compliance')
+    expect(result.policy.ruleType).toBe('version-constraint')
     expect(PolicyRepository.prototype.exists).toHaveBeenCalledOnce()
     expect(PolicyRepository.prototype.create).toHaveBeenCalledOnce()
   })
@@ -40,7 +41,7 @@ describe('PolicyService - create()', () => {
     vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(true)
 
     await expect(
-      service.create({ name: 'existing', ruleType: 'compliance', severity: 'warning' })
+      service.create({ name: 'existing', ruleType: 'version-constraint', severity: 'warning', versionRange: '>=1.0.0' })
     ).rejects.toThrow()
 
     expect(PolicyRepository.prototype.create).not.toHaveBeenCalled()
@@ -62,7 +63,7 @@ describe('PolicyService - create()', () => {
 
     await expect(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      service.create({ name: 'bad-sev', ruleType: 'compliance', severity: 'invalid' as any })
+      service.create({ name: 'bad-sev', ruleType: 'version-constraint', severity: 'invalid' as any, versionRange: '>=1.0.0' })
     ).rejects.toThrow()
 
     expect(PolicyRepository.prototype.create).not.toHaveBeenCalled()
@@ -136,7 +137,7 @@ describe('PolicyService - create()', () => {
     vi.mocked(PolicyRepository.prototype.exists).mockResolvedValue(false)
     vi.mocked(PolicyRepository.prototype.create).mockResolvedValue({
       policy: {
-        name: 'default-status', description: null, ruleType: 'compliance',
+        name: 'default-status', description: null, ruleType: 'version-constraint',
         severity: 'info', status: 'active', scope: 'organization',
         licenseMode: null, allowedLicenses: [], deniedLicenses: [],
         enforcedBy: null, createdAt: '', updatedAt: ''
@@ -145,7 +146,8 @@ describe('PolicyService - create()', () => {
     })
 
     const result = await service.create({
-      name: 'default-status', ruleType: 'compliance', severity: 'info'
+      name: 'default-status', ruleType: 'version-constraint', severity: 'info',
+      versionRange: '>=1.0.0'
     })
 
     expect(result.policy.status).toBe('active')
@@ -156,7 +158,7 @@ describe('PolicyService - create()', () => {
     vi.mocked(PolicyRepository.prototype.create).mockRejectedValue(new Error('DB error'))
 
     await expect(
-      service.create({ name: 'fail', ruleType: 'compliance', severity: 'warning' })
+      service.create({ name: 'fail', ruleType: 'version-constraint', severity: 'warning', versionRange: '>=1.0.0' })
     ).rejects.toThrow('DB error')
   })
 })

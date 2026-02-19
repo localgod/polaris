@@ -26,8 +26,8 @@ describe('PolicyRepository', () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (:Policy {
-          name: $name, ruleType: 'compliance', severity: 'warning',
-          status: 'active', scope: 'organization'
+          name: $name, ruleType: 'version-constraint', severity: 'warning',
+          status: 'active', scope: 'organization', versionRange: '>=18.0.0'
         })
       `, { name: `${PREFIX}test-policy` })
 
@@ -36,7 +36,7 @@ describe('PolicyRepository', () => {
 
       expect(test.length).toBeGreaterThanOrEqual(1)
       expect(test[0].name).toBe(`${PREFIX}test-policy`)
-      expect(test[0].ruleType).toBe('compliance')
+      expect(test[0].ruleType).toBe('version-constraint')
     })
   })
 
@@ -74,7 +74,7 @@ describe('PolicyRepository', () => {
     it('should return true for existing policy', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
-        CREATE (:Policy { name: $name, ruleType: 'compliance', severity: 'info', status: 'draft' })
+        CREATE (:Policy { name: $name, ruleType: 'version-constraint', severity: 'info', status: 'draft', versionRange: '>=1.0.0' })
       `, { name: `${PREFIX}exists` })
 
       expect(await repo.exists(`${PREFIX}exists`)).toBe(true)
@@ -85,7 +85,7 @@ describe('PolicyRepository', () => {
     it('should delete a policy and its relationships', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
-        CREATE (p:Policy { name: $name, ruleType: 'compliance', severity: 'info', status: 'draft' })
+        CREATE (p:Policy { name: $name, ruleType: 'version-constraint', severity: 'info', status: 'draft', versionRange: '>=1.0.0' })
         CREATE (t:Team { name: $team })
         CREATE (t)-[:SUBJECT_TO]->(p)
       `, { name: `${PREFIX}to-delete`, team: `${PREFIX}team` })

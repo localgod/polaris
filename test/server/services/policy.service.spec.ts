@@ -7,7 +7,7 @@ import '../../fixtures/service-test-helper'
 vi.mock('../../../server/repositories/policy.repository')
 
 const mockPolicy: Policy = {
-  name: 'test-policy', description: 'Test', ruleType: 'compliance',
+  name: 'test-policy', description: 'Test', ruleType: 'version-constraint',
   severity: 'warning', status: 'active', scope: 'organization',
   subjectTeam: null, versionRange: null,
   licenseMode: null, allowedLicenses: [], deniedLicenses: [],

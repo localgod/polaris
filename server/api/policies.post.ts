@@ -41,7 +41,7 @@ import type { CreatePolicyInput } from '../repositories/policy.repository'
  *                 example: "MIT license is not allowed due to legal requirements"
  *               ruleType:
  *                 type: string
- *                 enum: [approval, compliance, security, license-compliance]
+ *                 enum: [license-compliance, version-constraint]
  *                 description: Type of policy rule
  *                 example: "license-compliance"
  *               severity:
