@@ -124,6 +124,9 @@ interface CreatePolicyRequest {
   ruleType: string
   severity: string
   scope?: string
+  subjectTeam?: string
+  versionRange?: string
+  governsTechnology?: string
   status?: string
   enforcedBy?: string
   licenseMode?: 'allowlist' | 'denylist'
@@ -196,6 +199,9 @@ export default defineEventHandler(async (event) => {
       ruleType: body.ruleType,
       severity: body.severity,
       scope: body.scope,
+      subjectTeam: body.subjectTeam,
+      versionRange: body.versionRange,
+      governsTechnology: body.governsTechnology,
       status: body.status,
       enforcedBy: body.enforcedBy,
       licenseMode: body.licenseMode,

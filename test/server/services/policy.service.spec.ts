@@ -9,10 +9,11 @@ vi.mock('../../../server/repositories/policy.repository')
 const mockPolicy: Policy = {
   name: 'test-policy', description: 'Test', ruleType: 'compliance',
   severity: 'warning', status: 'active', scope: 'organization',
+  subjectTeam: null, versionRange: null,
   licenseMode: null, allowedLicenses: [], deniedLicenses: [],
   enforcedBy: '', effectiveDate: null, expiryDate: null,
   enforcerTeam: null, subjectTeams: [], governedTechnologies: [],
-  governedVersions: []
+  governedVersions: [], technologyCount: 0
 }
 
 describe('PolicyService', () => {

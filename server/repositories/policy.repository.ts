@@ -37,13 +37,18 @@ const policySortConfig: SortConfig = {
 
 export interface PolicyViolation {
   team: string
+  system: string
+  component: string
+  componentVersion: string
   technology: string
   technologyCategory: string
+  violationType: 'unapproved' | 'eliminated' | 'version-out-of-range'
   policy: {
     name: string
     description: string
     severity: string
     ruleType: string
+    versionRange: string | null
     enforcedBy: string | null
   }
 }
@@ -85,6 +90,8 @@ export interface Policy {
   expiryDate: string | null
   enforcedBy: string
   scope: string
+  subjectTeam: string | null
+  versionRange: string | null
   status: string
   licenseMode?: string | null
   enforcerTeam: string | null
@@ -102,6 +109,9 @@ export interface CreatePolicyInput {
   ruleType: string
   severity: string
   scope?: string
+  subjectTeam?: string
+  versionRange?: string
+  governsTechnology?: string
   status?: string
   enforcedBy?: string
   licenseMode?: 'allowlist' | 'denylist'
@@ -118,6 +128,18 @@ export interface CreatePolicyResult {
 export interface UpdatePolicyStatusInput {
   status?: 'active' | 'draft' | 'archived'
   reason?: string
+}
+
+export interface UpdatePolicyInput {
+  description?: string
+  ruleType?: string
+  severity?: string
+  scope?: string
+  subjectTeam?: string | null
+  versionRange?: string | null
+  governsTechnology?: string | null
+  status?: string
+  userId: string
 }
 
 export interface UpdatePolicyResult {
@@ -182,6 +204,8 @@ export class PolicyRepository extends BaseRepository {
              p.expiryDate as expiryDate,
              p.enforcedBy as enforcedBy,
              p.scope as scope,
+             p.subjectTeam as subjectTeam,
+             p.versionRange as versionRange,
              p.status as status,
              enforcer.name as enforcerTeam,
              subjectTeams,
@@ -297,6 +321,8 @@ export class PolicyRepository extends BaseRepository {
         ruleType: $ruleType,
         severity: $severity,
         scope: $scope,
+        subjectTeam: $subjectTeam,
+        versionRange: $versionRange,
         status: $status,
         enforcedBy: $enforcedBy,
         licenseMode: $licenseMode,
@@ -314,6 +340,8 @@ export class PolicyRepository extends BaseRepository {
       ruleType: input.ruleType,
       severity: input.severity,
       scope: input.scope || 'organization',
+      subjectTeam: input.subjectTeam || null,
+      versionRange: input.versionRange || null,
       status: input.status || 'active',
       enforcedBy: input.enforcedBy || 'Security',
       licenseMode: input.licenseMode || null,
@@ -340,8 +368,19 @@ export class PolicyRepository extends BaseRepository {
     
     let relationshipsCreated = 0
     
-    // Step 2: Create SUBJECT_TO relationships for organization-scope policies
-    if (input.scope === 'organization' || !input.scope) {
+    // Step 2: Create SUBJECT_TO relationships
+    if (input.scope === 'team' && input.subjectTeam) {
+      // Team-scoped: create SUBJECT_TO for the single specified team
+      const subjectToQuery = `
+        MATCH (p:Policy {name: $name})
+        MATCH (team:Team {name: $subjectTeam})
+        MERGE (team)-[:SUBJECT_TO]->(p)
+        RETURN count(*) as count
+      `
+      const { records } = await this.executeQuery(subjectToQuery, { name: input.name, subjectTeam: input.subjectTeam })
+      relationshipsCreated += records[0]?.get('count')?.toNumber() || 0
+    } else {
+      // Organization-scoped: create SUBJECT_TO for all teams
       const subjectToQuery = `
         MATCH (p:Policy {name: $name})
         MATCH (team:Team)
@@ -367,7 +406,22 @@ export class PolicyRepository extends BaseRepository {
       relationshipsCreated += records[0]?.get('count')?.toNumber() || 0
     }
     
-    // Step 4: Create license relationships for license-compliance policies
+    // Step 4: Create GOVERNS relationship if a technology is specified
+    if (input.governsTechnology) {
+      const governsQuery = `
+        MATCH (p:Policy {name: $name})
+        MATCH (tech:Technology {name: $technology})
+        MERGE (p)-[:GOVERNS]->(tech)
+        RETURN count(*) as count
+      `
+      const { records } = await this.executeQuery(governsQuery, {
+        name: input.name,
+        technology: input.governsTechnology
+      })
+      relationshipsCreated += records[0]?.get('count')?.toNumber() || 0
+    }
+
+    // Step 5: Create license relationships for license-compliance policies
     if (input.ruleType === 'license-compliance') {
       if (input.licenseMode === 'denylist' && input.deniedLicenses?.length) {
         // Create DENIES_LICENSE relationships
@@ -482,6 +536,107 @@ export class PolicyRepository extends BaseRepository {
       policy: updatedPolicy,
       previousStatus
     }
+  }
+
+  /**
+   * Update a policy's properties and relationships
+   */
+  async update(name: string, input: UpdatePolicyInput): Promise<Policy> {
+    // Build SET clauses dynamically for provided fields
+    const setClauses: string[] = ['p.updatedAt = datetime()']
+    const params: Record<string, unknown> = { name, userId: input.userId }
+
+    if (input.description !== undefined) {
+      setClauses.push('p.description = $description')
+      params.description = input.description || null
+    }
+    if (input.ruleType !== undefined) {
+      setClauses.push('p.ruleType = $ruleType')
+      params.ruleType = input.ruleType
+    }
+    if (input.severity !== undefined) {
+      setClauses.push('p.severity = $severity')
+      params.severity = input.severity
+    }
+    if (input.scope !== undefined) {
+      setClauses.push('p.scope = $scope')
+      params.scope = input.scope
+    }
+    if (input.subjectTeam !== undefined) {
+      setClauses.push('p.subjectTeam = $subjectTeam')
+      params.subjectTeam = input.subjectTeam
+    }
+    if (input.versionRange !== undefined) {
+      setClauses.push('p.versionRange = $versionRange')
+      params.versionRange = input.versionRange
+    }
+    if (input.status !== undefined) {
+      setClauses.push('p.status = $status')
+      params.status = input.status
+    }
+
+    const updateQuery = `
+      MATCH (p:Policy {name: $name})
+      SET ${setClauses.join(', ')}
+      WITH p
+      CREATE (a:AuditLog {
+        id: randomUUID(),
+        timestamp: datetime(),
+        operation: 'UPDATE',
+        entityType: 'Policy',
+        entityId: p.name,
+        entityLabel: p.name,
+        source: 'API',
+        userId: $userId
+      })
+      CREATE (a)-[:AUDITS]->(p)
+      RETURN p.name as name
+    `
+    await this.executeQuery(updateQuery, params)
+
+    // Update SUBJECT_TO relationships if scope changed
+    if (input.scope !== undefined) {
+      // Remove existing SUBJECT_TO relationships
+      await this.executeQuery(
+        'MATCH (t:Team)-[r:SUBJECT_TO]->(p:Policy {name: $name}) DELETE r',
+        { name }
+      )
+
+      if (input.scope === 'team' && input.subjectTeam) {
+        await this.executeQuery(
+          'MATCH (p:Policy {name: $name}) MATCH (t:Team {name: $subjectTeam}) MERGE (t)-[:SUBJECT_TO]->(p)',
+          { name, subjectTeam: input.subjectTeam }
+        )
+      } else {
+        // Organization-scoped: all teams
+        await this.executeQuery(
+          'MATCH (p:Policy {name: $name}) MATCH (t:Team) MERGE (t)-[:SUBJECT_TO]->(p)',
+          { name }
+        )
+      }
+    }
+
+    // Update GOVERNS relationship if governsTechnology changed
+    if (input.governsTechnology !== undefined) {
+      // Remove existing GOVERNS relationships
+      await this.executeQuery(
+        'MATCH (p:Policy {name: $name})-[r:GOVERNS]->(:Technology) DELETE r',
+        { name }
+      )
+
+      if (input.governsTechnology) {
+        await this.executeQuery(
+          'MATCH (p:Policy {name: $name}) MATCH (tech:Technology {name: $technology}) MERGE (p)-[:GOVERNS]->(tech)',
+          { name, technology: input.governsTechnology }
+        )
+      }
+    }
+
+    const updated = await this.findByName(name)
+    if (!updated) {
+      throw new Error('Failed to fetch updated policy')
+    }
+    return updated
   }
 
   /**
@@ -748,13 +903,18 @@ export class PolicyRepository extends BaseRepository {
   private mapToViolation(record: Neo4jRecord): PolicyViolation {
     return {
       team: record.get('teamName'),
+      system: record.get('systemName'),
+      component: record.get('componentName'),
+      componentVersion: record.get('componentVersion'),
       technology: record.get('technologyName'),
       technologyCategory: record.get('technologyCategory'),
+      violationType: record.get('violationType'),
       policy: {
         name: record.get('policyName'),
         description: record.get('policyDescription'),
         severity: record.get('severity'),
         ruleType: record.get('ruleType'),
+        versionRange: record.get('versionRange'),
         enforcedBy: record.get('enforcedBy')
       }
     }
@@ -774,6 +934,8 @@ export class PolicyRepository extends BaseRepository {
       expiryDate: record.get('expiryDate')?.toString(),
       enforcedBy: record.get('enforcedBy'),
       scope: record.get('scope'),
+      subjectTeam: record.get('subjectTeam'),
+      versionRange: record.get('versionRange'),
       status: record.get('status'),
       licenseMode: record.get('licenseMode'),
       enforcerTeam: record.get('enforcerTeam'),
@@ -800,6 +962,8 @@ export class PolicyRepository extends BaseRepository {
       expiryDate: record.get('expiryDate')?.toString(),
       enforcedBy: record.get('enforcedBy'),
       scope: record.get('scope'),
+      subjectTeam: record.get('subjectTeam'),
+      versionRange: record.get('versionRange'),
       status: record.get('status'),
       enforcerTeam: record.get('enforcerTeam'),
       subjectTeams: record.get('subjectTeams').filter((t: string) => t),

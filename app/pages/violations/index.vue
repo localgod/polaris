@@ -3,7 +3,7 @@
     <div class="flex justify-between items-center">
       <UPageHeader
         title="Policy Violations"
-        description="Technologies and licenses used without approval"
+        description="Technologies used without approval or outside version constraints"
       />
       <UButton
         label="View License Violations"
@@ -24,50 +24,70 @@
     />
 
     <template v-else-if="data">
+      <!-- Summary -->
+      <div v-if="data.count > 0" class="grid grid-cols-4 gap-4">
+        <UCard v-for="(count, level) in data.summary" :key="level">
+          <div class="text-center">
+            <p class="text-2xl font-bold">{{ count }}</p>
+            <p class="text-sm text-(--ui-text-muted) capitalize">{{ level }}</p>
+          </div>
+        </UCard>
+      </div>
+
       <UCard v-if="data.count === 0">
         <div class="text-center text-(--ui-text-muted) py-12">
           No violations found.
         </div>
       </UCard>
 
-      <div v-else class="space-y-6">
-        <UCard v-for="violation in data.data" :key="violation.violationId">
+      <div v-else class="space-y-4">
+        <UCard v-for="(violation, idx) in data.data" :key="idx">
           <template #header>
             <div class="flex justify-between items-center">
               <div>
-                <h3>{{ violation.policyName }}</h3>
-                <p class="text-sm text-(--ui-text-muted)">{{ violation.systemName }}</p>
+                <h3 class="font-semibold">{{ violation.policy.name }}</h3>
+                <p class="text-sm text-(--ui-text-muted)">{{ violation.policy.description }}</p>
               </div>
-              <UBadge :color="getSeverityColor(violation.severity)" variant="subtle">
-                {{ violation.severity }}
-              </UBadge>
+              <div class="flex items-center gap-2">
+                <UBadge :color="getViolationTypeColor(violation.violationType)" variant="subtle">
+                  {{ formatViolationType(violation.violationType) }}
+                </UBadge>
+                <UBadge :color="getSeverityColor(violation.policy.severity)" variant="subtle">
+                  {{ violation.policy.severity }}
+                </UBadge>
+              </div>
             </div>
           </template>
-          <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <span class="text-(--ui-text-muted)">Component:</span>
-              <span class="ml-2">{{ violation.componentName }}</span>
+              <span class="text-(--ui-text-muted)">Team</span>
+              <p class="font-medium">{{ violation.team }}</p>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Version:</span>
-              <code class="ml-2">{{ violation.componentVersion }}</code>
+              <span class="text-(--ui-text-muted)">System</span>
+              <p class="font-medium">{{ violation.system }}</p>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Status:</span>
-              <UBadge
-                :color="violation.status === 'open' ? 'error' : 'success'"
-                variant="subtle"
-                class="ml-2"
-              >
-                {{ violation.status }}
-              </UBadge>
+              <span class="text-(--ui-text-muted)">Technology</span>
+              <p class="font-medium">{{ violation.technology }}</p>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Detected:</span>
-              <span class="ml-2">{{ formatDate(violation.detectedAt) }}</span>
+              <span class="text-(--ui-text-muted)">Component</span>
+              <p class="font-medium">{{ violation.component }}</p>
+            </div>
+            <div>
+              <span class="text-(--ui-text-muted)">Version</span>
+              <p class="font-medium"><code>{{ violation.componentVersion }}</code></p>
+            </div>
+            <div v-if="violation.policy.versionRange">
+              <span class="text-(--ui-text-muted)">Required Range</span>
+              <p class="font-medium"><code>{{ violation.policy.versionRange }}</code></p>
+            </div>
+            <div v-if="violation.policy.enforcedBy">
+              <span class="text-(--ui-text-muted)">Enforced By</span>
+              <p class="font-medium">{{ violation.policy.enforcedBy }}</p>
             </div>
           </div>
-          <p v-if="violation.notes" class="text-sm text-(--ui-text-muted) mt-3">{{ violation.notes }}</p>
         </UCard>
       </div>
     </template>
@@ -76,16 +96,21 @@
 
 <script setup lang="ts">
 interface Violation {
-  violationId: string
-  policyName: string
-  systemName: string
-  componentName: string
+  team: string
+  system: string
+  component: string
   componentVersion: string
-  severity: string
-  detectedAt: string
-  status: string
-  resolvedAt: string | null
-  notes: string | null
+  technology: string
+  technologyCategory: string
+  violationType: 'unapproved' | 'eliminated' | 'version-out-of-range'
+  policy: {
+    name: string
+    description: string
+    severity: string
+    ruleType: string
+    versionRange: string | null
+    enforcedBy: string | null
+  }
 }
 
 interface ViolationsResponse {
@@ -112,8 +137,22 @@ function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | '
   return colors[severity] || 'neutral'
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString()
+function getViolationTypeColor(type: string): 'error' | 'warning' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'neutral'> = {
+    unapproved: 'error',
+    eliminated: 'error',
+    'version-out-of-range': 'warning'
+  }
+  return colors[type] || 'neutral'
+}
+
+function formatViolationType(type: string): string {
+  const labels: Record<string, string> = {
+    unapproved: 'Unapproved',
+    eliminated: 'Eliminated',
+    'version-out-of-range': 'Version Out of Range'
+  }
+  return labels[type] || type
 }
 
 useHead({ title: 'Violations - Polaris' })

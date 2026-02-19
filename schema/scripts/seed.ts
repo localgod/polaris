@@ -39,21 +39,9 @@ interface FixtureData {
     approved: boolean
     notes: string
   }>
-  policies: Array<{
-    name: string
-    description: string
-    ruleType: string
-    severity: string
-    effectiveDate?: string
-    expiryDate?: string
-    enforcedBy?: string
-    scope?: string
-    status?: string
-  }>
   relationships: {
     technology_versions: Array<{ technology: string; version: string }>
     team_technologies: Array<{ team: string; technology: string }>
-    policy_technologies: Array<{ policy: string; technology: string }>
   }
   approvals: {
     team_technology_approvals: Array<{
@@ -166,44 +154,6 @@ async function seedVersions(driver: neo4j.Driver, versions: FixtureData['version
   }
 }
 
-async function seedPolicies(driver: neo4j.Driver, policies: FixtureData['policies']) {
-  const session = driver.session()
-  try {
-    console.log('📋 Seeding policies...')
-    
-    for (const policy of policies) {
-      await session.run(
-        `
-        MERGE (p:Policy {name: $name})
-        SET p.description = $description,
-            p.ruleType = $ruleType,
-            p.severity = $severity,
-            p.effectiveDate = COALESCE(date($effectiveDate), date()),
-            p.expiryDate = CASE WHEN $expiryDate IS NOT NULL THEN date($expiryDate) ELSE null END,
-            p.enforcedBy = COALESCE($enforcedBy, 'Security'),
-            p.scope = COALESCE($scope, 'organization'),
-            p.status = COALESCE($status, 'active')
-        `,
-        {
-          name: policy.name,
-          description: policy.description,
-          ruleType: policy.ruleType,
-          severity: policy.severity,
-          effectiveDate: policy.effectiveDate || null,
-          expiryDate: policy.expiryDate || null,
-          enforcedBy: policy.enforcedBy || null,
-          scope: policy.scope || null,
-          status: policy.status || null
-        }
-      )
-    }
-    
-    console.log(`✅ Seeded ${policies.length} policies`)
-  } finally {
-    await session.close()
-  }
-}
-
 async function seedRelationships(driver: neo4j.Driver, relationships: FixtureData['relationships']) {
   const session = driver.session()
   try {
@@ -234,19 +184,6 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
       )
     }
     console.log(`✅ Created ${relationships.team_technologies.length} team stewardship relationships`)
-    
-    // Policy -> Technology (using GOVERNS relationship)
-    for (const rel of relationships.policy_technologies) {
-      await session.run(
-        `
-        MATCH (pol:Policy {name: $policy})
-        MATCH (tech:Technology {name: $technology})
-        MERGE (pol)-[:GOVERNS]->(tech)
-        `,
-        rel
-      )
-    }
-    console.log(`✅ Created ${relationships.policy_technologies.length} policy-technology relationships`)
     
   } finally {
     await session.close()
@@ -295,40 +232,6 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
   }
 }
 
-async function createPolicyRelationships(driver: neo4j.Driver) {
-  const session = driver.session()
-  
-  try {
-    console.log('Creating policy enforcement relationships...')
-    
-    // Create ENFORCES relationships based on enforcedBy property
-    const enforcesResult = await session.run(`
-      MATCH (p:Policy)
-      WHERE p.enforcedBy IS NOT NULL
-      MATCH (team:Team {name: p.enforcedBy})
-      MERGE (team)-[:ENFORCES]->(p)
-      RETURN count(*) as enforcesCount
-    `)
-    
-    const enforcesCount = enforcesResult.records[0]?.get('enforcesCount').toNumber() || 0
-    console.log(`✅ Created ${enforcesCount} ENFORCES relationships`)
-    
-    // Create SUBJECT_TO relationships for organization-wide policies
-    const subjectToResult = await session.run(`
-      MATCH (p:Policy {scope: 'organization'})
-      MATCH (team:Team)
-      MERGE (team)-[:SUBJECT_TO]->(p)
-      RETURN count(*) as subjectToCount
-    `)
-    
-    const subjectToCount = subjectToResult.records[0]?.get('subjectToCount').toNumber() || 0
-    console.log(`✅ Created ${subjectToCount} SUBJECT_TO relationships`)
-    
-  } finally {
-    await session.close()
-  }
-}
-
 async function seed(options: { clear?: boolean } = {}) {
   const driver = await getDriver()
   
@@ -349,10 +252,6 @@ async function seed(options: { clear?: boolean } = {}) {
     await seedTeams(driver, fixtureData.teams)
     await seedTechnologies(driver, fixtureData.technologies)
     await seedVersions(driver, fixtureData.versions)
-    await seedPolicies(driver, fixtureData.policies)
-    
-    console.log('')
-    
     // Seed relationships
     await seedRelationships(driver, fixtureData.relationships)
     
@@ -360,11 +259,6 @@ async function seed(options: { clear?: boolean } = {}) {
     
     // Seed approvals
     await seedApprovals(driver, fixtureData.approvals)
-    
-    console.log('')
-    
-    // Create policy enforcement relationships
-    await createPolicyRelationships(driver)
     
     console.log('\n✅ Database seeding completed successfully!\n')
     
@@ -375,8 +269,7 @@ async function seed(options: { clear?: boolean } = {}) {
         MATCH (t:Team) WITH count(t) as teams
         MATCH (tech:Technology) WITH teams, count(tech) as technologies
         MATCH (v:Version) WITH teams, technologies, count(v) as versions
-        MATCH (p:Policy) WITH teams, technologies, versions, count(p) as policies
-        RETURN teams, technologies, versions, policies
+        RETURN teams, technologies, versions
       `)
       
       if (result.records.length > 0) {
@@ -385,7 +278,6 @@ async function seed(options: { clear?: boolean } = {}) {
         console.log(`   Teams: ${record.get('teams')}`)
         console.log(`   Technologies: ${record.get('technologies')}`)
         console.log(`   Versions: ${record.get('versions')}`)
-        console.log(`   Policies: ${record.get('policies')}`)
         console.log('')
         console.log('💡 To add systems, repositories, and components, run:')
         console.log('   npm run seed:github')

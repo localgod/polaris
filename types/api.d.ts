@@ -173,24 +173,13 @@ export interface Policy {
   expiryDate: string | null
   enforcedBy: string
   scope: string
+  subjectTeam: string | null
+  versionRange: string | null
   status: string
   enforcerTeam: string | null
   subjectTeams: string[]
   governedTechnologies: string[]
   technologyCount: number
-}
-
-export interface Violation {
-  violationId: string
-  policyName: string
-  systemName: string
-  componentName: string
-  componentVersion: string
-  severity: string
-  detectedAt: string
-  status: string
-  resolvedAt: string | null
-  notes: string | null
 }
 
 export interface User {

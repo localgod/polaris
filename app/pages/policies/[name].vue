@@ -44,7 +44,14 @@
             </div>
             <div>
               <span class="text-sm text-(--ui-text-muted)">Scope</span>
-              <p class="font-medium">{{ data.data.scope }}</p>
+              <p class="font-medium">
+                {{ data.data.scope }}
+                <span v-if="data.data.subjectTeam"> — {{ data.data.subjectTeam }}</span>
+              </p>
+            </div>
+            <div v-if="data.data.versionRange">
+              <span class="text-sm text-(--ui-text-muted)">Version Range</span>
+              <p class="font-medium"><code>{{ data.data.versionRange }}</code></p>
             </div>
             <div>
               <span class="text-sm text-(--ui-text-muted)">Severity</span>
@@ -165,6 +172,8 @@ interface Policy {
   effectiveDate: string
   enforcedBy: string
   scope: string
+  subjectTeam: string | null
+  versionRange: string | null
   status: string
   licenseMode?: string
   enforcerTeam: string | null
