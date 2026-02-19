@@ -87,7 +87,7 @@
     "@cucumber/cucumber": "^12.5.0",
     "@cucumber/gherkin": "^38.0.0",
     "@cucumber/messages": "^32.0.1",
-    "@cyclonedx/cdxgen": "^12.0.0",
+    "@cyclonedx/cdxgen": "^12.1.0",
     "@playwright/test": "^1.57.0",
     "@types/node": "^25.0.6",
     "@types/semver": "^7.7.1",
