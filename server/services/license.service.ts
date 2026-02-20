@@ -67,68 +67,68 @@ export class LicenseService {
   /**
    * Get license statistics
    * 
-   * @returns License statistics including whitelist counts
+   * @returns License statistics including allowed counts
    */
   async getStatistics(): Promise<{
     total: number
     byCategory: Record<string, number>
     osiApproved: number
     deprecated: number
-    whitelisted: number
+    allowed: number
   }> {
     const baseStats = await this.licenseRepo.getStatistics()
-    const whitelistedLicenses = await this.licenseRepo.getWhitelistedLicenses()
+    const allowedLicenses = await this.licenseRepo.getAllowedLicenses()
     
     return {
       ...baseStats,
-      whitelisted: whitelistedLicenses.length
+      allowed: allowedLicenses.length
     }
   }
 
   /**
-   * Get all whitelisted licenses
+   * Get all allowed licenses
    * 
    * Business rules:
-   * - Only superadmins can manage whitelist
-   * - Whitelisted licenses are globally approved for use
+   * - Only superadmins can manage allowed
+   * - Alloweded licenses are globally approved for use
    * 
-   * @returns Array of whitelisted licenses
+   * @returns Array of allowed licenses
    */
-  async getWhitelistedLicenses(): Promise<License[]> {
-    return this.licenseRepo.getWhitelistedLicenses()
+  async getAllowedLicenses(): Promise<License[]> {
+    return this.licenseRepo.getAllowedLicenses()
   }
 
   /**
-   * Update whitelist status for a license
+   * Update allowed status for a license
    * 
    * Business rules:
-   * - Only existing licenses can be whitelisted
-   * - Whitelist changes affect global compliance
+   * - Only existing licenses can be allowed
+   * - Allowed changes affect global compliance
    * - Audit trail should be maintained
    * 
    * @param id - License ID
-   * @param whitelisted - New whitelist status
+   * @param allowed - New allowed status
    * @returns True if license was updated successfully
    */
-  async updateWhitelistStatus(id: string, whitelisted: boolean, userId?: string): Promise<boolean> {
+  async updateAllowedStatus(id: string, allowed: boolean, userId?: string): Promise<boolean> {
     // Verify license exists
     const license = await this.licenseRepo.findById(id)
     if (!license) {
       throw new Error(`License '${id}' not found`)
     }
     
-    // Update whitelist status and create audit log
-    const updated = await this.licenseRepo.updateWhitelistStatus(id, whitelisted, userId)
+    // Update allowed status and create audit log
+    const updated = await this.licenseRepo.updateAllowedStatus(id, allowed, userId)
     
     if (!updated) {
-      throw new Error(`Failed to update whitelist status for license '${id}'`)
+      throw new Error(`Failed to update allowed status for license '${id}'`)
     }
     
     return true
   }
 
   /**
-   * Bulk update whitelist status for multiple licenses
+   * Bulk update allowed status for multiple licenses
    * 
    * Business rules:
    * - Pre-validates all licenses exist before attempting update
@@ -137,10 +137,10 @@ export class LicenseService {
    * - Returns detailed operation summary
    * 
    * @param licenseIds - Array of license IDs
-   * @param whitelisted - New whitelist status
+   * @param allowed - New allowed status
    * @returns Operation summary with success status, updated count, and any errors
    */
-  async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean, userId?: string): Promise<{
+  async bulkUpdateAllowedStatus(licenseIds: string[], allowed: boolean, userId?: string): Promise<{
     success: boolean
     updated: number
     errors: string[]
@@ -190,7 +190,7 @@ export class LicenseService {
       }
 
       // All licenses exist, proceed with atomic bulk update
-      const updated = await this.licenseRepo.bulkUpdateWhitelistStatus(licenseIds, whitelisted, userId)
+      const updated = await this.licenseRepo.bulkUpdateAllowedStatus(licenseIds, allowed, userId)
       
       // Check if all licenses were updated (should not happen with atomic transaction, but safety check)
       if (updated < licenseIds.length) {
@@ -207,7 +207,7 @@ export class LicenseService {
         errors: []
       }
     } catch (error) {
-      // Catch any errors from findById or bulkUpdateWhitelistStatus
+      // Catch any errors from findById or bulkUpdateAllowedStatus
       const errorMessage = error instanceof Error ? error.message : 'Bulk update failed'
       return {
         success: false,
@@ -218,13 +218,13 @@ export class LicenseService {
   }
 
   /**
-   * Check if a license is whitelisted
+   * Check if a license is allowed
    * 
    * @param id - License ID
-   * @returns True if license is whitelisted
+   * @returns True if license is allowed
    */
-  async isWhitelisted(id: string): Promise<boolean> {
-    return this.licenseRepo.isWhitelisted(id)
+  async isAllowed(id: string): Promise<boolean> {
+    return this.licenseRepo.isAllowed(id)
   }
 
   /**

@@ -15,7 +15,7 @@ import { AuditLogService } from '../services/audit-log.service'
  *         name: entityType
  *         schema:
  *           type: string
- *         description: Filter by entity type (e.g., Policy, Technology)
+ *         description: Filter by entity type (e.g., VersionConstraint, Technology)
  *       - in: query
  *         name: operation
  *         schema:

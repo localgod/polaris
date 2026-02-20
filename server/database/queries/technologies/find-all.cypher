@@ -2,7 +2,7 @@ MATCH (t:Technology)
 OPTIONAL MATCH (team:Team)-[:OWNS]->(t)
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
 OPTIONAL MATCH (comp:Component)-[:IS_VERSION_OF]->(t)
-OPTIONAL MATCH (pol:Policy)-[:GOVERNS]->(t)
+OPTIONAL MATCH (pol:VersionConstraint)-[:GOVERNS]->(t)
 OPTIONAL MATCH (approvalTeam:Team)-[approval:APPROVES]->(t)
 RETURN t.name as name,
        t.category as category,
@@ -10,7 +10,7 @@ RETURN t.name as name,
        t.lastReviewed as lastReviewed,
        team.name as ownerTeamName,
        count(DISTINCT comp) as componentCount,
-       count(DISTINCT pol) as policyCount,
+       count(DISTINCT pol) as constraintCount,
        collect(DISTINCT v.version) as versions,
        collect(DISTINCT {
          team: approvalTeam.name,

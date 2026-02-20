@@ -20,17 +20,17 @@ beforeEach(async () => {
   await seed(ctx.driver, `
     CREATE (:AuditLog {
       id: randomUUID(), timestamp: datetime(), operation: 'CREATE',
-      entityType: 'Policy', entityId: $e1, entityLabel: 'Test Policy 1',
+      entityType: 'VersionConstraint', entityId: $e1, entityLabel: 'Test VC 1',
       source: 'API', userId: $user
     })
     CREATE (:AuditLog {
       id: randomUUID(), timestamp: datetime() - duration('PT1H'), operation: 'ACTIVATE',
-      entityType: 'Policy', entityId: $e2, entityLabel: 'Test Policy 2',
+      entityType: 'VersionConstraint', entityId: $e2, entityLabel: 'Test VC 2',
       previousStatus: 'draft', newStatus: 'active', source: 'API', userId: $user
     })
     CREATE (:AuditLog {
       id: randomUUID(), timestamp: datetime() - duration('PT2H'), operation: 'DENY_LICENSE',
-      entityType: 'Policy', entityId: $e3, entityLabel: 'Org License Policy',
+      entityType: 'VersionConstraint', entityId: $e3, entityLabel: 'Org License VC',
       licenseId: 'MIT', source: 'API', userId: $user
     })
   `, {
@@ -56,10 +56,10 @@ describe('AuditLogRepository', () => {
 
     it('should filter by entityType', async () => {
       if (!ctx.neo4jAvailable) return
-      const logs = await repo.findAll({ entityType: 'Policy' })
+      const logs = await repo.findAll({ entityType: 'VersionConstraint' })
 
       expect(logs.length).toBeGreaterThan(0)
-      logs.forEach(log => expect(log.entityType).toBe('Policy'))
+      logs.forEach(log => expect(log.entityType).toBe('VersionConstraint'))
     })
 
     it('should filter by operation', async () => {
@@ -93,10 +93,10 @@ describe('AuditLogRepository', () => {
 
     it('should handle combined filters', async () => {
       if (!ctx.neo4jAvailable) return
-      const logs = await repo.findAll({ entityType: 'Policy', operation: 'ACTIVATE' })
+      const logs = await repo.findAll({ entityType: 'VersionConstraint', operation: 'ACTIVATE' })
 
       logs.forEach(log => {
-        expect(log.entityType).toBe('Policy')
+        expect(log.entityType).toBe('VersionConstraint')
         expect(log.operation).toBe('ACTIVATE')
       })
     })
@@ -162,7 +162,7 @@ describe('AuditLogRepository', () => {
       if (!ctx.neo4jAvailable) return
       const types = await repo.getEntityTypes()
 
-      expect(types).toContain('Policy')
+      expect(types).toContain('VersionConstraint')
     })
   })
 

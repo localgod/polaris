@@ -1,5 +1,5 @@
 import { TeamRepository } from '../repositories/team.repository'
-import type { Team, TeamApprovalsResult, TeamPoliciesResult, TeamUsageResult, ApprovalStatus } from '../repositories/team.repository'
+import type { Team, TeamApprovalsResult, TeamConstraintsResult, TeamUsageResult, ApprovalStatus } from '../repositories/team.repository'
 import type { SortParams } from '../utils/sorting'
 
 /**
@@ -193,13 +193,13 @@ export class TeamService {
   }
 
   /**
-   * Get team policies
+   * Get team version constraints
    * 
    * @param teamName - Team name
-   * @returns Team policies result
+   * @returns Team constraints result
    */
-  async findPolicies(teamName: string): Promise<TeamPoliciesResult> {
-    return await this.teamRepo.findPolicies(teamName)
+  async findConstraints(teamName: string): Promise<TeamConstraintsResult> {
+    return await this.teamRepo.findConstraints(teamName)
   }
 
   /**

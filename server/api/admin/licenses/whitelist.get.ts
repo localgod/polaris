@@ -4,14 +4,14 @@ import type { License } from '../../../repositories/license.repository'
 
 /**
  * @openapi
- * /admin/licenses/whitelist:
+ * /admin/licenses/allowed:
  *   get:
  *     tags:
  *       - Admin
  *       - Licenses
- *     summary: Get license whitelist management data
+ *     summary: Get license allowed management data
  *     description: |
- *       Retrieves all licenses with whitelist status for superadmin management.
+ *       Retrieves all licenses with allowed status for superadmin management.
  *       Includes filtering and search capabilities.
  *       
  *       **Authorization:** Superuser only
@@ -30,10 +30,10 @@ import type { License } from '../../../repositories/license.repository'
  *           type: boolean
  *         description: Filter by OSI approval status
  *       - in: query
- *         name: whitelisted
+ *         name: allowed
  *         schema:
  *           type: boolean
- *         description: Filter by whitelist status
+ *         description: Filter by allowed status
  *       - in: query
  *         name: search
  *         schema:
@@ -53,7 +53,7 @@ import type { License } from '../../../repositories/license.repository'
  *         description: Pagination offset
  *     responses:
  *       200:
- *         description: License whitelist data retrieved successfully
+ *         description: License allowed data retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -75,7 +75,7 @@ import type { License } from '../../../repositories/license.repository'
  *                             type: string
  *                           osiApproved:
  *                             type: boolean
- *                           whitelisted:
+ *                           allowed:
  *                             type: boolean
  *                           componentCount:
  *                             type: integer
@@ -88,7 +88,7 @@ import type { License } from '../../../repositories/license.repository'
  *                   properties:
  *                     total:
  *                       type: integer
- *                     whitelisted:
+ *                     allowed:
  *                       type: integer
  *                     byCategory:
  *                       type: object
@@ -99,13 +99,13 @@ import type { License } from '../../../repositories/license.repository'
  *                   name: MIT License
  *                   category: permissive
  *                   osiApproved: true
- *                   whitelisted: true
+ *                   allowed: true
  *                   componentCount: 42
  *               count: 1
  *               total: 1
  *               statistics:
  *                 total: 25
- *                 whitelisted: 8
+ *                 allowed: 8
  *       401:
  *         description: Authentication required
  *       403:
@@ -116,7 +116,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License> & 
   byCategory: Record<string, number>
   osiApproved: number
   deprecated: number
-  whitelisted: number
+  allowed: number
 } }> => {
   // Require superuser access
   await requireSuperuser(event)
@@ -126,7 +126,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License> & 
     const filters = {
       category: query.category as string | undefined,
       osiApproved: query.osiApproved === 'true' ? true : query.osiApproved === 'false' ? false : undefined,
-      whitelisted: query.whitelisted === 'true' ? true : query.whitelisted === 'false' ? false : undefined,
+      allowed: query.allowed === 'true' ? true : query.allowed === 'false' ? false : undefined,
       search: query.search as string | undefined,
       limit: query.limit ? Math.max(0, parseInt(query.limit as string, 10)) : 50,
       offset: query.offset ? Math.max(0, parseInt(query.offset as string, 10)) : 0
@@ -148,7 +148,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License> & 
       statistics
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch license whitelist data'
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch license allowed data'
     setResponseStatus(event, 500)
     return {
       success: false,

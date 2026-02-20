@@ -70,7 +70,7 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
       { name: 'Components', description: 'Component management endpoints' },
       { name: 'Technologies', description: 'Technology catalog endpoints' },
       { name: 'Teams', description: 'Team management endpoints' },
-      { name: 'Policies', description: 'Policy and compliance endpoints' },
+      { name: 'Version Constraints', description: 'Version constraint endpoints' },
       { name: 'Compliance', description: 'Compliance violation and audit endpoints' },
       { name: 'Repositories', description: 'Repository management endpoints' },
       { name: 'Users', description: 'User management endpoints' },
@@ -463,19 +463,16 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             systemCount: { type: 'integer' }
           }
         },
-        Policy: {
+        VersionConstraint: {
           type: 'object',
           properties: {
             name: { type: 'string' },
             description: { type: 'string', nullable: true },
-            ruleType: { type: 'string' },
             severity: { type: 'string' },
-            effectiveDate: { type: 'string', nullable: true },
-            expiryDate: { type: 'string', nullable: true },
-            enforcedBy: { type: 'string' },
             scope: { type: 'string' },
+            subjectTeam: { type: 'string', nullable: true },
+            versionRange: { type: 'string', nullable: true },
             status: { type: 'string' },
-            enforcerTeam: { type: 'string', nullable: true },
             subjectTeams: { type: 'array', items: { type: 'string' } },
             governedTechnologies: { type: 'array', items: { type: 'string' } },
             technologyCount: { type: 'integer' }
@@ -484,16 +481,19 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
         Violation: {
           type: 'object',
           properties: {
-            violationId: { type: 'string' },
-            policyName: { type: 'string' },
-            systemName: { type: 'string' },
-            componentName: { type: 'string' },
+            team: { type: 'string' },
+            system: { type: 'string' },
+            component: { type: 'string' },
             componentVersion: { type: 'string' },
-            severity: { type: 'string' },
-            detectedAt: { type: 'string' },
-            status: { type: 'string' },
-            resolvedAt: { type: 'string', nullable: true },
-            notes: { type: 'string', nullable: true }
+            technology: { type: 'string' },
+            constraint: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                severity: { type: 'string' },
+                versionRange: { type: 'string', nullable: true }
+              }
+            }
           }
         },
         User: {

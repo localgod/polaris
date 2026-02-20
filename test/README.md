@@ -188,7 +188,7 @@ Scenario('Creating an audit log entry', ({ When, Then }) => {
 **When to use:**
 - Testing workflows that involve multiple services
 - Testing side effects (audit logs, notifications)
-- Testing policy enforcement across layers
+- Testing version constraint enforcement across layers
 - Business acceptance criteria (backend only)
 - Testing database schema and constraints
 
@@ -363,7 +363,7 @@ Tests: User journeys and interactions
 
 - Testing business logic across multiple layers
 - Testing database schema and constraints
-- Testing side effects (audit logs, policy enforcement)
+- Testing side effects (audit logs, version constraint enforcement)
 - No UI interaction needed
 - Faster feedback loop desired
 
@@ -430,11 +430,11 @@ GET /api/components?limit=20&offset=40
 | `/api/teams` | 50 |
 | `/api/technologies` | 50 |
 | `/api/licenses` | 50 |
-| `/api/policies` | 50 |
+| `/api/version-constraints` | 50 |
 | `/api/audit-logs` | 100 |
 | `/api/components/unmapped` | 50 |
 | `/api/systems/{name}/unmapped-components` | 50 |
-| `/api/policies/license-violations` | 50 |
+| `/api/licenses/violations` | — |
 
 ### Pagination Tests
 

@@ -48,10 +48,11 @@ export interface TechnologyDetail extends Technology {
     packageManager: string | null
   }>
   systems?: string[]
-  policies?: Array<{
+  constraints?: Array<{
     name: string
     severity: string
-    ruleType: string
+    versionRange: string | null
+    status: string
   }>
   technologyApprovals?: Array<{
     team: string
@@ -97,7 +98,7 @@ export class TechnologyRepository extends BaseRepository {
   /**
    * Find a technology by name with detailed information
    * 
-   * Includes versions, components, systems, policies, and approvals.
+   * Includes versions, components, systems, constraints, and approvals.
    * 
    * @param name - Technology name
    * @returns Technology detail or null if not found
@@ -186,9 +187,27 @@ export class TechnologyRepository extends BaseRepository {
       lastReviewed: record.get('lastReviewed')?.toString(),
       ownerTeamName: record.get('ownerTeamName'),
       componentCount: record.get('componentCount').toInt(),
-      policyCount: record.get('policyCount').toInt(),
+      constraintCount: record.get('constraintCount').toInt(),
       versions: record.get('versions').filter((v: string) => v),
       approvals: record.get('approvals').filter((a: { team?: string }) => a.team)
+    }
+  }
+
+  /**
+   * Link a component to a technology via IS_VERSION_OF
+   */
+  async linkComponent(params: { technologyName: string; componentName: string; componentVersion: string; userId: string }): Promise<{ technologyName: string; componentName: string; componentVersion: string }> {
+    const query = await loadQuery('technologies/link-component.cypher')
+    const { records } = await this.executeQuery(query, params)
+
+    if (records.length === 0) {
+      throw new Error('Failed to link component — technology or component not found')
+    }
+
+    return {
+      technologyName: records[0]!.get('technologyName'),
+      componentName: records[0]!.get('componentName'),
+      componentVersion: records[0]!.get('componentVersion')
     }
   }
 
@@ -268,7 +287,7 @@ export class TechnologyRepository extends BaseRepository {
       approvals: [],
       components: record.get('components').filter((c: { name?: string }) => c.name),
       systems: record.get('systems').filter((s: string) => s),
-      policies: record.get('policies').filter((p: { name?: string }) => p.name),
+      constraints: record.get('constraints').filter((c: { name?: string }) => c.name),
       technologyApprovals,
       versionApprovals
     }

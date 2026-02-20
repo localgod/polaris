@@ -120,7 +120,7 @@ export interface Technology {
   lastReviewed: string | null
   ownerTeamName: string | null
   componentCount: number
-  policyCount: number
+  constraintCount: number
   versions: string[]
   approvals: TechnologyApproval[]
 }
@@ -164,19 +164,14 @@ export interface Team {
   systemCount: number
 }
 
-export interface Policy {
+export interface VersionConstraint {
   name: string
   description: string | null
-  ruleType: string
   severity: string
-  effectiveDate: string | null
-  expiryDate: string | null
-  enforcedBy: string
   scope: string
   subjectTeam: string | null
   versionRange: string | null
   status: string
-  enforcerTeam: string | null
   subjectTeams: string[]
   governedTechnologies: string[]
   technologyCount: number

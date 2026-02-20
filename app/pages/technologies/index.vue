@@ -95,69 +95,63 @@
       </template>
     </UModal>
 
-    <!-- Create Policy Modal -->
-    <UModal v-model:open="policyModalOpen">
+    <!-- Create Version Constraint Modal -->
+    <UModal v-model:open="vcModalOpen">
       <template #header>
-        <h3 class="text-lg font-semibold">Create Policy for {{ policyForm.governsTechnology }}</h3>
+        <h3 class="text-lg font-semibold">Create Version Constraint for {{ vcForm.governsTechnology }}</h3>
       </template>
       <template #body>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Policy Name *</label>
-            <UInput v-model="policyForm.name" />
+            <label class="block text-sm font-medium mb-1">Name *</label>
+            <UInput v-model="vcForm.name" />
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Description</label>
-            <UInput v-model="policyForm.description" placeholder="What does this policy enforce?" />
+            <UInput v-model="vcForm.description" placeholder="What does this constraint enforce?" />
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Rule Type *</label>
-              <USelect v-model="policyForm.ruleType" :items="policyRuleTypeOptions" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Severity *</label>
-              <USelect v-model="policyForm.severity" :items="policySeverityOptions" />
-            </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Severity *</label>
+            <USelect v-model="vcForm.severity" :items="vcSeverityOptions" />
           </div>
-          <div v-if="policyForm.ruleType === 'version-constraint'">
+          <div>
             <label class="block text-sm font-medium mb-1">Version Range *</label>
-            <UInput v-model="policyForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
+            <UInput v-model="vcForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">Scope *</label>
               <USelect
-                v-model="policyForm.scope"
+                v-model="vcForm.scope"
                 :items="isSuperuser ? ['organization', 'team'] : ['team']"
               />
             </div>
-            <div v-if="policyForm.scope === 'team'">
+            <div v-if="vcForm.scope === 'team'">
               <label class="block text-sm font-medium mb-1">Team *</label>
               <USelect
-                v-model="policyForm.subjectTeam"
+                v-model="vcForm.subjectTeam"
                 :items="isSuperuser ? teamOptions : userTeams"
                 placeholder="Select team"
               />
             </div>
           </div>
           <UAlert
-            v-if="policyError"
+            v-if="vcError"
             color="error"
             variant="subtle"
             icon="i-lucide-alert-circle"
-            :description="policyError"
+            :description="vcError"
             class="mt-2"
           />
         </div>
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="policyModalOpen = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="vcModalOpen = false" />
           <UButton
-            :loading="policyLoading"
-            :label="policyLoading ? 'Creating...' : 'Create Policy'"
-            @click="confirmCreatePolicy"
+            :loading="vcLoading"
+            :label="vcLoading ? 'Creating...' : 'Create'"
+            @click="confirmCreateVC"
           />
         </div>
       </template>
@@ -250,6 +244,65 @@
         </div>
       </template>
     </UModal>
+
+    <!-- Link Component Modal -->
+    <UModal v-model:open="linkModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">Link Component to {{ linkTechName }}</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Search Components</label>
+            <UInput
+              v-model="linkSearch"
+              placeholder="Type at least 2 characters to search..."
+              icon="i-lucide-search"
+            />
+          </div>
+          <div v-if="linkSearching" class="text-sm text-(--ui-text-muted)">
+            Searching...
+          </div>
+          <div v-else-if="linkSearch.length >= 2 && linkSearchResults.length === 0" class="text-sm text-(--ui-text-muted)">
+            No unmapped components found.
+          </div>
+          <div v-if="linkSearchResults.length > 0" class="max-h-60 overflow-y-auto border border-(--ui-border) rounded-md divide-y divide-(--ui-border)">
+            <button
+              v-for="comp in linkSearchResults"
+              :key="`${comp.name}@${comp.version}`"
+              type="button"
+              class="w-full text-left px-3 py-2 hover:bg-(--ui-bg-elevated) transition-colors"
+              :class="{ 'bg-(--ui-bg-elevated)': linkSelected?.name === comp.name && linkSelected?.version === comp.version }"
+              @click="linkSelected = { name: comp.name, version: comp.version }"
+            >
+              <span class="font-medium">{{ comp.name }}</span>
+              <code class="ml-2 text-sm">{{ comp.version }}</code>
+            </button>
+          </div>
+          <div v-if="linkSelected" class="text-sm">
+            Selected: <strong>{{ linkSelected.name }}</strong> <code>{{ linkSelected.version }}</code>
+          </div>
+          <UAlert
+            v-if="linkError"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="linkError"
+          />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="linkModalOpen = false" />
+          <UButton
+            :loading="linkLoading"
+            :label="linkLoading ? 'Linking...' : 'Link Component'"
+            :disabled="!linkSelected"
+            @click="confirmLinkComponent"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -302,10 +355,10 @@ const columns: TableColumn<Technology>[] = [
     }
   },
   {
-    accessorKey: 'policyCount',
+    accessorKey: 'constraintCount',
     header: ({ column }) => getSortableHeader(column, 'Policies'),
     cell: ({ row }) => {
-      const count = row.original.policyCount
+      const count = row.original.constraintCount
       if (!count) return h('span', { class: 'text-(--ui-text-muted)' }, '0')
       return String(count)
     }
@@ -328,10 +381,16 @@ const columns: TableColumn<Technology>[] = [
         ])
       }
 
-      // Any authenticated user can create a policy for a technology
+      // Any authenticated user can create a version constraint for a technology
       if (session.value?.user) {
         items.push([
-          { label: 'Create Policy', icon: 'i-lucide-shield', onSelect: () => openCreatePolicyModal(tech) }
+          { label: 'Create Version Constraint', icon: 'i-lucide-shield', onSelect: () => openCreateVCModal(tech) }
+        ])
+      }
+
+      if (tech.componentCount === 0 && session.value?.user) {
+        items.push([
+          { label: 'Link Component', icon: 'i-lucide-link', onSelect: () => openLinkComponentModal(tech) }
         ])
       }
 
@@ -416,63 +475,59 @@ async function confirmEdit() {
   }
 }
 
-// Create Policy modal state
-const policyModalOpen = ref(false)
-const policyLoading = ref(false)
-const policyError = ref('')
-const policyForm = ref({
+// Create Version Constraint modal state
+const vcModalOpen = ref(false)
+const vcLoading = ref(false)
+const vcError = ref('')
+const vcForm = ref({
   name: '',
   description: '',
-  ruleType: 'version-constraint',
   severity: 'error' as string | undefined,
   scope: 'team',
   subjectTeam: undefined as string | undefined,
   versionRange: '',
   governsTechnology: ''
 })
-const policyRuleTypeOptions = ['license-compliance', 'version-constraint']
-const policySeverityOptions = ['critical', 'error', 'warning', 'info']
+const vcSeverityOptions = ['critical', 'error', 'warning', 'info']
 
-function openCreatePolicyModal(tech: Technology) {
+function openCreateVCModal(tech: Technology) {
   const defaultName = `${tech.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-version-constraint`
-  policyForm.value = {
+  vcForm.value = {
     name: defaultName,
     description: '',
-    ruleType: 'version-constraint',
     severity: 'error',
     scope: isSuperuser.value ? 'organization' : 'team',
     subjectTeam: isSuperuser.value ? undefined : (userTeams.value[0] || undefined),
     versionRange: '',
     governsTechnology: tech.name
   }
-  policyError.value = ''
-  policyModalOpen.value = true
+  vcError.value = ''
+  vcModalOpen.value = true
 }
 
-async function confirmCreatePolicy() {
-  policyLoading.value = true
-  policyError.value = ''
+async function confirmCreateVC() {
+  vcLoading.value = true
+  vcError.value = ''
 
   try {
-    await $fetch('/api/policies', {
+    await $fetch('/api/version-constraints', {
       method: 'POST',
       body: {
-        name: policyForm.value.name,
-        description: policyForm.value.description || undefined,
-        ruleType: policyForm.value.ruleType,
-        severity: policyForm.value.severity,
-        scope: policyForm.value.scope,
-        subjectTeam: policyForm.value.scope === 'team' ? policyForm.value.subjectTeam : undefined,
-        versionRange: policyForm.value.ruleType === 'version-constraint' ? policyForm.value.versionRange : undefined,
-        governsTechnology: policyForm.value.governsTechnology
+        name: vcForm.value.name,
+        description: vcForm.value.description || undefined,
+        severity: vcForm.value.severity,
+        scope: vcForm.value.scope,
+        subjectTeam: vcForm.value.scope === 'team' ? vcForm.value.subjectTeam : undefined,
+        versionRange: vcForm.value.versionRange,
+        governsTechnology: vcForm.value.governsTechnology
       }
     })
-    policyModalOpen.value = false
+    vcModalOpen.value = false
   } catch (err: unknown) {
     const error = err as { data?: { message?: string }; message?: string }
-    policyError.value = error.data?.message || error.message || 'Failed to create policy'
+    vcError.value = error.data?.message || error.message || 'Failed to create version constraint'
   } finally {
-    policyLoading.value = false
+    vcLoading.value = false
   }
 }
 
@@ -577,6 +632,72 @@ async function confirmSetTime() {
     timeError.value = error.data?.message || error.message || 'Failed to set TIME value'
   } finally {
     timeLoading.value = false
+  }
+}
+
+// Link Component modal state
+const linkModalOpen = ref(false)
+const linkLoading = ref(false)
+const linkError = ref('')
+const linkTechName = ref('')
+const linkSearch = ref('')
+const linkSearchResults = ref<{ name: string; version: string; purl?: string }[]>([])
+const linkSearching = ref(false)
+const linkSelected = ref<{ name: string; version: string } | null>(null)
+
+function openLinkComponentModal(tech: Technology) {
+  linkTechName.value = tech.name
+  linkSearch.value = ''
+  linkSearchResults.value = []
+  linkSelected.value = null
+  linkError.value = ''
+  linkModalOpen.value = true
+}
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+watch(linkSearch, (val) => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  linkSelected.value = null
+  if (!val || val.length < 2) {
+    linkSearchResults.value = []
+    return
+  }
+  searchTimeout = setTimeout(async () => {
+    linkSearching.value = true
+    try {
+      const res = await $fetch<{ data: { name: string; version: string; purl?: string; technologyName?: string }[] }>('/api/components', {
+        query: { search: val, limit: 20 }
+      })
+      // Only show components not already linked to a technology
+      linkSearchResults.value = (res.data || []).filter(c => !c.technologyName)
+    } catch {
+      linkSearchResults.value = []
+    } finally {
+      linkSearching.value = false
+    }
+  }, 300)
+})
+
+async function confirmLinkComponent() {
+  if (!linkSelected.value) return
+  linkLoading.value = true
+  linkError.value = ''
+
+  try {
+    await $fetch(`/api/technologies/${encodeURIComponent(linkTechName.value)}/components`, {
+      method: 'POST',
+      body: {
+        componentName: linkSelected.value.name,
+        componentVersion: linkSelected.value.version
+      }
+    })
+    linkModalOpen.value = false
+    await refreshNuxtData()
+  } catch (err: unknown) {
+    const error = err as { data?: { message?: string }; message?: string }
+    linkError.value = error.data?.message || error.message || 'Failed to link component'
+  } finally {
+    linkLoading.value = false
   }
 }
 

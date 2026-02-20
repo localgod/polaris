@@ -76,32 +76,27 @@
 //   - category: String (optional) - License category (permissive, copyleft, proprietary, public-domain, other)
 //   - text: String (optional) - Full license text
 //   - deprecated: Boolean (optional) - Whether license is deprecated
-//   - whitelisted: Boolean (optional) - Whether license is globally approved by superadmin (default: false)
+//   - allowed: Boolean (required) - Whether license is allowed org-wide (default: true)
 //   - createdAt: DateTime (required) - When license was first seen
 //   - updatedAt: DateTime (required) - Last update timestamp
 //
 // Relationships:
 //   - (Component)-[:HAS_LICENSE]->(License) - Component uses this license
-//   - (Policy)-[:ALLOWS_LICENSE]->(License) - Policy allows this license
 (:License)
 
-// Policy node
+// VersionConstraint node
 // Properties:
-//   - name: String (required) - Unique policy name
-//   - description: String (optional) - Policy description
-//   - ruleType: String (required) - Type of rule (technology-approval, license-compliance)
+//   - name: String (required) - Unique constraint name
+//   - description: String (optional) - Constraint description
 //   - severity: String (required) - Severity level (critical, error, warning, info)
-//   - effectiveDate: DateTime (optional) - When policy becomes effective
-//   - expiryDate: DateTime (optional) - When policy expires
-//   - enforcedBy: String (required) - Enforcement level (team, organization)
-//   - scope: String (required) - Policy scope (all, specific-teams)
-//   - status: String (required) - Policy status (active, inactive, draft)
-//   - createdAt: DateTime (required) - When policy was created
+//   - versionRange: String (required) - Semver range (e.g., ">=18.0.0 <20.0.0")
+//   - scope: String (required) - Constraint scope (organization, team)
+//   - subjectTeam: String (optional) - Team name when scope=team
+//   - status: String (required) - Constraint status (active, draft, archived)
+//   - createdAt: DateTime (required) - When constraint was created
 //   - updatedAt: DateTime (required) - Last update timestamp
 //
 // Relationships:
-//   - (Team)-[:ENFORCES]->(Policy) - Team enforces this policy
-//   - (Team)-[:SUBJECT_TO]->(Policy) - Team is subject to this policy
-//   - (Policy)-[:GOVERNS]->(Technology) - Policy governs technology approval (ruleType: technology-approval)
-//   - (Policy)-[:ALLOWS_LICENSE]->(License) - Policy allows license (ruleType: license-compliance)
-(:Policy)
+//   - (Team)-[:SUBJECT_TO]->(VersionConstraint) - Team is subject to this constraint
+//   - (VersionConstraint)-[:GOVERNS]->(Technology) - Constraint governs technology versions
+(:VersionConstraint)

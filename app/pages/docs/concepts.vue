@@ -11,12 +11,12 @@
         <p>Polaris distinguishes between <strong>Technologies</strong> (governed strategic choices) and <strong>Components</strong> (actual software artifacts in use).</p>
 
         <h2>Technology</h2>
-        <p>A <strong>Technology</strong> is a governed software entity that requires architectural approval, lifecycle management, and policy compliance.</p>
+        <p>A <strong>Technology</strong> is a governed software entity that requires architectural approval, lifecycle management, and version constraint compliance.</p>
         <h3>Characteristics</h3>
         <ul>
           <li>Strategic architectural decision with long-term impact</li>
           <li>Requires approval through governance processes</li>
-          <li>Subject to enterprise policies and standards</li>
+          <li>Subject to enterprise version constraints and standards</li>
           <li>Managed through TIME framework (invest, migrate, tolerate, eliminate)</li>
           <li>Has version constraints and security oversight</li>
           <li>One team stewards each technology</li>
@@ -81,7 +81,7 @@
             </tr>
             <tr>
               <td>Lifecycle</td>
-              <td>Managed through policies</td>
+              <td>Managed through version constraints</td>
               <td>Discovered and monitored</td>
             </tr>
             <tr>

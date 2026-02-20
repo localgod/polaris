@@ -178,6 +178,17 @@ export class TechnologyService {
   }
 
   /**
+   * Link a component to a technology via IS_VERSION_OF
+   */
+  async linkComponent(input: { technologyName: string; componentName: string; componentVersion: string; userId: string }) {
+    const exists = await this.techRepo.exists(input.technologyName)
+    if (!exists) {
+      throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
+    }
+    return await this.techRepo.linkComponent(input)
+  }
+
+  /**
    * Set or update a team's TIME approval for a technology
    */
   async setApproval(input: SetApprovalInput): Promise<{ time: string; team: string }> {

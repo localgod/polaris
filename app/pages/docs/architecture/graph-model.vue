@@ -8,7 +8,7 @@
     <UCard>
       <div>
         <h2>Overview</h2>
-        <p>Polaris uses Neo4j, a graph database, to model the relationships between technologies, systems, teams, and policies. This enables powerful queries about technology usage and compliance.</p>
+        <p>Polaris uses Neo4j, a graph database, to model the relationships between technologies, systems, teams, and version constraints. This enables powerful queries about technology usage and compliance.</p>
       </div>
     </UCard>
 
@@ -27,7 +27,7 @@
           <li><strong>System</strong> — Deployable applications and services</li>
           <li><strong>Component</strong> — SBOM entries (libraries, packages)</li>
           <li><strong>Team</strong> — Organizational teams</li>
-          <li><strong>Policy</strong> — Governance rules and constraints</li>
+          <li><strong>VersionConstraint</strong> — Version range constraints for technologies</li>
           <li><strong>License</strong> — Software licenses</li>
           <li><strong>Version</strong> — Specific versions of technologies</li>
           <li><strong>Repository</strong> — Source code repositories</li>
@@ -45,7 +45,7 @@
           <li><code>Component -[:IS_VERSION_OF]-&gt; Technology</code> — Component to technology mapping</li>
           <li><code>System -[:USES]-&gt; Component</code> — System dependencies</li>
           <li><code>System -[:HAS_SOURCE_IN]-&gt; Repository</code> — Source code location</li>
-          <li><code>Policy -[:GOVERNS]-&gt; Technology</code> — Policy scope</li>
+          <li><code>VersionConstraint -[:GOVERNS]-&gt; Technology</code> — Constraint scope</li>
           <li><code>AuditLog -[:PERFORMED_BY]-&gt; User</code> — Who made the change</li>
           <li><code>AuditLog -[:AUDITS]-&gt; Entity</code> — What was changed</li>
         </ul>
@@ -54,7 +54,7 @@
         <p>The graph model enables queries like:</p>
         <ul>
           <li>Find all systems using a deprecated technology</li>
-          <li>List teams affected by a license policy change</li>
+          <li>List teams affected by a license rule change</li>
           <li>Trace component dependencies across systems</li>
           <li>Identify compliance violations</li>
           <li>Track all changes made by a specific user</li>
@@ -81,7 +81,7 @@ const diagram = `graph TB
     Component[(Component)]
     System[(System)]
     Repository[(Repository)]
-    Policy[(Policy)]
+    VersionConstraint[(VersionConstraint)]
     AuditLog[(Audit Log)]
 
     Team -->|STEWARDED_BY| Technology
@@ -90,8 +90,8 @@ const diagram = `graph TB
     Team -->|APPROVES| Technology
     Team -->|APPROVES| Version
     Team -->|MAINTAINS| Repository
-    Team -->|ENFORCES| Policy
-    Team -->|SUBJECT_TO| Policy
+    Team -->|ENFORCES| VersionConstraint
+    Team -->|SUBJECT_TO| VersionConstraint
 
     User -->|MEMBER_OF| Team
 
@@ -103,19 +103,19 @@ const diagram = `graph TB
     System -->|USES| Component
     System -->|HAS_SOURCE_IN| Repository
 
-    Policy -->|GOVERNS| Technology
+    VersionConstraint -->|GOVERNS| Technology
 
     AuditLog -->|PERFORMED_BY| User
     AuditLog -->|AUDITS| Technology
     AuditLog -->|AUDITS| Team
-    AuditLog -->|AUDITS| Policy
+    AuditLog -->|AUDITS| VersionConstraint
     AuditLog -->|AUDITS| System
     AuditLog -->|AUDITS| Version
 
     classDef coreNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef auditNode fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
 
-    class Team,User,Technology,Version,Component,System,Repository,Policy coreNode
+    class Team,User,Technology,Version,Component,System,Repository,VersionConstraint coreNode
     class AuditLog auditNode`
 
 onMounted(async () => {

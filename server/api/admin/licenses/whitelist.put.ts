@@ -1,12 +1,12 @@
 import { LicenseService } from '../../../services/license.service'
 
-interface WhitelistUpdateRequest {
+interface AllowedUpdateRequest {
   licenseId?: string
   licenseIds?: string[]
-  whitelisted: boolean
+  allowed: boolean
 }
 
-interface WhitelistUpdateResponse {
+interface AllowedUpdateResponse {
   success: boolean
   message: string
   updated?: number
@@ -15,14 +15,14 @@ interface WhitelistUpdateResponse {
 
 /**
  * @openapi
- * /admin/licenses/whitelist:
+ * /admin/licenses/allowed:
  *   put:
  *     tags:
  *       - Admin
  *       - Licenses
- *     summary: Update license whitelist status
+ *     summary: Update license allowed status
  *     description: |
- *       Updates whitelist status for one or multiple licenses.
+ *       Updates allowed status for one or multiple licenses.
  *       Supports both single license and bulk operations.
  *       
  *       **Authorization:** Superuser only
@@ -43,17 +43,17 @@ interface WhitelistUpdateResponse {
  *                 items:
  *                   type: string
  *                 description: Multiple license IDs (for bulk update)
- *               whitelisted:
+ *               allowed:
  *                 type: boolean
- *                 description: New whitelist status
+ *                 description: New allowed status
  *             required:
- *               - whitelisted
+ *               - allowed
  *             example:
  *               licenseId: MIT
- *               whitelisted: true
+ *               allowed: true
  *     responses:
  *       200:
- *         description: Whitelist status updated successfully
+ *         description: Allowed status updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -68,7 +68,7 @@ interface WhitelistUpdateResponse {
  *                   description: Number of licenses updated
  *             example:
  *               success: true
- *               message: License whitelist status updated successfully
+ *               message: License allowed status updated successfully
  *               updated: 1
  *       400:
  *         description: Invalid request body or missing license data
@@ -79,19 +79,19 @@ interface WhitelistUpdateResponse {
  *       404:
  *         description: License not found
  */
-export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse> => {
+export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> => {
   // Require superuser access
   const user = await requireSuperuser(event)
 
   try {
-    const body = await readBody<WhitelistUpdateRequest>(event)
+    const body = await readBody<AllowedUpdateRequest>(event)
     
     // Validate request body
-    if (typeof body.whitelisted !== 'boolean') {
+    if (typeof body.allowed !== 'boolean') {
       setResponseStatus(event, 400)
       return {
         success: false,
-        message: 'whitelisted field is required and must be a boolean'
+        message: 'allowed field is required and must be a boolean'
       }
     }
 
@@ -116,11 +116,11 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
     // Handle single license update
     if (body.licenseId) {
       try {
-        await licenseService.updateWhitelistStatus(body.licenseId, body.whitelisted, user.id)
+        await licenseService.updateAllowedStatus(body.licenseId, body.allowed, user.id)
         setResponseStatus(event, 200)
         return {
           success: true,
-          message: `License '${body.licenseId}' whitelist status updated to ${body.whitelisted}`,
+          message: `License '${body.licenseId}' allowed status updated to ${body.allowed}`,
           updated: 1
         }
       } catch (error) {
@@ -140,13 +140,13 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
 
     // Handle bulk license update
     if (body.licenseIds) {
-      const result = await licenseService.bulkUpdateWhitelistStatus(body.licenseIds, body.whitelisted, user.id)
+      const result = await licenseService.bulkUpdateAllowedStatus(body.licenseIds, body.allowed, user.id)
       
       if (result.success) {
         setResponseStatus(event, 200)
         return {
           success: true,
-          message: `${result.updated} licenses whitelist status updated to ${body.whitelisted}`,
+          message: `${result.updated} licenses allowed status updated to ${body.allowed}`,
           updated: result.updated
         }
       } else {
@@ -167,7 +167,7 @@ export default defineEventHandler(async (event): Promise<WhitelistUpdateResponse
       message: 'Unexpected error processing request'
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update license whitelist status'
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update license allowed status'
     setResponseStatus(event, 500)
     return {
       success: false,
