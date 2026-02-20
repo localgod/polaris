@@ -19,7 +19,7 @@ describe('LicenseService', () => {
       category: 'Permissive',
       text: 'MIT License text...',
       deprecated: false,
-      whitelisted: true,
+      allowed: true,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
       componentCount: 150
@@ -33,7 +33,7 @@ describe('LicenseService', () => {
       category: 'Permissive',
       text: 'Apache License text...',
       deprecated: false,
-      whitelisted: true,
+      allowed: true,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
       componentCount: 100
@@ -47,7 +47,7 @@ describe('LicenseService', () => {
       category: 'Copyleft',
       text: 'GPL License text...',
       deprecated: false,
-      whitelisted: false,
+      allowed: false,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
       componentCount: 50
@@ -142,13 +142,13 @@ describe('LicenseService', () => {
       })
     })
 
-    it('should pass whitelisted filter to repository', async () => {
-      vi.mocked(LicenseRepository.prototype.findAll).mockResolvedValue(mockLicenses.filter(l => l.whitelisted))
+    it('should pass allowed filter to repository', async () => {
+      vi.mocked(LicenseRepository.prototype.findAll).mockResolvedValue(mockLicenses.filter(l => l.allowed))
 
-      await service.findAll({ whitelisted: true })
+      await service.findAll({ allowed: true })
 
       expect(LicenseRepository.prototype.findAll).toHaveBeenCalledWith({
-        whitelisted: true,
+        allowed: true,
         limit: 50,
         offset: 0
       })
@@ -172,7 +172,7 @@ describe('LicenseService', () => {
       await service.findAll({
         category: 'Permissive',
         osiApproved: true,
-        whitelisted: true,
+        allowed: true,
         search: 'MIT',
         limit: 25,
         offset: 10
@@ -181,7 +181,7 @@ describe('LicenseService', () => {
       expect(LicenseRepository.prototype.findAll).toHaveBeenCalledWith({
         category: 'Permissive',
         osiApproved: true,
-        whitelisted: true,
+        allowed: true,
         search: 'MIT',
         limit: 25,
         offset: 10
@@ -225,30 +225,30 @@ describe('LicenseService', () => {
   describe('getStatistics()', () => {
     it('should return license statistics with whitelist count', async () => {
       vi.mocked(LicenseRepository.prototype.getStatistics).mockResolvedValue(mockStatistics)
-      vi.mocked(LicenseRepository.prototype.getWhitelistedLicenses).mockResolvedValue(
-        mockLicenses.filter(l => l.whitelisted)
+      vi.mocked(LicenseRepository.prototype.getAllowedLicenses).mockResolvedValue(
+        mockLicenses.filter(l => l.allowed)
       )
 
       const result = await service.getStatistics()
 
       expect(LicenseRepository.prototype.getStatistics).toHaveBeenCalledOnce()
-      expect(LicenseRepository.prototype.getWhitelistedLicenses).toHaveBeenCalledOnce()
+      expect(LicenseRepository.prototype.getAllowedLicenses).toHaveBeenCalledOnce()
       expect(result).toEqual({
         total: 100,
         byCategory: { 'Permissive': 60, 'Copyleft': 30, 'Proprietary': 10 },
         osiApproved: 80,
         deprecated: 5,
-        whitelisted: 2
+        allowed: 2
       })
     })
 
-    it('should return zero whitelisted count when no licenses are whitelisted', async () => {
+    it('should return zero allowed count when no licenses are allowed', async () => {
       vi.mocked(LicenseRepository.prototype.getStatistics).mockResolvedValue(mockStatistics)
-      vi.mocked(LicenseRepository.prototype.getWhitelistedLicenses).mockResolvedValue([])
+      vi.mocked(LicenseRepository.prototype.getAllowedLicenses).mockResolvedValue([])
 
       const result = await service.getStatistics()
 
-      expect(result.whitelisted).toBe(0)
+      expect(result.allowed).toBe(0)
     })
 
     it('should propagate repository errors from getStatistics', async () => {
@@ -257,105 +257,105 @@ describe('LicenseService', () => {
       await expect(service.getStatistics()).rejects.toThrow('Query failed')
     })
 
-    it('should propagate repository errors from getWhitelistedLicenses', async () => {
+    it('should propagate repository errors from getAllowedLicenses', async () => {
       vi.mocked(LicenseRepository.prototype.getStatistics).mockResolvedValue(mockStatistics)
-      vi.mocked(LicenseRepository.prototype.getWhitelistedLicenses).mockRejectedValue(new Error('Whitelist query failed'))
+      vi.mocked(LicenseRepository.prototype.getAllowedLicenses).mockRejectedValue(new Error('Allowed query failed'))
 
-      await expect(service.getStatistics()).rejects.toThrow('Whitelist query failed')
+      await expect(service.getStatistics()).rejects.toThrow('Allowed query failed')
     })
   })
 
-  describe('getWhitelistedLicenses()', () => {
-    it('should return all whitelisted licenses', async () => {
-      const whitelisted = mockLicenses.filter(l => l.whitelisted)
-      vi.mocked(LicenseRepository.prototype.getWhitelistedLicenses).mockResolvedValue(whitelisted)
+  describe('getAllowedLicenses()', () => {
+    it('should return all allowed licenses', async () => {
+      const allowedList = mockLicenses.filter(l => l.allowed)
+      vi.mocked(LicenseRepository.prototype.getAllowedLicenses).mockResolvedValue(allowedList)
 
-      const result = await service.getWhitelistedLicenses()
+      const result = await service.getAllowedLicenses()
 
-      expect(LicenseRepository.prototype.getWhitelistedLicenses).toHaveBeenCalledOnce()
+      expect(LicenseRepository.prototype.getAllowedLicenses).toHaveBeenCalledOnce()
       expect(result).toHaveLength(2)
-      expect(result.every(l => l.whitelisted)).toBe(true)
+      expect(result.every(l => l.allowed)).toBe(true)
     })
 
-    it('should return empty array when no licenses are whitelisted', async () => {
-      vi.mocked(LicenseRepository.prototype.getWhitelistedLicenses).mockResolvedValue([])
+    it('should return empty array when no licenses are allowed', async () => {
+      vi.mocked(LicenseRepository.prototype.getAllowedLicenses).mockResolvedValue([])
 
-      const result = await service.getWhitelistedLicenses()
+      const result = await service.getAllowedLicenses()
 
       expect(result).toEqual([])
     })
 
     it('should propagate repository errors', async () => {
-      vi.mocked(LicenseRepository.prototype.getWhitelistedLicenses).mockRejectedValue(new Error('Query execution failed'))
+      vi.mocked(LicenseRepository.prototype.getAllowedLicenses).mockRejectedValue(new Error('Query execution failed'))
 
-      await expect(service.getWhitelistedLicenses()).rejects.toThrow('Query execution failed')
+      await expect(service.getAllowedLicenses()).rejects.toThrow('Query execution failed')
     })
   })
 
-  describe('updateWhitelistStatus()', () => {
+  describe('updateAllowedStatus()', () => {
     it('should successfully update whitelist status to true', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(mockLicenses[2])
-      vi.mocked(LicenseRepository.prototype.updateWhitelistStatus).mockResolvedValue(true)
+      vi.mocked(LicenseRepository.prototype.updateAllowedStatus).mockResolvedValue(true)
 
-      const result = await service.updateWhitelistStatus('GPL-3.0', true)
+      const result = await service.updateAllowedStatus('GPL-3.0', true)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledWith('GPL-3.0')
-      expect(LicenseRepository.prototype.updateWhitelistStatus).toHaveBeenCalledWith('GPL-3.0', true, undefined)
+      expect(LicenseRepository.prototype.updateAllowedStatus).toHaveBeenCalledWith('GPL-3.0', true, undefined)
       expect(result).toBe(true)
     })
 
     it('should successfully update whitelist status to false', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(mockLicenses[0])
-      vi.mocked(LicenseRepository.prototype.updateWhitelistStatus).mockResolvedValue(true)
+      vi.mocked(LicenseRepository.prototype.updateAllowedStatus).mockResolvedValue(true)
 
-      const result = await service.updateWhitelistStatus('MIT', false)
+      const result = await service.updateAllowedStatus('MIT', false)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledWith('MIT')
-      expect(LicenseRepository.prototype.updateWhitelistStatus).toHaveBeenCalledWith('MIT', false, undefined)
+      expect(LicenseRepository.prototype.updateAllowedStatus).toHaveBeenCalledWith('MIT', false, undefined)
       expect(result).toBe(true)
     })
 
     it('should throw error when license does not exist', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(null)
 
-      await expect(service.updateWhitelistStatus('NONEXISTENT', true))
+      await expect(service.updateAllowedStatus('NONEXISTENT', true))
         .rejects.toThrow("License 'NONEXISTENT' not found")
-      expect(LicenseRepository.prototype.updateWhitelistStatus).not.toHaveBeenCalled()
+      expect(LicenseRepository.prototype.updateAllowedStatus).not.toHaveBeenCalled()
     })
 
     it('should throw error when repository update fails', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(mockLicenses[0])
-      vi.mocked(LicenseRepository.prototype.updateWhitelistStatus).mockResolvedValue(false)
+      vi.mocked(LicenseRepository.prototype.updateAllowedStatus).mockResolvedValue(false)
 
-      await expect(service.updateWhitelistStatus('MIT', true))
-        .rejects.toThrow("Failed to update whitelist status for license 'MIT'")
+      await expect(service.updateAllowedStatus('MIT', true))
+        .rejects.toThrow("Failed to update allowed status for license 'MIT'")
     })
 
     it('should propagate repository errors from findById', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockRejectedValue(new Error('Database error'))
 
-      await expect(service.updateWhitelistStatus('MIT', true)).rejects.toThrow('Database error')
+      await expect(service.updateAllowedStatus('MIT', true)).rejects.toThrow('Database error')
     })
 
-    it('should propagate repository errors from updateWhitelistStatus', async () => {
+    it('should propagate repository errors from updateAllowedStatus', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(mockLicenses[0])
-      vi.mocked(LicenseRepository.prototype.updateWhitelistStatus).mockRejectedValue(new Error('Update failed'))
+      vi.mocked(LicenseRepository.prototype.updateAllowedStatus).mockRejectedValue(new Error('Update failed'))
 
-      await expect(service.updateWhitelistStatus('MIT', true)).rejects.toThrow('Update failed')
+      await expect(service.updateAllowedStatus('MIT', true)).rejects.toThrow('Update failed')
     })
   })
 
-  describe('bulkUpdateWhitelistStatus()', () => {
+  describe('bulkUpdateAllowedStatus()', () => {
     it('should successfully update multiple licenses', async () => {
       vi.mocked(LicenseRepository.prototype.findById)
         .mockResolvedValueOnce(mockLicenses[0])
         .mockResolvedValueOnce(mockLicenses[1])
-      vi.mocked(LicenseRepository.prototype.bulkUpdateWhitelistStatus).mockResolvedValue(2)
+      vi.mocked(LicenseRepository.prototype.bulkUpdateAllowedStatus).mockResolvedValue(2)
 
-      const result = await service.bulkUpdateWhitelistStatus(['MIT', 'Apache-2.0'], false)
+      const result = await service.bulkUpdateAllowedStatus(['MIT', 'Apache-2.0'], false)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledTimes(2)
-      expect(LicenseRepository.prototype.bulkUpdateWhitelistStatus).toHaveBeenCalledWith(['MIT', 'Apache-2.0'], false, undefined)
+      expect(LicenseRepository.prototype.bulkUpdateAllowedStatus).toHaveBeenCalledWith(['MIT', 'Apache-2.0'], false, undefined)
       expect(result).toEqual({ success: true, updated: 2, errors: [] })
     })
 
@@ -364,9 +364,9 @@ describe('LicenseService', () => {
         .mockResolvedValueOnce(mockLicenses[0])
         .mockResolvedValueOnce(null)
 
-      const result = await service.bulkUpdateWhitelistStatus(['MIT', 'NONEXISTENT'], true)
+      const result = await service.bulkUpdateAllowedStatus(['MIT', 'NONEXISTENT'], true)
 
-      expect(LicenseRepository.prototype.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
+      expect(LicenseRepository.prototype.bulkUpdateAllowedStatus).not.toHaveBeenCalled()
       expect(result).toEqual({
         success: false,
         updated: 0,
@@ -379,7 +379,7 @@ describe('LicenseService', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null)
 
-      const result = await service.bulkUpdateWhitelistStatus(['NONEXISTENT1', 'NONEXISTENT2'], true)
+      const result = await service.bulkUpdateAllowedStatus(['NONEXISTENT1', 'NONEXISTENT2'], true)
 
       expect(result).toEqual({
         success: false,
@@ -393,9 +393,9 @@ describe('LicenseService', () => {
         .mockResolvedValueOnce(mockLicenses[0])
         .mockResolvedValueOnce(mockLicenses[1])
         .mockResolvedValueOnce(mockLicenses[2])
-      vi.mocked(LicenseRepository.prototype.bulkUpdateWhitelistStatus).mockResolvedValue(2)
+      vi.mocked(LicenseRepository.prototype.bulkUpdateAllowedStatus).mockResolvedValue(2)
 
-      const result = await service.bulkUpdateWhitelistStatus(['MIT', 'Apache-2.0', 'GPL-3.0'], true)
+      const result = await service.bulkUpdateAllowedStatus(['MIT', 'Apache-2.0', 'GPL-3.0'], true)
 
       expect(result).toEqual({
         success: false,
@@ -405,10 +405,10 @@ describe('LicenseService', () => {
     })
 
     it('should handle empty license array', async () => {
-      const result = await service.bulkUpdateWhitelistStatus([], true)
+      const result = await service.bulkUpdateAllowedStatus([], true)
 
       expect(LicenseRepository.prototype.findById).not.toHaveBeenCalled()
-      expect(LicenseRepository.prototype.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
+      expect(LicenseRepository.prototype.bulkUpdateAllowedStatus).not.toHaveBeenCalled()
       expect(result).toEqual({ success: true, updated: 0, errors: [] })
     })
 
@@ -418,10 +418,10 @@ describe('LicenseService', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(mockLicenses[1])
 
-      const result = await service.bulkUpdateWhitelistStatus(['MIT', 'NONEXISTENT', 'Apache-2.0'], true)
+      const result = await service.bulkUpdateAllowedStatus(['MIT', 'NONEXISTENT', 'Apache-2.0'], true)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledTimes(3)
-      expect(LicenseRepository.prototype.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
+      expect(LicenseRepository.prototype.bulkUpdateAllowedStatus).not.toHaveBeenCalled()
       expect(result.success).toBe(false)
       expect(result.errors).toContain("License 'NONEXISTENT' not found")
     })
@@ -429,23 +429,23 @@ describe('LicenseService', () => {
     it('should handle repository errors from findById', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockRejectedValue(new Error('Database error'))
 
-      const result = await service.bulkUpdateWhitelistStatus(['MIT'], true)
+      const result = await service.bulkUpdateAllowedStatus(['MIT'], true)
 
       expect(result).toEqual({
         success: false,
         updated: 0,
         errors: ["License 'MIT': Database error"]
       })
-      expect(LicenseRepository.prototype.bulkUpdateWhitelistStatus).not.toHaveBeenCalled()
+      expect(LicenseRepository.prototype.bulkUpdateAllowedStatus).not.toHaveBeenCalled()
     })
 
-    it('should handle repository errors from bulkUpdateWhitelistStatus', async () => {
+    it('should handle repository errors from bulkUpdateAllowedStatus', async () => {
       vi.mocked(LicenseRepository.prototype.findById)
         .mockResolvedValueOnce(mockLicenses[0])
         .mockResolvedValueOnce(mockLicenses[1])
-      vi.mocked(LicenseRepository.prototype.bulkUpdateWhitelistStatus).mockRejectedValue(new Error('Bulk update failed'))
+      vi.mocked(LicenseRepository.prototype.bulkUpdateAllowedStatus).mockRejectedValue(new Error('Bulk update failed'))
 
-      const result = await service.bulkUpdateWhitelistStatus(['MIT', 'Apache-2.0'], true)
+      const result = await service.bulkUpdateAllowedStatus(['MIT', 'Apache-2.0'], true)
 
       expect(result).toEqual({
         success: false,
@@ -455,24 +455,24 @@ describe('LicenseService', () => {
     })
   })
 
-  describe('isWhitelisted()', () => {
-    it('should return true when license is whitelisted', async () => {
-      vi.mocked(LicenseRepository.prototype.isWhitelisted).mockResolvedValue(true)
+  describe('isAllowed()', () => {
+    it('should return true when license is allowed', async () => {
+      vi.mocked(LicenseRepository.prototype.isAllowed).mockResolvedValue(true)
 
-      expect(await service.isWhitelisted('MIT')).toBe(true)
-      expect(LicenseRepository.prototype.isWhitelisted).toHaveBeenCalledWith('MIT')
+      expect(await service.isAllowed('MIT')).toBe(true)
+      expect(LicenseRepository.prototype.isAllowed).toHaveBeenCalledWith('MIT')
     })
 
-    it('should return false when license is not whitelisted', async () => {
-      vi.mocked(LicenseRepository.prototype.isWhitelisted).mockResolvedValue(false)
+    it('should return false when license is not allowed', async () => {
+      vi.mocked(LicenseRepository.prototype.isAllowed).mockResolvedValue(false)
 
-      expect(await service.isWhitelisted('GPL-3.0')).toBe(false)
+      expect(await service.isAllowed('GPL-3.0')).toBe(false)
     })
 
     it('should propagate repository errors', async () => {
-      vi.mocked(LicenseRepository.prototype.isWhitelisted).mockRejectedValue(new Error('Query failed'))
+      vi.mocked(LicenseRepository.prototype.isAllowed).mockRejectedValue(new Error('Query failed'))
 
-      await expect(service.isWhitelisted('MIT')).rejects.toThrow('Query failed')
+      await expect(service.isAllowed('MIT')).rejects.toThrow('Query failed')
     })
   })
 

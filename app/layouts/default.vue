@@ -253,9 +253,9 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
       to: '/teams'
     },
     {
-      label: 'Policies',
+      label: 'Version Constraints',
       icon: 'i-lucide-file-text',
-      to: '/policies'
+      to: '/version-constraints'
     },
     {
       label: 'Violations',

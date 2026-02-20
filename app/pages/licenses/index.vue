@@ -57,7 +57,7 @@ interface License {
   name: string
   category: string
   osiApproved: boolean
-  whitelisted: boolean
+  allowed: boolean
   componentCount: number
   url: string | null
 }
@@ -121,14 +121,14 @@ const columns: TableColumn<License>[] = [
     }
   },
   {
-    accessorKey: 'whitelisted',
+    accessorKey: 'allowed',
     header: ({ column }) => getSortableHeader(column, 'Status'),
     cell: ({ row }) => {
-      const whitelisted = row.getValue('whitelisted') as boolean
+      const allowed = row.getValue('allowed') as boolean
       return h(resolveComponent('UBadge'), {
-        color: whitelisted ? 'success' : 'neutral',
+        color: allowed ? 'success' : 'error',
         variant: 'subtle'
-      }, () => whitelisted ? 'Enabled' : 'Disabled')
+      }, () => allowed ? 'Allowed' : 'Disallowed')
     }
   },
   {
@@ -151,9 +151,9 @@ const columns: TableColumn<License>[] = [
         },
         ...(isSuperuser
           ? [{
-              label: license.whitelisted ? 'Disable' : 'Enable',
-              icon: license.whitelisted ? 'i-lucide-ban' : 'i-lucide-check-circle',
-              onSelect: () => toggleWhitelist(license)
+              label: license.allowed ? 'Disallow' : 'Allow',
+              icon: license.allowed ? 'i-lucide-ban' : 'i-lucide-check-circle',
+              onSelect: () => toggleAllowed(license)
             }]
           : [])
       ]]
@@ -185,16 +185,16 @@ const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses'
 const licenses = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
 
-async function toggleWhitelist(license: License) {
+async function toggleAllowed(license: License) {
   try {
     await $fetch('/api/admin/licenses/whitelist', {
       method: 'PUT',
-      body: { licenseId: license.id, whitelisted: !license.whitelisted }
+      body: { licenseId: license.id, allowed: !license.allowed }
     })
     await refreshNuxtData()
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Failed to update license status'
-    console.error('Toggle whitelist error:', message)
+    console.error('Toggle allowed error:', message)
   }
 }
 

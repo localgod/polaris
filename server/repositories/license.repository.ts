@@ -11,7 +11,7 @@ export interface License {
   category: string | null
   text: string | null
   deprecated: boolean
-  whitelisted: boolean
+  allowed: boolean
   createdAt: string
   updatedAt: string
   componentCount?: number
@@ -27,11 +27,22 @@ export interface LicenseComponent {
   technologyName: string | null
 }
 
+export interface LicenseViolation {
+  teamName: string
+  systemName: string
+  componentName: string
+  componentVersion: string
+  componentPurl: string | null
+  licenseId: string
+  licenseName: string
+  licenseCategory: string | null
+}
+
 export interface LicenseFilters {
   category?: string
   osiApproved?: boolean
   deprecated?: boolean
-  whitelisted?: boolean
+  allowed?: boolean
   search?: string
   limit?: number
   offset?: number
@@ -45,7 +56,7 @@ const licenseSortConfig: SortConfig = {
     name: 'l.name',
     category: 'l.category',
     osiApproved: 'l.osiApproved',
-    status: 'l.whitelisted',
+    status: 'l.allowed',
     componentCount: 'componentCount'
   },
   defaultOrderBy: 'componentCount DESC, l.id ASC'
@@ -80,9 +91,9 @@ export class LicenseRepository extends BaseRepository {
       params.deprecated = filters.deprecated
     }
     
-    if (filters.whitelisted !== undefined) {
-      conditions.push('l.whitelisted = $whitelisted')
-      params.whitelisted = filters.whitelisted
+    if (filters.allowed !== undefined) {
+      conditions.push('l.allowed = $allowed')
+      params.allowed = filters.allowed
     }
     
     if (filters.search) {
@@ -127,9 +138,9 @@ export class LicenseRepository extends BaseRepository {
       params.deprecated = filters.deprecated
     }
     
-    if (filters.whitelisted !== undefined) {
-      conditions.push('l.whitelisted = $whitelisted')
-      params.whitelisted = filters.whitelisted
+    if (filters.allowed !== undefined) {
+      conditions.push('l.allowed = $allowed')
+      params.allowed = filters.allowed
     }
     
     if (filters.search) {
@@ -155,7 +166,7 @@ export class LicenseRepository extends BaseRepository {
         l.category as category,
         l.text as text,
         l.deprecated as deprecated,
-        l.whitelisted as whitelisted,
+        l.allowed as allowed,
         l.createdAt as createdAt,
         l.updatedAt as updatedAt,
         componentCount
@@ -192,7 +203,7 @@ export class LicenseRepository extends BaseRepository {
         l.category as category,
         l.text as text,
         l.deprecated as deprecated,
-        l.whitelisted as whitelisted,
+        l.allowed as allowed,
         l.createdAt as createdAt,
         l.updatedAt as updatedAt,
         componentCount
@@ -273,29 +284,29 @@ export class LicenseRepository extends BaseRepository {
   }
 
   /**
-   * Update whitelist status for a license
+   * Update allowed status for a license
    * 
    * @param id - License ID
-   * @param whitelisted - New whitelist status
+   * @param allowed - New allowed status
    * @returns True if license was updated
    */
-  async updateWhitelistStatus(id: string, whitelisted: boolean, userId?: string): Promise<boolean> {
+  async updateAllowedStatus(id: string, allowed: boolean, userId?: string): Promise<boolean> {
     const cypher = `
       MATCH (l:License {id: $id})
-      WITH l, l.whitelisted as previousWhitelisted
-      SET l.whitelisted = $whitelisted,
+      WITH l, l.allowed as previousAllowed
+      SET l.allowed = $allowed,
           l.updatedAt = datetime()
-      WITH l, previousWhitelisted
+      WITH l, previousAllowed
       CREATE (a:AuditLog {
         id: randomUUID(),
         timestamp: datetime(),
-        operation: CASE $whitelisted WHEN true THEN 'ENABLE' ELSE 'DISABLE' END,
+        operation: CASE $allowed WHEN true THEN 'ENABLE' ELSE 'DISABLE' END,
         entityType: 'License',
         entityId: l.id,
         entityLabel: l.name,
-        previousStatus: CASE previousWhitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
-        newStatus: CASE $whitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
-        changedFields: ['whitelisted'],
+        previousStatus: CASE previousAllowed WHEN true THEN 'enabled' ELSE 'disabled' END,
+        newStatus: CASE $allowed WHEN true THEN 'enabled' ELSE 'disabled' END,
+        changedFields: ['allowed'],
         reason: null,
         source: 'API',
         userId: $userId
@@ -304,47 +315,47 @@ export class LicenseRepository extends BaseRepository {
       RETURN count(l) as updated
     `
     
-    const { records } = await this.executeQuery(cypher, { id, whitelisted, userId: userId || null })
+    const { records } = await this.executeQuery(cypher, { id, allowed, userId: userId || null })
     return records[0]?.get('updated').toNumber() > 0
   }
 
   /**
-   * Get all whitelisted licenses
+   * Get all allowed licenses
    * 
-   * @returns Array of whitelisted licenses
+   * @returns Array of allowed licenses
    */
-  async getWhitelistedLicenses(): Promise<License[]> {
-    return this.findAll({ whitelisted: true })
+  async getAllowedLicenses(): Promise<License[]> {
+    return this.findAll({ allowed: true })
   }
 
   /**
-   * Check if a license is whitelisted
+   * Check if a license is allowed
    * 
    * @param id - License ID
-   * @returns True if license is whitelisted
+   * @returns True if license is allowed
    */
-  async isWhitelisted(id: string): Promise<boolean> {
+  async isAllowed(id: string): Promise<boolean> {
     const cypher = `
       MATCH (l:License {id: $id})
-      RETURN l.whitelisted as whitelisted
+      RETURN l.allowed as allowed
     `
     
     const { records } = await this.executeQuery(cypher, { id })
-    return records[0]?.get('whitelisted') || false
+    return records[0]?.get('allowed') || false
   }
 
   /**
-   * Bulk update whitelist status for multiple licenses atomically
+   * Bulk update allowed status for multiple licenses atomically
    * 
    * Uses a transaction to ensure all licenses are updated or none are.
    * Validates that all licenses exist before updating.
    * 
    * @param licenseIds - Array of license IDs
-   * @param whitelisted - New whitelist status
+   * @param allowed - New allowed status
    * @returns Number of licenses updated
    * @throws Error if any license does not exist
    */
-  async bulkUpdateWhitelistStatus(licenseIds: string[], whitelisted: boolean, userId?: string): Promise<number> {
+  async bulkUpdateAllowedStatus(licenseIds: string[], allowed: boolean, userId?: string): Promise<number> {
     if (licenseIds.length === 0) return 0
     
     const cypher = `
@@ -358,20 +369,20 @@ export class LicenseRepository extends BaseRepository {
       
       // If all exist, update them and create audit logs
       UNWIND licenses as license
-      WITH license, license.whitelisted as previousWhitelisted
-      SET license.whitelisted = $whitelisted,
+      WITH license, license.allowed as previousAllowed
+      SET license.allowed = $allowed,
           license.updatedAt = datetime()
-      WITH license, previousWhitelisted
+      WITH license, previousAllowed
       CREATE (a:AuditLog {
         id: randomUUID(),
         timestamp: datetime(),
-        operation: CASE $whitelisted WHEN true THEN 'ENABLE' ELSE 'DISABLE' END,
+        operation: CASE $allowed WHEN true THEN 'ENABLE' ELSE 'DISABLE' END,
         entityType: 'License',
         entityId: license.id,
         entityLabel: license.name,
-        previousStatus: CASE previousWhitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
-        newStatus: CASE $whitelisted WHEN true THEN 'enabled' ELSE 'disabled' END,
-        changedFields: ['whitelisted'],
+        previousStatus: CASE previousAllowed WHEN true THEN 'enabled' ELSE 'disabled' END,
+        newStatus: CASE $allowed WHEN true THEN 'enabled' ELSE 'disabled' END,
+        changedFields: ['allowed'],
         reason: null,
         source: 'API',
         userId: $userId
@@ -380,7 +391,7 @@ export class LicenseRepository extends BaseRepository {
       RETURN count(license) as updated
     `
     
-    const { records } = await this.executeQueryWithSession(cypher, { licenseIds, whitelisted, userId: userId || null })
+    const { records } = await this.executeQueryWithSession(cypher, { licenseIds, allowed, userId: userId || null })
     
     // If no records returned, it means some licenses don't exist
     if (records.length === 0) {
@@ -447,6 +458,24 @@ export class LicenseRepository extends BaseRepository {
   }
 
   /**
+   * Find components using disallowed licenses
+   */
+  async findViolations(): Promise<LicenseViolation[]> {
+    const query = await loadQuery('licenses/find-violations.cypher')
+    const { records } = await this.executeQuery(query, {})
+    return records.map(record => ({
+      teamName: record.get('teamName'),
+      systemName: record.get('systemName'),
+      componentName: record.get('componentName'),
+      componentVersion: record.get('componentVersion'),
+      componentPurl: record.get('componentPurl'),
+      licenseId: record.get('licenseId'),
+      licenseName: record.get('licenseName'),
+      licenseCategory: record.get('licenseCategory')
+    }))
+  }
+
+  /**
    * Map Neo4j record to License domain object
    */
   private mapToLicense(record: Neo4jRecord): License {
@@ -459,7 +488,7 @@ export class LicenseRepository extends BaseRepository {
       category: record.get('category'),
       text: record.get('text'),
       deprecated: record.get('deprecated') || false,
-      whitelisted: record.get('whitelisted') || false,
+      allowed: record.get('allowed') || false,
       createdAt: record.get('createdAt')?.toString() || '',
       updatedAt: record.get('updatedAt')?.toString() || '',
       componentCount: record.get('componentCount')?.toNumber() || 0

@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <UPageHeader
       title="License Violations"
-      description="Components using non-compliant licenses"
+      description="Components using disallowed licenses"
       :links="[{ label: 'Back to Violations', to: '/violations', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
     />
 
@@ -18,8 +18,6 @@
     <template v-else>
       <UCard>
         <UTable
-          v-model:sorting="sorting"
-          :manual-sorting="true"
           :data="violations"
           :columns="columns"
           :loading="pending"
@@ -29,20 +27,10 @@
             <div class="text-center py-8">
               <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
               <h3 class="mt-4">No License Violations!</h3>
-              <p class="text-(--ui-text-muted) mt-2">All components use compliant licenses.</p>
+              <p class="text-(--ui-text-muted) mt-2">All components use allowed licenses.</p>
             </div>
           </template>
         </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
       </UCard>
     </template>
   </div>
@@ -52,125 +40,86 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
-const { getSortableHeader } = useSortableTable()
-
 interface LicenseViolation {
-  team: string
-  system: string
-  component: {
-    name: string
-    version: string
-    purl: string
-  }
-  license: {
-    id: string
-    name: string
-    category: string
-    osiApproved: boolean
-  }
-  policy: {
-    name: string
-    description: string
-    severity: string
-    ruleType: string
-    enforcedBy: string
-  }
+  teamName: string
+  systemName: string
+  componentName: string
+  componentVersion: string
+  componentPurl: string
+  licenseId: string
+  licenseName: string
+  licenseCategory: string
 }
 
 interface LicenseViolationsResponse {
   success: boolean
   data: LicenseViolation[]
   count: number
-  total?: number
 }
 
 function getCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
     permissive: 'success',
+    'weak-copyleft': 'warning',
     copyleft: 'warning',
-    proprietary: 'error'
+    'strong-copyleft': 'error',
+    proprietary: 'error',
+    'public-domain': 'success'
   }
-  return colors[category] || 'neutral'
-}
-
-function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error',
-    error: 'error',
-    warning: 'warning',
-    info: 'neutral'
-  }
-  return colors[severity] || 'neutral'
+  return colors[category?.toLowerCase()] || 'neutral'
 }
 
 const columns: TableColumn<LicenseViolation>[] = [
   {
-    accessorKey: 'component',
+    accessorKey: 'componentName',
     header: 'Component',
-    enableSorting: false,
     cell: ({ row }) => {
-      const component = row.original.component
       return h('div', {}, [
-        h('strong', {}, component.name),
+        h('strong', {}, row.original.componentName),
         h('br'),
-        h('code', { class: 'text-sm' }, component.version)
+        h('code', { class: 'text-sm' }, row.original.componentVersion)
       ])
     }
   },
   {
-    accessorKey: 'license',
+    accessorKey: 'licenseId',
     header: 'License',
-    enableSorting: false,
     cell: ({ row }) => {
-      const license = row.original.license
-      return h(resolveComponent('UBadge'), {
-        color: getCategoryColor(license.category),
+      const v = row.original
+      return h(resolveComponent('NuxtLink'), {
+        to: `/licenses/${encodeURIComponent(v.licenseId)}`,
+        class: 'hover:underline'
+      }, () => h(resolveComponent('UBadge'), {
+        color: getCategoryColor(v.licenseCategory),
         variant: 'subtle'
-      }, () => license.id || license.name)
+      }, () => v.licenseId))
     }
   },
   {
-    accessorKey: 'system',
-    header: ({ column }) => getSortableHeader(column, 'System')
-  },
-  {
-    accessorKey: 'team',
-    header: ({ column }) => getSortableHeader(column, 'Team')
-  },
-  {
-    accessorKey: 'policy',
-    header: 'Severity',
-    enableSorting: false,
+    accessorKey: 'systemName',
+    header: 'System',
     cell: ({ row }) => {
-      const severity = row.original.policy.severity
-      return h(resolveComponent('UBadge'), {
-        color: getSeverityColor(severity),
-        variant: 'subtle'
-      }, () => severity)
+      return h(resolveComponent('NuxtLink'), {
+        to: `/systems/${encodeURIComponent(row.original.systemName)}`,
+        class: 'hover:underline'
+      }, () => row.original.systemName)
+    }
+  },
+  {
+    accessorKey: 'teamName',
+    header: 'Team',
+    cell: ({ row }) => {
+      return h(resolveComponent('NuxtLink'), {
+        to: `/teams/${encodeURIComponent(row.original.teamName)}`,
+        class: 'hover:underline'
+      }, () => row.original.teamName)
     }
   }
 ]
 
-const sorting = ref([])
-watch(sorting, () => { page.value = 1 })
-const page = ref(1)
-const pageSize = 20
-
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
-})
-
-const { data, pending, error } = await useFetch<LicenseViolationsResponse>('/api/policies/license-violations', {
-  query: queryParams
-})
+const { data, pending, error } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')
 
 const violations = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || data.value?.count || 0)
 
 useHead({ title: 'License Violations - Polaris' })
 </script>

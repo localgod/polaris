@@ -10,8 +10,8 @@
         <h2>Roles</h2>
         <p>Polaris has three access levels:</p>
         <ul>
-          <li><strong>Unauthenticated</strong> — Can browse read-only data: systems, components, technologies, teams, licenses, policies, violations, and approvals.</li>
-          <li><strong>Authenticated (User)</strong> — Can create and manage systems, technologies, policies, and submit SBOMs. Can view audit logs and their own profile.</li>
+          <li><strong>Unauthenticated</strong> — Can browse read-only data: systems, components, technologies, teams, licenses, version constraints, violations, and approvals.</li>
+          <li><strong>Authenticated (User)</strong> — Can create and manage systems, technologies, version constraints, and submit SBOMs. Can view audit logs and their own profile.</li>
           <li><strong>Superuser</strong> — Full administrative access. Can manage teams, users, API tokens, license allow/deny lists, impersonation, and GitHub imports.</li>
         </ul>
 
@@ -185,12 +185,12 @@ const accessRows: AccessRow[] = [
     notes: 'Managed per technical user; token value shown once'
   },
   {
-    element: 'Policies',
+    element: 'Version Constraints',
     view: 'Public',
     create: 'Authenticated',
     edit: 'Creator*',
     delete: 'Creator*',
-    notes: '* Superusers or the user who created the policy'
+    notes: '* Superusers or the user who created the version constraint'
   },
   {
     element: 'Licenses',
@@ -214,7 +214,7 @@ const accessRows: AccessRow[] = [
     create: '—',
     edit: '—',
     delete: '—',
-    notes: 'Compliance and policy violations; read-only for authenticated users'
+    notes: 'Compliance and version constraint violations; read-only for authenticated users'
   },
   {
     element: 'Unmapped Components',
@@ -275,7 +275,7 @@ const creationRows: CreationRow[] = [
   { element: 'Users (OAuth)', method: 'Created automatically on first sign-in via GitHub OAuth' },
   { element: 'Users (Technical)', method: 'Created via the UI by superusers for API access' },
   { element: 'API Tokens', method: 'Generated via the UI by superusers for technical users' },
-  { element: 'Policies', method: 'Created via the UI by authenticated users' },
+  { element: 'Version Constraints', method: 'Created via the UI by authenticated users' },
   { element: 'Licenses', method: 'Discovered automatically from SBOM component metadata' },
   { element: 'Approvals', method: 'Created when a team member approves a technology for their team' },
   { element: 'Audit Logs', method: 'Generated automatically on every create, update, and delete operation' }

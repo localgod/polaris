@@ -69,8 +69,8 @@
             <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ licenseStats.copyleft }}</p>
           </div>
           <div>
-            <p class="text-sm text-(--ui-text-muted)">Denied</p>
-            <p class="text-xl font-bold text-(--ui-color-error-500)">{{ licenseStats.denied }}</p>
+            <p class="text-sm text-(--ui-text-muted)">Violations</p>
+            <p class="text-xl font-bold text-(--ui-color-error-500)">{{ licenseStats.disallowed }}</p>
           </div>
         </div>
       </UCard>
@@ -78,7 +78,7 @@
       <UCard>
         <template #header>
           <div class="flex justify-between items-center">
-            <h3 class="font-semibold">Policy Violations</h3>
+            <h3 class="font-semibold">Version Violations</h3>
             <NuxtLink to="/violations" class="text-sm text-(--ui-color-primary-500)">View all →</NuxtLink>
           </div>
         </template>
@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse, Technology, System, Component, Policy } from '~~/types/api'
+import type { ApiResponse, Technology, System, Component, VersionConstraint } from '~~/types/api'
 
 interface LicenseStatsResponse {
   success: boolean
@@ -149,9 +149,10 @@ interface LicenseStatsResponse {
   }>
 }
 
-interface DeniedLicensesResponse {
+interface LicenseViolationsResponse {
   success: boolean
-  deniedLicenses: string[]
+  data: unknown[]
+  count: number
 }
 
 interface ViolationsResponse {
@@ -168,24 +169,23 @@ interface ViolationsResponse {
 const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
 const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
 const { data: compData } = await useFetch<ApiResponse<Component>>('/api/components')
-const { data: policyData } = await useFetch<ApiResponse<Policy>>('/api/policies')
+const { data: vcData } = await useFetch<ApiResponse<VersionConstraint>>('/api/version-constraints')
 const { data: licenseStatsData } = await useFetch<LicenseStatsResponse>('/api/licenses/statistics')
-const { data: deniedLicensesData } = await useFetch<DeniedLicensesResponse>('/api/licenses/denied')
-const { data: policyViolationsData } = await useFetch<ViolationsResponse>('/api/policies/violations')
-const { data: licenseViolationsData } = await useFetch<{ success: boolean; count: number; total?: number }>('/api/policies/license-violations?limit=1')
+const { data: licenseViolationsData } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')
+const { data: vcViolationsData } = await useFetch<ViolationsResponse>('/api/version-constraints/violations')
 
 const techCount = useApiCount(techData)
 const sysCount = useApiCount(sysData)
 const compCount = useApiCount(compData)
-const policyCount = useApiCount(policyData)
-const violationsCount = computed(() => policyViolationsData.value?.count || 0)
-const licenseViolationsCount = computed(() => licenseViolationsData.value?.total || licenseViolationsData.value?.count || 0)
+const vcCount = useApiCount(vcData)
+const violationsCount = computed(() => vcViolationsData.value?.count || 0)
+const licenseViolationsCount = computed(() => licenseViolationsData.value?.count || 0)
 
 const navItems = computed(() => [
   { title: 'Technologies', value: techCount.value, icon: 'i-lucide-settings', to: '/technologies', valueClass: 'text-(--ui-color-primary-500)' },
   { title: 'Systems', value: sysCount.value, icon: 'i-lucide-cpu', to: '/systems', valueClass: 'text-(--ui-color-success-500)' },
   { title: 'Components', value: compCount.value, icon: 'i-lucide-box', to: '/components', valueClass: 'text-(--ui-color-warning-500)' },
-  { title: 'Policies', value: policyCount.value, icon: 'i-lucide-file-text', to: '/policies', valueClass: '' },
+  { title: 'Version Constraints', value: vcCount.value, icon: 'i-lucide-file-text', to: '/version-constraints', valueClass: '' },
   { title: 'Violations', value: violationsCount.value, icon: 'i-lucide-alert-triangle', to: '/violations', valueClass: 'text-(--ui-color-error-500)' },
   { title: 'License Violations', value: licenseViolationsCount.value, icon: 'i-lucide-scale', to: '/violations/licenses', valueClass: 'text-(--ui-color-error-500)' }
 ])
@@ -205,17 +205,16 @@ const criticalityCounts = computed(() => {
 
 const licenseStats = computed(() => {
   const statsData = licenseStatsData.value?.data?.[0]
-  const deniedCount = deniedLicensesData.value?.deniedLicenses?.length || 0
   return {
     total: statsData?.total || 0,
     permissive: statsData?.byCategory?.permissive || 0,
     copyleft: statsData?.byCategory?.copyleft || 0,
-    denied: deniedCount
+    disallowed: licenseViolationsCount.value
   }
 })
 
 const violationStats = computed(() => {
-  const data = policyViolationsData.value
+  const data = vcViolationsData.value
   return {
     total: data?.count || 0,
     critical: data?.summary?.critical || 0,

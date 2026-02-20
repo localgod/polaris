@@ -214,24 +214,24 @@
         </div>
       </UCard>
 
-      <!-- Policies -->
-      <UCard v-if="tech.policies && tech.policies.length > 0">
+      <!-- Version Constraints -->
+      <UCard v-if="tech.constraints && tech.constraints.length > 0">
         <template #header>
-          <h2 class="text-lg font-semibold">Policies ({{ tech.policies.length }})</h2>
+          <h2 class="text-lg font-semibold">Version Constraints ({{ tech.constraints.length }})</h2>
         </template>
         <div class="flex flex-wrap gap-2">
           <UButton
-            v-for="policy in tech.policies"
-            :key="policy.name"
-            :label="policy.name"
-            :to="`/policies/${encodeURIComponent(policy.name)}`"
+            v-for="vc in tech.constraints"
+            :key="vc.name"
+            :label="vc.name"
+            :to="`/version-constraints/${encodeURIComponent(vc.name)}`"
             variant="subtle"
             color="neutral"
             size="sm"
           >
             <template #trailing>
-              <UBadge :color="getSeverityColor(policy.severity)" variant="subtle" size="xs">
-                {{ policy.severity }}
+              <UBadge :color="getSeverityColor(vc.severity)" variant="subtle" size="xs">
+                {{ vc.severity }}
               </UBadge>
             </template>
           </UButton>
@@ -273,7 +273,7 @@ interface ComponentRef {
   packageManager: string | null
 }
 
-interface PolicyRef {
+interface ConstraintRef {
   name: string
   severity: string
   ruleType: string
@@ -291,7 +291,7 @@ interface TechnologyDetailData {
   versions: VersionDetail[]
   components: ComponentRef[]
   systems: string[]
-  policies: PolicyRef[]
+  constraints: ConstraintRef[]
   technologyApprovals: TechnologyApproval[]
   versionApprovals: TechnologyApproval[]
 }
@@ -409,14 +409,14 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
   }
 ]
 
-function getVersionViolation(version: string): PolicyRef | null {
-  if (!tech.value?.policies) return null
+function getVersionViolation(version: string): ConstraintRef | null {
+  if (!tech.value?.constraints) return null
   const cleaned = semver.coerce(version)
   if (!cleaned) return null
-  for (const policy of tech.value.policies) {
-    if (policy.ruleType === 'version-constraint' && policy.status === 'active' && policy.versionRange) {
-      if (!semver.satisfies(cleaned, policy.versionRange)) {
-        return policy
+  for (const vc of tech.value.constraints) {
+    if (vc.status === 'active' && vc.versionRange) {
+      if (!semver.satisfies(cleaned, vc.versionRange)) {
+        return vc
       }
     }
   }

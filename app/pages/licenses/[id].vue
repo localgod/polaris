@@ -32,11 +32,11 @@
           <UBadge v-if="license.deprecated" color="warning" variant="subtle">
             Deprecated
           </UBadge>
-          <UBadge v-if="license.whitelisted" color="success" variant="subtle">
-            Enabled
+          <UBadge v-if="license.allowed" color="success" variant="subtle">
+            Allowed
           </UBadge>
-          <UBadge v-else color="neutral" variant="subtle">
-            Disabled
+          <UBadge v-else color="error" variant="subtle">
+            Disallowed
           </UBadge>
         </div>
       </div>
@@ -147,7 +147,7 @@ interface LicenseDetail {
   licenseText: string | null
   text: string | null
   deprecated: boolean
-  whitelisted: boolean
+  allowed: boolean
   componentCount: number
 }
 

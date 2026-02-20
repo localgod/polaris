@@ -2,8 +2,8 @@
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <UPageHeader
-        title="Policy Violations"
-        description="Technologies used without approval or outside version constraints"
+        title="Version Violations"
+        description="Components outside allowed version ranges"
       />
       <UButton
         label="View License Violations"
@@ -45,17 +45,12 @@
           <template #header>
             <div class="flex justify-between items-center">
               <div>
-                <h3 class="font-semibold">{{ violation.policy.name }}</h3>
-                <p class="text-sm text-(--ui-text-muted)">{{ violation.policy.description }}</p>
+                <h3 class="font-semibold">{{ violation.constraint.name }}</h3>
+                <p class="text-sm text-(--ui-text-muted)">{{ violation.constraint.description }}</p>
               </div>
-              <div class="flex items-center gap-2">
-                <UBadge :color="getViolationTypeColor(violation.violationType)" variant="subtle">
-                  {{ formatViolationType(violation.violationType) }}
-                </UBadge>
-                <UBadge :color="getSeverityColor(violation.policy.severity)" variant="subtle">
-                  {{ violation.policy.severity }}
-                </UBadge>
-              </div>
+              <UBadge :color="getSeverityColor(violation.constraint.severity)" variant="subtle">
+                {{ violation.constraint.severity }}
+              </UBadge>
             </div>
           </template>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -79,13 +74,9 @@
               <span class="text-(--ui-text-muted)">Version</span>
               <p class="font-medium"><code>{{ violation.componentVersion }}</code></p>
             </div>
-            <div v-if="violation.policy.versionRange">
+            <div v-if="violation.constraint.versionRange">
               <span class="text-(--ui-text-muted)">Required Range</span>
-              <p class="font-medium"><code>{{ violation.policy.versionRange }}</code></p>
-            </div>
-            <div v-if="violation.policy.enforcedBy">
-              <span class="text-(--ui-text-muted)">Enforced By</span>
-              <p class="font-medium">{{ violation.policy.enforcedBy }}</p>
+              <p class="font-medium"><code>{{ violation.constraint.versionRange }}</code></p>
             </div>
           </div>
         </UCard>
@@ -102,14 +93,11 @@ interface Violation {
   componentVersion: string
   technology: string
   technologyCategory: string
-  violationType: 'unapproved' | 'eliminated' | 'version-out-of-range'
-  policy: {
+  constraint: {
     name: string
     description: string
     severity: string
-    ruleType: string
     versionRange: string | null
-    enforcedBy: string | null
   }
 }
 
@@ -125,34 +113,13 @@ interface ViolationsResponse {
   }
 }
 
-const { data, pending, error } = await useFetch<ViolationsResponse>('/api/policies/violations')
+const { data, pending, error } = await useFetch<ViolationsResponse>('/api/version-constraints/violations')
 
 function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
   const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error',
-    error: 'error',
-    warning: 'warning',
-    info: 'neutral'
+    critical: 'error', error: 'error', warning: 'warning', info: 'neutral'
   }
   return colors[severity] || 'neutral'
-}
-
-function getViolationTypeColor(type: string): 'error' | 'warning' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'neutral'> = {
-    unapproved: 'error',
-    eliminated: 'error',
-    'version-out-of-range': 'warning'
-  }
-  return colors[type] || 'neutral'
-}
-
-function formatViolationType(type: string): string {
-  const labels: Record<string, string> = {
-    unapproved: 'Unapproved',
-    eliminated: 'Eliminated',
-    'version-out-of-range': 'Version Out of Range'
-  }
-  return labels[type] || type
 }
 
 useHead({ title: 'Violations - Polaris' })

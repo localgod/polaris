@@ -136,11 +136,11 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/policies', () => {
+  describe('GET /api/version-constraints', () => {
     it('should return paginated results with count and total', async () => {
       if (!serverAvailable) return
 
-      const response = await fetchApi('/api/policies?limit=2')
+      const response = await fetchApi('/api/version-constraints?limit=2')
       
       expect(response.success).toBe(true)
       expect(response.data.length).toBeLessThanOrEqual(2)
@@ -169,11 +169,11 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/policies/license-violations', () => {
+  describe('GET /api/licenses/violations', () => {
     it('should require authentication', async () => {
       if (!serverAvailable) return
 
-      const response = await fetch(`${BASE_URL}/api/policies/license-violations?limit=2`)
+      const response = await fetch(`${BASE_URL}/api/licenses/violations`)
 
       expect(response.status).toBe(401)
     })

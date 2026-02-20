@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <UPageHeader
       title="License Administration"
-      description="Manage license definitions and policies"
+      description="Manage license definitions and allowed status"
     />
 
     <UAlert

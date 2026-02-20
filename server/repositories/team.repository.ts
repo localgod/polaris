@@ -54,7 +54,7 @@ export interface TeamApprovalsResult {
   versionApprovals: VersionApproval[]
 }
 
-export interface TeamPolicy {
+export interface TeamConstraint {
   name: string
   description: string | null
   ruleType: string
@@ -67,10 +67,10 @@ export interface TeamPolicy {
   governedTechnologies: string[]
 }
 
-export interface TeamPoliciesResult {
+export interface TeamConstraintsResult {
   team: string
-  enforced: TeamPolicy[]
-  subjectTo: TeamPolicy[]
+  enforced: TeamConstraint[]
+  subjectTo: TeamConstraint[]
   enforcedCount: number
   subjectToCount: number
 }
@@ -271,30 +271,30 @@ export class TeamRepository extends BaseRepository {
   }
 
   /**
-   * Find policies for a team (enforced and subject to)
+   * Find constraints for a team (enforced and subject to)
    * 
    * @param teamName - Team name
-   * @returns Team policies result
+   * @returns Team constraints result
    */
-  async findPolicies(teamName: string): Promise<TeamPoliciesResult> {
-    // Get enforced policies
+  async findConstraints(teamName: string): Promise<TeamConstraintsResult> {
+    // Get enforced constraints
     const enforcedQuery = await loadQuery('teams/find-enforced-policies.cypher')
     const { records: enforcedRecords } = await this.executeQuery(enforcedQuery, { teamName })
     
-    const enforcedPolicies = enforcedRecords.map(record => this.mapToPolicy(record))
+    const enforcedConstraints = enforcedRecords.map(record => this.mapToConstraint(record))
     
-    // Get subject-to policies
+    // Get subject-to constraints
     const subjectQuery = await loadQuery('teams/find-subject-policies.cypher')
     const { records: subjectRecords } = await this.executeQuery(subjectQuery, { teamName })
     
-    const subjectToPolicies = subjectRecords.map(record => this.mapToPolicy(record, true))
+    const subjectToConstraints = subjectRecords.map(record => this.mapToConstraint(record, true))
     
     return {
       team: teamName,
-      enforced: enforcedPolicies,
-      subjectTo: subjectToPolicies,
-      enforcedCount: enforcedPolicies.length,
-      subjectToCount: subjectToPolicies.length
+      enforced: enforcedConstraints,
+      subjectTo: subjectToConstraints,
+      enforcedCount: enforcedConstraints.length,
+      subjectToCount: subjectToConstraints.length
     }
   }
 
@@ -375,10 +375,10 @@ export class TeamRepository extends BaseRepository {
   }
 
   /**
-   * Map Neo4j record to TeamPolicy domain object
+   * Map Neo4j record to TeamConstraint domain object
    */
-  private mapToPolicy(record: Neo4jRecord, includeEnforcer = false): TeamPolicy {
-    const policy: TeamPolicy = {
+  private mapToConstraint(record: Neo4jRecord, includeEnforcer = false): TeamConstraint {
+    const constraint: TeamConstraint = {
       name: record.get('name'),
       description: record.get('description'),
       ruleType: record.get('ruleType'),
@@ -391,9 +391,9 @@ export class TeamRepository extends BaseRepository {
     }
     
     if (includeEnforcer) {
-      policy.enforcedBy = record.get('enforcedBy')
+      constraint.enforcedBy = record.get('enforcedBy')
     }
     
-    return policy
+    return constraint
   }
 }

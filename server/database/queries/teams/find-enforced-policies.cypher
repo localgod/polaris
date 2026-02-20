@@ -1,4 +1,4 @@
-MATCH (team:Team {name: $teamName})-[:ENFORCES]->(p:Policy)
+MATCH (team:Team {name: $teamName})-[:ENFORCES]->(p:VersionConstraint)
 OPTIONAL MATCH (p)-[:GOVERNS]->(tech:Technology)
 WITH p, collect(DISTINCT tech.name) as governedTechnologies
 RETURN p.name as name,
