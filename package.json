@@ -71,7 +71,7 @@
     "@sidebase/nuxt-auth": "^1.1.1",
     "ajv": "^8.18.0",
     "eslint": "^9.39.2",
-    "mermaid": "^11.12.2",
+    "mermaid": "^11.12.3",
     "next-auth": "4.21.1",
     "nuxt": "4.0.0",
     "nuxt-neo4j": "^0.0.4",
