@@ -189,6 +189,17 @@ export interface User {
   teams: string[]
 }
 
+export interface LicenseViolation {
+  teamName: string
+  systemName: string
+  componentName: string
+  componentVersion: string
+  componentPurl: string | null
+  licenseId: string
+  licenseName: string
+  licenseCategory: string | null
+}
+
 export interface ApiSuccessResponse<T> {
   success: true
   data: T[]

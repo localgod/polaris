@@ -85,14 +85,16 @@ import { SystemService } from '../../../services/system.service'
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
 
-  const systemName = getRouterParam(event, 'name')
+  const rawName = getRouterParam(event, 'name')
   
-  if (!systemName) {
+  if (!rawName) {
     throw createError({
       statusCode: 400,
       message: 'System name is required'
     })
   }
+
+  const systemName = decodeURIComponent(rawName)
 
   await validateTeamOwnership(event, 'System', systemName)
   

@@ -23,11 +23,11 @@
  */
 
 import { execSync } from 'child_process'
-import { mkdirSync, rmSync, existsSync, readFileSync } from 'fs'
+import { mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { createBom } from '@cyclonedx/cdxgen'
 import neo4j from 'neo4j-driver'
-import { randomBytes } from 'crypto'
+import { randomBytes, createHash } from 'crypto'
 
 // Load .env file manually
 const envPath = join(process.cwd(), '.env')
@@ -476,48 +476,54 @@ async function ensureTechnicalUserExists(): Promise<string> {
   try {
     // Check if any technical user exists
     const result = await session.run(
-      'MATCH (u:User {provider: "technical"}) RETURN u.email as email LIMIT 1'
+      'MATCH (u:User {provider: "technical"}) RETURN u.id as id, u.email as email LIMIT 1'
     )
+    
+    let userId: string
+    let email: string
     
     if (result.records.length > 0) {
-      const email = result.records[0].get('email')
+      email = result.records[0].get('email')
+      userId = result.records[0].get('id')
       console.log(`✅ Found existing technical user: ${email}\n`)
-      return email
+    } else {
+      // No technical user exists, create one
+      console.log('📝 No technical user found, creating one...\n')
+      
+      email = 'seed-bot@polaris.local'
+      const name = 'Seed Bot'
+      userId = `technical-${randomBytes(16).toString('hex')}`
+      const createdAt = new Date().toISOString()
+      
+      await session.run(
+        `
+        CREATE (u:User {
+          id: $id,
+          email: $email,
+          name: $name,
+          provider: 'technical',
+          role: 'superuser',
+          avatarUrl: null,
+          createdAt: datetime($createdAt),
+          lastLogin: null
+        })
+        RETURN u.email as email
+        `,
+        {
+          id: userId,
+          email,
+          name,
+          createdAt
+        }
+      )
+      
+      console.log(`✅ Created technical user: ${email}`)
+      console.log(`   Role: superuser`)
+      console.log(`   Provider: technical\n`)
     }
     
-    // No technical user exists, create one
-    console.log('📝 No technical user found, creating one...\n')
-    
-    const email = 'seed-bot@polaris.local'
-    const name = 'Seed Bot'
-    const userId = `technical-${randomBytes(16).toString('hex')}`
-    const createdAt = new Date().toISOString()
-    
-    await session.run(
-      `
-      CREATE (u:User {
-        id: $id,
-        email: $email,
-        name: $name,
-        provider: 'technical',
-        role: 'superuser',
-        avatarUrl: null,
-        createdAt: datetime($createdAt),
-        lastLogin: null
-      })
-      RETURN u.email as email
-      `,
-      {
-        id: userId,
-        email,
-        name,
-        createdAt
-      }
-    )
-    
-    console.log(`✅ Created technical user: ${email}`)
-    console.log(`   Role: superuser`)
-    console.log(`   Provider: technical\n`)
+    // Ensure a valid API token exists for this user
+    await ensureApiToken(session, userId)
     
     return email
   } catch (error) {
@@ -525,6 +531,71 @@ async function ensureTechnicalUserExists(): Promise<string> {
   } finally {
     await session.close()
     await driver.close()
+  }
+}
+
+/**
+ * Ensure a valid API token exists in the database for the given user.
+ * If SEED_API_TOKEN is set, verify its hash exists. If not, generate
+ * a new token, store it, and update .env.
+ */
+async function ensureApiToken(session: neo4j.Session, userId: string): Promise<void> {
+  const existingToken = process.env.SEED_API_TOKEN
+
+  if (existingToken) {
+    // Check if the hash of the current token exists in the database
+    const tokenHash = createHash('sha256').update(existingToken, 'utf8').digest('hex')
+    const result = await session.run(
+      `MATCH (t:ApiToken {tokenHash: $tokenHash, revoked: false})<-[:HAS_API_TOKEN]-(u:User)
+       RETURN t.id as id`,
+      { tokenHash }
+    )
+
+    if (result.records.length > 0) {
+      return // Token is valid and exists in the database
+    }
+
+    console.log('⚠️  SEED_API_TOKEN not found in database, creating it...\n')
+  }
+
+  // Generate a new token or store the existing one
+  const plaintextToken = existingToken || randomBytes(32).toString('base64url')
+  const tokenHash = createHash('sha256').update(plaintextToken, 'utf8').digest('hex')
+  const tokenId = randomBytes(16).toString('hex')
+  const createdAt = new Date().toISOString()
+
+  await session.run(
+    `MATCH (u:User {id: $userId})
+     CREATE (t:ApiToken {
+       id: $tokenId,
+       tokenHash: $tokenHash,
+       createdAt: datetime($createdAt),
+       expiresAt: null,
+       revoked: false,
+       createdBy: $userId,
+       description: 'Auto-generated seed token'
+     })
+     CREATE (u)-[:HAS_API_TOKEN]->(t)
+     RETURN t.id as id`,
+    { userId, tokenId, tokenHash, createdAt }
+  )
+
+  // Update .env if we generated a new token or need to persist the current one
+  if (!existingToken) {
+    const envPath = join(process.cwd(), '.env')
+    if (existsSync(envPath)) {
+      let envContent = readFileSync(envPath, 'utf-8')
+      if (envContent.includes('SEED_API_TOKEN=')) {
+        envContent = envContent.replace(/SEED_API_TOKEN=.*/, `SEED_API_TOKEN=${plaintextToken}`)
+      } else {
+        envContent += `\nSEED_API_TOKEN=${plaintextToken}\n`
+      }
+      writeFileSync(envPath, envContent)
+    }
+    process.env.SEED_API_TOKEN = plaintextToken
+    console.log(`✅ Generated new API token and saved to .env\n`)
+  } else {
+    console.log(`✅ Stored existing SEED_API_TOKEN in database\n`)
   }
 }
 
@@ -762,7 +833,12 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
   console.log('\n🌟 GitHub SBOM Seeding\n')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
   
-  // Ensure a technical user exists
+  // Seed fixtures first (teams, infrastructure technologies, policies, approvals)
+  // SBOM-discoverable technologies (React, Vue, etc.) are created later from components
+  // This must run before ensureTechnicalUserExists because --clear deletes all non-Migration nodes
+  await seedFixtures(options.clear)
+  
+  // Ensure a technical user and API token exist (after fixtures, which may clear the DB)
   const userEmail = await ensureTechnicalUserExists()
   
   // Check for API token
@@ -774,10 +850,6 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
     console.log('  SEED_API_TOKEN=your-token-here\n')
     process.exit(1)
   }
-  
-  // Seed fixtures first (teams, infrastructure technologies, policies, approvals)
-  // SBOM-discoverable technologies (React, Vue, etc.) are created later from components
-  await seedFixtures(options.clear)
   
   // Create temp directory
   if (!existsSync(TEMP_DIR)) {

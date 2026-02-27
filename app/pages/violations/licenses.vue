@@ -17,10 +17,21 @@
 
     <template v-else>
       <UCard>
+        <div class="flex items-center gap-2 pb-4 border-b border-(--ui-border) mb-4">
+          <UInput
+            v-model="searchInput"
+            placeholder="Filter by component, license, system, or team..."
+            icon="i-lucide-search"
+            class="max-w-sm"
+          />
+        </div>
+
         <UTable
+          v-model:sorting="sorting"
           :data="violations"
           :columns="columns"
           :loading="pending"
+          :manual-sorting="true"
           class="flex-1"
         >
           <template #empty>
@@ -31,31 +42,30 @@
             </div>
           </template>
         </UTable>
+
+        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+          <UPagination
+            v-model:page="page"
+            :total="total"
+            :items-per-page="pageSize"
+            :sibling-count="1"
+            show-edges
+          />
+        </div>
       </UCard>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
+import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { ApiResponse, LicenseViolation } from '~~/types/api'
 
-interface LicenseViolation {
-  teamName: string
-  systemName: string
-  componentName: string
-  componentVersion: string
-  componentPurl: string
-  licenseId: string
-  licenseName: string
-  licenseCategory: string
-}
+const { getSortableHeader } = useSortableTable()
 
-interface LicenseViolationsResponse {
-  success: boolean
-  data: LicenseViolation[]
-  count: number
-}
+const UBadge = resolveComponent('UBadge')
+const NuxtLink = resolveComponent('NuxtLink')
 
 function getCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -72,7 +82,7 @@ function getCategoryColor(category: string): 'success' | 'warning' | 'error' | '
 const columns: TableColumn<LicenseViolation>[] = [
   {
     accessorKey: 'componentName',
-    header: 'Component',
+    header: ({ column }) => getSortableHeader(column, 'Component'),
     cell: ({ row }) => {
       return h('div', {}, [
         h('strong', {}, row.original.componentName),
@@ -83,23 +93,23 @@ const columns: TableColumn<LicenseViolation>[] = [
   },
   {
     accessorKey: 'licenseId',
-    header: 'License',
+    header: ({ column }) => getSortableHeader(column, 'License'),
     cell: ({ row }) => {
       const v = row.original
-      return h(resolveComponent('NuxtLink'), {
+      return h(NuxtLink, {
         to: `/licenses/${encodeURIComponent(v.licenseId)}`,
         class: 'hover:underline'
-      }, () => h(resolveComponent('UBadge'), {
-        color: getCategoryColor(v.licenseCategory),
+      }, () => h(UBadge, {
+        color: getCategoryColor(v.licenseCategory || ''),
         variant: 'subtle'
       }, () => v.licenseId))
     }
   },
   {
     accessorKey: 'systemName',
-    header: 'System',
+    header: ({ column }) => getSortableHeader(column, 'System'),
     cell: ({ row }) => {
-      return h(resolveComponent('NuxtLink'), {
+      return h(NuxtLink, {
         to: `/systems/${encodeURIComponent(row.original.systemName)}`,
         class: 'hover:underline'
       }, () => row.original.systemName)
@@ -107,9 +117,9 @@ const columns: TableColumn<LicenseViolation>[] = [
   },
   {
     accessorKey: 'teamName',
-    header: 'Team',
+    header: ({ column }) => getSortableHeader(column, 'Team'),
     cell: ({ row }) => {
-      return h(resolveComponent('NuxtLink'), {
+      return h(NuxtLink, {
         to: `/teams/${encodeURIComponent(row.original.teamName)}`,
         class: 'hover:underline'
       }, () => row.original.teamName)
@@ -117,9 +127,50 @@ const columns: TableColumn<LicenseViolation>[] = [
   }
 ]
 
-const { data, pending, error } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')
+const sorting = ref<{ id: string; desc: boolean }[]>([])
+
+watch(sorting, () => { page.value = 1 })
+
+const page = ref(1)
+const pageSize = 20
+
+const searchInput = ref('')
+const debouncedSearch = ref('')
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(searchInput, (value) => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    debouncedSearch.value = value
+    page.value = 1
+  }, 300)
+})
+
+onBeforeUnmount(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+})
+
+const queryParams = computed(() => {
+  const params: Record<string, string | number> = {
+    limit: pageSize,
+    offset: (page.value - 1) * pageSize
+  }
+  if (debouncedSearch.value) {
+    params.search = debouncedSearch.value
+  }
+  if (sorting.value.length) {
+    params.sortBy = sorting.value[0].id
+    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
+  }
+  return params
+})
+
+const { data, pending, error } = await useFetch<ApiResponse<LicenseViolation>>('/api/licenses/violations', {
+  query: queryParams
+})
 
 const violations = computed(() => data.value?.data || [])
+const total = computed(() => data.value?.total || 0)
 
 useHead({ title: 'License Violations - Polaris' })
 </script>
