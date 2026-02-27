@@ -36,7 +36,7 @@
 
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
-  "runServices": ["neo4j"],
+  "runServices": [],
 
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 

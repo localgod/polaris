@@ -38,14 +38,16 @@ import type { ApiResponse, Repository } from '~~/types/api'
  *               $ref: '#/components/schemas/ApiErrorResponse'
  */
 export default defineEventHandler(async (event): Promise<ApiResponse<Repository>> => {
-  const systemName = getRouterParam(event, 'name')
+  const rawName = getRouterParam(event, 'name')
   
-  if (!systemName) {
+  if (!rawName) {
     throw createError({
       statusCode: 400,
       message: 'System name is required'
     })
   }
+
+  const systemName = decodeURIComponent(rawName)
   
   const systemService = new SystemService()
   const result = await systemService.getRepositories(systemName)

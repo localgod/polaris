@@ -18,20 +18,49 @@ tasks:
     name: Wait for Neo4j
     command: |
       echo "⏳ Waiting for Neo4j to be ready..."
-      max_attempts=60
+      
+      # Source .env for connection details
+      set -a
+      source .env
+      set +a
+      
+      max_attempts=30
       attempt=0
       
-      while [ $attempt -lt $max_attempts ]; do
-        if curl -s http://localhost:7474 > /dev/null 2>&1; then
-          echo "✅ Neo4j is ready!"
-          exit 0
-        fi
-        attempt=$((attempt + 1))
-        echo "Attempt $attempt/$max_attempts - Neo4j not ready yet..."
-        sleep 2
-      done
+      # Detect local vs hosted instance
+      if echo "$NEO4J_URI" | grep -q "localhost"; then
+        echo "Using local Neo4j instance..."
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -s http://localhost:7474 > /dev/null 2>&1; then
+            echo "✅ Neo4j is ready!"
+            exit 0
+          fi
+          attempt=$((attempt + 1))
+          echo "Attempt $attempt/$max_attempts - Neo4j not ready yet..."
+          sleep 2
+        done
+      else
+        echo "Using hosted Neo4j instance at $NEO4J_URI..."
+        # For hosted instances, wait for node_modules then use cypher-shell or a quick connection test
+        while [ ! -d "node_modules" ]; do
+          sleep 1
+        done
+        while [ $attempt -lt $max_attempts ]; do
+          if npx --yes neo4j-driver-bolt-connection 2>/dev/null || node -e "
+            const neo4j = require('neo4j-driver');
+            const d = neo4j.driver('$NEO4J_URI', neo4j.auth.basic('$NEO4J_USERNAME', '$NEO4J_PASSWORD'));
+            d.verifyAuthentication().then(() => { console.log('ok'); d.close(); process.exit(0); }).catch(() => { d.close(); process.exit(1); });
+          " 2>/dev/null; then
+            echo "✅ Neo4j is ready!"
+            exit 0
+          fi
+          attempt=$((attempt + 1))
+          echo "Attempt $attempt/$max_attempts - Neo4j not reachable yet..."
+          sleep 2
+        done
+      fi
       
-      echo "❌ Neo4j failed to start within timeout"
+      echo "❌ Neo4j failed to become ready within timeout"
       exit 1
     triggeredBy:
       - postEnvironmentStart
@@ -47,16 +76,37 @@ tasks:
         sleep 1
       done
       
+      # Source .env for connection details
+      set -a
+      source .env
+      set +a
+      
       echo "⏳ Waiting for Neo4j..."
-      max_attempts=60
+      max_attempts=30
       attempt=0
-      while [ $attempt -lt $max_attempts ]; do
-        if curl -s http://localhost:7474 > /dev/null 2>&1; then
-          break
-        fi
-        attempt=$((attempt + 1))
-        sleep 2
-      done
+      if echo "$NEO4J_URI" | grep -q "localhost"; then
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -s http://localhost:7474 > /dev/null 2>&1; then
+            break
+          fi
+          attempt=$((attempt + 1))
+          sleep 2
+        done
+      else
+        # For hosted instances, verify connectivity via driver
+        while [ $attempt -lt $max_attempts ]; do
+          if node -e "
+            const neo4j = require('neo4j-driver');
+            const d = neo4j.driver('$NEO4J_URI', neo4j.auth.basic('$NEO4J_USERNAME', '$NEO4J_PASSWORD'));
+            d.verifyAuthentication().then(() => { d.close(); process.exit(0); }).catch(() => { d.close(); process.exit(1); });
+          " 2>/dev/null; then
+            break
+          fi
+          attempt=$((attempt + 1))
+          echo "Attempt $attempt/$max_attempts - Neo4j not reachable yet..."
+          sleep 2
+        done
+      fi
       
       echo "🔄 Running database migrations..."
       npm run migrate:up

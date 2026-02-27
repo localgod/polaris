@@ -88,6 +88,7 @@
     "@cucumber/gherkin": "^38.0.0",
     "@cucumber/messages": "^32.0.1",
     "@cyclonedx/cdxgen": "^12.0.0",
+    "@iconify-json/lucide": "^1.2.94",
     "@playwright/test": "^1.57.0",
     "@types/node": "^25.0.6",
     "@types/semver": "^7.7.1",

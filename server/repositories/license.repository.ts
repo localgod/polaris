@@ -50,6 +50,25 @@ export interface LicenseFilters {
   sortOrder?: 'asc' | 'desc'
 }
 
+export interface LicenseViolationFilters {
+  search?: string
+  limit?: number
+  offset?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+const violationSortConfig: SortConfig = {
+  allowedFields: {
+    componentName: 'comp.name',
+    componentVersion: 'comp.version',
+    licenseId: 'license.id',
+    systemName: 'sys.name',
+    teamName: 'team.name'
+  },
+  defaultOrderBy: 'team.name ASC, sys.name ASC, comp.name ASC'
+}
+
 const licenseSortConfig: SortConfig = {
   allowedFields: {
     spdxId: 'l.id',
@@ -460,10 +479,44 @@ export class LicenseRepository extends BaseRepository {
   /**
    * Find components using disallowed licenses
    */
-  async findViolations(): Promise<LicenseViolation[]> {
-    const query = await loadQuery('licenses/find-violations.cypher')
-    const { records } = await this.executeQuery(query, {})
-    return records.map(record => ({
+  async findViolations(filters: LicenseViolationFilters = {}): Promise<{ data: LicenseViolation[], total: number }> {
+    const conditions: string[] = ['license.allowed = false']
+    const params: Record<string, unknown> = {}
+
+    if (filters.search) {
+      conditions.push('(toLower(comp.name) CONTAINS toLower($search) OR toLower(license.id) CONTAINS toLower($search) OR toLower(sys.name) CONTAINS toLower($search) OR toLower(team.name) CONTAINS toLower($search))')
+      params.search = filters.search
+    }
+
+    const whereClause = `WHERE ${conditions.join(' AND ')}`
+    const matchClause = `MATCH (team:Team)-[:OWNS]->(sys:System)-[:USES]->(comp:Component)-[:HAS_LICENSE]->(license:License)`
+
+    // Count query
+    const countCypher = `${matchClause} ${whereClause} RETURN count(*) as total`
+    const { records: countRecords } = await this.executeQuery(countCypher, params)
+    const total = countRecords[0]?.get('total').toNumber() || 0
+
+    // Data query
+    let dataCypher = `${matchClause}
+      ${whereClause}
+      RETURN team.name as teamName,
+             sys.name as systemName,
+             comp.name as componentName,
+             comp.version as componentVersion,
+             comp.purl as componentPurl,
+             license.id as licenseId,
+             license.name as licenseName,
+             license.category as licenseCategory
+      ORDER BY ${buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, violationSortConfig)}`
+
+    if (filters.limit !== undefined) {
+      dataCypher += ` SKIP toInteger($offset) LIMIT toInteger($limit)`
+      params.offset = filters.offset || 0
+      params.limit = filters.limit
+    }
+
+    const { records } = await this.executeQuery(dataCypher, params)
+    const data = records.map(record => ({
       teamName: record.get('teamName'),
       systemName: record.get('systemName'),
       componentName: record.get('componentName'),
@@ -473,6 +526,8 @@ export class LicenseRepository extends BaseRepository {
       licenseName: record.get('licenseName'),
       licenseCategory: record.get('licenseCategory')
     }))
+
+    return { data, total }
   }
 
   /**
