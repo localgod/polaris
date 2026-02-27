@@ -397,7 +397,8 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
           type: 'object',
           properties: {
             name: { type: 'string' },
-            category: { type: 'string' },
+            type: { type: 'string', enum: ['application', 'framework', 'library', 'container', 'platform', 'operating-system', 'device', 'device-driver', 'firmware', 'file', 'machine-learning-model', 'data'] },
+            domain: { type: 'string', nullable: true, enum: ['foundational-runtime', 'framework', 'data-platform', 'integration-platform', 'security-identity', 'infrastructure', 'observability', 'developer-tooling', 'other'] },
             vendor: { type: 'string', nullable: true },
             lastReviewed: { type: 'string', nullable: true },
             ownerTeamName: { type: 'string', nullable: true },

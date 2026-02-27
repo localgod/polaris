@@ -58,8 +58,12 @@
       <template #body>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Category *</label>
-            <USelect v-model="editForm.category" :items="categoryOptions" />
+            <label class="block text-sm font-medium mb-1">Type *</label>
+            <USelect v-model="editForm.type" :items="typeOptions" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Domain</label>
+            <USelect v-model="editForm.domain" :items="domainOptions" placeholder="No domain" />
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Vendor</label>
@@ -337,12 +341,21 @@ const columns: TableColumn<Technology>[] = [
     }
   },
   {
-    accessorKey: 'category',
-    header: ({ column }) => getSortableHeader(column, 'Category'),
+    accessorKey: 'type',
+    header: ({ column }) => getSortableHeader(column, 'Type'),
     cell: ({ row }) => {
-      const category = row.getValue('category') as string | undefined
-      if (!category) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle' }, () => category)
+      const type = row.getValue('type') as string | undefined
+      if (!type) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle' }, () => type)
+    }
+  },
+  {
+    accessorKey: 'domain',
+    header: ({ column }) => getSortableHeader(column, 'Domain'),
+    cell: ({ row }) => {
+      const domain = row.getValue('domain') as string | undefined
+      if (!domain) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(resolveComponent('UBadge'), { color: 'info', variant: 'subtle' }, () => domain)
     }
   },
   {
@@ -419,19 +432,31 @@ const editLoading = ref(false)
 const editError = ref('')
 const editForm = ref<{
   name: string
-  category: string
+  type: string
+  domain: string | undefined
   vendor: string
   ownerTeam: string | undefined
   lastReviewed: string
 }>({
   name: '',
-  category: '',
+  type: '',
+  domain: undefined,
   vendor: '',
   ownerTeam: undefined,
   lastReviewed: ''
 })
 
-const categoryOptions = ['language', 'framework', 'library', 'database', 'cache', 'container', 'platform', 'tool', 'runtime', 'other']
+const typeOptions = [
+  'application', 'framework', 'library', 'container', 'platform',
+  'operating-system', 'device', 'device-driver', 'firmware',
+  'file', 'machine-learning-model', 'data'
+]
+
+const domainOptions = [
+  'foundational-runtime', 'framework', 'data-platform',
+  'integration-platform', 'security-identity', 'infrastructure',
+  'observability', 'developer-tooling', 'other'
+]
 
 interface TeamsResponse { success: boolean; data: { name: string }[]; count: number }
 const { data: teamsData } = useLazyFetch<TeamsResponse>('/api/teams', { key: 'tech-edit-teams' })
@@ -442,7 +467,8 @@ const teamOptions = computed(() =>
 function openEditModal(tech: Technology) {
   editForm.value = {
     name: tech.name,
-    category: tech.category || '',
+    type: tech.type || '',
+    domain: tech.domain || undefined,
     vendor: tech.vendor || '',
     ownerTeam: tech.ownerTeamName || undefined,
     lastReviewed: tech.lastReviewed || ''
@@ -459,7 +485,8 @@ async function confirmEdit() {
     await $fetch(`/api/technologies/${encodeURIComponent(editForm.value.name)}`, {
       method: 'PUT',
       body: {
-        category: editForm.value.category,
+        type: editForm.value.type,
+        domain: editForm.value.domain || null,
         vendor: editForm.value.vendor || null,
         ownerTeam: editForm.value.ownerTeam || null,
         lastReviewed: editForm.value.lastReviewed || null

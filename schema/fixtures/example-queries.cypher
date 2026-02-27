@@ -17,8 +17,8 @@ ORDER BY t.name;
 // List all technologies with their owner teams
 MATCH (tech:Technology)
 OPTIONAL MATCH (team:Team)-[:OWNS]->(tech)
-RETURN tech.name, tech.category, team.name as ownerTeam
-ORDER BY tech.category, tech.name;
+RETURN tech.name, tech.type, team.name as ownerTeam
+ORDER BY tech.type, tech.name;
 
 // List all systems by criticality
 MATCH (s:System)
@@ -168,7 +168,7 @@ WHERE NOT EXISTS {
   MATCH (team:Team)-[:OWNS]->(tech)
 }
 RETURN tech.name as Technology,
-       tech.category as Category;
+       tech.type as Type;
 
 // ============================================================================
 // CROSS-CUTTING ANALYSIS
@@ -177,7 +177,7 @@ RETURN tech.name as Technology,
 // Technology adoption across systems
 MATCH (tech:Technology)<-[:IS_VERSION_OF]-(comp:Component)<-[:USES]-(sys:System)
 RETURN tech.name as Technology,
-       tech.category as Category,
+       tech.type as Type,
        count(DISTINCT sys) as SystemCount,
        collect(DISTINCT sys.name) as Systems
 ORDER BY SystemCount DESC, tech.name;

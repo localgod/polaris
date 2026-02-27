@@ -34,12 +34,14 @@ describeFeature(feature, ({ Scenario }) => {
       await session.run(`
         CREATE (react:Technology {
           name: $reactName,
-          category: 'framework',
+          type: 'framework',
+          domain: 'framework',
           vendor: 'Meta'
         })
         CREATE (oldLib:Technology {
           name: $oldLibName,
-          category: 'library',
+          type: 'library',
+          domain: 'developer-tooling',
           vendor: 'Unknown'
         })
       `, {

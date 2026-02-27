@@ -11,7 +11,7 @@ import { TechnologyService } from '../../services/technology.service'
  *       Retrieves detailed information about a specific technology including versions, components, systems, policies, and approvals.
  *       
  *       Returns comprehensive data about:
- *       - Technology metadata (category, vendor, risk level)
+ *       - Technology metadata (type, vendor, risk level)
  *       - All versions with release and EOL dates
  *       - Components using this technology
  *       - Systems that depend on it
@@ -62,7 +62,7 @@ import { TechnologyService } from '../../services/technology.service'
  *               success: true
  *               data:
  *                 name: React
- *                 category: framework
+ *                 type: framework
  *                 vendor: Meta
  *                 lastReviewed: "2025-10-01"
  *                 ownerTeamName: Frontend Platform

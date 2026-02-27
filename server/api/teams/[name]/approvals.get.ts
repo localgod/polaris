@@ -43,7 +43,7 @@ import { TeamService } from '../../../services/team.service'
  *                 team: frontend-team
  *                 approvals:
  *                   - technology: react
- *                     category: framework
+ *                     type: framework
  *                     time: adopt
  *                     approvedAt: "2024-01-15T10:00:00Z"
  *                     approvedBy: architecture-team

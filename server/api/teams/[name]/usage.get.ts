@@ -43,7 +43,7 @@
  *                         properties:
  *                           technology:
  *                             type: string
- *                           category:
+ *                           type:
  *                             type: string
  *                           vendor:
  *                             type: string
@@ -80,7 +80,7 @@
  *                 team: frontend-team
  *                 usage:
  *                   - technology: React
- *                     category: framework
+ *                     type: framework
  *                     vendor: Meta
  *                     systemCount: 8
  *                     firstUsed: "2023-01-15"

@@ -19,7 +19,7 @@ describe('ComplianceService', () => {
         {
           team: 'Frontend',
           technology: 'React',
-          category: 'framework',
+          type: 'framework',
           systemCount: 2,
           systems: ['App'],
           violationType: 'unapproved',

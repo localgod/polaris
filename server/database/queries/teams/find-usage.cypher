@@ -2,7 +2,8 @@ MATCH (team:Team {name: $teamName})-[u:USES]->(tech:Technology)
 OPTIONAL MATCH (team)-[a:APPROVES]->(tech)
 RETURN 
   tech.name as technology,
-  tech.category as category,
+  tech.type as type,
+  tech.domain as domain,
   tech.vendor as vendor,
   u.systemCount as systemCount,
   u.firstUsed as firstUsed,

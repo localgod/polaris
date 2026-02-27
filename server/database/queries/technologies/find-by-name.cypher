@@ -8,7 +8,8 @@ OPTIONAL MATCH (approvalTeam:Team)-[techApproval:APPROVES]->(t)
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(approvedVersion:Version)
 OPTIONAL MATCH (versionApprovalTeam:Team)-[versionApproval:APPROVES]->(approvedVersion)
 RETURN t.name as name,
-       t.category as category,
+       t.type as type,
+       t.domain as domain,
        t.vendor as vendor,
        t.lastReviewed as lastReviewed,
        team.name as ownerTeamName,

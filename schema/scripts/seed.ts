@@ -27,7 +27,8 @@ interface FixtureData {
   }>
   technologies: Array<{
     name: string
-    category: string
+    type: string
+    domain?: string
     vendor: string
     lastReviewed: string
   }>
@@ -115,7 +116,8 @@ async function seedTechnologies(driver: neo4j.Driver, technologies: FixtureData[
       await session.run(
         `
         MERGE (t:Technology {name: $name})
-        SET t.category = $category,
+        SET t.type = $type,
+            t.domain = $domain,
             t.vendor = $vendor,
             t.lastReviewed = date($lastReviewed)
         `,

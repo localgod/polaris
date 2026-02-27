@@ -131,8 +131,12 @@ export class MigrationRunner {
    * Extract version from filename
    */
   extractVersionFromFilename(filename: string): string {
-    const match = filename.match(/(\d{4}-\d{2}-\d{2}_\d{6})/)
-    return match ? match[1].replace(/_/g, '.').replace(/-/g, '.') : 'unknown'
+    // Match YYYY-MM-DD_HHMMSS or YYYYMMDD_HHMMSS formats
+    const dashMatch = filename.match(/(\d{4}-\d{2}-\d{2}_\d{6})/)
+    if (dashMatch) return dashMatch[1].replace(/_/g, '.').replace(/-/g, '.')
+    const compactMatch = filename.match(/(\d{8}_\d{6})/)
+    if (compactMatch) return compactMatch[1].replace(/_/g, '.')
+    return 'unknown'
   }
 
   /**

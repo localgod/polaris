@@ -4,7 +4,7 @@ import type { Record as Neo4jRecord } from 'neo4j-driver'
 export interface ComplianceViolation {
   team: string
   technology: string
-  category: string
+  type: string
   systemCount: number
   systems: string[]
   violationType: string
@@ -41,7 +41,7 @@ export class ComplianceRepository extends BaseRepository {
     return {
       team: record.get('team'),
       technology: record.get('technology'),
-      category: record.get('category'),
+      type: record.get('type'),
       systemCount: record.get('systemCount')?.toNumber() || 0,
       systems: record.get('systems'),
       violationType: record.get('violationType'),

@@ -22,8 +22,11 @@
           :links="[{ label: 'Back to Technologies', to: '/technologies', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
         />
         <div class="flex gap-2">
-          <UBadge v-if="tech.category" color="neutral" variant="subtle">
-            {{ tech.category }}
+          <UBadge v-if="tech.type" color="neutral" variant="subtle">
+            {{ tech.type }}
+          </UBadge>
+          <UBadge v-if="tech.domain" color="info" variant="subtle">
+            {{ tech.domain }}
           </UBadge>
           <UBadge v-if="timeCategory" :color="getTimeCategoryColor(timeCategory)" variant="subtle">
             {{ timeCategory }}
@@ -74,8 +77,12 @@
           </template>
           <div class="space-y-3">
             <div>
-              <span class="text-sm text-(--ui-text-muted)">Category</span>
-              <p class="font-medium">{{ tech.category || '—' }}</p>
+              <span class="text-sm text-(--ui-text-muted)">Type</span>
+              <p class="font-medium">{{ tech.type || '—' }}</p>
+            </div>
+            <div>
+              <span class="text-sm text-(--ui-text-muted)">Domain</span>
+              <p class="font-medium">{{ tech.domain || '—' }}</p>
             </div>
             <div>
               <span class="text-sm text-(--ui-text-muted)">Vendor</span>
@@ -283,7 +290,8 @@ interface ConstraintRef {
 
 interface TechnologyDetailData {
   name: string
-  category: string
+  type: string
+  domain: string | null
   vendor: string | null
   lastReviewed: string | null
   ownerTeamName: string | null

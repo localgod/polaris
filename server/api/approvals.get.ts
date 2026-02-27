@@ -58,7 +58,7 @@
  *                           type: string
  *                         technology:
  *                           type: string
- *                         category:
+ *                         type:
  *                           type: string
  *                         vendor:
  *                           type: string
@@ -84,7 +84,7 @@
  *               data:
  *                 team: frontend-team
  *                 technology: react
- *                 category: framework
+ *                 type: framework
  *                 vendor: Meta
  *                 version: "18.2.0"
  *                 approval:
