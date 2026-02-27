@@ -740,7 +740,8 @@ async function createTechnologiesFromComponents(apiToken: string): Promise<void>
         },
         body: JSON.stringify({
           name: ct.technology.name,
-          category: ct.technology.category,
+          type: ct.technology.type,
+          domain: ct.technology.domain,
           vendor: ct.technology.vendor,
           ownerTeam: ct.ownerTeam,
           componentName: ct.componentName,

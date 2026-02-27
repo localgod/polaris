@@ -23,7 +23,7 @@ export interface Team {
 
 export interface TechnologyApproval {
   technology: string
-  category: string | null
+  type: string | null
   vendor: string | null
   time: string | null
   approvedAt: string | null
@@ -37,7 +37,7 @@ export interface TechnologyApproval {
 export interface VersionApproval {
   technology: string
   version: string
-  category: string | null
+  type: string | null
   vendor: string | null
   time: string | null
   approvedAt: string | null
@@ -77,7 +77,8 @@ export interface TeamConstraintsResult {
 
 export interface TechnologyUsage {
   technology: string
-  category: string | null
+  type: string | null
+  domain: string | null
   vendor: string | null
   systemCount: number
   firstUsed: string | null
@@ -101,7 +102,7 @@ export interface TeamUsageResult {
 export interface ApprovalStatus {
   team: string
   technology: string
-  category: string | null
+  type: string | null
   vendor: string | null
   version: string | null
   approval: {
@@ -319,7 +320,7 @@ export class TeamRepository extends BaseRepository {
     return {
       team: record.get('teamName'),
       technology: record.get('technologyName'),
-      category: record.get('category'),
+      type: record.get('type'),
       vendor: record.get('vendor'),
       version: record.get('version'),
       approval: record.get('approval')
@@ -338,7 +339,8 @@ export class TeamRepository extends BaseRepository {
     
     const usage: TechnologyUsage[] = records.map(record => ({
       technology: record.get('technology'),
-      category: record.get('category'),
+      type: record.get('type'),
+      domain: record.get('domain'),
       vendor: record.get('vendor'),
       systemCount: record.get('systemCount')?.toNumber() || 0,
       firstUsed: record.get('firstUsed')?.toString() || null,

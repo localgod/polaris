@@ -20,11 +20,19 @@
           </template>
         </UFormField>
 
-        <UFormField label="Category" required>
+        <UFormField label="Type" required>
           <USelect
-            v-model="formData.category"
-            :items="categoryItems"
-            placeholder="Select a category"
+            v-model="formData.type"
+            :items="typeItems"
+            placeholder="Select a type"
+          />
+        </UFormField>
+
+        <UFormField label="Domain">
+          <USelect
+            v-model="formData.domain"
+            :items="domainItems"
+            placeholder="Select a domain (optional)"
           />
         </UFormField>
 
@@ -98,23 +106,10 @@ interface TeamsResponse {
 
 const route = useRoute()
 
-const componentTypeToCategoryMap: Record<string, string> = {
-  framework: 'framework',
-  library: 'library',
-  platform: 'platform',
-  application: 'tool',
-  container: 'platform',
-  'operating-system': 'platform'
-}
-
-function mapComponentTypeToCategory(type: string | undefined): string {
-  if (!type) return ''
-  return componentTypeToCategoryMap[type] || 'other'
-}
-
 const formData = ref({
   name: (route.query.name as string) || '',
-  category: mapComponentTypeToCategory(route.query.componentType as string | undefined),
+  type: (route.query.componentType as string) || '',
+  domain: '',
   vendor: '',
   ownerTeam: '',
   componentName: (route.query.componentName as string) || '',
@@ -138,16 +133,30 @@ const teamItems = computed(() =>
   (teamsData.value?.data || []).map(t => ({ label: t.name, value: t.name }))
 )
 
-const categoryItems = [
-  { label: 'Language', value: 'language' },
+const typeItems = [
+  { label: 'Application', value: 'application' },
   { label: 'Framework', value: 'framework' },
   { label: 'Library', value: 'library' },
-  { label: 'Database', value: 'database' },
-  { label: 'Cache', value: 'cache' },
   { label: 'Container', value: 'container' },
   { label: 'Platform', value: 'platform' },
-  { label: 'Tool', value: 'tool' },
-  { label: 'Runtime', value: 'runtime' },
+  { label: 'Operating System', value: 'operating-system' },
+  { label: 'Device', value: 'device' },
+  { label: 'Device Driver', value: 'device-driver' },
+  { label: 'Firmware', value: 'firmware' },
+  { label: 'File', value: 'file' },
+  { label: 'Machine Learning Model', value: 'machine-learning-model' },
+  { label: 'Data', value: 'data' }
+]
+
+const domainItems = [
+  { label: 'Foundational Runtime', value: 'foundational-runtime' },
+  { label: 'Framework', value: 'framework' },
+  { label: 'Data Platform', value: 'data-platform' },
+  { label: 'Integration Platform', value: 'integration-platform' },
+  { label: 'Security & Identity', value: 'security-identity' },
+  { label: 'Infrastructure', value: 'infrastructure' },
+  { label: 'Observability', value: 'observability' },
+  { label: 'Developer Tooling', value: 'developer-tooling' },
   { label: 'Other', value: 'other' }
 ]
 
@@ -173,7 +182,8 @@ async function handleSubmit() {
       method: 'POST',
       body: {
         name: formData.value.name,
-        category: formData.value.category,
+        type: formData.value.type,
+        domain: formData.value.domain || undefined,
         vendor: formData.value.vendor || undefined,
         ownerTeam: formData.value.ownerTeam || undefined,
         componentName: formData.value.componentName || undefined,

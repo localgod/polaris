@@ -22,10 +22,14 @@ import { TechnologyService } from '../../services/technology.service'
  *           schema:
  *             type: object
  *             required:
- *               - category
+ *               - type
  *             properties:
- *               category:
+ *               type:
  *                 type: string
+ *                 enum: [application, framework, library, container, platform, operating-system, device, device-driver, firmware, file, machine-learning-model, data]
+ *               domain:
+ *                 type: string
+ *                 enum: [foundational-runtime, framework, data-platform, integration-platform, security-identity, infrastructure, observability, developer-tooling, other]
  *               vendor:
  *                 type: string
  *               ownerTeam:
@@ -87,7 +91,8 @@ export default defineEventHandler(async (event) => {
 
   const result = await service.update({
     name,
-    category: body.category,
+    type: body.type,
+    domain: body.domain,
     vendor: body.vendor,
     ownerTeam: body.ownerTeam,
     lastReviewed: body.lastReviewed,

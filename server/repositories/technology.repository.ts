@@ -6,10 +6,11 @@ import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/s
 const technologySortConfig: SortConfig = {
   allowedFields: {
     name: 't.name',
-    category: 't.category',
+    type: 't.type',
+    domain: 't.domain',
     ownerTeam: 'team.name'
   },
-  defaultOrderBy: 't.category ASC, t.name ASC'
+  defaultOrderBy: 't.domain ASC, t.name ASC'
 }
 
 export interface UpsertApprovalParams {
@@ -23,7 +24,8 @@ export interface UpsertApprovalParams {
 
 export interface UpdateTechnologyParams {
   name: string
-  category: string
+  type: string
+  domain: string | null
   vendor: string | null
   ownerTeam: string | null
   lastReviewed: string | null
@@ -32,7 +34,8 @@ export interface UpdateTechnologyParams {
 
 export interface CreateTechnologyParams {
   name: string
-  category: string
+  type: string
+  domain: string | null
   vendor: string | null
   ownerTeam: string | null
   componentName: string | null
@@ -130,7 +133,8 @@ export class TechnologyRepository extends BaseRepository {
     const query = await loadQuery('technologies/create.cypher')
     const { records } = await this.executeQuery(query, {
       name: params.name,
-      category: params.category,
+      type: params.type,
+      domain: params.domain || null,
       vendor: params.vendor || null,
       ownerTeam: params.ownerTeam || null,
       componentName: params.componentName || null,
@@ -182,7 +186,8 @@ export class TechnologyRepository extends BaseRepository {
   private mapToTechnology(record: Neo4jRecord): Technology {
     return {
       name: record.get('name'),
-      category: record.get('category'),
+      type: record.get('type'),
+      domain: record.get('domain'),
       vendor: record.get('vendor'),
       lastReviewed: record.get('lastReviewed')?.toString(),
       ownerTeamName: record.get('ownerTeamName'),
@@ -278,7 +283,8 @@ export class TechnologyRepository extends BaseRepository {
 
     return {
       name: record.get('name'),
-      category: record.get('category'),
+      type: record.get('type'),
+      domain: record.get('domain'),
       vendor: record.get('vendor'),
       lastReviewed: record.get('lastReviewed')?.toString(),
       ownerTeamName: record.get('ownerTeamName'),

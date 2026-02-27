@@ -1,6 +1,7 @@
 CREATE (t:Technology {
   name: $name,
-  category: $category,
+  type: $type,
+  domain: $domain,
   vendor: $vendor
 })
 WITH t
@@ -26,7 +27,7 @@ CREATE (a:AuditLog {
   entityType: 'Technology',
   entityId: t.name,
   entityLabel: t.name,
-  changedFields: ['name', 'category', 'vendor'],
+  changedFields: ['name', 'type', 'domain', 'vendor'],
   source: 'API',
   userId: $userId
 })

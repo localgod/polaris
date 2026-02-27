@@ -92,7 +92,7 @@ interface Violation {
   component: string
   componentVersion: string
   technology: string
-  technologyCategory: string
+  technologyType: string
   constraint: {
     name: string
     description: string

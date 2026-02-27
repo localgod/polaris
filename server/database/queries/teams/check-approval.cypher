@@ -5,7 +5,7 @@ OPTIONAL MATCH (team)-[versionApproval:APPROVES]->(v)
 OPTIONAL MATCH (team)-[techApproval:APPROVES]->(tech)
 RETURN team.name as teamName,
        tech.name as technologyName,
-       tech.category as category,
+       tech.type as type,
        tech.vendor as vendor,
        v.version as version,
        CASE

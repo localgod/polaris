@@ -1,7 +1,8 @@
 MATCH (t:Technology {name: $name})
 
 // Update properties
-SET t.category = $category,
+SET t.type = $type,
+    t.domain = $domain,
     t.vendor = $vendor,
     t.lastReviewed = CASE WHEN $lastReviewed IS NOT NULL THEN date($lastReviewed) ELSE t.lastReviewed END
 
@@ -25,7 +26,7 @@ CREATE (a:AuditLog {
   entityType: 'Technology',
   entityId: t.name,
   entityLabel: t.name,
-  changedFields: ['category', 'vendor', 'ownerTeam', 'lastReviewed'],
+  changedFields: ['type', 'domain', 'vendor', 'ownerTeam', 'lastReviewed'],
   source: 'API',
   userId: $userId
 })

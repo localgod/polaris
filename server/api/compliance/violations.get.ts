@@ -37,7 +37,7 @@ import { ComplianceService } from '../../services/compliance.service'
  *                                 type: string
  *                               technology:
  *                                 type: string
- *                               category:
+ *                               type:
  *                                 type: string
  *                               systemCount:
  *                                 type: integer
@@ -78,7 +78,7 @@ import { ComplianceService } from '../../services/compliance.service'
  *                 violations:
  *                   - team: frontend-team
  *                     technology: jQuery
- *                     category: library
+ *                     type: library
  *                     systemCount: 3
  *                     systems: ["web-portal", "admin-dashboard"]
  *                     violationType: eliminated

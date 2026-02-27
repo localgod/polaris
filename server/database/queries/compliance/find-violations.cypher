@@ -7,7 +7,7 @@ WITH team, tech, u, a,
 RETURN 
   team.name as team,
   tech.name as technology,
-  tech.category as category,
+  tech.type as type,
   u.systemCount as systemCount,
   systems,
   CASE 

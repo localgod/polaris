@@ -5,7 +5,8 @@ OPTIONAL MATCH (comp:Component)-[:IS_VERSION_OF]->(t)
 OPTIONAL MATCH (pol:VersionConstraint)-[:GOVERNS]->(t)
 OPTIONAL MATCH (approvalTeam:Team)-[approval:APPROVES]->(t)
 RETURN t.name as name,
-       t.category as category,
+       t.type as type,
+       t.domain as domain,
        t.vendor as vendor,
        t.lastReviewed as lastReviewed,
        team.name as ownerTeamName,
@@ -22,4 +23,4 @@ RETURN t.name as name,
          notes: approval.notes,
          approvedBy: approval.approvedBy
        }) as approvals
-ORDER BY t.category, t.name
+ORDER BY t.domain, t.name

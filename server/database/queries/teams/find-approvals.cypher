@@ -5,7 +5,7 @@ OPTIONAL MATCH (versionTech:Technology)-[:HAS_VERSION]->(v)
 RETURN team.name as teamName,
        collect(DISTINCT {
          technology: tech.name,
-         category: tech.category,
+         type: tech.type,
          vendor: tech.vendor,
          time: techApproval.time,
          approvedAt: techApproval.approvedAt,
@@ -18,7 +18,7 @@ RETURN team.name as teamName,
        collect(DISTINCT {
          technology: versionTech.name,
          version: v.version,
-         category: versionTech.category,
+         type: versionTech.type,
          vendor: versionTech.vendor,
          time: versionApproval.time,
          approvedAt: versionApproval.approvedAt,

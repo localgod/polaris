@@ -6,7 +6,7 @@ import type { TechnologyDetail } from '../../../server/repositories/technology.r
 vi.mock('../../../server/repositories/technology.repository')
 
 const mockTech: TechnologyDetail = {
-  name: 'React', category: 'framework', vendor: 'Meta',
+  name: 'React', type: 'framework', domain: 'framework', vendor: 'Meta',
   lastReviewed: null, ownerTeamName: null, componentCount: 0, versions: [], approvals: []
 }
 

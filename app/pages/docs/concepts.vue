@@ -23,13 +23,34 @@
         </ul>
 
         <h3>Technology Types</h3>
+        <p>Technology types use the <a href="https://cyclonedx.org/docs/1.6/json/#components_items_type" target="_blank">CycloneDX ComponentType</a> values:</p>
         <ol>
-          <li><strong>Foundational Runtime or Framework</strong> — Core execution environments and application frameworks (e.g., Node.js, React, Vue, Spring Boot)</li>
-          <li><strong>Data Platform</strong> — Database systems and data storage (e.g., PostgreSQL, MongoDB, Neo4j, Redis)</li>
-          <li><strong>Integration Platform</strong> — Middleware and integration technologies (e.g., Kafka, RabbitMQ, GraphQL)</li>
-          <li><strong>Security or Identity Tech</strong> — Authentication, authorization, and security tools (e.g., OAuth2, Keycloak, Vault)</li>
-          <li><strong>Infrastructure / Container Tech</strong> — Deployment and infrastructure (e.g., Docker, Kubernetes, Terraform)</li>
-          <li><strong>Explicitly Disallowed or Deprecated</strong> — Technologies that are banned or being phased out</li>
+          <li><strong>application</strong> — Standalone software applications (e.g., Keycloak, Grafana)</li>
+          <li><strong>framework</strong> — Application frameworks (e.g., React, Vue, Spring Boot, Express)</li>
+          <li><strong>library</strong> — Reusable code libraries (e.g., Lodash, TypeScript)</li>
+          <li><strong>container</strong> — Container runtimes and images (e.g., Docker)</li>
+          <li><strong>platform</strong> — Runtimes, databases, and infrastructure platforms (e.g., Node.js, PostgreSQL, Redis, Kubernetes)</li>
+          <li><strong>operating-system</strong> — Operating systems (e.g., Alpine Linux, Ubuntu)</li>
+          <li><strong>device</strong> — Hardware devices</li>
+          <li><strong>device-driver</strong> — Device drivers</li>
+          <li><strong>firmware</strong> — Firmware</li>
+          <li><strong>file</strong> — Standalone files</li>
+          <li><strong>machine-learning-model</strong> — ML models</li>
+          <li><strong>data</strong> — Data assets</li>
+        </ol>
+
+        <h3>Technology Domains</h3>
+        <p>Domains classify technologies by the architectural concern they serve:</p>
+        <ol>
+          <li><strong>foundational-runtime</strong> — Core execution environments (e.g., Node.js, JVM, .NET, Python)</li>
+          <li><strong>framework</strong> — Application frameworks (e.g., React, Vue, Spring Boot, Express)</li>
+          <li><strong>data-platform</strong> — Databases and data storage (e.g., PostgreSQL, Neo4j, Redis, MongoDB)</li>
+          <li><strong>integration-platform</strong> — Messaging and integration (e.g., Kafka, RabbitMQ, GraphQL, gRPC)</li>
+          <li><strong>security-identity</strong> — Authentication, authorization, and security (e.g., OAuth2, Keycloak, Vault)</li>
+          <li><strong>infrastructure</strong> — Deployment and infrastructure (e.g., Docker, Kubernetes, Terraform)</li>
+          <li><strong>observability</strong> — Monitoring and observability (e.g., Prometheus, Grafana, OpenTelemetry)</li>
+          <li><strong>developer-tooling</strong> — Build tools, linters, and dev utilities (e.g., ESLint, Webpack, TypeScript)</li>
+          <li><strong>other</strong> — Technologies that don't fit other domains</li>
         </ol>
 
         <h2>Component</h2>

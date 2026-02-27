@@ -113,9 +113,21 @@ export interface UnmappedComponent {
   systemCount?: number
 }
 
+export type TechnologyDomain =
+  | 'foundational-runtime'
+  | 'framework'
+  | 'data-platform'
+  | 'integration-platform'
+  | 'security-identity'
+  | 'infrastructure'
+  | 'observability'
+  | 'developer-tooling'
+  | 'other'
+
 export interface Technology {
   name: string
-  category: string
+  type: ComponentType | null
+  domain: TechnologyDomain | null
   vendor: string | null
   lastReviewed: string | null
   ownerTeamName: string | null

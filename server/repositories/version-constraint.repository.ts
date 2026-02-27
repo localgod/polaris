@@ -36,7 +36,7 @@ export interface Violation {
   component: string
   componentVersion: string
   technology: string
-  technologyCategory: string
+  technologyType: string
   constraint: {
     name: string
     description: string
@@ -443,7 +443,7 @@ export class VersionConstraintRepository extends BaseRepository {
       component: record.get('componentName'),
       componentVersion: record.get('componentVersion'),
       technology: record.get('technologyName'),
-      technologyCategory: record.get('technologyCategory'),
+      technologyType: record.get('technologyType'),
       constraint: {
         name: record.get('constraintName'),
         description: record.get('constraintDescription'),

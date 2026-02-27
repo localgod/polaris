@@ -17,14 +17,17 @@ import { TechnologyService } from '../services/technology.service'
  *             type: object
  *             required:
  *               - name
- *               - category
+ *               - type
  *             properties:
  *               name:
  *                 type: string
  *                 description: Unique technology name
- *               category:
+ *               type:
  *                 type: string
- *                 enum: [language, framework, library, database, platform, tool, runtime, other]
+ *                 enum: [application, framework, library, container, platform, operating-system, device, device-driver, firmware, file, machine-learning-model, data]
+ *               domain:
+ *                 type: string
+ *                 enum: [foundational-runtime, framework, data-platform, integration-platform, security-identity, infrastructure, observability, developer-tooling, other]
  *               vendor:
  *                 type: string
  *               ownerTeam:
@@ -47,7 +50,8 @@ import { TechnologyService } from '../services/technology.service'
 
 interface CreateTechnologyRequest {
   name: string
-  category: string
+  type: string
+  domain?: string
   vendor?: string
   ownerTeam?: string
   componentName?: string

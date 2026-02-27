@@ -1,8 +1,18 @@
 import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
-import type { Technology } from '~~/types/api'
+import type { Technology, ComponentType, TechnologyDomain } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
 
-const VALID_CATEGORIES = ['language', 'framework', 'library', 'database', 'cache', 'container', 'platform', 'tool', 'runtime', 'other']
+const VALID_TYPES: ComponentType[] = [
+  'application', 'framework', 'library', 'container', 'platform',
+  'operating-system', 'device', 'device-driver', 'firmware',
+  'file', 'machine-learning-model', 'data'
+]
+
+const VALID_DOMAINS: TechnologyDomain[] = [
+  'foundational-runtime', 'framework', 'data-platform',
+  'integration-platform', 'security-identity', 'infrastructure',
+  'observability', 'developer-tooling', 'other'
+]
 
 export interface SetApprovalInput {
   technologyName: string
@@ -14,7 +24,8 @@ export interface SetApprovalInput {
 
 export interface CreateTechnologyInput {
   name: string
-  category: string
+  type: string
+  domain?: string
   vendor?: string
   ownerTeam?: string
   componentName?: string
@@ -24,7 +35,8 @@ export interface CreateTechnologyInput {
 
 export interface UpdateTechnologyInput {
   name: string
-  category: string
+  type: string
+  domain?: string
   vendor?: string
   ownerTeam?: string
   lastReviewed?: string
@@ -74,17 +86,24 @@ export class TechnologyService {
    * @returns Created technology name
    */
   async create(input: CreateTechnologyInput): Promise<string> {
-    if (!input.name || !input.category) {
+    if (!input.name || !input.type) {
       throw createError({
         statusCode: 400,
-        message: 'Name and category are required'
+        message: 'Name and type are required'
       })
     }
 
-    if (!VALID_CATEGORIES.includes(input.category)) {
+    if (!VALID_TYPES.includes(input.type as ComponentType)) {
       throw createError({
         statusCode: 422,
-        message: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}`
+        message: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}`
+      })
+    }
+
+    if (input.domain && !VALID_DOMAINS.includes(input.domain as TechnologyDomain)) {
+      throw createError({
+        statusCode: 422,
+        message: `Invalid domain. Must be one of: ${VALID_DOMAINS.join(', ')}`
       })
     }
 
@@ -98,7 +117,8 @@ export class TechnologyService {
 
     const params: CreateTechnologyParams = {
       name: input.name,
-      category: input.category,
+      type: input.type,
+      domain: input.domain || null,
       vendor: input.vendor || null,
       ownerTeam: input.ownerTeam || null,
       componentName: input.componentName || null,
@@ -143,17 +163,24 @@ export class TechnologyService {
    * Update a technology's properties and ownership
    */
   async update(input: UpdateTechnologyInput): Promise<string> {
-    if (!input.category) {
+    if (!input.type) {
       throw createError({
         statusCode: 400,
-        message: 'Category is required'
+        message: 'Type is required'
       })
     }
 
-    if (!VALID_CATEGORIES.includes(input.category)) {
+    if (!VALID_TYPES.includes(input.type as ComponentType)) {
       throw createError({
         statusCode: 422,
-        message: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}`
+        message: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}`
+      })
+    }
+
+    if (input.domain && !VALID_DOMAINS.includes(input.domain as TechnologyDomain)) {
+      throw createError({
+        statusCode: 422,
+        message: `Invalid domain. Must be one of: ${VALID_DOMAINS.join(', ')}`
       })
     }
 
@@ -167,7 +194,8 @@ export class TechnologyService {
 
     const params: UpdateTechnologyParams = {
       name: input.name,
-      category: input.category,
+      type: input.type,
+      domain: input.domain || null,
       vendor: input.vendor || null,
       ownerTeam: input.ownerTeam || null,
       lastReviewed: input.lastReviewed || null,

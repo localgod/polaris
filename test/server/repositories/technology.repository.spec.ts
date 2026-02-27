@@ -25,8 +25,8 @@ describe('TechnologyRepository', () => {
     it('should return technologies', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
-        CREATE (:Technology { name: $t1, category: 'language' })
-        CREATE (:Technology { name: $t2, category: 'framework' })
+        CREATE (:Technology { name: $t1, type: 'library', domain: 'developer-tooling' })
+        CREATE (:Technology { name: $t2, type: 'framework', domain: 'framework' })
       `, { t1: `${PREFIX}TypeScript`, t2: `${PREFIX}Nuxt` })
 
       const result = await repo.findAll()
@@ -45,7 +45,7 @@ describe('TechnologyRepository', () => {
     it('should return technology with details', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
-        CREATE (t:Technology { name: $name, category: 'database', vendor: 'Neo4j Inc.' })
+        CREATE (t:Technology { name: $name, type: 'platform', domain: 'data-platform', vendor: 'Neo4j Inc.' })
         CREATE (team:Team { name: $team })
         CREATE (team)-[:OWNS]->(t)
       `, { name: `${PREFIX}Neo4j`, team: `${PREFIX}Platform` })
@@ -54,7 +54,8 @@ describe('TechnologyRepository', () => {
 
       expect(tech).not.toBeNull()
       expect(tech!.name).toBe(`${PREFIX}Neo4j`)
-      expect(tech!.category).toBe('database')
+      expect(tech!.type).toBe('platform')
+      expect(tech!.domain).toBe('data-platform')
     })
   })
 })
