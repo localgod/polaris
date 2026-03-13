@@ -26,7 +26,7 @@
 			]
 		}
 	},
-	"runServices": [],
+	"runServices": ["neo4j"],
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/polaris",
