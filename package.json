@@ -88,17 +88,17 @@
     "@cucumber/gherkin": "^38.0.0",
     "@cucumber/messages": "^32.2.0",
     "@cyclonedx/cdxgen": "^12.1.2",
-    "@iconify-json/lucide": "^1.2.96",
+    "@iconify-json/lucide": "^1.2.98",
     "@playwright/test": "^1.57.0",
-    "@types/node": "^25.4.0",
+    "@types/node": "^25.5.0",
     "@types/semver": "^7.7.1",
     "@types/swagger-jsdoc": "^6.0.4",
-    "@vitest/coverage-v8": "^4.0.16",
-    "@vitest/ui": "^4.0.16",
+    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/ui": "^4.1.0",
     "markdownlint-cli": "^0.48.0",
     "patch-package": "^8.0.1",
     "swagger-jsdoc": "^6.2.8",
     "tsx": "^4.21.0",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.0"
   }
 }
