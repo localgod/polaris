@@ -50,11 +50,18 @@ tasks:
       attempt=0
       while [ $attempt -lt $max_attempts ]; do
         if curl -s http://localhost:7474 > /dev/null 2>&1; then
+          echo "✅ Neo4j is ready!"
           break
         fi
         attempt=$((attempt + 1))
+        echo "Attempt $attempt/$max_attempts - Neo4j not ready yet..."
         sleep 2
       done
+
+      if [ $attempt -ge $max_attempts ]; then
+        echo "❌ Neo4j failed to become ready within timeout"
+        exit 1
+      fi
 
       echo "🔄 Running database migrations..."
       npm run migrate:up
