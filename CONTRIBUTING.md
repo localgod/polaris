@@ -432,7 +432,7 @@ The application uses the `nuxt-neo4j` module for database connectivity. Configur
 
 ```typescript
 neo4j: {
-  uri: process.env.NEO4J_URI || 'bolt://172.19.0.2:7687',
+  uri: process.env.NEO4J_URI || 'bolt://localhost:7687',
   auth: {
     type: 'basic',
     username: process.env.NEO4J_USERNAME || 'neo4j',

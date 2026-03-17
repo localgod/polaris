@@ -1,10 +1,9 @@
 
 {
     "name": "Ona",
-    "build": {
-        "context": ".",
-        "dockerfile": "Dockerfile"
-    },
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspaces/polaris",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker": {
             "moby": false
