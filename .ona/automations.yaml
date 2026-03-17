@@ -57,6 +57,10 @@ tasks:
         echo "Attempt $attempt/$max_attempts - Neo4j not ready yet..."
         sleep 2
       done
+      if [ $attempt -eq $max_attempts ]; then
+        echo "❌ Neo4j failed to become ready within timeout"
+        exit 1
+      fi
 
       if [ $attempt -ge $max_attempts ]; then
         echo "❌ Neo4j failed to become ready within timeout"

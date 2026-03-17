@@ -56,7 +56,7 @@ If you need to rebuild the dev container:
 1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 2. Select "Dev Containers: Rebuild Container"
 
-Note: All services use `network_mode: host`, so the app connects to Neo4j via `bolt://localhost:7687`.
+Note: All services use `network_mode: host`, so the app connects to Neo4j via `bolt://localhost:7687`. Host networking requires a Linux host — it is not supported on Docker Desktop for macOS or Windows. This devcontainer is intended for use with Ona (Linux-based cloud environments) where host networking is required for the Ona agent to communicate with the container.
 
 ## Manual Service Management
 
