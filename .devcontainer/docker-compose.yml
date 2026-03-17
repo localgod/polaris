@@ -6,15 +6,11 @@ services:
     volumes:
       - ..:/workspaces/polaris:cached
     command: sleep infinity
-    networks:
-      - devcontainer
+    network_mode: host
 
   neo4j:
     image: neo4j:5-community
     restart: unless-stopped
-    ports:
-      - "7474:7474"
-      - "7687:7687"
     environment:
       NEO4J_AUTH: neo4j/devpassword
       NEO4J_PLUGINS: '["apoc"]'
@@ -26,9 +22,4 @@ services:
       - ../.data/neo4j/logs:/logs
       - ../.data/neo4j/import:/var/lib/neo4j/import
       - ../.data/neo4j/plugins:/plugins
-    networks:
-      - devcontainer
-
-networks:
-  devcontainer:
-    driver: bridge
+    network_mode: host

@@ -32,7 +32,7 @@ Once the dev container is running, access the Neo4j Browser at:
 ### Connection Details
 The application connects to Neo4j using these environment variables (from `.env`):
 ```
-NEO4J_URI=neo4j://neo4j:7687
+NEO4J_URI=bolt://localhost:7687
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=devpassword
 ```
@@ -56,25 +56,7 @@ If you need to rebuild the dev container:
 1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 2. Select "Dev Containers: Rebuild Container"
 
-Note: The container uses `network_mode: service:neo4j` which means the app container shares the Neo4j network. This allows the app to connect to Neo4j using `neo4j://neo4j:7687` as the hostname.
-
-## Switching Between Local and Cloud Neo4j
-
-Edit `.env` to switch between local and cloud instances:
-
-**Local (default):**
-```env
-NEO4J_URI=neo4j://neo4j:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=devpassword
-```
-
-**Cloud:**
-```env
-NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=your-cloud-password
-```
+Note: All services use `network_mode: host`, so the app connects to Neo4j via `bolt://localhost:7687`. Host networking requires a Linux host — it is not supported on Docker Desktop for macOS or Windows. This devcontainer is intended for use with Ona (Linux-based cloud environments) where host networking is required for the Ona agent to communicate with the container.
 
 ## Manual Service Management
 
