@@ -1,0 +1,79 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+# Prevent concurrent deploys; cancel any in-progress run for the same branch
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build, push, and deploy
+    runs-on: ubuntu-latest
+
+    # Only run after CI passes (lint, test, build jobs)
+    needs: []
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/polaris:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/polaris:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Write .env and deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: polaris
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+
+            # Write production .env from GitHub secrets
+            cat > /opt/polaris/.env << 'ENV'
+            NEO4J_URI=${{ secrets.NEO4J_URI }}
+            NEO4J_USERNAME=${{ secrets.NEO4J_USERNAME }}
+            NEO4J_PASSWORD=${{ secrets.NEO4J_PASSWORD }}
+            NEO4J_DATABASE=${{ secrets.NEO4J_DATABASE }}
+            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+            GITHUB_CLIENT_ID=${{ secrets.GITHUB_CLIENT_ID }}
+            GITHUB_CLIENT_SECRET=${{ secrets.GITHUB_CLIENT_SECRET }}
+            SUPERUSER_EMAILS=${{ secrets.SUPERUSER_EMAILS }}
+            DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            ENV
+
+            chmod 600 /opt/polaris/.env
+
+            cd /opt/polaris
+
+            # Pull new image and restart stack
+            docker compose pull
+            docker compose up -d
+
+            # Run database migrations
+            docker compose exec -T app npm run migrate:up
