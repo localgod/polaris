@@ -6,13 +6,27 @@
   vars:
     polaris_user: polaris
     polaris_dir: /opt/polaris
-    # Set this in inventory or via --extra-vars: dockerhub_username=yourname
-    dockerhub_username: "{{ dockerhub_username }}"
-    # Public key for the GitHub Actions deploy user (set via --extra-vars or inventory)
-    deploy_public_key: "{{ deploy_public_key }}"
 
   tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - dockerhub_username is defined
+          - deploy_public_key is defined
+        fail_msg: >-
+          Required variables are not defined. Pass them via --extra-vars:
+          dockerhub_username=<your-dockerhub-user>
+          deploy_public_key=<contents-of-public-key>
+        success_msg: "Required variables are defined."
     # ── Docker ────────────────────────────────────────────────────────────────
+
+    - name: Ensure /etc/apt/keyrings exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
     - name: Install Docker prerequisites
       apt:
@@ -62,7 +76,7 @@
       user:
         name: "{{ polaris_user }}"
         system: true
-        shell: /usr/sbin/nologin
+        shell: /bin/bash
         home: "{{ polaris_dir }}"
         create_home: false
 
@@ -74,15 +88,22 @@
 
     # ── Directory structure ───────────────────────────────────────────────────
 
-    - name: Create application directories
+    - name: Create application directory
       file:
-        path: "{{ item }}"
+        path: "{{ polaris_dir }}"
         state: directory
         owner: "{{ polaris_user }}"
         group: "{{ polaris_user }}"
         mode: "0750"
+
+    - name: Create Neo4j data directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "7474"
+        group: "7474"
+        mode: "0750"
       loop:
-        - "{{ polaris_dir }}"
         - "{{ polaris_dir }}/data/neo4j/data"
         - "{{ polaris_dir }}/data/neo4j/logs"
         - "{{ polaris_dir }}/data/neo4j/import"

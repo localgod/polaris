@@ -8,7 +8,7 @@ Production deployment for Polaris on a single Hetzner Ubuntu VM.
 - **Database**: Neo4j 5 Community + APOC in a Docker container
 - **Proxy**: Caddy in a Docker container (HTTP on port 80; swap `:80` for a domain name to get automatic TLS)
 - **Orchestration**: Docker Compose at `/opt/polaris/` (all three services)
-- **Provisioning**: Ansible playbook (one-time, idempotent) — installs Docker only
+- **Provisioning**: Ansible playbook (one-time, idempotent) — installs Docker, configures UFW, creates system user
 - **Deploys**: GitHub Actions on push to `main`
 
 ## Prerequisites
@@ -39,7 +39,7 @@ cd infra/ansible
 
 # Copy and edit the inventory
 cp inventory.ini.example inventory.ini
-# Edit inventory.ini: replace 203.0.113.10 with your VM's IP
+# Edit inventory.ini: replace the example IP with your VM's IP (IPv4 or IPv6)
 
 # Run the playbook
 ansible-playbook playbook.yml \
@@ -48,8 +48,9 @@ ansible-playbook playbook.yml \
   --extra-vars "deploy_public_key=$(cat ~/.ssh/polaris_deploy.pub)"
 ```
 
-The playbook installs Docker, Caddy, creates the `polaris` system user, sets up
+The playbook installs Docker, creates the `polaris` system user, sets up
 `/opt/polaris/`, deploys the compose file and Caddyfile, and configures UFW.
+Caddy runs as a Docker Compose service — it is not installed on the host.
 
 ### 3. Configure GitHub secrets
 
@@ -84,7 +85,7 @@ After the workflow completes, `curl http://[2a01:4f9:c014:472c::1]` should retur
 
 ## Enabling TLS (when you have a domain)
 
-1. Point your domain's A record at the VM IP
+1. Point your domain's DNS at the VM IP (AAAA record for IPv6, A record for IPv4)
 2. Edit `/opt/polaris/Caddyfile` on the VM (or update `infra/ansible/templates/Caddyfile.j2`
    and re-run the playbook) — replace the IPv6 address with your domain name:
    ```

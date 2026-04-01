@@ -15,9 +15,6 @@ jobs:
     name: Build, push, and deploy
     runs-on: ubuntu-latest
 
-    # Only run after CI passes (lint, test, build jobs)
-    needs: []
-
     permissions:
       contents: read
 

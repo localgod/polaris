@@ -14,6 +14,7 @@ services:
     restart: unless-stopped
     env_file: /opt/polaris/.env
     environment:
+      NEO4J_AUTH: neo4j/$${NEO4J_PASSWORD}
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_dbms_security_procedures_unrestricted: apoc.*
       NEO4J_dbms_memory_heap_initial__size: 512m
