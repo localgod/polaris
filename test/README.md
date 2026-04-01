@@ -432,8 +432,6 @@ GET /api/components?limit=20&offset=40
 | `/api/licenses` | 50 |
 | `/api/version-constraints` | 50 |
 | `/api/audit-logs` | 100 |
-| `/api/components/unmapped` | 50 |
-| `/api/systems/{name}/unmapped-components` | 50 |
 | `/api/licenses/violations` | — |
 
 ### Pagination Tests

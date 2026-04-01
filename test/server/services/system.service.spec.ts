@@ -193,36 +193,4 @@ describe('SystemService', () => {
     })
   })
 
-  describe('findUnmappedComponents', () => {
-    it('should return unmapped components for existing system', async () => {
-      const mockResult = {
-        systemName: 'polaris-api',
-        unmappedComponents: [
-          {
-            name: 'unknown-lib',
-            version: '1.0.0',
-            packageManager: 'npm',
-            purl: 'pkg:npm/unknown-lib@1.0.0'
-          }
-        ],
-        count: 1
-      }
-
-      vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(true)
-      vi.mocked(SystemRepository.prototype.findUnmappedComponents).mockResolvedValue(mockResult)
-
-      const result = await systemService.findUnmappedComponents('polaris-api')
-
-      expect(result).toEqual(mockResult)
-      expect(SystemRepository.prototype.exists).toHaveBeenCalledWith('polaris-api')
-      expect(SystemRepository.prototype.findUnmappedComponents).toHaveBeenCalledWith('polaris-api')
-    })
-
-    it('should throw error when system does not exist', async () => {
-      vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
-
-      await expect(systemService.findUnmappedComponents('nonexistent')).rejects.toThrow('not found')
-      expect(SystemRepository.prototype.findUnmappedComponents).not.toHaveBeenCalled()
-    })
-  })
 })

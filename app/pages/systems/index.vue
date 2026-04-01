@@ -311,7 +311,6 @@ const columns: TableColumn<System>[] = [
       const system = row.original
       const items = [[
         { label: 'View Details', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/systems/${encodeURIComponent(system.name)}`) },
-        { label: 'Unmapped Components', icon: 'i-lucide-package-x', onSelect: () => navigateTo(`/systems/${encodeURIComponent(system.name)}/unmapped-components`) },
         ...(isSuperuser.value ? [
           { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEditSystemModal(system) },
           { label: 'Delete', icon: 'i-lucide-trash-2', onSelect: () => openDeleteSystemModal(system.name) }

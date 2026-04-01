@@ -18,11 +18,6 @@
           </template>
         </template>
       </UPageHeader>
-      <UButton
-        label="View Unmapped"
-        to="/components/unmapped"
-        variant="outline"
-      />
     </div>
 
     <UAlert

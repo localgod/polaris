@@ -217,14 +217,6 @@ const accessRows: AccessRow[] = [
     notes: 'Compliance and version constraint violations; read-only for authenticated users'
   },
   {
-    element: 'Unmapped Components',
-    view: 'Authenticated',
-    create: '—',
-    edit: '—',
-    delete: '—',
-    notes: 'Components without technology mapping; read-only'
-  },
-  {
     element: 'Approvals',
     view: 'Public',
     create: 'Authenticated',

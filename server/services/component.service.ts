@@ -1,6 +1,6 @@
 import { ComponentRepository } from '../repositories/component.repository'
 import type { ComponentFilters } from '../repositories/component.repository'
-import type { Component, UnmappedComponent } from '~~/types/api'
+import type { Component } from '~~/types/api'
 
 export type { ComponentFilters }
 
@@ -42,24 +42,4 @@ export class ComponentService {
     }
   }
 
-  /**
-   * Get unmapped components with pagination.
-   *
-   * Retrieves components not mapped to a known technology, ordered by
-   * system count to help prioritize mapping efforts.
-   */
-  async findUnmapped(limit: number = 50, offset: number = 0, sort?: { sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<{
-    data: UnmappedComponent[]
-    count: number
-    total: number
-  }> {
-    const components = await this.componentRepo.findUnmapped(limit, offset, sort)
-    const total = await this.componentRepo.countUnmapped()
-    
-    return {
-      data: components,
-      count: components.length,
-      total
-    }
-  }
 }

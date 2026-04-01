@@ -334,65 +334,6 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             }
           }
         },
-        UnmappedComponent: {
-          type: 'object',
-          required: ['name', 'version'],
-          properties: {
-            name: { 
-              type: 'string',
-              description: 'Component name'
-            },
-            version: { 
-              type: 'string',
-              description: 'Component version'
-            },
-            packageManager: { 
-              type: 'string',
-              nullable: true,
-              description: 'Package manager (npm, maven, pypi, cargo, etc.)'
-            },
-            purl: { 
-              type: 'string',
-              nullable: true,
-              description: 'Package URL'
-            },
-            cpe: { 
-              type: 'string',
-              nullable: true,
-              description: 'Common Platform Enumeration'
-            },
-            type: { 
-              type: 'string',
-              nullable: true,
-              enum: ['application', 'framework', 'library', 'container', 'platform', 'operating-system', 'device', 'device-driver', 'firmware', 'file', 'machine-learning-model', 'data'],
-              description: 'Component type'
-            },
-            group: { 
-              type: 'string',
-              nullable: true,
-              description: 'Maven groupId, npm scope, etc.'
-            },
-            hashes: { 
-              type: 'array',
-              items: { $ref: '#/components/schemas/Hash' },
-              description: 'Component hashes'
-            },
-            licenses: { 
-              type: 'array',
-              items: { $ref: '#/components/schemas/License' },
-              description: 'Component licenses'
-            },
-            systems: { 
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Systems using this component'
-            },
-            systemCount: { 
-              type: 'integer',
-              description: 'Number of systems using this component'
-            }
-          }
-        },
         Technology: {
           type: 'object',
           properties: {

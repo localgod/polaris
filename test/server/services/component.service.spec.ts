@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ComponentService } from '../../../server/services/component.service'
 import { ComponentRepository } from '../../../server/repositories/component.repository'
-import type { Component, UnmappedComponent } from '../../../types/api'
+import type { Component } from '../../../types/api'
 
 vi.mock('../../../server/repositories/component.repository')
 
@@ -58,22 +58,6 @@ describe('ComponentService', () => {
       modifiedDate: null,
       technologyName: 'Vue',
       systemCount: 3
-    }
-  ]
-
-  const mockUnmappedComponents: UnmappedComponent[] = [
-    {
-      name: 'internal-lib',
-      version: '1.0.0',
-      packageManager: 'npm',
-      purl: 'pkg:npm/internal-lib@1.0.0',
-      cpe: null,
-      type: 'library',
-      group: null,
-      hashes: [],
-      licenses: [],
-      systems: ['system-a', 'system-b'],
-      systemCount: 2
     }
   ]
 
@@ -148,36 +132,4 @@ describe('ComponentService', () => {
     })
   })
 
-  describe('findUnmapped()', () => {
-    it('should return unmapped components with correct count and total', async () => {
-      vi.mocked(ComponentRepository.prototype.findUnmapped).mockResolvedValue(mockUnmappedComponents)
-      vi.mocked(ComponentRepository.prototype.countUnmapped).mockResolvedValue(5)
-
-      const result = await service.findUnmapped(50, 0)
-
-      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledWith(50, 0, undefined)
-      expect(ComponentRepository.prototype.countUnmapped).toHaveBeenCalledOnce()
-      expect(result).toEqual({
-        data: mockUnmappedComponents,
-        count: 1,
-        total: 5
-      })
-    })
-
-    it('should return empty array when no unmapped components exist', async () => {
-      vi.mocked(ComponentRepository.prototype.findUnmapped).mockResolvedValue([])
-      vi.mocked(ComponentRepository.prototype.countUnmapped).mockResolvedValue(0)
-
-      const result = await service.findUnmapped()
-
-      expect(result).toEqual({ data: [], count: 0, total: 0 })
-    })
-
-    it('should propagate repository errors', async () => {
-      vi.mocked(ComponentRepository.prototype.findUnmapped).mockRejectedValue(new Error('Query execution failed'))
-
-      await expect(service.findUnmapped()).rejects.toThrow('Query execution failed')
-      expect(ComponentRepository.prototype.findUnmapped).toHaveBeenCalledOnce()
-    })
-  })
 })

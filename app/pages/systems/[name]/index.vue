@@ -109,11 +109,6 @@
         </template>
         <div class="flex gap-4 flex-wrap">
           <UButton
-            label="View Unmapped Components"
-            :to="`/systems/${encodeURIComponent(data.data.name)}/unmapped-components`"
-            variant="outline"
-          />
-          <UButton
             label="View All Components"
             :to="`/components?system=${encodeURIComponent(data.data.name)}`"
             variant="outline"
