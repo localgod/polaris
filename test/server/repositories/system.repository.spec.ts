@@ -169,29 +169,4 @@ describe('SystemRepository', () => {
     })
   })
 
-  describe('findUnmappedComponents()', () => {
-    it('should return only unmapped components for a system', async () => {
-      if (!ctx.neo4jAvailable) return
-      await seed(ctx.driver, `
-        CREATE (s:System { name: $sys, domain: 'Test' })
-        MERGE (t:Technology { name: $tech })
-        CREATE (c1:Component { name: $mapped, version: '18.0.0', packageManager: 'npm', purl: 'pkg:npm/react@18.0.0' })
-        CREATE (c2:Component { name: $unmapped, version: '1.0.0', packageManager: 'npm', purl: 'pkg:npm/unknown@1.0.0' })
-        CREATE (s)-[:USES]->(c1)
-        CREATE (s)-[:USES]->(c2)
-        CREATE (c1)-[:IS_VERSION_OF]->(t)
-      `, {
-        sys: `${PREFIX}sys-unmapped`, tech: `${PREFIX}React`,
-        mapped: `${PREFIX}react`, unmapped: `${PREFIX}unknown`
-      })
-
-      const result = await repo.findUnmappedComponents(`${PREFIX}sys-unmapped`)
-
-      expect(result.system).toBe(`${PREFIX}sys-unmapped`)
-      expect(result.count).toBe(result.components.length)
-      const names = result.components.map(c => c.name)
-      expect(names).toContain(`${PREFIX}unknown`)
-      expect(names).not.toContain(`${PREFIX}react`)
-    })
-  })
 })

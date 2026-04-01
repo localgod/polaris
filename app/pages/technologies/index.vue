@@ -268,7 +268,7 @@
             Searching...
           </div>
           <div v-else-if="linkSearch.length >= 2 && linkSearchResults.length === 0" class="text-sm text-(--ui-text-muted)">
-            No unmapped components found.
+            No components found.
           </div>
           <div v-if="linkSearchResults.length > 0" class="max-h-60 overflow-y-auto border border-(--ui-border) rounded-md divide-y divide-(--ui-border)">
             <button

@@ -1,6 +1,6 @@
 import { SystemRepository } from '../repositories/system.repository'
 import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
-import type { System, CreateSystemParams, RepositoryInput, UnmappedComponentsResult } from '../repositories/system.repository'
+import type { System, CreateSystemParams, RepositoryInput } from '../repositories/system.repository'
 import type { Repository } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
 import type { SortParams } from '../utils/sorting'
@@ -144,30 +144,6 @@ export class SystemService {
     
     // Delete the system
     await this.systemRepo.delete(name, userId)
-  }
-
-  /**
-   * Get unmapped components for a system
-   * 
-   * Business rules:
-   * - System must exist
-   * 
-   * @param systemName - System name
-   * @returns Unmapped components result
-   * @throws Error if system not found
-   */
-  async findUnmappedComponents(systemName: string): Promise<UnmappedComponentsResult> {
-    // Business logic: check if system exists
-    const exists = await this.systemRepo.exists(systemName)
-    
-    if (!exists) {
-      throw createError({
-        statusCode: 404,
-        message: `System '${systemName}' not found`
-      })
-    }
-    
-    return await this.systemRepo.findUnmappedComponents(systemName)
   }
 
   /**

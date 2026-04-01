@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { UnmappedComponent, Repository } from '~~/types/api'
+import type { Repository } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
 
 const systemSortConfig: SortConfig = {
@@ -41,11 +41,6 @@ export interface CreateSystemParams {
   userId: string
 }
 
-export interface UnmappedComponentsResult {
-  system: string
-  components: UnmappedComponent[]
-  count: number
-}
 
 /**
  * Repository for system-related data access
@@ -142,35 +137,6 @@ export class SystemRepository extends BaseRepository {
   async delete(name: string, userId: string): Promise<void> {
     const query = await loadQuery('systems/delete.cypher')
     await this.executeQuery(query, { name, userId })
-  }
-
-  /**
-   * Find unmapped components for a specific system
-   * 
-   * @param systemName - System name
-   * @returns Unmapped components result
-   */
-  async findUnmappedComponents(systemName: string): Promise<UnmappedComponentsResult> {
-    const query = await loadQuery('systems/find-unmapped-components.cypher')
-    const { records } = await this.executeQuery(query, { systemName })
-    
-    const components: UnmappedComponent[] = records.map(record => ({
-      name: record.get('name'),
-      version: record.get('version'),
-      packageManager: record.get('packageManager'),
-      purl: record.get('purl'),
-      cpe: record.get('cpe'),
-      type: record.get('type'),
-      group: record.get('group'),
-      hashes: record.get('hashes').filter((h: { algorithm?: string; value?: string }) => h.algorithm),
-      licenses: record.get('licenses').filter((l: { id?: string; name?: string }) => l.id || l.name)
-    }))
-    
-    return {
-      system: systemName,
-      components,
-      count: components.length
-    }
   }
 
   /**

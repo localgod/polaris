@@ -160,7 +160,7 @@ server/database/queries/
 
 - Named after the operation: `find-all.cypher`, `find-by-name.cypher`
 - Organized by entity: `teams/`, `systems/`, `users/`
-- Use kebab-case for multi-word operations: `find-unmapped-components.cypher`
+- Use kebab-case for multi-word operations: `find-by-repository-url.cypher`
 
 ## Architecture Statistics
 
@@ -198,7 +198,7 @@ See the following files for reference implementations:
 
 - **Simple CRUD**: `server/api/teams.get.ts`
 - **With Business Logic**: `server/api/teams/[name].delete.ts`
-- **Complex Query**: `server/api/systems/[name]/unmapped-components.get.ts`
+- **Complex Query**: `server/api/systems/[name]/repositories.get.ts`
 - **Authentication**: `server/api/auth/[...].ts`
 
 ## Testing Strategy

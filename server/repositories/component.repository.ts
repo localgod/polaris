@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { Component, UnmappedComponent } from '~~/types/api'
+import type { Component } from '~~/types/api'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
 
 export interface ComponentFilters {
@@ -195,39 +195,6 @@ export class ComponentRepository extends BaseRepository {
   }
 
   /**
-   * Find unmapped components with database-level pagination.
-   *
-   * Results are ordered by system count (most used first) to help
-   * prioritize mapping efforts.
-   */
-  async findUnmapped(limit: number = 50, offset: number = 0, sort?: { sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<UnmappedComponent[]> {
-    let query = await loadQuery('components/find-unmapped.cypher')
-    const unmappedSortConfig: SortConfig = {
-      allowedFields: {
-        name: 'c.name',
-        version: 'c.version',
-        packageManager: 'c.packageManager',
-        system: 'size(systems)'
-      },
-      defaultOrderBy: 'size(systems) DESC, c.name ASC'
-    }
-    const orderBy = buildOrderByClause(sort || {}, unmappedSortConfig)
-    query = query.replace(/ORDER BY .+\n/, `ORDER BY ${orderBy}\n`)
-    const { records } = await this.executeQuery(query, { limit, offset })
-    
-    return records.map(record => this.mapToUnmappedComponent(record))
-  }
-
-  /**
-   * Count all unmapped components.
-   */
-  async countUnmapped(): Promise<number> {
-    const query = await loadQuery('components/count-unmapped.cypher')
-    const { records } = await this.executeQuery(query)
-    return records[0]?.get('total')?.toNumber() || 0
-  }
-
-  /**
    * Map Neo4j record to Component domain object
    */
   private mapToComponent(record: Neo4jRecord): Component {
@@ -258,22 +225,4 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Map Neo4j record to UnmappedComponent domain object
-   */
-  private mapToUnmappedComponent(record: Neo4jRecord): UnmappedComponent {
-    return {
-      name: record.get('name'),
-      version: record.get('version'),
-      packageManager: record.get('packageManager'),
-      purl: record.get('purl'),
-      cpe: record.get('cpe'),
-      type: record.get('type'),
-      group: record.get('group'),
-      hashes: record.get('hashes').filter((h: { algorithm?: string; value?: string }) => h.algorithm),
-      licenses: record.get('licenses').filter((l: { id?: string; name?: string }) => l.id || l.name),
-      systems: record.get('systems').filter((s: string) => s),
-      systemCount: record.get('systemCount').toNumber()
-    }
-  }
 }

@@ -159,16 +159,6 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/components/unmapped', () => {
-    it('should require authentication', async () => {
-      if (!serverAvailable) return
-
-      const response = await fetch(`${BASE_URL}/api/components/unmapped?limit=2`)
-
-      expect(response.status).toBe(401)
-    })
-  })
-
   describe('GET /api/licenses/violations', () => {
     it('should require authentication', async () => {
       if (!serverAvailable) return

@@ -88,31 +88,6 @@ export interface Component {
   systemCount: number            // Number of systems using this
 }
 
-export interface UnmappedComponent {
-  // === CORE IDENTIFICATION ===
-  name: string
-  version: string
-  packageManager: string | null
-  
-  // === UNIVERSAL IDENTIFIERS ===
-  purl: string | null
-  cpe: string | null
-  
-  // === CLASSIFICATION ===
-  type: ComponentType | null
-  group: string | null
-  
-  // === HASHES ===
-  hashes: Hash[]
-  
-  // === LICENSES ===
-  licenses: License[]
-  
-  // === RELATIONSHIPS (computed) ===
-  systems?: string[]
-  systemCount?: number
-}
-
 export type TechnologyDomain =
   | 'foundational-runtime'
   | 'framework'
