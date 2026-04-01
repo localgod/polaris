@@ -1,0 +1,177 @@
+---
+- name: Provision Polaris production server
+  hosts: polaris
+  become: true
+
+  vars:
+    polaris_user: polaris
+    polaris_dir: /opt/polaris
+
+  tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - dockerhub_username is defined
+          - deploy_public_key is defined
+        fail_msg: >-
+          Required variables are not defined. Pass them via --extra-vars:
+          dockerhub_username=<your-dockerhub-user>
+          deploy_public_key=<contents-of-public-key>
+        success_msg: "Required variables are defined."
+    # ── Docker ────────────────────────────────────────────────────────────────
+
+    - name: Ensure /etc/apt/keyrings exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Docker prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: true
+
+    - name: Add Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Add Docker apt repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') }}
+          signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu
+          {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+
+    - name: Install Docker Engine and Compose plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    # ── System user ───────────────────────────────────────────────────────────
+
+    - name: Create polaris system user
+      user:
+        name: "{{ polaris_user }}"
+        system: true
+        shell: /bin/bash
+        home: "{{ polaris_dir }}"
+        create_home: false
+
+    - name: Add polaris user to docker group
+      user:
+        name: "{{ polaris_user }}"
+        groups: docker
+        append: true
+
+    # ── Directory structure ───────────────────────────────────────────────────
+
+    - name: Create application directory
+      file:
+        path: "{{ polaris_dir }}"
+        state: directory
+        owner: "{{ polaris_user }}"
+        group: "{{ polaris_user }}"
+        mode: "0750"
+
+    - name: Create Neo4j data directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "7474"
+        group: "7474"
+        mode: "0750"
+      loop:
+        - "{{ polaris_dir }}/data/neo4j/data"
+        - "{{ polaris_dir }}/data/neo4j/logs"
+        - "{{ polaris_dir }}/data/neo4j/import"
+        - "{{ polaris_dir }}/data/neo4j/plugins"
+
+    - name: Create polaris SSH directory
+      file:
+        path: "{{ polaris_dir }}/.ssh"
+        state: directory
+        owner: "{{ polaris_user }}"
+        group: "{{ polaris_user }}"
+        mode: "0700"
+
+    # ── Deploy key ────────────────────────────────────────────────────────────
+
+    - name: Install deploy SSH public key
+      ansible.posix.authorized_key:
+        user: "{{ polaris_user }}"
+        key: "{{ deploy_public_key }}"
+        state: present
+
+    # ── App config files ──────────────────────────────────────────────────────
+
+    - name: Deploy docker-compose.yml
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ polaris_dir }}/docker-compose.yml"
+        owner: "{{ polaris_user }}"
+        group: "{{ polaris_user }}"
+        mode: "0640"
+
+    - name: Deploy Caddyfile
+      template:
+        src: templates/Caddyfile.j2
+        dest: "{{ polaris_dir }}/Caddyfile"
+        owner: "{{ polaris_user }}"
+        group: "{{ polaris_user }}"
+        mode: "0640"
+
+    # ── Firewall ──────────────────────────────────────────────────────────────
+
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Allow HTTP
+      community.general.ufw:
+        rule: allow
+        port: "80"
+        proto: tcp
+
+    - name: Allow HTTPS
+      community.general.ufw:
+        rule: allow
+        port: "443"
+        proto: tcp
+
+    - name: Enable UFW (default deny incoming)
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+

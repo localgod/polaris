@@ -1,0 +1,5 @@
+# Listens on all interfaces inside the container.
+# To enable automatic TLS, replace :80 with your domain name.
+:80 {
+    reverse_proxy app:3000
+}
