@@ -79,7 +79,7 @@
     "spdx-expression-parse": "^4.0.0",
     "spdx-license-list": "^6.11.0",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vue": "^3.5.26"
   },
   "devDependencies": {
