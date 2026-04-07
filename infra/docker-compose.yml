@@ -26,10 +26,10 @@ services:
       - /opt/polaris/data/neo4j/plugins:/plugins
     healthcheck:
       test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
-      interval: 10s
-      timeout: 5s
+      interval: 15s
+      timeout: 15s
       retries: 10
-      start_period: 30s
+      start_period: 60s
     networks:
       - polaris-net
 
