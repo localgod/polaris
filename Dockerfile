@@ -17,8 +17,13 @@ FROM node:lts-alpine AS runner
 
 WORKDIR /app
 
-# Copy only the built output
+# Copy built output
 COPY --from=builder /app/.output ./output
+
+# Copy migration tooling
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/schema ./schema
+COPY --from=builder /app/package.json ./package.json
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
