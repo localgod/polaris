@@ -34,14 +34,27 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build and push image
+      - name: Build and push app image
         uses: docker/build-push-action@v7
         with:
           context: .
+          target: runner
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/polaris:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/polaris:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push migrator image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: migrator
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/polaris-migrator:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/polaris-migrator:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -86,4 +99,5 @@ jobs:
             docker compose up -d --wait
 
             # Run database migrations
-            docker compose exec -T app npm run migrate:up
+            docker compose pull migrate
+            docker compose run --rm migrate npm run migrate:up

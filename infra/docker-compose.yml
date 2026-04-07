@@ -33,6 +33,17 @@ services:
     networks:
       - polaris-net
 
+  migrate:
+    image: ${DOCKERHUB_USERNAME}/polaris-migrator:latest
+    env_file: .env
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - polaris-net
+    profiles:
+      - migrate
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
