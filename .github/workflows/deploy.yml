@@ -61,6 +61,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: polaris
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 10m
           script: |
             set -e
 
@@ -82,7 +83,7 @@ jobs:
 
             # Pull new image and restart stack
             docker compose pull
-            docker compose up -d
+            docker compose up -d --wait
 
             # Run database migrations
             docker compose exec -T app npm run migrate:up
