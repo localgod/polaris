@@ -45,6 +45,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Copy compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: polaris
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: infra/docker-compose.yml
+          target: /opt/polaris
+          strip_components: 1
+
       - name: Write .env and deploy
         uses: appleboy/ssh-action@v1
         with:
