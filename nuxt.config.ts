@@ -27,9 +27,12 @@ export default defineNuxtConfig({
 
 
   auth: {
-    // baseURL will be auto-detected from request origin if not set
-    // For tests, provide a default baseURL
-    baseURL: process.env.NODE_ENV === 'test' ? 'http://localhost:3000/api/auth' : undefined,
+    // AUTH_ORIGIN overrides auto-detection. Required when the app is behind a proxy
+    // or running in an environment where the request origin is not the public URL
+    // (e.g. Gitpod, Cloudflare, reverse proxies).
+    // Format: https://your-domain.com/api/auth
+    baseURL: process.env.AUTH_ORIGIN
+      || (process.env.NODE_ENV === 'test' ? 'http://localhost:3000/api/auth' : undefined),
     provider: {
       type: 'authjs'
     },

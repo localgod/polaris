@@ -24,6 +24,9 @@ logs
 .env.*
 !.env.example
 
+# Ansible inventory (contains server IPs)
+infra/ansible/inventory.ini
+
 # Test artifacts
 test-migrations
 gh.exe
