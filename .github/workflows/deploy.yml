@@ -59,7 +59,6 @@ jobs:
             NEO4J_URI=${{ secrets.NEO4J_URI }}
             NEO4J_USERNAME=${{ secrets.NEO4J_USERNAME }}
             NEO4J_PASSWORD=${{ secrets.NEO4J_PASSWORD }}
-            NEO4J_DATABASE=${{ secrets.NEO4J_DATABASE }}
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
             GITHUB_CLIENT_ID=${{ secrets.GITHUB_CLIENT_ID }}
             GITHUB_CLIENT_SECRET=${{ secrets.GITHUB_CLIENT_SECRET }}
