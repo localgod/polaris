@@ -84,6 +84,8 @@ jobs:
             NEO4J_USERNAME=${{ secrets.NEO4J_USERNAME }}
             NEO4J_PASSWORD=${{ secrets.NEO4J_PASSWORD }}
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+            AUTH_ORIGIN=${{ secrets.AUTH_ORIGIN }}
+            AUTH_TRUST_HOST=true
             GITHUB_CLIENT_ID=${{ secrets.GITHUB_CLIENT_ID }}
             GITHUB_CLIENT_SECRET=${{ secrets.GITHUB_CLIENT_SECRET }}
             SUPERUSER_EMAILS=${{ secrets.SUPERUSER_EMAILS }}
