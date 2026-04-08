@@ -62,6 +62,8 @@ import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, LicenseViolation } from '~~/types/api'
 
+definePageMeta({ middleware: 'auth' })
+
 const { getSortableHeader } = useSortableTable()
 
 const UBadge = resolveComponent('UBadge')

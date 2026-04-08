@@ -86,6 +86,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ middleware: 'auth' })
 interface Violation {
   team: string
   system: string
