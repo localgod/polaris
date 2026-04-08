@@ -256,18 +256,23 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
       label: 'Version Constraints',
       icon: 'i-lucide-file-text',
       to: '/version-constraints'
-    },
-    {
-      label: 'Violations',
-      icon: 'i-lucide-alert-triangle',
-      to: '/violations'
-    },
-    {
-      label: 'Audit Log',
-      icon: 'i-lucide-clipboard-list',
-      to: '/audit'
     }
   ]
+
+  if (status.value === 'authenticated') {
+    items.push(
+      {
+        label: 'Violations',
+        icon: 'i-lucide-alert-triangle',
+        to: '/violations'
+      },
+      {
+        label: 'Audit Log',
+        icon: 'i-lucide-clipboard-list',
+        to: '/audit'
+      }
+    )
+  }
 
   // Add admin items for superusers (hidden when impersonating a non-superuser)
   if (isSuperuser.value) {

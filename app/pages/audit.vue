@@ -90,6 +90,8 @@
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
+definePageMeta({ middleware: 'auth' })
+
 const { getSortableHeader } = useSortableTable()
 
 interface AuditEntry {
