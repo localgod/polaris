@@ -9,6 +9,12 @@ RUN npm ci
 
 COPY . .
 
+# Build args supply Neo4j connection so nuxt-neo4j module doesn't throw at build time.
+# These values are overridden at runtime via the container's env_file.
+ARG NEO4J_URI=bolt://neo4j:7687
+ARG NEO4J_USERNAME=neo4j
+ARG NEO4J_PASSWORD=placeholder
+
 RUN npm run build
 
 # ---
@@ -18,6 +24,8 @@ FROM node:lts-alpine AS runner
 WORKDIR /app
 
 COPY --from=builder /app/.output ./output
+# sbom-validator reads schemas from process.cwd()/server/schemas at runtime
+COPY --from=builder /app/server/schemas ./server/schemas
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
