@@ -13,10 +13,12 @@
         that:
           - dockerhub_username is defined
           - deploy_public_key is defined
+          - domain is defined
         fail_msg: >-
           Required variables are not defined. Pass them via --extra-vars:
           dockerhub_username=<your-dockerhub-user>
           deploy_public_key=<contents-of-public-key>
+          domain=<your-domain-name>
         success_msg: "Required variables are defined."
     # ── Docker ────────────────────────────────────────────────────────────────
 

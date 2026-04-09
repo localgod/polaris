@@ -1,5 +1,5 @@
-# Listens on all interfaces inside the container.
-# To enable automatic TLS, replace :80 with your domain name.
+# Replace with your domain name to enable automatic TLS via Let's Encrypt.
+# Example: polaris.example.com
 :80 {
     reverse_proxy app:3000
 }
