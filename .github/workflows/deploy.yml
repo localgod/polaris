@@ -90,8 +90,8 @@ jobs:
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
             AUTH_ORIGIN=${{ secrets.AUTH_ORIGIN }}
             AUTH_TRUST_HOST=true
-            GITHUB_CLIENT_ID=${{ secrets.GITHUB_CLIENT_ID }}
-            GITHUB_CLIENT_SECRET=${{ secrets.GITHUB_CLIENT_SECRET }}
+            GITHUB_CLIENT_ID=${{ secrets.OAUTH_CLIENT_ID }}
+            GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
             SUPERUSER_EMAILS=${{ secrets.SUPERUSER_EMAILS }}
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             ENV
