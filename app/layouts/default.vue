@@ -108,6 +108,27 @@
 
     <!-- Main Content -->
     <main class="flex-1 overflow-auto min-w-0">
+      <!-- Mobile top bar -->
+      <div class="sm:hidden flex items-center gap-3 px-4 py-3 border-b border-default bg-(--ui-bg-elevated)">
+        <UButton
+          icon="i-lucide-menu"
+          color="neutral"
+          variant="ghost"
+          square
+          aria-label="Open menu"
+          @click="sidebarOpen = true"
+        />
+        <NuxtLink to="/" class="flex items-center gap-2">
+          <UIcon name="i-lucide-zap" class="w-5 h-5 text-(--ui-primary)" />
+          <span class="text-lg font-bold">Polaris</span>
+        </NuxtLink>
+        <div class="ml-auto">
+          <ClientOnly>
+            <UColorModeButton color="neutral" variant="ghost" />
+          </ClientOnly>
+        </div>
+      </div>
+
       <!-- Impersonation Banner -->
       <div
         v-if="impersonation.active && impersonation.user"
