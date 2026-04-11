@@ -41,6 +41,7 @@ jobs:
         env:
           RESOLVED_VERSION: ${{ steps.release.outputs.resolved_version }}
           RELEASE_BODY: ${{ steps.release.outputs.body }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
 
@@ -103,8 +104,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          BRANCH="chore/release-v${RESOLVED_VERSION}"
+          git checkout -b "$BRANCH"
           git add package.json package-lock.json CHANGELOG.md
           git commit -m "chore: release v${RESOLVED_VERSION} [skip ci]"
+          git push origin "$BRANCH"
 
-          # Push the bump commit only — release-drafter already created the tag
-          git push origin main
+          # Open a PR — branch protection prevents direct pushes to main
+          gh pr create \
+            --title "chore: release v${RESOLVED_VERSION} [skip ci]" \
+            --body "Automated version bump and CHANGELOG update for v${RESOLVED_VERSION}." \
+            --base main \
+            --head "$BRANCH" \
+            --label "chore"
