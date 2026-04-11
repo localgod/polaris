@@ -1,11 +1,15 @@
 import swaggerJsdoc from 'swagger-jsdoc'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+const { version } = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')) as { version: string }
 
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.1.0',
     info: {
       title: 'Polaris API',
-      version: '2.0.0',
+      version,
       description: `# Polaris Technology Catalog API
 
 The Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.
