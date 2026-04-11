@@ -106,6 +106,5 @@ jobs:
           git add package.json package-lock.json CHANGELOG.md
           git commit -m "chore: release v${RESOLVED_VERSION} [skip ci]"
 
-          # Tag and push
-          git tag "v${RESOLVED_VERSION}"
-          git push origin main --follow-tags
+          # Push the bump commit only — release-drafter already created the tag
+          git push origin main
