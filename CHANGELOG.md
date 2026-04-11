@@ -9,35 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release with Nuxt 4 and Neo4j integration
-- Enterprise technology catalog data model
-  - Technology nodes with version tracking
-  - System/Application inventory
-  - Team ownership mapping
-  - Policy compliance tracking
-- Database migration system with CLI tools
-  - Create, apply, and rollback migrations
-  - Migration validation and status tracking
-  - Standalone migration runner
-- Gherkin-style BDD testing with Vitest
-  - Test organization by domain (api, schema, app)
-  - Feature files for test documentation
-  - Comprehensive test coverage reporting
-- Development environment setup
-  - Dev Container configuration with Neo4j
-  - Gitpod automations for cloud development
-  - Automated environment setup scripts
-- CI/CD pipeline with GitHub Actions
-  - Automated linting (ESLint, markdownlint)
-  - Test execution with Neo4j service
-  - Build verification
-  - Coverage reporting in PRs
-- Comprehensive documentation
-  - User-focused README
-  - Detailed contributing guide
-  - Code of conduct
-  - Agent instructions for AI assistants
-
 ### Changed
 
 ### Deprecated
@@ -47,3 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [0.1.7] - 2026-04-11
+
+## What's Changed
+
+- fix: open PR for version bump instead of pushing directly to main @localgod (#290)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.6...v0.1.7
+
