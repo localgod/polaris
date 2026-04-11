@@ -1,34 +1,39 @@
 <template>
   <div class="flex min-h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <!-- Logo -->
-      <div class="p-4 border-b border-gray-200 dark:border-gray-800">
-        <div class="flex items-center justify-between">
-          <NuxtLink to="/" class="flex items-center gap-2">
-            <UIcon name="i-lucide-zap" class="w-6 h-6 text-(--ui-primary)" />
-            <span class="text-xl font-bold">Polaris</span>
-          </NuxtLink>
-          <ClientOnly>
-            <UColorModeButton color="neutral" variant="ghost" />
-            <template #fallback>
-              <div class="w-8 h-8" />
-            </template>
-          </ClientOnly>
-        </div>
-      </div>
+    <USidebar
+      v-model:open="sidebarOpen"
+      collapsible="icon"
+      :rail="true"
+      class="border-r border-default bg-(--ui-bg-elevated)"
+    >
+      <template #header="{ state }">
+        <!-- Logo -->
+        <NuxtLink to="/" class="flex items-center gap-2 min-w-0">
+          <UIcon name="i-lucide-zap" class="w-6 h-6 shrink-0 text-(--ui-primary)" />
+          <span v-show="state === 'expanded'" class="text-xl font-bold truncate">Polaris</span>
+        </NuxtLink>
+        <ClientOnly>
+          <UColorModeButton v-if="state === 'expanded'" color="neutral" variant="ghost" class="shrink-0" />
+          <template #fallback>
+            <div v-if="state === 'expanded'" class="w-8 h-8" />
+          </template>
+        </ClientOnly>
+      </template>
 
-      <!-- Navigation -->
-      <nav class="flex-1 py-4 px-6 overflow-y-auto">
+      <!-- Default slot: navigation body -->
+      <template #default="{ state }">
         <!-- Main Menu -->
         <UNavigationMenu
           orientation="vertical"
           :items="mainMenuItems"
+          :collapsed="state === 'collapsed'"
+          :tooltip="state === 'collapsed'"
           class="w-full"
         />
 
         <!-- User Section -->
-        <div class="my-4 py-4 border-t border-b border-gray-200 dark:border-gray-800">
+        <div class="py-4 border-t border-b border-default">
           <template v-if="status === 'authenticated' && session">
             <div class="flex items-center gap-3 mb-3">
               <UAvatar
@@ -36,18 +41,21 @@
                 :src="session.user.image"
                 :alt="session.user.name || 'User'"
                 size="sm"
+                class="shrink-0"
               />
               <UAvatar
                 v-else
                 :text="((session.user?.name || session.user?.email || 'U')[0] || 'U').toUpperCase()"
                 size="sm"
+                class="shrink-0"
               />
-              <div class="flex-1 min-w-0">
+              <div v-show="state === 'expanded'" class="flex-1 min-w-0">
                 <div class="text-sm font-medium truncate">{{ session.user?.name || 'User' }}</div>
                 <div class="text-xs text-gray-500 truncate">{{ session.user?.email }}</div>
               </div>
             </div>
             <UBadge
+              v-show="state === 'expanded'"
               :color="session.user?.role === 'superuser' ? 'error' : 'primary'"
               size="xs"
               class="mb-3"
@@ -57,13 +65,29 @@
             <UNavigationMenu
               orientation="vertical"
               :items="userMenuItems"
+              :collapsed="state === 'collapsed'"
+              :tooltip="state === 'collapsed'"
               class="w-full"
             />
           </template>
           <template v-else>
-            <UButton to="/auth/signin" color="primary" block>
+            <UButton
+              v-if="state === 'expanded'"
+              to="/auth/signin"
+              color="primary"
+              block
+            >
               Sign In
             </UButton>
+            <UTooltip v-else text="Sign In" :content="{ side: 'right' }">
+              <UButton
+                to="/auth/signin"
+                color="primary"
+                icon="i-lucide-log-in"
+                variant="ghost"
+                square
+              />
+            </UTooltip>
           </template>
         </div>
 
@@ -71,18 +95,19 @@
         <UNavigationMenu
           orientation="vertical"
           :items="docsMenuItems"
+          :collapsed="state === 'collapsed'"
+          :tooltip="state === 'collapsed'"
           class="w-full"
         />
-      </nav>
+      </template>
 
-      <!-- Version footer -->
-      <div class="p-4 border-t border-gray-200 dark:border-gray-800">
-        <span class="text-xs text-gray-400 dark:text-gray-600">v{{ appVersion }}</span>
-      </div>
-    </aside>
+      <template #footer="{ state }">
+        <span v-show="state === 'expanded'" class="text-xs text-gray-400 dark:text-gray-600">v{{ appVersion }}</span>
+      </template>
+    </USidebar>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-auto">
+    <main class="flex-1 overflow-auto min-w-0">
       <!-- Impersonation Banner -->
       <div
         v-if="impersonation.active && impersonation.user"
@@ -169,12 +194,16 @@
 </template>
 
 <script setup lang="ts">
+import { useLocalStorage } from '@vueuse/core'
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 const { public: { appVersion } } = useRuntimeConfig()
 const { data: session, status, signOut } = useAuth()
 const { impersonation, impersonationLoading, fetchImpersonationStatus, startImpersonating, stopImpersonating } = useImpersonation()
 const { isSuperuser } = useEffectiveRole()
+
+// Sidebar open state — persisted across reloads
+const sidebarOpen = useLocalStorage('polaris:sidebar:open', true)
 
 // Fetch impersonation status on load for superusers
 watch(() => session.value?.user?.role, async (role) => {
