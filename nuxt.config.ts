@@ -55,21 +55,6 @@ export default defineNuxtConfig({
     }
   },
 
-  nitro: {
-    // Bundle server-side file assets into .output so they are available at runtime
-    // without relying on process.cwd() pointing to the source tree.
-    serverAssets: [
-      {
-        baseName: 'queries',
-        dir: './server/database/queries'
-      },
-      {
-        baseName: 'schemas',
-        dir: './server/schemas'
-      }
-    ]
-  },
-
   devServer: {
     host: '0.0.0.0'  // Listen on all available network interfaces
   },

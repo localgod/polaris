@@ -61,22 +61,16 @@ export class SbomValidator {
     }
 
     try {
-      // Load schema files — use Nitro server assets in production, fs in dev/test
-      let cyclonedxSchema, spdxSchema, spdxRefSchema, jsfSchema
+      // Resolve schema directory relative to this file so the path is correct
+      // in both development (source tree) and production (.output/server/).
+      // Resolves to process.cwd()/server/schemas/. In the Docker runner image
+      // WORKDIR is /app and schemas are copied to /app/server/schemas/.
+      const schemaDir = join(process.cwd(), 'server', 'schemas')
 
-      if (process.env.NODE_ENV === 'production' && typeof useStorage === 'function') {
-        const storage = useStorage('assets:schemas')
-        cyclonedxSchema = await storage.getItem('cyclonedx-1.6.schema')
-        spdxSchema = await storage.getItem('spdx-2.3.schema')
-        spdxRefSchema = await storage.getItem('spdx.schema')
-        jsfSchema = await storage.getItem('jsf-0.82.schema')
-      } else {
-        const schemaDir = join(process.cwd(), 'server', 'schemas')
-        cyclonedxSchema = JSON.parse(readFileSync(join(schemaDir, 'cyclonedx-1.6.schema.json'), 'utf-8'))
-        spdxSchema = JSON.parse(readFileSync(join(schemaDir, 'spdx-2.3.schema.json'), 'utf-8'))
-        spdxRefSchema = JSON.parse(readFileSync(join(schemaDir, 'spdx.schema.json'), 'utf-8'))
-        jsfSchema = JSON.parse(readFileSync(join(schemaDir, 'jsf-0.82.schema.json'), 'utf-8'))
-      }
+      const cyclonedxSchema = JSON.parse(readFileSync(join(schemaDir, 'cyclonedx-1.6.schema.json'), 'utf-8'))
+      const spdxSchema = JSON.parse(readFileSync(join(schemaDir, 'spdx-2.3.schema.json'), 'utf-8'))
+      const spdxRefSchema = JSON.parse(readFileSync(join(schemaDir, 'spdx.schema.json'), 'utf-8'))
+      const jsfSchema = JSON.parse(readFileSync(join(schemaDir, 'jsf-0.82.schema.json'), 'utf-8'))
       
       // Add referenced schemas to Ajv
       this.ajv.addSchema(spdxRefSchema, 'http://cyclonedx.org/schema/spdx.schema.json')

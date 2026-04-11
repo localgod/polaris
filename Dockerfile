@@ -27,6 +27,10 @@ FROM node:lts-alpine AS runner
 WORKDIR /app
 
 COPY --from=builder /app/.output ./output
+# Cypher queries and JSON schemas are read at runtime via fs using process.cwd().
+# process.cwd() is /app (WORKDIR), so copy files to match the expected paths.
+COPY --from=builder /app/server/database/queries ./server/database/queries
+COPY --from=builder /app/server/schemas ./server/schemas
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
