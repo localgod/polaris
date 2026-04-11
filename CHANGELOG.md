@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.10] - 2026-04-11
+
+## What's Changed
+
+- fix: add mobile top bar with sidebar trigger @localgod (#293)
+
+## 🔧 Maintenance
+
+- chore: release v0.1.9 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#292)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.9...v0.1.10
+
+
 ## [0.1.9] - 2026-04-11
 
 ## What's Changed
