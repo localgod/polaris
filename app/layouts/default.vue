@@ -307,21 +307,6 @@ const docsMenuItems = computed<NavigationMenuItem[][]>(() => [
       to: '/docs/concepts'
     },
     {
-      label: 'TIME Framework',
-      icon: 'i-lucide-clock',
-      to: '/docs/features/time-framework'
-    },
-    {
-      label: 'Team Approvals',
-      icon: 'i-lucide-check-circle',
-      to: '/docs/features/team-approvals'
-    },
-    {
-      label: 'Audit Trail',
-      icon: 'i-lucide-clipboard-list',
-      to: '/docs/features/audit-trail'
-    },
-    {
       label: 'Access Model',
       icon: 'i-lucide-shield',
       to: '/docs/access-model'
