@@ -5,60 +5,92 @@
       description="Neo4j data model and relationships"
     />
 
-    <UCard>
-      <div>
-        <h2>Overview</h2>
-        <p>Polaris uses Neo4j, a graph database, to model the relationships between technologies, systems, teams, and version constraints. This enables powerful queries about technology usage and compliance.</p>
-      </div>
-    </UCard>
-
+    <!-- Overview -->
     <UCard>
       <template #header>
-        <h2 class="text-lg font-semibold m-0">Graph Visualization</h2>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-git-branch" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">Overview</h2>
+        </div>
+      </template>
+      <p class="text-(--ui-text-muted)">
+        Polaris uses Neo4j, a graph database, to model the relationships between technologies, systems, teams, and version constraints. This enables powerful queries about technology usage and compliance.
+      </p>
+    </UCard>
+
+    <!-- Graph Visualization -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-network" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">Graph Visualization</h2>
+        </div>
       </template>
       <div ref="mermaidEl" class="flex justify-center items-center min-h-50 p-6 overflow-x-auto" />
     </UCard>
 
+    <!-- Core Nodes -->
     <UCard>
-      <div>
-        <h2>Core Nodes</h2>
-        <ul>
-          <li><strong>Technology</strong> — Approved technologies with versions and metadata</li>
-          <li><strong>System</strong> — Deployable applications and services</li>
-          <li><strong>Component</strong> — SBOM entries (libraries, packages)</li>
-          <li><strong>Team</strong> — Organizational teams</li>
-          <li><strong>VersionConstraint</strong> — Version range constraints for technologies</li>
-          <li><strong>License</strong> — Software licenses</li>
-          <li><strong>Version</strong> — Specific versions of technologies</li>
-          <li><strong>Repository</strong> — Source code repositories</li>
-          <li><strong>AuditLog</strong> — Change tracking entries</li>
-        </ul>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-circle-dot" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">Core Nodes</h2>
+        </div>
+      </template>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <UPageFeature
+          v-for="node in coreNodes"
+          :key="node.title"
+          :icon="node.icon"
+          :title="node.title"
+          :description="node.description"
+          orientation="horizontal"
+        />
+      </div>
+    </UCard>
 
-        <h2>Key Relationships</h2>
-        <ul>
-          <li><code>Team -[:STEWARDED_BY]-&gt; Technology</code> — Technical governance responsibility</li>
-          <li><code>Team -[:OWNS]-&gt; System</code> — Operational ownership</li>
-          <li><code>Team -[:USES]-&gt; Technology</code> — Actual technology usage</li>
-          <li><code>Team -[:APPROVES]-&gt; Technology | Version</code> — TIME framework approval</li>
-          <li><code>Team -[:MAINTAINS]-&gt; Repository</code> — Repository maintenance</li>
-          <li><code>Technology -[:HAS_VERSION]-&gt; Version</code> — Version tracking</li>
-          <li><code>Component -[:IS_VERSION_OF]-&gt; Technology</code> — Component to technology mapping</li>
-          <li><code>System -[:USES]-&gt; Component</code> — System dependencies</li>
-          <li><code>System -[:HAS_SOURCE_IN]-&gt; Repository</code> — Source code location</li>
-          <li><code>VersionConstraint -[:GOVERNS]-&gt; Technology</code> — Constraint scope</li>
-          <li><code>AuditLog -[:PERFORMED_BY]-&gt; User</code> — Who made the change</li>
-          <li><code>AuditLog -[:AUDITS]-&gt; Entity</code> — What was changed</li>
-        </ul>
+    <!-- Key Relationships -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-arrow-right" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">Key Relationships</h2>
+        </div>
+      </template>
+      <div class="space-y-3">
+        <div
+          v-for="rel in keyRelationships"
+          :key="rel.label"
+          class="flex items-start gap-3"
+        >
+          <UIcon name="i-lucide-arrow-right" class="w-4 h-4 text-(--ui-primary) shrink-0 mt-1" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-medium">{{ rel.description }}</span>
+              <UBadge :label="rel.label" variant="subtle" color="neutral" size="xs" />
+            </div>
+            <p class="text-sm text-(--ui-text-muted) mt-0.5">{{ rel.detail }}</p>
+          </div>
+        </div>
+      </div>
+    </UCard>
 
-        <h2>Query Examples</h2>
-        <p>The graph model enables queries like:</p>
-        <ul>
-          <li>Find all systems using a deprecated technology</li>
-          <li>List teams affected by a license rule change</li>
-          <li>Trace component dependencies across systems</li>
-          <li>Identify compliance violations</li>
-          <li>Track all changes made by a specific user</li>
-        </ul>
+    <!-- Query Examples -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-search" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">Query Examples</h2>
+        </div>
+      </template>
+      <div class="space-y-3">
+        <UPageFeature
+          v-for="example in queryExamples"
+          :key="example.title"
+          icon="i-lucide-search"
+          :title="example.title"
+          orientation="horizontal"
+        />
       </div>
     </UCard>
   </div>
@@ -67,9 +99,45 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-useHead({
-  title: 'Graph Model - Polaris'
-})
+// --- Core Nodes ---
+const coreNodes = [
+  { icon: 'i-lucide-settings', title: 'Technology', description: 'Approved technologies with versions and metadata' },
+  { icon: 'i-lucide-cpu', title: 'System', description: 'Deployable applications and services' },
+  { icon: 'i-lucide-box', title: 'Component', description: 'SBOM entries (libraries, packages)' },
+  { icon: 'i-lucide-users', title: 'Team', description: 'Organizational teams' },
+  { icon: 'i-lucide-git-branch', title: 'VersionConstraint', description: 'Version range constraints for technologies' },
+  { icon: 'i-lucide-scale', title: 'License', description: 'Software licenses' },
+  { icon: 'i-lucide-tag', title: 'Version', description: 'Specific versions of technologies' },
+  { icon: 'i-lucide-folder-git', title: 'Repository', description: 'Source code repositories' },
+  { icon: 'i-lucide-clipboard-list', title: 'AuditLog', description: 'Change tracking entries' },
+]
+
+// --- Key Relationships ---
+const keyRelationships = [
+  { label: 'STEWARDED_BY', description: 'Team stewards Technology', detail: 'Technical governance responsibility' },
+  { label: 'OWNS', description: 'Team owns System', detail: 'Operational ownership' },
+  { label: 'USES', description: 'Team uses Technology', detail: 'Actual technology usage by a team' },
+  { label: 'APPROVES', description: 'Team approves Technology or Version', detail: 'TIME framework approval' },
+  { label: 'MAINTAINS', description: 'Team maintains Repository', detail: 'Repository maintenance responsibility' },
+  { label: 'HAS_VERSION', description: 'Technology has Version', detail: 'Version tracking per technology' },
+  { label: 'IS_VERSION_OF', description: 'Component is version of Technology', detail: 'Component to technology mapping' },
+  { label: 'USES', description: 'System uses Component', detail: 'System dependency on a component' },
+  { label: 'HAS_SOURCE_IN', description: 'System has source in Repository', detail: 'Source code location' },
+  { label: 'GOVERNS', description: 'VersionConstraint governs Technology', detail: 'Constraint scope' },
+  { label: 'PERFORMED_BY', description: 'AuditLog performed by User', detail: 'Who made the change' },
+  { label: 'AUDITS', description: 'AuditLog audits Entity', detail: 'What was changed' },
+]
+
+// --- Query Examples ---
+const queryExamples = [
+  { title: 'Find all systems using a deprecated technology' },
+  { title: 'List teams affected by a license rule change' },
+  { title: 'Trace component dependencies across systems' },
+  { title: 'Identify compliance violations' },
+  { title: 'Track all changes made by a specific user' },
+]
+
+useHead({ title: 'Graph Model - Polaris' })
 
 const mermaidEl = ref<HTMLElement | null>(null)
 
