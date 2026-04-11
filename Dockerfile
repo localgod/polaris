@@ -24,8 +24,6 @@ FROM node:lts-alpine AS runner
 WORKDIR /app
 
 COPY --from=builder /app/.output ./output
-# sbom-validator reads schemas from process.cwd()/server/schemas at runtime
-COPY --from=builder /app/server/schemas ./server/schemas
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0

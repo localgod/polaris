@@ -4,9 +4,16 @@ import { resolve } from 'path'
 const queryCache = new Map<string, string>()
 
 /**
- * Load a Cypher query from a .cypher file
- * Queries are cached in production for performance
- * 
+ * Load a Cypher query from a .cypher file.
+ *
+ * In production (Nitro runtime) queries are read from the bundled server
+ * assets configured in nuxt.config.ts (nitro.serverAssets). This avoids
+ * relying on process.cwd() pointing to the source tree, which is not the
+ * case inside the Docker runner image.
+ *
+ * In development and test environments the file is read directly from disk
+ * via fs/promises, which keeps the test helper working without a Nitro context.
+ *
  * @param path - Relative path from server/database/queries/ (e.g., 'technologies/find-all.cypher')
  * @returns The query string
  */
@@ -15,14 +22,27 @@ export async function loadQuery(path: string): Promise<string> {
     return queryCache.get(path)!
   }
 
-  const fullPath = resolve('./server/database/queries', path)
-  const query = await readFile(fullPath, 'utf-8')
-  
+  let query: string
+
+  // useStorage is only available inside the Nitro server runtime
+  if (process.env.NODE_ENV === 'production' && typeof useStorage === 'function') {
+    const storage = useStorage('assets:queries')
+    // Nitro asset keys use colons as path separators and strip the extension
+    const key = path.replace(/\//g, ':').replace(/\.cypher$/, '')
+    query = await storage.getItem<string>(key) ?? ''
+    if (!query) {
+      throw new Error(`Query not found in server assets: ${path}`)
+    }
+  } else {
+    const fullPath = resolve('./server/database/queries', path)
+    query = await readFile(fullPath, 'utf-8')
+  }
+
   // Cache in production for performance
   if (process.env.NODE_ENV === 'production') {
     queryCache.set(path, query)
   }
-  
+
   return query
 }
 
