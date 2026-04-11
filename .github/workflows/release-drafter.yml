@@ -14,11 +14,98 @@ permissions:
 
 jobs:
   update_release_draft:
+    # Only publish and bump version on push to main (not on PR events)
     permissions:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v7
+        id: release
+        with:
+          # Publish immediately on merge to main; remain a draft on PR events
+          publish: ${{ github.event_name == 'push' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The steps below only run on merge to main (push event)
+      - name: Checkout
+        if: github.event_name == 'push'
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Bump package.json and update CHANGELOG.md
+        if: github.event_name == 'push'
+        env:
+          RESOLVED_VERSION: ${{ steps.release.outputs.resolved_version }}
+          RELEASE_BODY: ${{ steps.release.outputs.body }}
+        run: |
+          set -e
+
+          # Skip if this is already a release commit (prevents infinite loop)
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%s)
+          if echo "$LAST_COMMIT_MSG" | grep -qE '^\[skip ci\]|^chore: release v'; then
+            echo "Release commit detected — skipping version bump."
+            exit 0
+          fi
+
+          # Bump package.json without creating a git tag (we tag manually below)
+          npm version "$RESOLVED_VERSION" --no-git-tag-version
+
+          # Update CHANGELOG.md: replace [Unreleased] section with versioned entry,
+          # then prepend a fresh [Unreleased] section above it.
+          DATE=$(date +%Y-%m-%d)
+
+          python3 - <<'PYEOF'
+          import os, re
+
+          version = os.environ['RESOLVED_VERSION']
+          body = os.environ['RELEASE_BODY']
+
+          from datetime import date
+          today = date.today().isoformat()
+
+          with open('CHANGELOG.md', 'r') as f:
+              content = f.read()
+
+          new_section = f"## [{version}] - {today}\n\n{body}\n"
+          unreleased_block = (
+              "## [Unreleased]\n\n"
+              "### Added\n\n"
+              "### Changed\n\n"
+              "### Deprecated\n\n"
+              "### Removed\n\n"
+              "### Fixed\n\n"
+              "### Security\n"
+          )
+
+          # Replace the [Unreleased] section with the versioned entry
+          content = re.sub(
+              r'## \[Unreleased\].*?(?=\n## \[|\Z)',
+              new_section,
+              content,
+              flags=re.DOTALL
+          )
+
+          # Re-insert a fresh [Unreleased] section before the new versioned entry
+          insert_marker = f'\n## [{version}]'
+          idx = content.find(insert_marker)
+          if idx != -1:
+              content = content[:idx] + '\n' + unreleased_block + content[idx:]
+
+          with open('CHANGELOG.md', 'w') as f:
+              f.write(content)
+          PYEOF
+
+          # Configure git identity for the commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore: release v${RESOLVED_VERSION} [skip ci]"
+
+          # Tag and push
+          git tag "v${RESOLVED_VERSION}"
+          git push origin main --follow-tags

@@ -75,7 +75,10 @@
         />
       </nav>
 
-
+      <!-- Version footer -->
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800">
+        <span class="text-xs text-gray-400 dark:text-gray-600">v{{ appVersion }}</span>
+      </div>
     </aside>
 
     <!-- Main Content -->
@@ -168,6 +171,7 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
+const { public: { appVersion } } = useRuntimeConfig()
 const { data: session, status, signOut } = useAuth()
 const { impersonation, impersonationLoading, fetchImpersonationStatus, startImpersonating, stopImpersonating } = useImpersonation()
 const { isSuperuser } = useEffectiveRole()

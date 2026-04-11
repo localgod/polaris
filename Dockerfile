@@ -14,6 +14,9 @@ COPY . .
 ARG NEO4J_URI=bolt://neo4j:7687
 ARG NEO4J_USERNAME=neo4j
 ARG NEO4J_PASSWORD=placeholder
+ARG APP_VERSION=dev
+
+ENV APP_VERSION=$APP_VERSION
 
 RUN npm run build
 
@@ -30,6 +33,7 @@ COPY --from=builder /app/server/schemas ./server/schemas
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
+ENV APP_VERSION=dev
 
 EXPOSE 3000
 
