@@ -51,11 +51,6 @@ template: |
 
   $CHANGES
 
-  ## Deployment
-
-  This release has been automatically deployed to GitHub Pages:
-  🚀 **Live Site**: https://localgod.github.io/gitops/
-
   **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
 
 autolabeler:

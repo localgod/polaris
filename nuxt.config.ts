@@ -4,6 +4,13 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  runtimeConfig: {
+    public: {
+      // Baked in at build time from APP_VERSION build arg; falls back to 'dev'
+      appVersion: process.env.APP_VERSION ?? 'dev'
+    }
+  },
+
   // SPA-like behavior with client-side navigation
   ssr: true,
   
