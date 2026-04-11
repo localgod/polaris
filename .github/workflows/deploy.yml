@@ -79,7 +79,7 @@ jobs:
             set -e
 
             # Write production .env from GitHub secrets
-            cat > /opt/polaris/.env << 'ENV'
+            cat > /opt/polaris/.env << ENV
             # Neo4j connection (plain vars for migrator, NUXT_ vars for app runtimeConfig)
             NEO4J_URI=${{ secrets.NEO4J_URI }}
             NEO4J_USERNAME=${{ secrets.NEO4J_USERNAME }}
