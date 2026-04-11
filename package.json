@@ -1,6 +1,6 @@
 {
   "name": "polaris",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "description": "Enterprise technology catalog built with Nuxt 4 and Neo4j graph database",
   "type": "module",
   "private": true,
