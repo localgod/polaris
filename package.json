@@ -26,7 +26,7 @@
     "vue"
   ],
   "scripts": {
-    "build": "nuxt build",
+    "build": "npm run docs:api && nuxt build",
     "dev": "nuxt dev --host",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
