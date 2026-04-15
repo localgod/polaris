@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.11] - 2026-04-15
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(actions): bump appleboy/scp-action from 0.1.7 to 1.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#295)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.10...v0.1.11
+
+
 ## [0.1.9] - 2026-04-11
 
 ## What's Changed
