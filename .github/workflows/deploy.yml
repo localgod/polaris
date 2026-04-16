@@ -83,8 +83,8 @@ jobs:
           username: polaris
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           source: infra/docker-compose.yml
-          target: /opt/polaris
-          strip_components: 1
+          target: /opt/polaris/infra/
+          overwrite: true
 
       - name: Write .env and deploy
         uses: appleboy/ssh-action@v1
@@ -95,6 +95,9 @@ jobs:
           command_timeout: 10m
           script: |
             set -e
+
+            # Move compose file uploaded by scp-action into the expected location
+            mv /opt/polaris/infra/docker-compose.yml /opt/polaris/docker-compose.yml
 
             # Write production .env from GitHub secrets
             cat > /opt/polaris/.env << ENV
