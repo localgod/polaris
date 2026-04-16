@@ -92,15 +92,25 @@ export default defineEventHandler(async (event) => {
       data: result
     }
   } catch (error: unknown) {
-    // Re-throw HTTP errors
+    // Re-throw HTTP errors (4xx/5xx already created via createError)
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
 
     const message = error instanceof Error ? error.message : 'Import failed'
+    const stack = error instanceof Error ? error.stack : undefined
 
-    // GitHub API errors (not found, rate limit, etc.)
-    if (message.includes('not found') || message.includes('Cannot parse')) {
+    // Log the full error so it appears in production server logs
+    console.error('[github-import] Import failed:', message, stack)
+
+    // GitHub API errors — surface as 422 so the client gets a useful message
+    if (
+      message.includes('not found') ||
+      message.includes('Cannot parse') ||
+      message.includes('rate limit') ||
+      message.includes('authentication failed') ||
+      message.includes('access denied')
+    ) {
       throw createError({ statusCode: 422, message })
     }
 

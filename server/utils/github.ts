@@ -94,22 +94,52 @@ export function parseGitHubRepo(input: string): { owner: string; repo: string } 
 }
 
 /**
+ * Build GitHub API request headers.
+ * Includes a Bearer token when GITHUB_TOKEN is set in the environment,
+ * raising the rate limit from 60 to 5,000 requests/hour.
+ */
+function githubHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'Polaris'
+  }
+  const token = process.env.GITHUB_TOKEN
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
+/**
+ * Throw a structured error for non-OK GitHub API responses.
+ * Maps 401/403 (auth/rate-limit) and 404 to specific messages so callers
+ * can surface them as 422 rather than 500.
+ */
+function throwGitHubError(status: number, statusText: string, context: string): never {
+  if (status === 404) {
+    throw new Error(`${context} not found`)
+  }
+  if (status === 401) {
+    throw new Error(`GitHub API authentication failed for ${context} — check GITHUB_TOKEN`)
+  }
+  if (status === 403) {
+    throw new Error(`GitHub API rate limit exceeded or access denied for ${context}`)
+  }
+  if (status === 429) {
+    throw new Error(`GitHub API rate limit exceeded for ${context}`)
+  }
+  throw new Error(`GitHub API error ${status} ${statusText} for ${context}`)
+}
+
+/**
  * Fetch repository metadata from the GitHub API.
  */
 export async function fetchRepoMetadata(owner: string, repo: string): Promise<GitHubRepoMetadata> {
   const url = `https://api.github.com/repos/${owner}/${repo}`
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'Polaris'
-    }
-  })
+  const response = await fetch(url, { headers: githubHeaders() })
 
   if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error(`Repository not found: ${owner}/${repo}`)
-    }
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
+    throwGitHubError(response.status, response.statusText, `repository ${owner}/${repo}`)
   }
 
   return await response.json() as GitHubRepoMetadata
@@ -120,18 +150,20 @@ export async function fetchRepoMetadata(owner: string, repo: string): Promise<Gi
  */
 export async function fetchFileTree(owner: string, repo: string, branch: string): Promise<GitHubTreeEntry[]> {
   const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'Polaris'
-    }
-  })
+  const response = await fetch(url, { headers: githubHeaders() })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch file tree: ${response.status} ${response.statusText}`)
+    throwGitHubError(response.status, response.statusText, `file tree for ${owner}/${repo}@${branch}`)
   }
 
   const data = await response.json() as { tree: GitHubTreeEntry[]; truncated: boolean }
+
+  if (data.truncated) {
+    // Repository has more than 100,000 tree entries; the tree is partial.
+    // Log a warning but continue — manifests near the root will still be found.
+    console.warn(`[github] Tree response truncated for ${owner}/${repo}@${branch} — large repo, some manifests may be missed`)
+  }
+
   return data.tree
 }
 
@@ -141,15 +173,10 @@ export async function fetchFileTree(owner: string, repo: string, branch: string)
  */
 export async function fetchFileContent(owner: string, repo: string, path: string, branch: string): Promise<string> {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'Polaris'
-    }
-  })
+  const response = await fetch(url, { headers: githubHeaders() })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${path}: ${response.status}`)
+    throwGitHubError(response.status, response.statusText, path)
   }
 
   const data = await response.json() as { content: string; encoding: string }

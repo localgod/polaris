@@ -157,6 +157,8 @@ export class GitHubImportService {
         writeFileSync(filePath, file.content, 'utf-8')
       }
 
+      console.log(`[github-import] Running cdxgen in ${tempDir} for project "${projectName}" with ${manifests.length} manifest(s)`)
+
       // Run cdxgen
       const bom = await createBom(tempDir, {
         installDeps: false,
@@ -165,7 +167,10 @@ export class GitHubImportService {
         multiProject: true
       })
 
-      if (!bom) return null
+      if (!bom) {
+        console.warn(`[github-import] cdxgen returned no BOM for "${projectName}"`)
+        return null
+      }
 
       if (typeof bom === 'string') {
         return JSON.parse(bom)
@@ -174,6 +179,9 @@ export class GitHubImportService {
       }
 
       return bom as object
+    } catch (err) {
+      console.error(`[github-import] cdxgen threw for "${projectName}":`, err instanceof Error ? err.message : err)
+      throw err
     } finally {
       // Always clean up
       if (existsSync(tempDir)) {
