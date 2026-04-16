@@ -73,7 +73,7 @@ jobs:
           # ----------------------------------------------------------------
           # Required — replace with the exact system name in Polaris
           # ----------------------------------------------------------------
-          POLARIS_SYSTEM: 'my-system'   # <-- CHANGE THIS
+          POLARIS_SYSTEM: 'Polaris'   # <-- CHANGE THIS
 
           # ----------------------------------------------------------------
           # Optional overrides
@@ -85,7 +85,7 @@ jobs:
           # Set to "true" to automatically register this repository with the
           # system in Polaris if it is not already linked. Requires the token
           # owner to have write access to the system's owning team.
-          POLARIS_AUTO_REGISTER: 'false'   # <-- set to "true" to enable
+          POLARIS_AUTO_REGISTER: 'true'   # <-- set to "true" to enable
 
           # Domain used when POLARIS_AUTO_REGISTER creates the system entry.
           # POLARIS_DOMAIN: 'Development'
