@@ -272,6 +272,43 @@ Polaris collects and tracks Software Bill of Materials (SBOM) from your CI/CD pi
 
 **Note:** Polaris focuses on SBOM collection and component tracking. For vulnerability scanning, use complementary tools like GitHub Dependabot, Trivy, or Grype alongside Polaris.
 
+#### GitHub Actions Integration
+
+For projects hosted on GitHub, Polaris ships a ready-to-use push script and workflow template that automate SBOM generation and submission on every push to the default branch.
+
+**Quick setup (3 steps):**
+
+1. Copy the workflow template into your repository:
+   ```bash
+   cp .github/workflows/polaris-sbom.yml /path/to/your-repo/.github/workflows/
+   ```
+
+2. Add two secrets to your repository (**Settings → Secrets and variables → Actions**):
+
+   | Secret | Value |
+   |---|---|
+   | `POLARIS_URL` | Base URL of your Polaris instance, e.g. `https://polaris.example.com` |
+   | `POLARIS_TOKEN` | API token — generate one in Polaris under **Profile → API Tokens** |
+
+3. Edit the workflow file and set `POLARIS_SYSTEM` to the name of the system in Polaris that owns the repository.
+
+The workflow runs `scripts/polaris-push.mjs`, which uses [cdxgen](https://github.com/CycloneDX/cdxgen) to generate a CycloneDX SBOM from the project's dependency manifests and submits it to `POST /api/sboms`. Failures in the Polaris push never block your CI pipeline (`continue-on-error: true`).
+
+**Optional: auto-register the repository**
+
+Set `POLARIS_AUTO_REGISTER: 'true'` in the workflow env block to have the script automatically register the repository with the system in Polaris before pushing the SBOM. This is idempotent — safe to leave enabled on every run.
+
+**Environment variables reference:**
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `POLARIS_URL` | Yes | — | Base URL of the Polaris instance |
+| `POLARIS_TOKEN` | Yes | — | Bearer token for a Polaris user |
+| `POLARIS_SYSTEM` | Yes | — | System name in Polaris |
+| `POLARIS_REPO_URL` | No | `https://github.com/$GITHUB_REPOSITORY` | Repository URL sent to Polaris |
+| `POLARIS_AUTO_REGISTER` | No | `false` | Register repo with system before pushing |
+| `POLARIS_DOMAIN` | No | `Development` | Domain used when auto-registering |
+
 **Documentation:**
 - [SBOM Schema Design](docs/sbom-schema-design.md)
 - [ADR-0004: Exclude CVE Management](docs/architecture/decisions/0004-exclude-cve-vulnerability-management.md)
