@@ -1,0 +1,104 @@
+# polaris-sbom.yml
+#
+# TEMPLATE — copy this file into your own repository at .github/workflows/polaris-sbom.yml
+#
+# Generates a CycloneDX SBOM using cdxgen and pushes it to your Polaris instance
+# on every push to the default branch.
+#
+# Prerequisites
+# -------------
+# 1. Your repository must already be registered to a system in Polaris, OR you
+#    must set POLARIS_AUTO_REGISTER=true (see the env block below).
+#
+# 2. Add the following secrets to your repository
+#    (Settings → Secrets and variables → Actions → New repository secret):
+#
+#      POLARIS_URL    — Base URL of your Polaris instance
+#                       e.g. https://polaris.example.com
+#
+#      POLARIS_TOKEN  — API token for a Polaris user with at least team-member role.
+#                       Generate one in Polaris under Profile → API Tokens.
+#
+# 3. Set POLARIS_SYSTEM below to the name of the system in Polaris that owns
+#    this repository.
+
+name: Polaris SBOM Push
+
+on:
+  push:
+    branches:
+      - main   # Change to your default branch name if different (e.g. master)
+
+permissions:
+  contents: read
+
+jobs:
+  polaris-sbom:
+    name: Generate and push SBOM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'   # Change to 'yarn' or 'pnpm' if your project uses a different package manager
+
+      - name: Install dependencies
+        # Installs your project's dependencies so cdxgen can resolve the full
+        # dependency tree from lockfiles. Remove this step if your project does
+        # not use Node.js or if cdxgen can work from lockfiles alone.
+        run: npm ci
+
+      - name: Install cdxgen
+        # Installs cdxgen globally so it is available to the push script.
+        # If @cyclonedx/cdxgen is already in your project's devDependencies you
+        # can remove this step.
+        run: npm install -g @cyclonedx/cdxgen
+
+      - name: Push SBOM to Polaris
+        # continue-on-error ensures a Polaris outage or misconfiguration never
+        # blocks your main CI pipeline.
+        continue-on-error: true
+        env:
+          # ----------------------------------------------------------------
+          # Required — set these as repository secrets (see Prerequisites above)
+          # ----------------------------------------------------------------
+          POLARIS_URL: ${{ secrets.POLARIS_URL }}
+          POLARIS_TOKEN: ${{ secrets.POLARIS_TOKEN }}
+
+          # ----------------------------------------------------------------
+          # Required — replace with the exact system name in Polaris
+          # ----------------------------------------------------------------
+          POLARIS_SYSTEM: 'my-system'   # <-- CHANGE THIS
+
+          # ----------------------------------------------------------------
+          # Optional overrides
+          # ----------------------------------------------------------------
+
+          # Repository URL sent to Polaris. Defaults to the current GitHub repo.
+          # POLARIS_REPO_URL: 'https://github.com/my-org/my-repo'
+
+          # Set to "true" to automatically register this repository with the
+          # system in Polaris if it is not already linked. Requires the token
+          # owner to have write access to the system's owning team.
+          POLARIS_AUTO_REGISTER: 'false'   # <-- set to "true" to enable
+
+          # Domain used when POLARIS_AUTO_REGISTER creates the system entry.
+          # POLARIS_DOMAIN: 'Development'
+
+          # Populated automatically by GitHub Actions — used as the SBOM version.
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+        run: node scripts/polaris-push.mjs
+        # If polaris-push.mjs is not in your repo, fetch it from the Polaris
+        # repository instead:
+        #
+        #   run: |
+        #     curl -fsSL https://raw.githubusercontent.com/localgod/polaris/main/scripts/polaris-push.mjs \
+        #       -o polaris-push.mjs
+        #     node polaris-push.mjs
