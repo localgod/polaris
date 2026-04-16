@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.17] - 2026-04-16
+
+## What's Changed
+
+- fix: avoid GNU tar --strip-components in scp-action deploy step @localgod (#307)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.16...v0.1.17
+
+
 ## [0.1.13] - 2026-04-16
 
 ## What's Changed
