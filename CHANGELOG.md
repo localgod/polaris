@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.22] - 2026-04-23
+
+## What's Changed
+
+- fix: replace scp-action with inline SSH heredoc for compose file @localgod (#318)
+
+## 🔧 Maintenance
+
+- chore: release v0.1.21 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#317)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.21...v0.1.22
+
+
 ## [0.1.21] - 2026-04-23
 
 ## What's Changed
