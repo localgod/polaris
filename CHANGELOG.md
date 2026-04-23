@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.26] - 2026-04-23
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(actions): bump docker/setup-qemu-action from 3 to 4 @[dependabot[bot]](https://github.com/apps/dependabot) (#322)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.25...v0.1.26
+
+
 ## [0.1.22] - 2026-04-23
 
 ## What's Changed
