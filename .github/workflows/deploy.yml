@@ -22,10 +22,11 @@ jobs:
     name: Deploy to production
     runs-on: ubuntu-latest
 
-    # For workflow_run triggers, only proceed when publish succeeded
+    # For manual deploys, only allow runs from main.
+    # For workflow_run triggers, only proceed when publish succeeded.
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     permissions:
       contents: read
