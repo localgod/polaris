@@ -22,31 +22,16 @@ jobs:
     name: Deploy to production
     runs-on: ubuntu-latest
 
-    # For manual deploys, only allow runs from main.
-    # For workflow_run triggers, only proceed when publish succeeded.
+    # For workflow_run triggers, only proceed when publish succeeded
     if: >
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Copy compose file
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: polaris
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: infra/docker-compose.yml
-          target: /opt/polaris/infra/
-          overwrite: true
-          debug: true
-
-      - name: Write .env and deploy
+      - name: Write compose file, .env, and deploy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -56,12 +41,86 @@ jobs:
           script: |
             set -e
 
-            # Move compose file uploaded by scp-action into the expected location
-            mv /opt/polaris/infra/docker-compose.yml /opt/polaris/docker-compose.yml
+            mkdir -p /opt/polaris
+
+            # Write docker-compose.yml inline — avoids scp-action tar issues
+            cat > /opt/polaris/docker-compose.yml << 'COMPOSE'
+            services:
+              app:
+                image: ${DOCKERHUB_USERNAME}/polaris:latest
+                restart: unless-stopped
+                env_file: .env
+                depends_on:
+                  neo4j:
+                    condition: service_healthy
+                networks:
+                  - polaris-net
+
+              neo4j:
+                image: neo4j:5-community
+                restart: unless-stopped
+                environment:
+                  NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+                  NEO4J_PLUGINS: '["apoc"]'
+                  NEO4J_dbms_security_procedures_unrestricted: apoc.*
+                  NEO4J_dbms_memory_heap_initial__size: 256m
+                  NEO4J_dbms_memory_heap_max__size: 512m
+                  NEO4J_dbms_memory_pagecache_size: 256m
+                volumes:
+                  - /opt/polaris/data/neo4j/data:/data
+                  - /opt/polaris/data/neo4j/logs:/logs
+                  - /opt/polaris/data/neo4j/import:/var/lib/neo4j/import
+                  - /opt/polaris/data/neo4j/plugins:/plugins
+                healthcheck:
+                  test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+                  interval: 15s
+                  timeout: 15s
+                  retries: 10
+                  start_period: 60s
+                networks:
+                  - polaris-net
+
+              migrate:
+                image: ${DOCKERHUB_USERNAME}/polaris-migrator:latest
+                env_file: .env
+                depends_on:
+                  neo4j:
+                    condition: service_healthy
+                networks:
+                  - polaris-net
+                profiles:
+                  - migrate
+
+              caddy:
+                image: caddy:2-alpine
+                restart: unless-stopped
+                ports:
+                  - "80:80"
+                  - "443:443"
+                volumes:
+                  - /opt/polaris/Caddyfile:/etc/caddy/Caddyfile:ro
+                  - caddy_data:/data
+                  - caddy_config:/config
+                depends_on:
+                  - app
+                networks:
+                  - polaris-net
+
+            networks:
+              polaris-net:
+                driver: bridge
+                enable_ipv6: true
+
+            volumes:
+              caddy_data:
+              caddy_config:
+            COMPOSE
+
+            # Strip the 12-space indent added by the YAML block scalar
+            sed -i 's/^            //' /opt/polaris/docker-compose.yml
 
             # Write production .env from GitHub secrets
             cat > /opt/polaris/.env << ENV
-            # Neo4j connection (plain vars for migrator, NUXT_ vars for app runtimeConfig)
             NEO4J_URI=${{ secrets.NEO4J_URI }}
             NEO4J_USERNAME=${{ secrets.NEO4J_USERNAME }}
             NEO4J_PASSWORD=${{ secrets.NEO4J_PASSWORD }}
@@ -77,11 +136,12 @@ jobs:
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             ENV
 
+            sed -i 's/^            //' /opt/polaris/.env
             chmod 600 /opt/polaris/.env
 
             cd /opt/polaris
 
-            # Pull new image and restart stack
+            # Pull new images and restart stack
             docker compose pull
             docker compose up -d --wait
 
