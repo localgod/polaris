@@ -19,6 +19,12 @@ updates:
       - "localgod"
     assignees:
       - "localgod"
+    # next-auth must stay at 4.22.5 — versions >=4.24.0 removed the ./core
+    # subpath export that @sidebase/nuxt-auth@1.2.0 depends on, causing a
+    # hard build failure. Re-evaluate when nuxt-auth supports next-auth v5.
+    ignore:
+      - dependency-name: "next-auth"
+        versions: [">=4.23.0"]
     # Group minor and patch updates together
     groups:
       production-dependencies:
