@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.28] - 2026-04-25
+
+## What's Changed
+
+- fix: regenerate lockfile and fix CHANGELOG markdown lint errors @localgod (#330)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.27...v0.1.28
+
+
 ## [0.1.23] - 2026-04-23
 
 ## What's Changed
