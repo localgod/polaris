@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.23] - 2026-04-23
+
+## What's Changed
+
+- chore(deps): ignore next-auth >=4.23.0 in dependabot @localgod (#320)
+
+## 🔧 Maintenance
+
+- chore: release v0.1.22 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#319)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.22...v0.1.23
+
+
 ## [0.1.22] - 2026-04-23
 
 ## What's Changed
