@@ -47,8 +47,9 @@ FROM node:lts-alpine AS migrator
 
 WORKDIR /app
 
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json /app/package-lock.json ./
+RUN npm ci --omit=dev
+
 COPY --from=builder /app/schema ./schema
-COPY --from=builder /app/package.json ./package.json
 
 ENV NODE_ENV=production

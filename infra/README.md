@@ -70,6 +70,8 @@ In your repository go to **Settings → Secrets and variables → Actions** and 
 | `GITHUB_CLIENT_ID` | From your GitHub OAuth app |
 | `GITHUB_CLIENT_SECRET` | From your GitHub OAuth app |
 | `SUPERUSER_EMAILS` | Comma-separated admin email addresses |
+| `DOZZLE_USER` | Username for the Dozzle log viewer |
+| `DOZZLE_PASSWORD_HASH` | Caddy bcrypt hash (`caddy hash-password`) |
 
 ### 4. Trigger the first deploy
 
@@ -82,6 +84,35 @@ Push any commit to `main`. The `Deploy` workflow will:
 5. Run `npm run migrate:up` inside the app container
 
 After the workflow completes, `curl http://[2a01:4f9:c014:472c::1]` should return the Polaris app.
+
+## Log viewer (Dozzle)
+
+Live Docker container logs are accessible at `https://logs.mindfield.dk`, protected by HTTP basic auth via Caddy.
+
+### Setup
+
+1. **Generate a bcrypt password hash** using the Caddy image (no local install needed):
+
+   ```bash
+   docker run --rm caddy:2-alpine caddy hash-password --plaintext 'your-password-here'
+   ```
+
+   The output (e.g. `$2a$14$...`) is the value for `DOZZLE_PASSWORD_HASH`.
+
+2. **Add two GitHub Actions secrets** (Settings → Secrets and variables → Actions):
+
+   | Secret | Value |
+   |---|---|
+   | `DOZZLE_USER` | Username for the log viewer |
+   | `DOZZLE_PASSWORD_HASH` | Bcrypt hash from step 1 |
+
+   The deploy workflow writes these to `/opt/polaris/.env`, where Caddy reads them via `{$DOZZLE_USER}` / `{$DOZZLE_PASSWORD_HASH}` env var substitution in the Caddyfile.
+
+3. **Trigger a deploy** — the next deploy will start the Dozzle container and configure Caddy.
+
+### Security note
+
+Dozzle mounts the Docker socket read-only (`/var/run/docker.sock:ro`). This grants log-stream access to all containers on the host. The socket is not exposed outside the internal `polaris-net` network; all access goes through Caddy with basic auth over TLS.
 
 ## Enabling TLS (when you have a domain)
 

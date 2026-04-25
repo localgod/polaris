@@ -47,6 +47,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    env_file: .env
     ports:
       - "80:80"
       - "443:443"
@@ -56,6 +57,17 @@ services:
       - caddy_config:/config
     depends_on:
       - app
+      - dozzle
+    networks:
+      - polaris-net
+
+  dozzle:
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_NO_ANALYTICS: "true"
     networks:
       - polaris-net
 

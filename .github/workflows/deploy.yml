@@ -93,6 +93,7 @@ jobs:
               caddy:
                 image: caddy:2-alpine
                 restart: unless-stopped
+                env_file: .env
                 ports:
                   - "80:80"
                   - "443:443"
@@ -102,6 +103,17 @@ jobs:
                   - caddy_config:/config
                 depends_on:
                   - app
+                  - dozzle
+                networks:
+                  - polaris-net
+
+              dozzle:
+                image: amir20/dozzle:latest
+                restart: unless-stopped
+                volumes:
+                  - /var/run/docker.sock:/var/run/docker.sock:ro
+                environment:
+                  DOZZLE_NO_ANALYTICS: "true"
                 networks:
                   - polaris-net
 
@@ -131,6 +143,8 @@ jobs:
             GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
             SUPERUSER_EMAILS=${{ secrets.SUPERUSER_EMAILS }}
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            DOZZLE_USER=${{ secrets.DOZZLE_USER }}
+            DOZZLE_PASSWORD_HASH=${{ secrets.DOZZLE_PASSWORD_HASH }}
             ENV
 
             chmod 600 /opt/polaris/.env
