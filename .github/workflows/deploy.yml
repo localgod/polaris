@@ -164,6 +164,7 @@ jobs:
             GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
             SUPERUSER_EMAILS=${{ secrets.SUPERUSER_EMAILS }}
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            GITHUB_TOKEN=${{ secrets.POLARIS_GITHUB_TOKEN }}
             ENV
 
             chmod 600 /opt/polaris/.env
