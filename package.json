@@ -80,6 +80,8 @@
     "spdx-license-list": "^6.11.0",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
+    "tsx": "^4.21.0",
+    "@cyclonedx/cdxgen": "^12.2.0",
     "vue": "^3.5.33"
   },
   "devDependencies": {
@@ -87,7 +89,6 @@
     "@cucumber/cucumber": "^12.8.1",
     "@cucumber/gherkin": "^39.0.0",
     "@cucumber/messages": "^32.3.1",
-    "@cyclonedx/cdxgen": "^12.2.0",
     "@iconify-json/lucide": "^1.2.102",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
@@ -98,7 +99,6 @@
     "markdownlint-cli": "^0.48.0",
     "patch-package": "^8.0.1",
     "swagger-jsdoc": "^6.2.8",
-    "tsx": "^4.21.0",
     "vitest": "^4.1.5"
   }
 }
