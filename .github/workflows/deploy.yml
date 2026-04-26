@@ -114,7 +114,7 @@ jobs:
                 restart: unless-stopped
                 volumes:
                   - /var/run/docker.sock:/var/run/docker.sock:ro
-                  - /opt/polaris/data/dozzle:/data
+                  - /opt/polaris/dozzle:/data
                 environment:
                   DOZZLE_NO_ANALYTICS: "true"
                   DOZZLE_AUTH_PROVIDER: simple
@@ -169,12 +169,12 @@ jobs:
             chmod 600 /opt/polaris/.env
 
             # Generate Dozzle users.yml using the official generate command
-            mkdir -p /opt/polaris/data/dozzle
+            mkdir -p /opt/polaris/dozzle
             docker run --rm amir20/dozzle generate ${{ secrets.DOZZLE_USER }} \
               --password '${{ secrets.DOZZLE_PASSWORD }}' \
               --name '${{ secrets.DOZZLE_USER }}' \
-              > /opt/polaris/data/dozzle/users.yml
-            chmod 600 /opt/polaris/data/dozzle/users.yml
+              > /opt/polaris/dozzle/users.yml
+            chmod 600 /opt/polaris/dozzle/users.yml
 
             cd /opt/polaris
 
