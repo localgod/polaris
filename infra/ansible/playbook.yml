@@ -98,6 +98,14 @@
         group: "{{ polaris_user }}"
         mode: "0750"
 
+    - name: Create data directory owned by polaris
+      file:
+        path: "{{ polaris_dir }}/data"
+        state: directory
+        owner: "{{ polaris_user }}"
+        group: "{{ polaris_user }}"
+        mode: "0750"
+
     - name: Create Neo4j data directories
       file:
         path: "{{ item }}"
@@ -110,6 +118,14 @@
         - "{{ polaris_dir }}/data/neo4j/logs"
         - "{{ polaris_dir }}/data/neo4j/import"
         - "{{ polaris_dir }}/data/neo4j/plugins"
+
+    - name: Create Dozzle data directory
+      file:
+        path: "{{ polaris_dir }}/dozzle"
+        state: directory
+        owner: "{{ polaris_user }}"
+        group: "{{ polaris_user }}"
+        mode: "0750"
 
     - name: Create polaris SSH directory
       file:
