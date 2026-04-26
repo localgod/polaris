@@ -102,8 +102,10 @@ jobs:
                   - caddy_data:/data
                   - caddy_config:/config
                 depends_on:
-                  - app
-                  - dozzle
+                  app:
+                    condition: service_started
+                  dozzle:
+                    condition: service_healthy
                 networks:
                   - polaris-net
 
@@ -114,6 +116,12 @@ jobs:
                   - /var/run/docker.sock:/var/run/docker.sock:ro
                 environment:
                   DOZZLE_NO_ANALYTICS: "true"
+                healthcheck:
+                  test: ["CMD", "/dozzle", "healthcheck"]
+                  interval: 10s
+                  timeout: 5s
+                  retries: 5
+                  start_period: 10s
                 networks:
                   - polaris-net
 
