@@ -65,4 +65,13 @@ export default defineNuxtConfig({
     }
   },
 
+  nitro: {
+    // Keep @cyclonedx/cdxgen as an external module so Nitro does not bundle it.
+    // cdxgen reads data files (JSON mappings) relative to its own location at
+    // runtime — bundling strips those files and causes ENOENT errors in production.
+    externals: {
+      external: ['@cyclonedx/cdxgen']
+    }
+  }
+
 })
