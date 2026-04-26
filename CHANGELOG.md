@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.34] - 2026-04-26
+
+## What's Changed
+
+- fix: move tsx and @cyclonedx/cdxgen to production dependencies @localgod (#342)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.33...v0.1.34
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
