@@ -114,8 +114,10 @@ jobs:
                 restart: unless-stopped
                 volumes:
                   - /var/run/docker.sock:/var/run/docker.sock:ro
+                  - /opt/polaris/data/dozzle:/data
                 environment:
                   DOZZLE_NO_ANALYTICS: "true"
+                  DOZZLE_AUTH_PROVIDER: simple
                 healthcheck:
                   test: ["CMD", "/dozzle", "healthcheck"]
                   interval: 10s
@@ -135,6 +137,17 @@ jobs:
               caddy_config:
             COMPOSE
 
+            # Write Caddyfile (no basicauth — auth is handled by Dozzle natively)
+            cat > /opt/polaris/Caddyfile << 'CADDYFILE'
+            polaris.mindfield.dk {
+                reverse_proxy app:3000
+            }
+
+            logs.mindfield.dk {
+                reverse_proxy dozzle:8080
+            }
+            CADDYFILE
+
             # Write production .env from GitHub secrets
             cat > /opt/polaris/.env << ENV
             # Neo4j connection (plain vars for migrator, NUXT_ vars for app runtimeConfig)
@@ -151,11 +164,17 @@ jobs:
             GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
             SUPERUSER_EMAILS=${{ secrets.SUPERUSER_EMAILS }}
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-            DOZZLE_USER=${{ secrets.DOZZLE_USER }}
-            DOZZLE_PASSWORD_HASH=${{ secrets.DOZZLE_PASSWORD_HASH }}
             ENV
 
             chmod 600 /opt/polaris/.env
+
+            # Generate Dozzle users.yml using the official generate command
+            mkdir -p /opt/polaris/data/dozzle
+            docker run --rm amir20/dozzle generate ${{ secrets.DOZZLE_USER }} \
+              --password '${{ secrets.DOZZLE_PASSWORD }}' \
+              --name '${{ secrets.DOZZLE_USER }}' \
+              > /opt/polaris/data/dozzle/users.yml
+            chmod 600 /opt/polaris/data/dozzle/users.yml
 
             cd /opt/polaris
 
