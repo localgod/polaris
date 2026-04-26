@@ -47,7 +47,8 @@ FROM node:lts-alpine AS migrator
 
 WORKDIR /app
 
-COPY --from=builder /app/package.json /app/package-lock.json ./
+# Copy package files from source (not builder) to avoid lockfile drift caused by the Nuxt build
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/schema ./schema
