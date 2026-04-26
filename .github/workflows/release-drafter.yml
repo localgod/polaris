@@ -71,7 +71,7 @@ jobs:
           with open('CHANGELOG.md', 'r') as f:
               content = f.read()
 
-          new_section = f"## [{version}] - {today}\n\n{body}\n"
+          new_section = f"## [{version}] - {today}\n\n{body.strip()}\n"
           unreleased_block = (
               "## [Unreleased]\n\n"
               "### Added\n\n"
