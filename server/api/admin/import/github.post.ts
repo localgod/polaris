@@ -111,9 +111,10 @@ export default defineEventHandler(async (event) => {
       message.includes('authentication failed') ||
       message.includes('access denied')
     ) {
-      throw createError({ statusCode: 422, message })
+      throw createError({ statusCode: 422, statusMessage: message, message })
     }
 
-    throw createError({ statusCode: 500, message })
+    // Use statusMessage so Nuxt preserves the message in production (500 message is sanitised by default)
+    throw createError({ statusCode: 500, statusMessage: message, message })
   }
 })
