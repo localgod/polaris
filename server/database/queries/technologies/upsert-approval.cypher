@@ -14,6 +14,7 @@ CREATE (al:AuditLog {
   entityId: t.name,
   entityLabel: team.name + ' -> ' + t.name + ' (' + $time + ')',
   changedFields: ['time', 'notes'],
+  changes: $changes,
   source: 'API',
   userId: $userId
 })

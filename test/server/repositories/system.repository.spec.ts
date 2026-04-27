@@ -143,7 +143,7 @@ describe('SystemRepository', () => {
       await seed(ctx.driver, `CREATE (:System { name: $name, domain: 'Test' })`, { name: `${PREFIX}to-delete` })
 
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(true)
-      await repo.delete(`${PREFIX}to-delete`, 'test-user')
+      await repo.delete(`${PREFIX}to-delete`, 'test-user', {})
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
     })
 
@@ -155,7 +155,7 @@ describe('SystemRepository', () => {
         CREATE (s)-[:USES]->(c)
       `, { sys: `${PREFIX}sys-rels`, comp: `${PREFIX}comp` })
 
-      await repo.delete(`${PREFIX}sys-rels`, 'test-user')
+      await repo.delete(`${PREFIX}sys-rels`, 'test-user', {})
 
       const result = await session.run(`
         MATCH (c:Component { name: $comp })

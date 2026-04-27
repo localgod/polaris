@@ -1,6 +1,7 @@
 import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
 import type { Technology, ComponentType, TechnologyDomain } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
+import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
 
 const VALID_TYPES: ComponentType[] = [
   'application', 'framework', 'library', 'container', 'platform',
@@ -147,16 +148,24 @@ export class TechnologyService {
    * @throws 404 if technology not found
    */
   async delete(name: string, userId: string): Promise<void> {
-    const exists = await this.techRepo.exists(name)
+    const tech = await this.techRepo.findByName(name)
 
-    if (!exists) {
+    if (!tech) {
       throw createError({
         statusCode: 404,
         message: `Technology '${name}' not found`
       })
     }
 
-    await this.techRepo.delete(name, userId)
+    const changes = buildDeleteChanges({
+      name: tech.name,
+      type: tech.type,
+      domain: tech.domain ?? null,
+      vendor: tech.vendor ?? null,
+      ownerTeam: tech.ownerTeamName ?? null,
+    })
+
+    await this.techRepo.delete(name, userId, changes)
   }
 
   /**
@@ -184,13 +193,30 @@ export class TechnologyService {
       })
     }
 
-    const exists = await this.techRepo.exists(input.name)
-    if (!exists) {
+    const current = await this.techRepo.findByName(input.name)
+    if (!current) {
       throw createError({
         statusCode: 404,
         message: `Technology '${input.name}' not found`
       })
     }
+
+    const allFields = ['type', 'domain', 'vendor', 'ownerTeam', 'lastReviewed']
+    const before: Record<string, unknown> = {
+      type: current.type ?? null,
+      domain: current.domain ?? null,
+      vendor: current.vendor ?? null,
+      ownerTeam: current.ownerTeamName ?? null,
+      lastReviewed: current.lastReviewed ?? null,
+    }
+    const after: Record<string, unknown> = {
+      type: input.type,
+      domain: input.domain || null,
+      vendor: input.vendor || null,
+      ownerTeam: input.ownerTeam || null,
+      lastReviewed: input.lastReviewed || null,
+    }
+    const changes = buildAuditChanges(before, after, allFields)
 
     const params: UpdateTechnologyParams = {
       name: input.name,
@@ -202,7 +228,7 @@ export class TechnologyService {
       userId: input.userId
     }
 
-    return await this.techRepo.update(params)
+    return await this.techRepo.update({ ...params, changes })
   }
 
   /**
@@ -236,6 +262,18 @@ export class TechnologyService {
       })
     }
 
+    // Fetch existing approval for this team to compute the diff
+    const existing = await this.techRepo.findExistingApproval(input.technologyName, input.teamName)
+    const before: Record<string, unknown> = {
+      time: existing?.time ?? null,
+      notes: existing?.notes ?? null,
+    }
+    const after: Record<string, unknown> = {
+      time: input.time,
+      notes: input.notes ?? null,
+    }
+    const changes = buildAuditChanges(before, after, ['time', 'notes'])
+
     const params: UpsertApprovalParams = {
       technologyName: input.technologyName,
       teamName: input.teamName,
@@ -245,6 +283,6 @@ export class TechnologyService {
       userId: input.userId
     }
 
-    return await this.techRepo.upsertApproval(params)
+    return await this.techRepo.upsertApproval({ ...params, changes })
   }
 }

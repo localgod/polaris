@@ -24,6 +24,7 @@ export interface AuditLog {
   previousStatus: string | null
   newStatus: string | null
   changedFields: string[]
+  changes: Record<string, { before: unknown; after: unknown }> | null
   reason: string | null
   source: string
   userId: string | null
@@ -151,6 +152,12 @@ export class AuditLogRepository extends BaseRepository {
 
   private mapToAuditLog(record: Neo4jRecord): AuditLog {
     const a = record.get('a')
+    // changes is stored as a JSON string (Neo4j does not support nested maps as properties)
+    let changes: Record<string, { before: unknown; after: unknown }> | null = null
+    const raw = a.properties.changes
+    if (typeof raw === 'string' && raw.length > 0) {
+      try { changes = JSON.parse(raw) } catch { changes = null }
+    }
     return {
       id: a.properties.id,
       timestamp: a.properties.timestamp?.toString() || '',
@@ -161,6 +168,7 @@ export class AuditLogRepository extends BaseRepository {
       previousStatus: a.properties.previousStatus || null,
       newStatus: a.properties.newStatus || null,
       changedFields: a.properties.changedFields || [],
+      changes,
       reason: a.properties.reason || null,
       source: a.properties.source || '',
       userId: a.properties.userId || null,
@@ -177,6 +185,7 @@ export class AuditLogRepository extends BaseRepository {
     entityId: string
     entityLabel: string
     changedFields?: string[]
+    changes?: Record<string, { before: unknown; after: unknown }> | null
     source?: string
     userId: string
   }): Promise<void> {
@@ -189,6 +198,7 @@ export class AuditLogRepository extends BaseRepository {
         entityId: $entityId,
         entityLabel: $entityLabel,
         changedFields: $changedFields,
+        changes: $changes,
         source: $source,
         userId: $userId
       })
@@ -198,6 +208,7 @@ export class AuditLogRepository extends BaseRepository {
       entityId: params.entityId,
       entityLabel: params.entityLabel,
       changedFields: params.changedFields || [],
+      changes: params.changes ? JSON.stringify(params.changes) : null,
       source: params.source || 'API',
       userId: params.userId
     })

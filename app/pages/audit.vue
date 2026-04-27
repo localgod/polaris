@@ -94,6 +94,11 @@ definePageMeta({ middleware: 'auth' })
 
 const { getSortableHeader } = useSortableTable()
 
+interface AuditChange {
+  before: unknown
+  after: unknown
+}
+
 interface AuditEntry {
   id: string
   entityType: string
@@ -103,6 +108,7 @@ interface AuditEntry {
   userId: string | null
   userName: string | null
   timestamp: string
+  changes: Record<string, AuditChange> | null
 }
 
 interface AuditResponse {
@@ -136,6 +142,11 @@ function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString()
 }
 
+function formatChangeValue(val: unknown): string {
+  if (val === null || val === undefined) return '—'
+  return String(val)
+}
+
 const columns: TableColumn<AuditEntry>[] = [
   {
     accessorKey: 'operation',
@@ -159,6 +170,46 @@ const columns: TableColumn<AuditEntry>[] = [
     cell: ({ row }) => {
       const label = row.original.entityLabel || row.original.entityId
       return label || '—'
+    }
+  },
+  {
+    accessorKey: 'changes',
+    header: 'Changes',
+    cell: ({ row }) => {
+      const changes = row.original.changes
+      if (!changes || Object.keys(changes).length === 0) {
+        return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      }
+      const entries = Object.entries(changes)
+      const UPopover = resolveComponent('UPopover')
+      const UButton = resolveComponent('UButton')
+      return h(UPopover, {}, {
+        default: () => h(UButton, {
+          variant: 'ghost',
+          size: 'xs',
+          icon: 'i-lucide-diff',
+          label: `${entries.length} field${entries.length > 1 ? 's' : ''}`,
+          color: 'neutral',
+        }),
+        content: () => h('div', { class: 'p-3 min-w-64 max-w-sm' }, [
+          h('table', { class: 'w-full text-xs' }, [
+            h('thead', {}, [
+              h('tr', {}, [
+                h('th', { class: 'text-left pb-1 pr-3 font-medium text-(--ui-text-muted)' }, 'Field'),
+                h('th', { class: 'text-left pb-1 pr-3 font-medium text-(--ui-text-muted)' }, 'Before'),
+                h('th', { class: 'text-left pb-1 font-medium text-(--ui-text-muted)' }, 'After'),
+              ])
+            ]),
+            h('tbody', {}, entries.map(([field, change]) =>
+              h('tr', { key: field, class: 'border-t border-(--ui-border)' }, [
+                h('td', { class: 'py-1 pr-3 font-mono font-medium' }, field),
+                h('td', { class: 'py-1 pr-3 text-(--ui-text-muted) line-through' }, formatChangeValue(change.before)),
+                h('td', { class: 'py-1 text-(--ui-text-highlighted)' }, formatChangeValue(change.after)),
+              ])
+            ))
+          ])
+        ])
+      })
     }
   },
   {

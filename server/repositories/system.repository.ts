@@ -2,6 +2,7 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Repository } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+import { buildCreateChanges } from '../utils/audit-diff'
 
 const systemSortConfig: SortConfig = {
   allowedFields: {
@@ -120,7 +121,13 @@ export class SystemRepository extends BaseRepository {
    */
   async create(params: CreateSystemParams): Promise<string> {
     const query = await loadQuery('systems/create.cypher')
-    const { records } = await this.executeQuery(query, params)
+    const changes = JSON.stringify(buildCreateChanges({
+      name: params.name,
+      domain: params.domain,
+      businessCriticality: params.businessCriticality,
+      environment: params.environment,
+    }))
+    const { records } = await this.executeQuery(query, { ...params, changes })
     
     if (records.length === 0) {
       throw new Error('Failed to create system')
@@ -134,9 +141,9 @@ export class SystemRepository extends BaseRepository {
    * 
    * @param name - System name
    */
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
     const query = await loadQuery('systems/delete.cypher')
-    await this.executeQuery(query, { name, userId })
+    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
   }
 
   /**

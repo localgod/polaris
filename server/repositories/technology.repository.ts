@@ -2,6 +2,7 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Technology } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+import { buildCreateChanges } from '../utils/audit-diff'
 
 const technologySortConfig: SortConfig = {
   allowedFields: {
@@ -131,6 +132,12 @@ export class TechnologyRepository extends BaseRepository {
    */
   async create(params: CreateTechnologyParams): Promise<string> {
     const query = await loadQuery('technologies/create.cypher')
+    const changes = JSON.stringify(buildCreateChanges({
+      name: params.name,
+      type: params.type,
+      domain: params.domain || null,
+      vendor: params.vendor || null,
+    }))
     const { records } = await this.executeQuery(query, {
       name: params.name,
       type: params.type,
@@ -139,7 +146,8 @@ export class TechnologyRepository extends BaseRepository {
       ownerTeam: params.ownerTeam || null,
       componentName: params.componentName || null,
       componentPackageManager: params.componentPackageManager || null,
-      userId: params.userId
+      userId: params.userId,
+      changes,
     })
 
     if (records.length === 0) {
@@ -166,18 +174,18 @@ export class TechnologyRepository extends BaseRepository {
     }
   }
 
-  async update(params: UpdateTechnologyParams): Promise<string> {
+  async update(params: UpdateTechnologyParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<string> {
     const query = await loadQuery('technologies/update.cypher')
-    const { records } = await this.executeQuery(query, params)
+    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
     if (records.length === 0) {
       throw createError({ statusCode: 404, message: `Technology '${params.name}' not found` })
     }
     return records[0]!.get('name')
   }
 
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
     const query = await loadQuery('technologies/delete.cypher')
-    await this.executeQuery(query, { name, userId })
+    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
   }
 
   /**
@@ -219,9 +227,25 @@ export class TechnologyRepository extends BaseRepository {
   /**
    * Create or update a team's APPROVES relationship on a technology
    */
-  async upsertApproval(params: UpsertApprovalParams): Promise<{ time: string; team: string }> {
+  /**
+   * Fetch the existing APPROVES relationship for a team→technology pair, if any.
+   */
+  async findExistingApproval(technologyName: string, teamName: string): Promise<{ time: string | null; notes: string | null } | null> {
+    const { records } = await this.executeQuery(`
+      MATCH (team:Team {name: $teamName})-[a:APPROVES]->(t:Technology {name: $technologyName})
+      RETURN a.time as time, a.notes as notes
+    `, { technologyName, teamName })
+
+    if (records.length === 0) return null
+    return {
+      time: records[0]!.get('time') ?? null,
+      notes: records[0]!.get('notes') ?? null,
+    }
+  }
+
+  async upsertApproval(params: UpsertApprovalParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<{ time: string; team: string }> {
     const query = await loadQuery('technologies/upsert-approval.cypher')
-    const { records } = await this.executeQuery(query, params)
+    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
 
     if (records.length === 0) {
       throw new Error('Failed to set approval — technology or team not found')

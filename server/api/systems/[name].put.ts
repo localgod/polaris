@@ -66,6 +66,8 @@
  *       422:
  *         description: Validation error - invalid field values
  */
+import { buildAuditChanges } from '../../utils/audit-diff'
+
 export default defineEventHandler(async (event) => {
   const user = await requireAuthorization(event)
   
@@ -125,6 +127,33 @@ export default defineEventHandler(async (event) => {
     })
   }
   
+  // Fetch current state before writing so we can diff it
+  const { records: currentRecords } = await driver.executeQuery(`
+    MATCH (s:System {name: $name})
+    RETURN s {
+      .domain, .businessCriticality, .environment, .description,
+      ownerTeam: [(s)<-[:OWNS]-(t:Team) | t.name][0]
+    } as props
+  `, { name })
+
+  if (currentRecords.length === 0) {
+    throw createError({
+      statusCode: 404,
+      message: `System '${name}' not found`
+    })
+  }
+
+  const currentProps = currentRecords[0]!.get('props') as Record<string, unknown>
+  const incomingProps: Record<string, unknown> = {
+    domain: body.domain,
+    ownerTeam: body.ownerTeam,
+    businessCriticality: body.businessCriticality,
+    environment: body.environment,
+    description: body.description || null,
+  }
+  const allFields = ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description']
+  const changes = JSON.stringify(buildAuditChanges(currentProps, incomingProps, allFields))
+
   // Replace entire resource
   const { records } = await driver.executeQuery(`
     MATCH (s:System {name: $name})
@@ -152,6 +181,7 @@ export default defineEventHandler(async (event) => {
       entityId: s.name,
       entityLabel: s.name,
       changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description'],
+      changes: $changes,
       source: 'API',
       userId: $userId
     })
@@ -168,7 +198,8 @@ export default defineEventHandler(async (event) => {
     businessCriticality: body.businessCriticality,
     environment: body.environment,
     description: body.description || null,
-    userId: user.id
+    userId: user.id,
+    changes,
   })
   
   if (records.length === 0) {
