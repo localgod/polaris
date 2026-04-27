@@ -435,13 +435,24 @@ export class LicenseRepository extends BaseRepository {
     limit: number = 50,
     offset: number = 0
   ): Promise<{ data: LicenseComponent[]; total: number }> {
-    const cypher = `
+    // Count query — always returns exactly one row
+    const countCypher = `
       MATCH (c:Component)-[:HAS_LICENSE]->(l:License {id: $licenseId})
-      WITH count(DISTINCT c) as total
+      RETURN count(DISTINCT c) as total
+    `
+    const { records: countRecords } = await this.executeQuery(countCypher, { licenseId })
+    const total = countRecords[0]?.get('total')?.toNumber() ?? 0
+
+    if (total === 0) {
+      return { data: [], total: 0 }
+    }
+
+    // Data query — only runs when there are components to return
+    const dataCypher = `
       MATCH (c:Component)-[:HAS_LICENSE]->(l:License {id: $licenseId})
       OPTIONAL MATCH (s:System)-[:USES]->(c)
       OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(t:Technology)
-      WITH c, total, count(DISTINCT s) as systemCount, t.name as technologyName
+      WITH c, count(DISTINCT s) as systemCount, t.name as technologyName
       ORDER BY c.packageManager ASC, c.name ASC, c.version ASC
       SKIP toInteger($offset) LIMIT toInteger($limit)
       RETURN c.name as name,
@@ -450,17 +461,10 @@ export class LicenseRepository extends BaseRepository {
              c.type as type,
              c.purl as purl,
              systemCount,
-             technologyName,
-             total
+             technologyName
     `
 
-    const { records } = await this.executeQuery(cypher, {
-      licenseId,
-      limit,
-      offset
-    })
-
-    const total = records.length > 0 ? records[0].get('total').toNumber() : 0
+    const { records } = await this.executeQuery(dataCypher, { licenseId, limit, offset })
 
     return {
       data: records.map(record => ({
