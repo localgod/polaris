@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.37] - 2026-04-27
+
+## What's Changed
+
+- feat: populate AuditLog changes map with field-level before/after diffs @localgod (#349)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.36...v0.1.37
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
