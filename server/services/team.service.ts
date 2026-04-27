@@ -1,6 +1,7 @@
 import { TeamRepository } from '../repositories/team.repository'
 import type { Team, TeamApprovalsResult, TeamConstraintsResult, TeamUsageResult, ApprovalStatus } from '../repositories/team.repository'
 import type { SortParams } from '../utils/sorting'
+import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
 
 /**
  * Service for team-related business logic
@@ -94,8 +95,8 @@ export class TeamService {
     responsibilityArea?: string | null
     userId: string
   }): Promise<string> {
-    const exists = await this.teamRepo.exists(input.name)
-    if (!exists) {
+    const current = await this.teamRepo.findByName(input.name)
+    if (!current) {
       throw createError({
         statusCode: 404,
         message: `Team '${input.name}' not found`
@@ -125,12 +126,25 @@ export class TeamService {
       })
     }
 
+    const before: Record<string, unknown> = {
+      name: current.name,
+      email: current.email ?? null,
+      responsibilityArea: current.responsibilityArea ?? null,
+    }
+    const after: Record<string, unknown> = {
+      name: newName,
+      email: input.email ?? current.email ?? null,
+      responsibilityArea: input.responsibilityArea ?? current.responsibilityArea ?? null,
+    }
+    const changes = buildAuditChanges(before, after, changedFields)
+
     return await this.teamRepo.update({
       name: input.name,
       newName,
       email: input.email ?? null,
       responsibilityArea: input.responsibilityArea ?? null,
       changedFields,
+      changes,
       userId: input.userId
     })
   }
@@ -147,28 +161,33 @@ export class TeamService {
    * @throws Error if team not found or owns systems
    */
   async delete(name: string, userId: string): Promise<void> {
-    // Business logic: check if team exists
-    const exists = await this.teamRepo.exists(name)
-    
-    if (!exists) {
+    // Fetch current state to capture before-values for the audit log
+    const team = await this.teamRepo.findByName(name)
+
+    if (!team) {
       throw createError({
         statusCode: 404,
         message: `Team '${name}' not found`
       })
     }
-    
+
     // Business logic: check if team owns any systems
     const systemCount = await this.teamRepo.countOwnedSystems(name)
-    
+
     if (systemCount > 0) {
       throw createError({
         statusCode: 409,
         message: `Cannot delete team '${name}' because it owns ${systemCount} system(s). Please reassign or delete the systems first.`
       })
     }
-    
-    // Delete the team
-    await this.teamRepo.delete(name, userId)
+
+    const changes = buildDeleteChanges({
+      name: team.name,
+      email: team.email,
+      responsibilityArea: team.responsibilityArea,
+    })
+
+    await this.teamRepo.delete(name, userId, changes)
   }
 
   /**

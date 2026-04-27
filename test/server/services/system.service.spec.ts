@@ -176,17 +176,30 @@ describe('SystemService', () => {
 
   describe('delete', () => {
     it('should delete existing system', async () => {
-      vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(true)
+      const mockSystem: System = {
+        name: 'polaris-api',
+        domain: 'Platform',
+        ownerTeam: 'Platform Team',
+        businessCriticality: 'high',
+        environment: 'prod',
+        componentCount: 0,
+        repositoryCount: 0,
+      }
+      vi.mocked(SystemRepository.prototype.findByName).mockResolvedValue(mockSystem)
       vi.mocked(SystemRepository.prototype.delete).mockResolvedValue()
 
       await systemService.delete('polaris-api', 'user-123')
 
-      expect(SystemRepository.prototype.exists).toHaveBeenCalledWith('polaris-api')
-      expect(SystemRepository.prototype.delete).toHaveBeenCalledWith('polaris-api', 'user-123')
+      expect(SystemRepository.prototype.findByName).toHaveBeenCalledWith('polaris-api')
+      expect(SystemRepository.prototype.delete).toHaveBeenCalledWith(
+        'polaris-api',
+        'user-123',
+        expect.any(Object)
+      )
     })
 
     it('should throw error when system does not exist', async () => {
-      vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
+      vi.mocked(SystemRepository.prototype.findByName).mockResolvedValue(null)
 
       await expect(systemService.delete('nonexistent', 'user-123')).rejects.toThrow('not found')
       expect(SystemRepository.prototype.delete).not.toHaveBeenCalled()

@@ -55,6 +55,8 @@
  *       422:
  *         description: Validation error - invalid field values
  */
+import { buildAuditChanges } from '../../utils/audit-diff'
+
 export default defineEventHandler(async (event) => {
   const user = await requireAuthorization(event)
   
@@ -104,10 +106,25 @@ export default defineEventHandler(async (event) => {
   }
 
   const driver = useDriver()
+
+  // Fetch current state before writing so we can diff it
+  const { records: currentRecords } = await driver.executeQuery(`
+    MATCH (s:System {name: $name})
+    RETURN s { .description, .domain, .businessCriticality, .environment } as props
+  `, { name })
+
+  if (currentRecords.length === 0) {
+    throw createError({
+      statusCode: 404,
+      message: `System '${name}' not found`
+    })
+  }
+
+  const currentProps = currentRecords[0]!.get('props') as Record<string, unknown>
   
   // Build dynamic SET clause based on provided fields
   const updates: string[] = []
-  const params: Record<string, string> = { name }
+  const params: Record<string, unknown> = { name }
 
   if (body.description !== undefined) {
     updates.push('s.description = $description')
@@ -127,7 +144,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const changedFields = updates.map(u => u.split(' = ')[0]!.replace('s.', ''))
+
+  // Build the incoming state from only the fields being updated
+  const incomingState: Record<string, unknown> = {}
+  for (const field of changedFields) {
+    incomingState[field] = params[field]
+  }
+  const changes = buildAuditChanges(currentProps, incomingState, changedFields)
+
   params.userId = user.id
+  params.changes = JSON.stringify(changes)
 
   const query = `
     MATCH (s:System {name: $name})
@@ -141,6 +167,7 @@ export default defineEventHandler(async (event) => {
       entityId: s.name,
       entityLabel: s.name,
       changedFields: ${JSON.stringify(changedFields)},
+      changes: $changes,
       source: 'API',
       userId: $userId
     })

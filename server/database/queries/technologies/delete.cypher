@@ -7,6 +7,7 @@ CREATE (a:AuditLog {
   entityId: t.name,
   entityLabel: t.name,
   changedFields: [],
+  changes: $changes,
   source: 'API',
   userId: $userId
 })

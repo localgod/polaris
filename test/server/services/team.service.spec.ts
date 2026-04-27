@@ -50,24 +50,28 @@ describe('TeamService', () => {
 
   describe('delete()', () => {
     it('should delete team that exists and owns no systems', async () => {
-      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(true)
+      vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam)
       vi.mocked(TeamRepository.prototype.countOwnedSystems).mockResolvedValue(0)
       vi.mocked(TeamRepository.prototype.delete).mockResolvedValue(undefined)
 
       await service.delete('Platform', 'user-123')
 
-      expect(TeamRepository.prototype.delete).toHaveBeenCalledWith('Platform', 'user-123')
+      expect(TeamRepository.prototype.delete).toHaveBeenCalledWith(
+        'Platform',
+        'user-123',
+        expect.any(Object)
+      )
     })
 
     it('should throw when team does not exist', async () => {
-      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(false)
+      vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(null)
 
       await expect(service.delete('nonexistent', 'user-123')).rejects.toThrow()
       expect(TeamRepository.prototype.delete).not.toHaveBeenCalled()
     })
 
     it('should throw when team owns systems', async () => {
-      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(true)
+      vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam)
       vi.mocked(TeamRepository.prototype.countOwnedSystems).mockResolvedValue(3)
 
       await expect(service.delete('Platform', 'user-123')).rejects.toThrow()

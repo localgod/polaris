@@ -1,6 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+import { buildCreateChanges } from '../utils/audit-diff'
 
 const teamSortConfig: SortConfig = {
   allowedFields: {
@@ -186,7 +187,12 @@ export class TeamRepository extends BaseRepository {
     userId: string
   }): Promise<string> {
     const query = await loadQuery('teams/create.cypher')
-    const { records } = await this.executeQuery(query, params)
+    const changes = JSON.stringify(buildCreateChanges({
+      name: params.name,
+      email: params.email,
+      responsibilityArea: params.responsibilityArea,
+    }))
+    const { records } = await this.executeQuery(query, { ...params, changes })
     return records[0]!.get('name')
   }
 
@@ -202,10 +208,11 @@ export class TeamRepository extends BaseRepository {
     email: string | null
     responsibilityArea: string | null
     changedFields: string[]
+    changes: Record<string, { before: unknown; after: unknown }>
     userId: string
   }): Promise<string> {
     const query = await loadQuery('teams/update.cypher')
-    const { records } = await this.executeQuery(query, params)
+    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
     if (records.length === 0) {
       throw new Error(`Team '${params.name}' not found`)
     }
@@ -243,9 +250,9 @@ export class TeamRepository extends BaseRepository {
    * 
    * @param name - Team name
    */
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
     const query = await loadQuery('teams/delete.cypher')
-    await this.executeQuery(query, { name, userId })
+    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
   }
 
   /**

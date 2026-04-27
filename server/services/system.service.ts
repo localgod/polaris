@@ -4,6 +4,7 @@ import type { System, CreateSystemParams, RepositoryInput } from '../repositorie
 import type { Repository } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
 import type { SortParams } from '../utils/sorting'
+import { buildDeleteChanges } from '../utils/audit-diff'
 
 export interface CreateSystemInput {
   name: string
@@ -132,18 +133,25 @@ export class SystemService {
    * @throws Error if system not found
    */
   async delete(name: string, userId: string): Promise<void> {
-    // Business logic: check if system exists
-    const exists = await this.systemRepo.exists(name)
+    // Fetch current state to capture before-values for the audit log
+    const system = await this.systemRepo.findByName(name)
     
-    if (!exists) {
+    if (!system) {
       throw createError({
         statusCode: 404,
         message: `System '${name}' not found`
       })
     }
+
+    const changes = buildDeleteChanges({
+      name: system.name,
+      domain: system.domain,
+      businessCriticality: system.businessCriticality,
+      environment: system.environment,
+      ownerTeam: system.ownerTeam,
+    })
     
-    // Delete the system
-    await this.systemRepo.delete(name, userId)
+    await this.systemRepo.delete(name, userId, changes)
   }
 
   /**
