@@ -40,13 +40,20 @@ export default defineEventHandler(async (event) => {
   const limit = Math.min(Math.max(parseInt(query.limit as string, 10) || 50, 1), 200)
   const offset = Math.max(parseInt(query.offset as string, 10) || 0, 0)
 
-  const licenseRepo = new LicenseRepository()
-  const result = await licenseRepo.findComponentsByLicenseId(id, limit, offset)
+  try {
+    const licenseRepo = new LicenseRepository()
+    const result = await licenseRepo.findComponentsByLicenseId(id, limit, offset)
 
-  return {
-    success: true,
-    data: result.data,
-    count: result.data.length,
-    total: result.total
+    return {
+      success: true,
+      data: result.data,
+      count: result.data.length,
+      total: result.total
+    }
+  } catch (error: unknown) {
+    throw createError({
+      statusCode: 500,
+      message: error instanceof Error ? error.message : 'Failed to fetch components'
+    })
   }
 })
