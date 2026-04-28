@@ -18,7 +18,7 @@ vi.mock('../../../server/utils/registry-fetcher', () => ({
   fetchRegistryDescription: vi.fn()
 }))
 
-import { fetchRegistryDescription } from '../../../server/utils/registry-fetcher'
+import { fetchRegistryDescription } from '../../../server/utils/registry-fetcher' // eslint-disable-line import/first
 
 // Provide H3 functions as globals (Nuxt auto-imports) then load the handler.
 // Top-level await guarantees this happens before describe/it blocks are registered.
@@ -29,7 +29,6 @@ vi.stubGlobal('setResponseStatus', setResponseStatus)
 
 // The handler module must be imported AFTER globals are set because it calls
 // defineEventHandler() at module evaluation time (the `export default` line).
-// eslint-disable-next-line import/first
 const { default: handler } = await import('../../../server/api/components/description.get')
 
 /**
