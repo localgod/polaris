@@ -31,22 +31,12 @@ async function fetchPypi(name: string): Promise<string | null> {
 }
 
 async function fetchMaven(name: string, group?: string): Promise<string | null> {
-  try {
-    const q = group
-      ? `g:${encodeURIComponent(group)}+AND+a:${encodeURIComponent(name)}`
-      : `a:${encodeURIComponent(name)}`
-    const data = await $fetch<{
-      response?: { docs?: Array<{ ec?: string[] }> }
-    }>(`https://search.maven.org/solrsearch/select?q=${q}&rows=1&wt=json`)
-    const doc = data?.response?.docs?.[0]
-    // ec is an array of classifier strings, not a description — Maven Central
-    // does not expose package descriptions via the search API. Return null so
-    // the tooltip shows the fallback rather than a useless classifier list.
-    if (doc) return null
-    return null
-  } catch {
-    return null
-  }
+  // Maven Central search does not provide package descriptions in a usable
+  // form for this utility, so Maven descriptions are intentionally unsupported.
+  // Short-circuit to avoid unnecessary external requests and latency.
+  void name
+  void group
+  return null
 }
 
 async function fetchNuget(name: string): Promise<string | null> {
