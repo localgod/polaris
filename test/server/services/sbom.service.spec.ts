@@ -185,9 +185,9 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.components).toHaveLength(2) // metadata.component + components[0]
-      expect(persistCall.components[0].name).toBe('test-app')
-      expect(persistCall.components[1].name).toBe('lodash')
+      // metadata.component is the scanned system itself and is excluded
+      expect(persistCall.components).toHaveLength(1)
+      expect(persistCall.components[0].name).toBe('lodash')
     })
 
     it('should extract components from SPDX packages', async () => {
@@ -223,7 +223,8 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.components[1].packageManager).toBe('npm')
+      // metadata.component excluded; components[0] is lodash
+      expect(persistCall.components[0].packageManager).toBe('npm')
     })
 
     it('should extract hashes correctly from CycloneDX', async () => {
@@ -324,7 +325,8 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.components).toHaveLength(3) // metadata + component + nested
+      // metadata.component excluded; component + nested = 2
+      expect(persistCall.components).toHaveLength(2)
       expect(persistCall.components.some(c => c.name === 'nested-lib')).toBe(true)
     })
   })
