@@ -49,7 +49,9 @@ async function fetchNuget(name: string): Promise<string | null> {
         }>
       }>
     }>(`https://api.nuget.org/v3/registration5/${encodeURIComponent(lowerName)}/index.json`)
-    return data?.items?.[0]?.items?.[0]?.catalogEntry?.description || null
+    const lastPage = data?.items?.at(-1)
+    const latestItem = lastPage?.items?.at(-1)
+    return latestItem?.catalogEntry?.description || null
   } catch {
     return null
   }
