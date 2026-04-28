@@ -126,17 +126,14 @@ export class SBOMService {
   }
 
   /**
-   * Extract components from CycloneDX SBOM
+   * Extract components from CycloneDX SBOM.
+   *
+   * `metadata.component` is the subject of the SBOM (the scanned system
+   * itself) and is intentionally excluded — it is not a dependency.
    */
   private extractCycloneDXComponents(sbom: Record<string, unknown>): ExtractedComponent[] {
     const components: ExtractedComponent[] = []
-    
-    // Extract main component from metadata
-    const metadata = sbom.metadata as Record<string, unknown> | undefined
-    if (metadata?.component) {
-      components.push(this.mapCycloneDXComponent(metadata.component as Record<string, unknown>))
-    }
-    
+
     // Extract components array (with nested components)
     const componentsArray = sbom.components as unknown[] | undefined
     if (componentsArray && Array.isArray(componentsArray)) {
