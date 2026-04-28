@@ -7,8 +7,10 @@
  */
 
 async function fetchNpm(name: string, group?: string): Promise<string | null> {
-  // npm scoped packages: group="nuxt", name="ui" → @nuxt/ui
-  const packageName = group ? `@${group}/${name}` : name
+  // npm scoped packages: group may be stored with or without the leading "@"
+  // (e.g. "@iconify" or "nuxt"). Normalise to always produce @scope/name.
+  const scope = group ? group.replace(/^@/, '') : null
+  const packageName = scope ? `@${scope}/${name}` : name
   try {
     const data = await $fetch<{ description?: string }>(
       `https://registry.npmjs.org/${encodeURIComponent(packageName)}`

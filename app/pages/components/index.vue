@@ -94,7 +94,7 @@ const ComponentNameCell = defineComponent({
     const name = props.component.name
     const displayName = group ? `${group}/${name}` : name
 
-    function tooltipText() {
+    function tooltipContent() {
       if (state.value.pending) return 'Loading…'
       if (state.value.description) return state.value.description
       if (state.value.fetched) return 'No description available'
@@ -105,10 +105,13 @@ const ComponentNameCell = defineComponent({
       h(
         UTooltip,
         {
-          text: tooltipText(),
-          onMouseenter: fetch
+          onMouseenter: fetch,
+          ui: { content: 'max-w-xs h-auto whitespace-normal bg-inverted text-inverted rounded px-3 py-2 text-xs shadow-md' }
         },
-        () => h('strong', {}, displayName)
+        {
+          default: () => h('strong', {}, displayName),
+          content: () => tooltipContent()
+        }
       )
   }
 })
