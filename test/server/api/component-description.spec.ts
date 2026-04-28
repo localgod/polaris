@@ -27,13 +27,19 @@ vi.stubGlobal('defineEventHandler', defineEventHandler)
 vi.stubGlobal('getQuery', getQuery)
 vi.stubGlobal('setResponseStatus', setResponseStatus)
 
+// The handler module must be imported AFTER globals are set because it calls
+// defineEventHandler() at module evaluation time (the `export default` line).
 // eslint-disable-next-line import/first
 const { default: handler } = await import('../../../server/api/components/description.get')
 
 /**
  * Creates a minimal H3 event whose query string is built from the supplied params.
- * Uses unique package names per test to prevent cross-test cache pollution because
- * the handler maintains a module-level in-memory cache.
+ * The handler maintains a module-level in-memory cache for the lifetime of the
+ * test run, so callers must supply a unique `params.name` per test to prevent
+ * one test's cached result from leaking into another.
+ *
+ * @param params - Query parameters to include (e.g. `{ name, packageManager, group }`).
+ *                 `params.name` must be unique across all tests to avoid cache pollution.
  */
 function createMockEvent(params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString()
