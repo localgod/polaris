@@ -86,6 +86,9 @@ export default defineEventHandler(async (event) => {
     return { description: cached.description }
   }
 
+  if (cached) {
+    cache.delete(key)
+  }
   const description = await fetchRegistryDescription(name, packageManager, group)
 
   cache.set(key, { description, expiresAt: Date.now() + TTL_MS })
