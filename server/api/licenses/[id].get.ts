@@ -1,7 +1,7 @@
 import type { ApiResponse } from '~~/types/api'
 import { LicenseRepository } from '../../repositories/license.repository'
 import type { License } from '../../repositories/license.repository'
-import spdxFull from 'spdx-license-list/full'
+import spdxFull from 'spdx-license-list/full.js'
 
 /**
  * @openapi
