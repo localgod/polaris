@@ -30,12 +30,10 @@ async function fetchPypi(name: string): Promise<string | null> {
   }
 }
 
-async function fetchMaven(name: string, group?: string): Promise<string | null> {
+async function fetchMaven(_name: string, _group?: string): Promise<string | null> {
   // Maven Central search does not provide package descriptions in a usable
   // form for this utility, so Maven descriptions are intentionally unsupported.
   // Short-circuit to avoid unnecessary external requests and latency.
-  void name
-  void group
   return null
 }
 
