@@ -11,8 +11,18 @@ const cache = new Map<string, CacheEntry>()
 
 const TTL_MS = 60 * 60 * 1000 // 1 hour
 
+function normalizeCacheKeyPart(value: string): string {
+  return value.trim().toLowerCase()
+}
+
 function cacheKey(packageManager: string, name: string, group?: string): string {
-  return group ? `${packageManager}:${group}/${name}` : `${packageManager}:${name}`
+  const normalizedPackageManager = normalizeCacheKeyPart(packageManager)
+  const normalizedName = normalizeCacheKeyPart(name)
+  const normalizedGroup = group ? normalizeCacheKeyPart(group) : undefined
+
+  return normalizedGroup
+    ? `${normalizedPackageManager}:${normalizedGroup}/${normalizedName}`
+    : `${normalizedPackageManager}:${normalizedName}`
 }
 
 /**
