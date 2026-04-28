@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, resolveComponent } from 'vue'
+import { h, resolveComponent, defineComponent, ref } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Component } from '~~/types/api'
 
@@ -80,17 +80,44 @@ const { getSortableHeader } = useSortableTable()
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
+const UTooltip = resolveComponent('UTooltip')
+
+// Inline component so each row gets its own reactive description state.
+const ComponentNameCell = defineComponent({
+  props: {
+    component: { type: Object as () => Component, required: true }
+  },
+  setup(props) {
+    const { state, fetch } = useComponentDescription(props.component)
+
+    const group = props.component.group
+    const name = props.component.name
+    const displayName = group ? `${group}/${name}` : name
+
+    function tooltipText() {
+      if (state.value.pending) return 'Loading…'
+      if (state.value.description) return state.value.description
+      if (state.value.fetched) return 'No description available'
+      return 'Hover to load description'
+    }
+
+    return () =>
+      h(
+        UTooltip,
+        {
+          text: tooltipText(),
+          onMouseenter: fetch
+        },
+        () => h('strong', {}, displayName)
+      )
+  }
+})
 
 const columns: TableColumn<Component>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => getSortableHeader(column, 'Name'),
-    cell: ({ row }) => {
-      const group = row.original.group
-      const name = row.getValue('name') as string
-      const displayName = group ? `${group}/${name}` : name
-      return h('strong', {}, displayName)
-    }
+    cell: ({ row }) => h(ComponentNameCell, { component: row.original })
   },
   {
     accessorKey: 'version',
