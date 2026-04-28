@@ -11,6 +11,10 @@ interface DescriptionState {
 // Keyed by `packageManager:group/name` or `packageManager:name`.
 const clientCache = new Map<string, string | null>()
 
+// Tracks in-flight promises so that concurrent fetch() calls for the same key
+// reuse the existing request instead of firing duplicate network requests.
+const inFlightRequests = new Map<string, Promise<void>>()
+
 function cacheKey(component: Component): string {
   const { packageManager, name, group } = component
   const pm = packageManager ?? 'unknown'
@@ -44,30 +48,47 @@ export function useComponentDescription(component: Component) {
       return
     }
 
+    // If a request for this key is already in-flight, wait for it to complete
+    // and then pick up the cached result rather than firing a duplicate request.
+    if (inFlightRequests.has(key)) {
+      await inFlightRequests.get(key)
+      if (clientCache.has(key)) {
+        state.value.description = clientCache.get(key) ?? null
+        state.value.fetched = true
+      }
+      return
+    }
+
     state.value.pending = true
 
-    try {
-      const query: Record<string, string> = {
-        name: component.name,
-        packageManager: component.packageManager ?? 'unknown'
+    const request = (async () => {
+      try {
+        const query: Record<string, string> = {
+          name: component.name,
+          packageManager: component.packageManager ?? 'unknown'
+        }
+        if (component.group) query.group = component.group
+
+        const result = await $fetch<{ description: string | null }>(
+          '/api/components/description',
+          { query }
+        )
+
+        const description = result?.description ?? null
+        state.value.description = description
+        clientCache.set(key, description)
+      } catch {
+        state.value.description = null
+        clientCache.set(key, null)
+      } finally {
+        state.value.pending = false
+        state.value.fetched = true
+        inFlightRequests.delete(key)
       }
-      if (component.group) query.group = component.group
+    })()
 
-      const result = await $fetch<{ description: string | null }>(
-        '/api/components/description',
-        { query }
-      )
-
-      const description = result?.description ?? null
-      state.value.description = description
-      clientCache.set(key, description)
-    } catch {
-      state.value.description = null
-      clientCache.set(key, null)
-    } finally {
-      state.value.pending = false
-      state.value.fetched = true
-    }
+    inFlightRequests.set(key, request)
+    await request
   }
 
   return {
