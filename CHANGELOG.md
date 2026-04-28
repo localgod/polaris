@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.42] - 2026-04-28
+
+## What's Changed
+
+- fix: batch SBOM component persistence to avoid transaction memory limit @localgod (#359)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.41...v0.1.42
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
