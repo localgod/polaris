@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.43] - 2026-04-28
+
+## What's Changed
+
+- feat: hover tooltip on component name fetches registry description @localgod (#362)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.42...v0.1.43
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
