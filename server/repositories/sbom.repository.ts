@@ -14,12 +14,17 @@ export class SBOMRepository extends BaseRepository {
    * @param params - SBOM persistence parameters
    * @returns Persistence result with counts
    */
+  // Number of components processed per transaction. Keeps each transaction
+  // well within Neo4j's per-transaction memory limit even for large SBOMs.
+  private static readonly BATCH_SIZE = 100
+
   async persistSBOM(params: PersistSBOMParams): Promise<PersistSBOMResult> {
     const query = await loadQuery('sboms/persist-components-flat.cypher')
-    
-    // Flatten the data structure to avoid nested object issues
-    // Pass components without nested arrays, then pass arrays separately
-    const flatComponents = params.components.map((comp, index) => ({
+    const timestamp = params.timestamp.toISOString()
+
+    // Flatten all components with a stable global index so that the
+    // associated hashes/licenses/references can be correlated per batch.
+    const allComponents = params.components.map((comp, index) => ({
       index,
       name: comp.name,
       version: comp.version,
@@ -37,58 +42,47 @@ export class SBOMRepository extends BaseRepository {
       homepage: comp.homepage,
       description: comp.description
     }))
-    
-    const flatHashes = params.components.flatMap((comp, index) =>
-      comp.hashes.map(h => ({
-        componentIndex: index,
-        algorithm: h.algorithm,
-        value: h.value
-      }))
+
+    const allHashes = params.components.flatMap((comp, index) =>
+      comp.hashes.map(h => ({ componentIndex: index, algorithm: h.algorithm, value: h.value }))
     )
-    
-    const flatLicenses = params.components.flatMap((comp, index) =>
-      comp.licenses.map(l => ({
-        componentIndex: index,
-        id: l.id,
-        name: l.name,
-        url: l.url,
-        text: l.text,
-        expression: l.expression
-      }))
+    const allLicenses = params.components.flatMap((comp, index) =>
+      comp.licenses.map(l => ({ componentIndex: index, id: l.id, name: l.name, url: l.url, text: l.text, expression: l.expression }))
     )
-    
-    const flatReferences = params.components.flatMap((comp, index) =>
-      comp.externalReferences.map(r => ({
-        componentIndex: index,
-        type: r.type,
-        url: r.url
-      }))
+    const allReferences = params.components.flatMap((comp, index) =>
+      comp.externalReferences.map(r => ({ componentIndex: index, type: r.type, url: r.url }))
     )
-    
-    // Use session-based transaction
-    const { records } = await this.executeQueryWithSession(query, {
-      systemName: params.systemName,
-      components: flatComponents,
-      hashes: flatHashes,
-      licenses: flatLicenses,
-      externalReferences: flatReferences,
-      timestamp: params.timestamp.toISOString()
-    })
-    
-    if (records.length === 0) {
-      return {
-        componentsAdded: 0,
-        componentsUpdated: 0,
-        relationshipsCreated: 0
+
+    let componentsAdded = 0
+    let componentsUpdated = 0
+    let relationshipsCreated = 0
+
+    // Process in batches — each batch is its own transaction
+    for (let start = 0; start < allComponents.length; start += SBOMRepository.BATCH_SIZE) {
+      const batchComponents = allComponents.slice(start, start + SBOMRepository.BATCH_SIZE)
+      const batchIndices = new Set(batchComponents.map(c => c.index))
+
+      const batchHashes = allHashes.filter(h => batchIndices.has(h.componentIndex))
+      const batchLicenses = allLicenses.filter(l => batchIndices.has(l.componentIndex))
+      const batchReferences = allReferences.filter(r => batchIndices.has(r.componentIndex))
+
+      const { records } = await this.executeQueryWithSession(query, {
+        systemName: params.systemName,
+        components: batchComponents,
+        hashes: batchHashes,
+        licenses: batchLicenses,
+        externalReferences: batchReferences,
+        timestamp
+      })
+
+      if (records.length > 0) {
+        componentsAdded += records[0]!.get('componentsAdded').toNumber()
+        componentsUpdated += records[0]!.get('componentsUpdated').toNumber()
+        relationshipsCreated += records[0]!.get('relationshipsCreated').toNumber()
       }
     }
-    
-    const record = records[0]!
-    return {
-      componentsAdded: record.get('componentsAdded').toNumber(),
-      componentsUpdated: record.get('componentsUpdated').toNumber(),
-      relationshipsCreated: record.get('relationshipsCreated').toNumber()
-    }
+
+    return { componentsAdded, componentsUpdated, relationshipsCreated }
   }
 
   async createAuditLog(params: {
