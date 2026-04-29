@@ -108,6 +108,7 @@ describe('SystemRepository', () => {
   describe('create()', () => {
     it('should create a system and return its name', async () => {
       if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `MERGE (:Team { name: $t })`, { t: 'Platform Team' })
       const name = await repo.create({
         name: `${PREFIX}new-system`, domain: 'Platform',
         ownerTeam: 'Platform Team', businessCriticality: 'high',
