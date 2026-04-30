@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.50] - 2026-04-30
+
+## What's Changed
+
+- Refactor: eliminate per-request service instantiation with module-level singletons @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#397)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.49...v0.1.50
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
