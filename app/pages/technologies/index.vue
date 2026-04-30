@@ -369,7 +369,7 @@ const columns: TableColumn<Technology>[] = [
   },
   {
     accessorKey: 'constraintCount',
-    header: ({ column }) => getSortableHeader(column, 'Policies'),
+    header: ({ column }) => getSortableHeader(column, 'Constraints'),
     cell: ({ row }) => {
       const count = row.original.constraintCount
       if (!count) return h('span', { class: 'text-(--ui-text-muted)' }, '0')
