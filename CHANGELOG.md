@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.63] - 2026-04-30
+
+## What's Changed
+
+- Fix: correct Team Approvals section in docs/concepts @localgod (#439)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.62...v0.1.63
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
