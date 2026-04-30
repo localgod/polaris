@@ -19,7 +19,6 @@ export interface UpsertApprovalParams {
   technologyName: string
   teamName: string
   time: string
-  approvedBy: string
   notes: string | null
   userId: string
 }
@@ -246,7 +245,7 @@ export class TechnologyRepository extends BaseRepository {
 
   async upsertApproval(params: UpsertApprovalParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<{ time: string; team: string }> {
     const query = await loadQuery('technologies/upsert-approval.cypher')
-    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
+    const { records } = await this.executeQuery(query, { ...params, approvedBy: params.userId, changes: JSON.stringify(params.changes) })
 
     if (records.length === 0) {
       throw new Error('Failed to set approval — technology or team not found')

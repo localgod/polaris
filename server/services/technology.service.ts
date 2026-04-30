@@ -278,7 +278,6 @@ export class TechnologyService {
       technologyName: input.technologyName,
       teamName: input.teamName,
       time: input.time,
-      approvedBy: input.userId,
       notes: input.notes || null,
       userId: input.userId
     }
