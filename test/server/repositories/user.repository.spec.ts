@@ -103,7 +103,8 @@ describe('UserRepository', () => {
     })
   })
 
-  describe('getAuthData()', () => {    it('should return auth data with role and teams', async () => {
+  describe('getAuthData()', () => {
+    it('should return auth data with role and teams', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (u:User { id: $id, email: $email, name: 'Auth User', role: 'user', provider: 'github' })
