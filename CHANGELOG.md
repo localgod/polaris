@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.46] - 2026-04-30
+
+## What's Changed
+
+- Fix: prevent arbitrary Team node injection via system creation @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#395)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.45...v0.1.46
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
