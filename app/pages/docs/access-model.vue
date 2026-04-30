@@ -166,7 +166,7 @@ const accessRows = [
   { element: 'Systems', view: 'Public', create: 'Authenticated', edit: 'Owner team*', delete: 'Owner team*', notes: '* Superusers or members of the system\'s owner team' },
   { element: 'Repositories', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Added to systems; viewed as part of system detail' },
   { element: 'Components', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Created only via SBOM ingestion, never directly' },
-  { element: 'Technologies', view: 'Public', create: 'Authenticated', edit: '—', delete: 'Owner team*', notes: '* Superusers or members of the technology\'s steward team' },
+  { element: 'Technologies', view: 'Public', create: 'Authenticated', edit: 'Owner team*', delete: 'Owner team*', notes: '* Superusers or members of the technology\'s steward team' },
   { element: 'Teams', view: 'Public', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Full team management is superuser-only' },
   { element: 'Users', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Technical users only; OAuth users are created on sign-in' },
   { element: 'API Tokens', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Managed per technical user; token value shown once' },
