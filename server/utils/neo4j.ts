@@ -12,7 +12,7 @@ import neo4j from 'neo4j-driver'
  * @returns An ISO date/date-time string, or `null`
  */
 export function toDateString(val: unknown): string | null {
-  if (!val) return null
+  if (val == null) return null
   if (typeof val === 'string') return val
   if (neo4j.isDate(val) || neo4j.isDateTime(val) || neo4j.isLocalDateTime(val)) {
     return val.toString()
