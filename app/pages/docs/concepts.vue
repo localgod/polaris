@@ -295,7 +295,7 @@ const technologyCharacteristics = [
   { icon: 'i-lucide-shield-check', title: 'Requires approval', description: 'Must go through governance processes before adoption' },
   { icon: 'i-lucide-git-branch', title: 'Version constraints', description: 'Subject to enterprise version standards and security oversight' },
   { icon: 'i-lucide-users', title: 'Team stewardship', description: 'One team is responsible for each technology' },
-  { icon: 'i-lucide-clock', title: 'Lifecycle managed', description: 'Tracked through the TIME framework (Invest, Migrate, Tolerate, Eliminate)' },
+  { icon: 'i-lucide-clock', title: 'Lifecycle managed', description: 'Tracked through the TIME framework (Tolerate, Invest, Migrate, Eliminate)' },
   { icon: 'i-lucide-link', title: 'Linked to components', description: 'Maps to one or many discovered software components' },
 ]
 
