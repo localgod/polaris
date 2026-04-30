@@ -98,6 +98,8 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ middleware: 'auth' })
+
 interface TeamsResponse {
   success: boolean
   data: { name: string }[]

@@ -6,7 +6,7 @@
         description="Governed technology choices across the organization"
       />
       <UButton
-        v-if="isSuperuser"
+        v-if="session?.user"
         label="+ Create Technology"
         to="/technologies/new"
       />
