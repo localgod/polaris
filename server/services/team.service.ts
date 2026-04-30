@@ -18,13 +18,9 @@ export class TeamService {
    * 
    * @returns Array of teams with count
    */
-  async findAll(sort?: SortParams): Promise<{ data: Team[]; count: number }> {
-    const teams = await this.teamRepo.findAll(sort)
-    
-    return {
-      data: teams,
-      count: teams.length
-    }
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Team[]; count: number; total: number }> {
+    const { data, total } = await this.teamRepo.findAll(sort, limit, offset)
+    return { data, count: data.length, total }
   }
 
   /**

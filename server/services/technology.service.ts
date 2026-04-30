@@ -59,13 +59,9 @@ export class TechnologyService {
    * 
    * @returns Array of technologies with count
    */
-  async findAll(sort?: SortParams): Promise<{ data: Technology[]; count: number }> {
-    const technologies = await this.techRepo.findAll(sort)
-    
-    return {
-      data: technologies,
-      count: technologies.length
-    }
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Technology[]; count: number; total: number }> {
+    const { data, total } = await this.techRepo.findAll(sort, limit, offset)
+    return { data, count: data.length, total }
   }
 
   /**

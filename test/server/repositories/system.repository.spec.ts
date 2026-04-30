@@ -31,8 +31,8 @@ describe('SystemRepository', () => {
         })
       `, { name: `${PREFIX}polaris-api` })
 
-      const result = await repo.findAll()
-      const sys = result.find(s => s.name === `${PREFIX}polaris-api`)
+      const { data } = await repo.findAll()
+      const sys = data.find(s => s.name === `${PREFIX}polaris-api`)
 
       expect(sys).toBeDefined()
       expect(sys!).toHaveProperty('name')
@@ -50,8 +50,8 @@ describe('SystemRepository', () => {
         CREATE (:System { name: $n3, domain: 'Test', businessCriticality: 'high' })
       `, { n1: `${PREFIX}low`, n2: `${PREFIX}critical`, n3: `${PREFIX}high` })
 
-      const result = await repo.findAll()
-      const test = result.filter(s => s.name.startsWith(PREFIX))
+      const { data } = await repo.findAll()
+      const test = data.filter(s => s.name.startsWith(PREFIX))
 
       expect(test.length).toBe(3)
     })

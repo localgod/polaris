@@ -3,24 +3,29 @@ import { versionConstraintService } from '../services/singletons'
 export default defineEventHandler(async (event) => {
   try {
     const query = getQuery(event)
-    const limit = query.limit ? parseInt(query.limit as string, 10) : 50
-    const offset = query.offset ? parseInt(query.offset as string, 10) : 0
+    const rawLimit = query.limit ? parseInt(query.limit as string, 10) : 50
+    const rawOffset = query.offset ? parseInt(query.offset as string, 10) : 0
+
+    if (isNaN(rawLimit) || isNaN(rawOffset)) {
+      return { success: false, error: 'limit and offset must be valid integers', data: [] }
+    }
+
+    const limit = Math.min(Math.max(1, rawLimit), 200)
+    const offset = Math.max(0, rawOffset)
     const scope = query.scope as string | undefined
     const status = query.status as string | undefined
 
     const result = await versionConstraintService.findAll({
-      scope, status,
+      scope, status, limit, offset,
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
     })
-    const total = result.data.length
-    const paginatedData = result.data.slice(offset, offset + limit)
 
     return {
       success: true,
-      data: paginatedData,
-      count: paginatedData.length,
-      total
+      data: result.data,
+      count: result.count,
+      total: result.total
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch version constraints'

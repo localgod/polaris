@@ -23,9 +23,9 @@ export class VersionConstraintService {
     this.repo = new VersionConstraintRepository()
   }
 
-  async findAll(filters: VersionConstraintFilters = {}): Promise<{ data: VersionConstraint[]; count: number }> {
-    const constraints = await this.repo.findAll(filters)
-    return { data: constraints, count: constraints.length }
+  async findAll(filters: VersionConstraintFilters = {}): Promise<{ data: VersionConstraint[]; count: number; total: number }> {
+    const { data, total } = await this.repo.findAll(filters)
+    return { data, count: data.length, total }
   }
 
   async getViolations(filters: ViolationFilters): Promise<ViolationResult> {

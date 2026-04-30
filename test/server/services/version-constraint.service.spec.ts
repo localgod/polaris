@@ -23,17 +23,18 @@ describe('VersionConstraintService', () => {
 
   describe('findAll()', () => {
     it('should return constraints with count', async () => {
-      vi.mocked(VersionConstraintRepository.prototype.findAll).mockResolvedValue([mockConstraint])
+      vi.mocked(VersionConstraintRepository.prototype.findAll).mockResolvedValue({ data: [mockConstraint], total: 1 })
 
       const result = await service.findAll()
 
       expect(result.data).toHaveLength(1)
       expect(result.count).toBe(1)
+      expect(result.total).toBe(1)
       expect(VersionConstraintRepository.prototype.findAll).toHaveBeenCalledOnce()
     })
 
     it('should pass filters to repository', async () => {
-      vi.mocked(VersionConstraintRepository.prototype.findAll).mockResolvedValue([])
+      vi.mocked(VersionConstraintRepository.prototype.findAll).mockResolvedValue({ data: [], total: 0 })
 
       await service.findAll({ status: 'active' })
 
