@@ -1,5 +1,5 @@
 import { getRealUser } from '../../utils/auth'
-import { UserService } from '../../services/user.service'
+import { userService } from '../../services/singletons'
 
 /**
  * Get current impersonation status.
@@ -18,7 +18,6 @@ export default defineEventHandler(async (event) => {
     return { active: false, user: null }
   }
 
-  const userService = new UserService()
   const target = await userService.findById(impersonateUserId)
 
   if (!target) {

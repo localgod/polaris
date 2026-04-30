@@ -1,4 +1,4 @@
-import { UserService } from '../../../services/user.service'
+import { userService } from '../../../services/singletons'
 
 /**
  * @openapi
@@ -65,7 +65,6 @@ export default defineEventHandler(async (event) => {
   // Require superuser access
   await requireSuperuser(event)
 
-  const userService = new UserService()
   const result = await userService.findAll()
 
   return {

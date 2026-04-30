@@ -1,4 +1,4 @@
-import { SystemService } from '../../services/system.service'
+import { systemService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -44,7 +44,6 @@ export default defineEventHandler(async (event) => {
   
   const name = decodeURIComponent(rawName)
   
-  const systemService = new SystemService()
   const system = await systemService.findByName(name)
   
   if (!system) {

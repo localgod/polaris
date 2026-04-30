@@ -1,5 +1,5 @@
 import { UserRepository } from '../../repositories/user.repository'
-import { TokenService } from '../../services/token.service'
+import { tokenService } from '../../services/singletons'
 import { AuditLogRepository } from '../../repositories/audit-log.repository'
 
 /**
@@ -40,7 +40,6 @@ export default defineEventHandler(async (event) => {
   // For technical users, include tokens
   let tokens: { id: string; createdAt: string; expiresAt: string | null; revoked: boolean; description: string | null }[] = []
   if (user.provider === 'technical') {
-    const tokenService = new TokenService()
     tokens = await tokenService.listTokens(id)
   }
 

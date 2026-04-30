@@ -1,4 +1,4 @@
-import { GitHubImportService } from '../../../services/github-import.service'
+import { gitHubImportService } from '../../../services/singletons'
 import { AuditLogRepository } from '../../../repositories/audit-log.repository'
 
 /**
@@ -59,10 +59,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'repositoryUrl is required' })
   }
 
-  const importService = new GitHubImportService()
-
   try {
-    const result = await importService.import({
+    const result = await gitHubImportService.import({
       repositoryUrl: body.repositoryUrl,
       domain: body.domain,
       ownerTeam: body.ownerTeam,

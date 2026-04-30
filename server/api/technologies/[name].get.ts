@@ -1,4 +1,4 @@
-import { TechnologyService } from '../../services/technology.service'
+import { technologyService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -92,7 +92,6 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    const technologyService = new TechnologyService()
     const technology = await technologyService.findByName(name)
     
     if (!technology) {

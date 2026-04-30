@@ -1,6 +1,6 @@
 import { getSbomValidator } from '../utils/sbom-validator'
 import { validateSbomRequest, type SbomRequest as ValidatorSbomRequest } from '../utils/sbom-request-validator'
-import { SBOMService } from '../services/sbom.service'
+import { sbomService } from '../services/singletons'
 
 /**
  * @openapi
@@ -252,7 +252,6 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     }
 
     // 6. Process and persist SBOM
-    const sbomService = new SBOMService()
     const processResult = await sbomService.processSBOM({
       sbom: validatedBody.sbom,
       repositoryUrl: validatedBody.repositoryUrl,

@@ -9,6 +9,23 @@ export { TeamService } from './team.service'
 export { TechnologyService } from './technology.service'
 export { TokenService } from './token.service'
 export { UserService } from './user.service'
+export { AuditLogService } from './audit-log.service'
+export { GitHubImportService } from './github-import.service'
+export {
+  complianceService,
+  componentService,
+  licenseService,
+  versionConstraintService,
+  sbomService,
+  sourceRepositoryService,
+  systemService,
+  teamService,
+  technologyService,
+  tokenService,
+  userService,
+  auditLogService,
+  gitHubImportService
+} from './singletons'
 export type { ViolationResult as VersionConstraintViolationResult } from './version-constraint.service'
 export type { ViolationResult as ComplianceViolationResult } from './compliance.service'
 export type { CreateSystemInput } from './system.service'

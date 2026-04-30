@@ -1,4 +1,4 @@
-import { VersionConstraintService } from '../services/version-constraint.service'
+import { versionConstraintService } from '../services/singletons'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -8,8 +8,7 @@ export default defineEventHandler(async (event) => {
     const scope = query.scope as string | undefined
     const status = query.status as string | undefined
 
-    const service = new VersionConstraintService()
-    const result = await service.findAll({
+    const result = await versionConstraintService.findAll({
       scope, status,
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const

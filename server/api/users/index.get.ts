@@ -1,4 +1,4 @@
-import { UserService } from '../../services/user.service'
+import { userService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -61,7 +61,6 @@ export default defineEventHandler(async (event) => {
     const limit = query.limit ? parseInt(query.limit as string, 10) : 50
     const offset = query.offset ? parseInt(query.offset as string, 10) : 0
 
-    const userService = new UserService()
     const allUsers = await userService.findAllSummary({
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'

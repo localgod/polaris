@@ -1,5 +1,5 @@
 import { UserRepository } from '../../../../repositories/user.repository'
-import { TokenService } from '../../../../services/token.service'
+import { tokenService } from '../../../../services/singletons'
 import { AuditLogRepository } from '../../../../repositories/audit-log.repository'
 
 /**
@@ -57,7 +57,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event) || {}
-  const tokenService = new TokenService()
 
   const result = await tokenService.createToken(userId, {
     description: body.description || null,

@@ -1,13 +1,12 @@
-import { VersionConstraintService } from '../../services/version-constraint.service'
+import { versionConstraintService } from '../../services/singletons'
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event)
 
   try {
     const query = getQuery(event)
-    const service = new VersionConstraintService()
 
-    const result = await service.getViolations({
+    const result = await versionConstraintService.getViolations({
       severity: query.severity as string | undefined,
       team: query.team as string | undefined,
       technology: query.technology as string | undefined

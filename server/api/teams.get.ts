@@ -1,5 +1,5 @@
 import type { ApiResponse, Team } from '~~/types/api'
-import { TeamService } from '../services/team.service'
+import { teamService } from '../services/singletons'
 
 /**
  * @openapi
@@ -52,7 +52,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Team>> => {
     const limit = query.limit ? parseInt(query.limit as string, 10) : 50
     const offset = query.offset ? parseInt(query.offset as string, 10) : 0
 
-    const teamService = new TeamService()
     const result = await teamService.findAll({
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'

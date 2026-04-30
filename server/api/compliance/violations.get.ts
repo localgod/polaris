@@ -1,4 +1,4 @@
-import { ComplianceService } from '../../services/compliance.service'
+import { complianceService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -98,7 +98,6 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event)
 
   try {
-    const complianceService = new ComplianceService()
     const result = await complianceService.findViolations()
     
     return {

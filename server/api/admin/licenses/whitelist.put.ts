@@ -1,4 +1,4 @@
-import { LicenseService } from '../../../services/license.service'
+import { licenseService } from '../../../services/singletons'
 
 interface AllowedUpdateRequest {
   licenseId?: string
@@ -110,8 +110,6 @@ export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> 
         message: 'Provide either licenseId or licenseIds, not both'
       }
     }
-
-    const licenseService = new LicenseService()
 
     // Handle single license update
     if (body.licenseId) {

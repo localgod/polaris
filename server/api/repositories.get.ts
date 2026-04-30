@@ -1,5 +1,5 @@
 import type { ApiResponse, Repository } from '~~/types/api'
-import { SourceRepositoryService } from '../services/source-repository.service'
+import { sourceRepositoryService } from '../services/singletons'
 
 /**
  * @openapi
@@ -32,8 +32,7 @@ import { SourceRepositoryService } from '../services/source-repository.service'
  */
 export default defineEventHandler(async (): Promise<ApiResponse<Repository>> => {
   try {
-    const sourceRepoService = new SourceRepositoryService()
-    const result = await sourceRepoService.findAll()
+    const result = await sourceRepositoryService.findAll()
     
     return {
       success: true,

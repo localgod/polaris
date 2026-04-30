@@ -98,7 +98,7 @@
  *       500:
  *         description: Failed to fetch team usage
  */
-import { TeamService } from '../../../services/team.service'
+import { teamService } from '../../../services/singletons'
 
 export default defineEventHandler(async (event) => {
   const teamName = getRouterParam(event, 'name')
@@ -113,7 +113,6 @@ export default defineEventHandler(async (event) => {
   const decodedTeamName = decodeURIComponent(teamName)
   
   try {
-    const teamService = new TeamService()
     const result = await teamService.findUsage(decodedTeamName)
     
     return {

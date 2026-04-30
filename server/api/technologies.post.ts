@@ -1,5 +1,5 @@
 import type { ApiResponse } from '~~/types/api'
-import { TechnologyService } from '../services/technology.service'
+import { technologyService } from '../services/singletons'
 
 /**
  * @openapi
@@ -67,8 +67,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateTechn
   const body = await readBody<CreateTechnologyRequest>(event)
 
   try {
-    const service = new TechnologyService()
-    const name = await service.create({ ...body, userId: user.id })
+    const name = await technologyService.create({ ...body, userId: user.id })
 
     setResponseStatus(event, 201)
     return {

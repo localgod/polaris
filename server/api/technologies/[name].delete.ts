@@ -1,4 +1,4 @@
-import { TechnologyService } from '../../services/technology.service'
+import { technologyService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -42,9 +42,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const name = decodeURIComponent(rawName)
-  const service = new TechnologyService()
 
-  const tech = await service.findOwnerTeam(name)
+  const tech = await technologyService.findOwnerTeam(name)
   if (!tech) {
     throw createError({
       statusCode: 404,
@@ -64,7 +63,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await service.delete(name, user.id)
+  await technologyService.delete(name, user.id)
 
   setResponseStatus(event, 204)
   return null

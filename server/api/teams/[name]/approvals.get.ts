@@ -1,4 +1,4 @@
-import { TeamService } from '../../../services/team.service'
+import { teamService } from '../../../services/singletons'
 
 /**
  * @openapi
@@ -64,7 +64,6 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    const teamService = new TeamService()
     const result = await teamService.findApprovals(name)
     
     return {

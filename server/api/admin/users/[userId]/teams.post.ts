@@ -1,4 +1,4 @@
-import { UserService } from '../../../../services/user.service'
+import { userService } from '../../../../services/singletons'
 
 /**
  * @openapi
@@ -113,7 +113,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const userService = new UserService()
     const user = await userService.assignTeams({
       userId,
       teams: body.teams,

@@ -1,4 +1,4 @@
-import { TeamService } from '../../services/team.service'
+import { teamService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -58,7 +58,6 @@ export default defineEventHandler(async (event) => {
   
   const name = decodeURIComponent(rawName)
   
-  const teamService = new TeamService()
   await teamService.delete(name, user.id)
   
   setResponseStatus(event, 204)

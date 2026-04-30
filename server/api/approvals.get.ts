@@ -98,7 +98,7 @@
  *       404:
  *         description: Team or technology not found
  */
-import { TeamService } from '../services/team.service'
+import { teamService } from '../services/singletons'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -114,7 +114,6 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const teamService = new TeamService()
     const result = await teamService.checkApproval(team, technology, version)
     
     return {
