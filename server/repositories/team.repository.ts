@@ -370,6 +370,43 @@ export class TeamRepository extends BaseRepository {
   }
 
   /**
+   * Find all team names
+   *
+   * @returns Array of team names
+   */
+  async findAllNames(): Promise<string[]> {
+    const query = await loadQuery('teams/find-all-names.cypher')
+    const { records } = await this.executeQuery(query)
+    return records.map(record => record.get('name'))
+  }
+
+  /**
+   * Check if any of the given teams own a specific system
+   *
+   * @param teamNames - List of team names to check
+   * @param systemName - System name
+   * @returns True if at least one team owns the system
+   */
+  async ownsSystem(teamNames: string[], systemName: string): Promise<boolean> {
+    const query = await loadQuery('teams/owns-system.cypher')
+    const { records } = await this.executeQuery(query, { teamNames, resourceName: systemName })
+    return records[0]?.get('hasAccess') || false
+  }
+
+  /**
+   * Check if any of the given teams steward a specific technology
+   *
+   * @param teamNames - List of team names to check
+   * @param technologyName - Technology name
+   * @returns True if at least one team stewards the technology
+   */
+  async stewardsTechnology(teamNames: string[], technologyName: string): Promise<boolean> {
+    const query = await loadQuery('teams/stewards-technology.cypher')
+    const { records } = await this.executeQuery(query, { teamNames, resourceName: technologyName })
+    return records[0]?.get('hasAccess') || false
+  }
+
+  /**
    * Map Neo4j record to Team domain object
    */
   private mapToTeam(record: Neo4jRecord): Team {

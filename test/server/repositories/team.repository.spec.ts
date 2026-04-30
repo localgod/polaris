@@ -133,4 +133,68 @@ describe('TeamRepository', () => {
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
     })
   })
+
+  describe('findAllNames()', () => {
+    it('should return all team names', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Team { name: $t1 })
+        CREATE (:Team { name: $t2 })
+      `, { t1: `${PREFIX}names-a`, t2: `${PREFIX}names-b` })
+
+      const names = await repo.findAllNames()
+      expect(names).toContain(`${PREFIX}names-a`)
+      expect(names).toContain(`${PREFIX}names-b`)
+    })
+  })
+
+  describe('ownsSystem()', () => {
+    it('should return true when one of the teams owns the system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (s:System { name: $sys })
+        CREATE (t)-[:OWNS]->(s)
+      `, { team: `${PREFIX}own-team`, sys: `${PREFIX}own-sys` })
+
+      const result = await repo.ownsSystem([`${PREFIX}own-team`], `${PREFIX}own-sys`)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when none of the teams own the system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (s:System { name: $sys })
+      `, { team: `${PREFIX}no-own-team`, sys: `${PREFIX}no-own-sys` })
+
+      const result = await repo.ownsSystem([`${PREFIX}no-own-team`], `${PREFIX}no-own-sys`)
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('stewardsTechnology()', () => {
+    it('should return true when one of the teams stewards the technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (tech:Technology { name: $tech })
+        CREATE (t)-[:STEWARDED_BY]->(tech)
+      `, { team: `${PREFIX}stew-team`, tech: `${PREFIX}stew-tech` })
+
+      const result = await repo.stewardsTechnology([`${PREFIX}stew-team`], `${PREFIX}stew-tech`)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when none of the teams steward the technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (tech:Technology { name: $tech })
+      `, { team: `${PREFIX}no-stew-team`, tech: `${PREFIX}no-stew-tech` })
+
+      const result = await repo.stewardsTechnology([`${PREFIX}no-stew-team`], `${PREFIX}no-stew-tech`)
+      expect(result).toBe(false)
+    })
+  })
 })
