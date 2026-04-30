@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.57] - 2026-04-30
+
+## What's Changed
+
+- Fix: Remove redundant `approvedBy` from `UpsertApprovalParams` @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#412)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.56...v0.1.57
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
