@@ -69,7 +69,7 @@ describe('TokenRepository', () => {
   })
 
   describe('revoke()', () => {
-    it('should revoke a token', async () => {
+    it('should revoke a token when userId matches owner', async () => {
       if (!ctx.neo4jAvailable) return
       await repo.create({
         id: `${PREFIX}token-revoke`,
@@ -80,9 +80,25 @@ describe('TokenRepository', () => {
         description: null
       })
 
-      const revoked = await repo.revoke(`${PREFIX}token-revoke`)
+      const revoked = await repo.revoke(`${PREFIX}token-revoke`, `${PREFIX}user`)
 
       expect(revoked).toBe(true)
+    })
+
+    it('should return false when userId does not own the token', async () => {
+      if (!ctx.neo4jAvailable) return
+      await repo.create({
+        id: `${PREFIX}token-revoke-idor`,
+        tokenHash: `${PREFIX}revokehash-idor`,
+        createdBy: `${PREFIX}user`,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        description: null
+      })
+
+      const revoked = await repo.revoke(`${PREFIX}token-revoke-idor`, `${PREFIX}other-user`)
+
+      expect(revoked).toBe(false)
     })
   })
 

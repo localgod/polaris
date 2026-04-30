@@ -115,19 +115,23 @@ export class TokenRepository extends BaseRepository {
   }
 
   /**
-   * Revoke a token by ID
-   * 
+   * Revoke a token by ID, verifying it belongs to the given user.
+   *
+   * Returns false (404) if the token does not exist or does not belong to userId,
+   * preventing cross-user revocation by superusers.
+   *
    * @param tokenId - Token ID
-   * @returns true if token was revoked, false if not found
+   * @param userId  - User who must own the token
+   * @returns true if token was revoked, false if not found or not owned by userId
    */
-  async revoke(tokenId: string): Promise<boolean> {
+  async revoke(tokenId: string, userId: string): Promise<boolean> {
     const query = `
-      MATCH (t:ApiToken {id: $tokenId})
+      MATCH (u:User {id: $userId})-[:HAS_API_TOKEN]->(t:ApiToken {id: $tokenId})
       SET t.revoked = true
       RETURN t
     `
-    
-    const { records } = await this.executeQuery(query, { tokenId })
+
+    const { records } = await this.executeQuery(query, { tokenId, userId })
     return records.length > 0
   }
 
