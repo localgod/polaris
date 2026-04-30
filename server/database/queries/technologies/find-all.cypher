@@ -23,4 +23,4 @@ RETURN t.name as name,
          notes: approval.notes,
          approvedBy: approval.approvedBy
        }) as approvals
-ORDER BY t.domain, t.name
+ORDER BY {{ORDER_BY}}

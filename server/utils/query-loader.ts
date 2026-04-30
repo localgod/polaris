@@ -39,6 +39,18 @@ export function clearQueryCache(): void {
 }
 
 /**
+ * Inject an ORDER BY expression into a query template
+ * Replaces {{ORDER_BY}} placeholder with the actual order-by expression
+ *
+ * @param query - Query template with {{ORDER_BY}} placeholder
+ * @param orderBy - ORDER BY expression (e.g. 't.name ASC')
+ * @returns Query with order-by injected
+ */
+export function injectOrderBy(query: string, orderBy: string): string {
+  return query.replace('{{ORDER_BY}}', orderBy)
+}
+
+/**
  * Inject WHERE conditions into a query template
  * Replaces {{WHERE_CONDITIONS}} placeholder with actual conditions
  *

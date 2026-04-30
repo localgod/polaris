@@ -8,4 +8,4 @@ RETURN t.name as name,
        count(DISTINCT tech) as technologyCount,
        count(DISTINCT sys) as systemCount,
        count(DISTINCT u) as memberCount
-ORDER BY t.name
+ORDER BY {{ORDER_BY}}
