@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.48] - 2026-04-30
+
+## What's Changed
+
+- Fix: Versions stat card shows technology version count, not component version count @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#398)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.47...v0.1.48
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
