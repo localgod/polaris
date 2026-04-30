@@ -10,7 +10,8 @@ CREATE (al:AuditLog {
   entityId: t.name,
   entityLabel: c.name + '@' + c.version + ' -> ' + t.name,
   source: 'API',
-  userId: $userId
+  userId: $userId,
+  realUserId: $realUserId
 })
 CREATE (al)-[:AUDITS]->(t)
 RETURN t.name as technologyName, c.name as componentName, c.version as componentVersion

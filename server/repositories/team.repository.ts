@@ -185,6 +185,7 @@ export class TeamRepository extends BaseRepository {
     email: string | null
     responsibilityArea: string | null
     userId: string
+    realUserId?: string | null
   }): Promise<string> {
     const query = await loadQuery('teams/create.cypher')
     const changes = JSON.stringify(buildCreateChanges({
@@ -192,7 +193,7 @@ export class TeamRepository extends BaseRepository {
       email: params.email,
       responsibilityArea: params.responsibilityArea,
     }))
-    const { records } = await this.executeQuery(query, { ...params, changes })
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes })
     return records[0]!.get('name')
   }
 
@@ -210,9 +211,10 @@ export class TeamRepository extends BaseRepository {
     changedFields: string[]
     changes: Record<string, { before: unknown; after: unknown }>
     userId: string
+    realUserId?: string | null
   }): Promise<string> {
     const query = await loadQuery('teams/update.cypher')
-    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes: JSON.stringify(params.changes) })
     if (records.length === 0) {
       throw new Error(`Team '${params.name}' not found`)
     }
@@ -250,9 +252,9 @@ export class TeamRepository extends BaseRepository {
    * 
    * @param name - Team name
    */
-  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
     const query = await loadQuery('teams/delete.cypher')
-    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
+    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 
   /**
