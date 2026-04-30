@@ -283,7 +283,6 @@ interface ComponentRef {
 interface ConstraintRef {
   name: string
   severity: string
-  ruleType: string
   versionRange: string | null
   status: string | null
 }
