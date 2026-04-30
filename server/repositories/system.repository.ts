@@ -54,13 +54,14 @@ export class SystemRepository extends BaseRepository {
    * 
    * @returns Array of systems
    */
-  async findAll(sort?: SortParams): Promise<System[]> {
-    let query = await loadQuery('systems/find-all.cypher')
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: System[]; total: number }> {
+    const query = await loadQuery('systems/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, systemSortConfig)
-    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
-    const { records } = await this.executeQuery(query)
-    
-    return records.map(record => this.mapToSystem(record))
+    const finalQuery = injectOrderBy(query, orderBy)
+    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+
+    const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    return { data: records.map(record => this.mapToSystem(record)), total }
   }
 
   /**

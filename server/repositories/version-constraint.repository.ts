@@ -18,6 +18,8 @@ export interface VersionConstraintFilters {
   status?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
 }
 
 const sortConfig: SortConfig = {
@@ -98,13 +100,16 @@ export interface UpdateStatusResult {
 
 export class VersionConstraintRepository extends BaseRepository {
 
-  async findAll(filters: VersionConstraintFilters = {}): Promise<VersionConstraint[]> {
+  async findAll(filters: VersionConstraintFilters = {}): Promise<{ data: VersionConstraint[]; total: number }> {
+    const limit = filters.limit ?? 50
+    const offset = filters.offset ?? 0
+
     let cypher = `
       MATCH (vc:VersionConstraint)
     `
 
     const conditions: string[] = []
-    const params: Record<string, string> = {}
+    const params: Record<string, unknown> = { limit, offset }
 
     if (filters.scope) {
       conditions.push('vc.scope = $scope')
@@ -126,6 +131,9 @@ export class VersionConstraintRepository extends BaseRepository {
       WITH vc,
            collect(DISTINCT subject.name) as subjectTeams,
            collect(DISTINCT tech.name) as governedTechnologies
+      WITH collect({vc: vc, subjectTeams: subjectTeams, governedTechnologies: governedTechnologies}) as allRows, count(vc) as total
+      UNWIND allRows as row
+      WITH row.vc as vc, row.subjectTeams as subjectTeams, row.governedTechnologies as governedTechnologies, total
       RETURN vc.name as name,
              vc.description as description,
              vc.severity as severity,
@@ -135,13 +143,17 @@ export class VersionConstraintRepository extends BaseRepository {
              vc.status as status,
              subjectTeams,
              governedTechnologies,
-             size(governedTechnologies) as technologyCount
+             size(governedTechnologies) as technologyCount,
+             total
       ORDER BY ${buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, sortConfig)}
+      SKIP toInteger($offset)
+      LIMIT toInteger($limit)
     `
 
     const { records } = await this.executeQuery(cypher, params)
 
-    return records.map(record => this.mapToConstraint(record))
+    const totalCount = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    return { data: records.map(record => this.mapToConstraint(record)), total: totalCount }
   }
 
   async findViolations(filters: ViolationFilters): Promise<Violation[]> {

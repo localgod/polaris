@@ -90,13 +90,14 @@ export class TechnologyRepository extends BaseRepository {
    * 
    * @returns Array of technologies
    */
-  async findAll(sort?: SortParams): Promise<Technology[]> {
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Technology[]; total: number }> {
     const query = await loadQuery('technologies/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, technologySortConfig)
     const finalQuery = injectOrderBy(query, orderBy)
-    const { records } = await this.executeQuery(finalQuery)
-    
-    return records.map(record => this.mapToTechnology(record))
+    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+
+    const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    return { data: records.map(record => this.mapToTechnology(record)), total }
   }
 
   /**

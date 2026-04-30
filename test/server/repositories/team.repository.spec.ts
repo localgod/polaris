@@ -29,8 +29,8 @@ describe('TeamRepository', () => {
         CREATE (:Team { name: $t2, responsibilityArea: 'Frontend' })
       `, { t1: `${PREFIX}backend`, t2: `${PREFIX}frontend` })
 
-      const result = await repo.findAll()
-      const test = result.filter(t => t.name.startsWith(PREFIX))
+      const { data } = await repo.findAll()
+      const test = data.filter(t => t.name.startsWith(PREFIX))
 
       expect(test.length).toBeGreaterThanOrEqual(2)
     })
@@ -49,8 +49,8 @@ describe('TeamRepository', () => {
         u2: `${PREFIX}member2`, e2: `${PREFIX}m2@test.com`
       })
 
-      const result = await repo.findAll()
-      const team = result.find(t => t.name === `${PREFIX}counted`)
+      const { data } = await repo.findAll()
+      const team = data.find(t => t.name === `${PREFIX}counted`)
 
       expect(team).toBeDefined()
       expect(team!.memberCount).toBe(2)
@@ -62,8 +62,8 @@ describe('TeamRepository', () => {
         CREATE (:Team { name: $team })
       `, { team: `${PREFIX}empty` })
 
-      const result = await repo.findAll()
-      const team = result.find(t => t.name === `${PREFIX}empty`)
+      const { data } = await repo.findAll()
+      const team = data.find(t => t.name === `${PREFIX}empty`)
 
       expect(team).toBeDefined()
       expect(team!.memberCount).toBe(0)

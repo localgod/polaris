@@ -36,13 +36,9 @@ export class SystemService {
    * 
    * @returns Array of systems with count
    */
-  async findAll(sort?: SortParams): Promise<{ data: System[]; count: number }> {
-    const systems = await this.systemRepo.findAll(sort)
-    
-    return {
-      data: systems,
-      count: systems.length
-    }
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: System[]; count: number; total: number }> {
+    const { data, total } = await this.systemRepo.findAll(sort, limit, offset)
+    return { data, count: data.length, total }
   }
 
   /**

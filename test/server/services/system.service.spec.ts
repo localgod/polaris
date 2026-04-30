@@ -43,23 +43,24 @@ describe('SystemService', () => {
 
   describe('findAll', () => {
     it('should return all systems with count', async () => {
-      // Mock repository response
-      vi.mocked(SystemRepository.prototype.findAll).mockResolvedValue(mockSystems)
+      vi.mocked(SystemRepository.prototype.findAll).mockResolvedValue({ data: mockSystems, total: 2 })
 
       const result = await systemService.findAll()
 
       expect(result.data).toEqual(mockSystems)
       expect(result.count).toBe(2)
+      expect(result.total).toBe(2)
       expect(SystemRepository.prototype.findAll).toHaveBeenCalledOnce()
     })
 
     it('should return empty array when no systems exist', async () => {
-      vi.mocked(SystemRepository.prototype.findAll).mockResolvedValue([])
+      vi.mocked(SystemRepository.prototype.findAll).mockResolvedValue({ data: [], total: 0 })
 
       const result = await systemService.findAll()
 
       expect(result.data).toEqual([])
       expect(result.count).toBe(0)
+      expect(result.total).toBe(0)
     })
   })
 
