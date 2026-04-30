@@ -468,10 +468,7 @@ const { data, pending, error, refresh } = await useFetch<TechnologyResponse>(() 
 
 const tech = computed(() => data.value?.data || null)
 
-const distinctVersionCount = computed(() => {
-  const versions = tech.value?.components?.map((c: { version?: string }) => c.version).filter(Boolean)
-  return new Set(versions).size
-})
+const distinctVersionCount = computed(() => tech.value?.versions?.length ?? 0)
 
 const timeCategory = computed(() => {
   const approval = tech.value?.technologyApprovals?.[0]
