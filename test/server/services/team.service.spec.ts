@@ -78,4 +78,49 @@ describe('TeamService', () => {
       expect(TeamRepository.prototype.delete).not.toHaveBeenCalled()
     })
   })
+
+  describe('create() — optional field coercion', () => {
+    beforeEach(() => {
+      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(false)
+      vi.mocked(TeamRepository.prototype.create).mockResolvedValue('Platform')
+    })
+
+    it('should pass a provided string value through unchanged', async () => {
+      await service.create({ name: 'Platform', email: 'platform@example.com', userId: 'u1' })
+
+      const params = vi.mocked(TeamRepository.prototype.create).mock.calls[0][0]
+      expect(params.email).toBe('platform@example.com')
+    })
+
+    it('should coerce undefined optional fields to null', async () => {
+      await service.create({ name: 'Platform', userId: 'u1' })
+
+      const params = vi.mocked(TeamRepository.prototype.create).mock.calls[0][0]
+      expect(params.email).toBeNull()
+      expect(params.responsibilityArea).toBeNull()
+    })
+
+    it('should coerce empty string optional fields to null', async () => {
+      await service.create({ name: 'Platform', email: '', responsibilityArea: '', userId: 'u1' })
+
+      const params = vi.mocked(TeamRepository.prototype.create).mock.calls[0][0]
+      expect(params.email).toBeNull()
+      expect(params.responsibilityArea).toBeNull()
+    })
+
+    it('should coerce whitespace-only optional fields to null', async () => {
+      await service.create({ name: 'Platform', email: '   ', responsibilityArea: '  ', userId: 'u1' })
+
+      const params = vi.mocked(TeamRepository.prototype.create).mock.calls[0][0]
+      expect(params.email).toBeNull()
+      expect(params.responsibilityArea).toBeNull()
+    })
+
+    it('should trim whitespace from optional fields that have real content', async () => {
+      await service.create({ name: 'Platform', email: '  platform@example.com  ', userId: 'u1' })
+
+      const params = vi.mocked(TeamRepository.prototype.create).mock.calls[0][0]
+      expect(params.email).toBe('platform@example.com')
+    })
+  })
 })
