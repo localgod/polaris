@@ -144,3 +144,74 @@ describe('DELETE /api/version-constraints/{name}', () => {
     })
   })
 })
+
+describe('PUT /api/version-constraints/{name} - subjectTeam reassignment authorization', () => {
+  // Simulates the authorization logic from server/api/version-constraints/[name].put.ts
+  function runPutAuthorizationCheck(
+    userRole: string,
+    userTeams: string[],
+    existingSubjectTeam: string,
+    newSubjectTeam: string | null | undefined
+  ): { statusCode: number; message: string } | null {
+    if (userRole === 'superuser') return null
+
+    // existing team membership check
+    if (!userTeams.includes(existingSubjectTeam)) {
+      return { statusCode: 403, message: `You must be a member of team "${existingSubjectTeam}" to edit this version constraint` }
+    }
+
+    // new target team membership check (the fix)
+    if (newSubjectTeam && newSubjectTeam !== existingSubjectTeam) {
+      if (!userTeams.includes(newSubjectTeam)) {
+        return { statusCode: 403, message: 'You must be a member of the target team to reassign this constraint' }
+      }
+    }
+
+    return null
+  }
+
+  describe('Happy Paths', () => {
+    it('should allow a superuser to reassign a constraint to any team', () => {
+      const error = runPutAuthorizationCheck('superuser', [], 'frontend', 'platform-team')
+      expect(error).toBeNull()
+    })
+
+    it('should allow reassignment when user belongs to both the current and target team', () => {
+      const error = runPutAuthorizationCheck('user', ['frontend', 'platform-team'], 'frontend', 'platform-team')
+      expect(error).toBeNull()
+    })
+
+    it('should allow update without changing subjectTeam', () => {
+      const error = runPutAuthorizationCheck('user', ['frontend'], 'frontend', undefined)
+      expect(error).toBeNull()
+    })
+
+    it('should allow update when new subjectTeam equals existing subjectTeam', () => {
+      const error = runPutAuthorizationCheck('user', ['frontend'], 'frontend', 'frontend')
+      expect(error).toBeNull()
+    })
+  })
+
+  describe('Unhappy Paths', () => {
+    it('should deny reassignment when user is not a member of the target team', () => {
+      const error = runPutAuthorizationCheck('user', ['frontend'], 'frontend', 'platform-team')
+      expect(error).not.toBeNull()
+      expect(error!.statusCode).toBe(403)
+      expect(error!.message).toBe('You must be a member of the target team to reassign this constraint')
+    })
+
+    it('should deny access when user is not a member of the existing team', () => {
+      const error = runPutAuthorizationCheck('user', ['other-team'], 'frontend', 'frontend')
+      expect(error).not.toBeNull()
+      expect(error!.statusCode).toBe(403)
+      expect(error!.message).toContain('frontend')
+    })
+
+    it('should deny reassignment to a third team when user only belongs to the current team', () => {
+      const error = runPutAuthorizationCheck('user', ['frontend'], 'frontend', 'backend')
+      expect(error).not.toBeNull()
+      expect(error!.statusCode).toBe(403)
+      expect(error!.message).toBe('You must be a member of the target team to reassign this constraint')
+    })
+  })
+})
