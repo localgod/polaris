@@ -1,5 +1,5 @@
 import type { ApiResponse, Technology } from '~~/types/api'
-import { TechnologyService } from '../services/technology.service'
+import { technologyService } from '../services/singletons'
 
 /**
  * @openapi
@@ -52,7 +52,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Technology>
     const limit = query.limit ? parseInt(query.limit as string, 10) : 50
     const offset = query.offset ? parseInt(query.offset as string, 10) : 0
 
-    const technologyService = new TechnologyService()
     const result = await technologyService.findAll({
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'

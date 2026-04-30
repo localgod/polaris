@@ -1,4 +1,4 @@
-import { VersionConstraintService } from '../../services/version-constraint.service'
+import { versionConstraintService } from '../../services/singletons'
 import { VersionConstraintRepository } from '../../repositories/version-constraint.repository'
 
 export default defineEventHandler(async (event) => {
@@ -19,8 +19,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const service = new VersionConstraintService()
-  await service.delete(name, user.id)
+  await versionConstraintService.delete(name, user.id)
 
   setResponseStatus(event, 204)
   return null

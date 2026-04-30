@@ -1,8 +1,7 @@
 import { getServerSession } from '#auth'
 import type { H3Event } from 'h3'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import { TokenService } from '../services/token.service'
-import { UserService } from '../services/user.service'
+import { tokenService, userService } from '../services/singletons'
 
 const IMPERSONATE_COOKIE = 'polaris-impersonate'
 
@@ -17,7 +16,6 @@ async function getRealUser(event: H3Event) {
     const token = authHeader.substring(7)
     
     try {
-      const tokenService = new TokenService()
       const resolved = await tokenService.resolveToken(token)
       
       if (resolved) {
@@ -53,7 +51,6 @@ export async function getCurrentUser(event: H3Event) {
 
   // Load the impersonated user's data
   try {
-    const userService = new UserService()
     const authData = await userService.getAuthData(impersonateUserId)
     if (authData) {
       return {

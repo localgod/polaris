@@ -1,4 +1,4 @@
-import { LicenseService } from '../../../services/license.service'
+import { licenseService } from '../../../services/singletons'
 import type { ApiResponse } from '~~/types/api'
 import type { License } from '../../../repositories/license.repository'
 
@@ -132,8 +132,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License> & 
       offset: query.offset ? Math.max(0, parseInt(query.offset as string, 10)) : 0
     }
 
-    const licenseService = new LicenseService()
-    
     // Get licenses with filters
     const result = await licenseService.findAll(filters)
     

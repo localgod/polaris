@@ -1,4 +1,4 @@
-import { SystemService } from '../../../services/system.service'
+import { systemService } from '../../../services/singletons'
 import type { ApiResponse, Repository } from '~~/types/api'
 
 /**
@@ -49,7 +49,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Repository>
 
   const systemName = decodeURIComponent(rawName)
   
-  const systemService = new SystemService()
   const result = await systemService.getRepositories(systemName)
   
   return {

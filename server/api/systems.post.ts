@@ -1,5 +1,5 @@
 import type { ApiResponse } from '~~/types/api'
-import { SystemService } from '../services/system.service'
+import { systemService } from '../services/singletons'
 
 /**
  * @openapi
@@ -119,7 +119,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
   const body = await readBody<CreateSystemRequest>(event)
   
   try {
-    const systemService = new SystemService()
     const name = await systemService.create({ ...body, userId: user.id })
 
     setResponseStatus(event, 201)

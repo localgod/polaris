@@ -1,4 +1,4 @@
-import { VersionConstraintService } from '../services/version-constraint.service'
+import { versionConstraintService } from '../services/singletons'
 
 interface CreateRequest {
   name: string
@@ -43,10 +43,8 @@ export default defineEventHandler(async (event) => {
     return { success: false, error: 'validation_error', message: 'versionRange is required' }
   }
 
-  const service = new VersionConstraintService()
-
   try {
-    const result = await service.create({
+    const result = await versionConstraintService.create({
       name: body.name.trim(),
       description: body.description,
       severity: body.severity,

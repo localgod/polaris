@@ -1,4 +1,4 @@
-import { TechnologyService } from '../../../services/technology.service'
+import { technologyService } from '../../../services/singletons'
 
 /**
  * @openapi
@@ -52,8 +52,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'componentName and componentVersion are required' })
   }
 
-  const service = new TechnologyService()
-  const result = await service.linkComponent({
+  const result = await technologyService.linkComponent({
     technologyName,
     componentName: body.componentName,
     componentVersion: body.componentVersion,

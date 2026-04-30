@@ -1,4 +1,4 @@
-import { SystemService } from '../../services/system.service'
+import { systemService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -47,7 +47,6 @@ export default defineEventHandler(async (event) => {
   // Validate that user's team owns this system
   await validateTeamOwnership(event, 'System', name)
   
-  const systemService = new SystemService()
   await systemService.delete(name, user.id)
   
   setResponseStatus(event, 204)

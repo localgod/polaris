@@ -1,4 +1,4 @@
-import { VersionConstraintService } from '../../services/version-constraint.service'
+import { versionConstraintService } from '../../services/singletons'
 
 interface UpdateRequest {
   description?: string
@@ -19,8 +19,7 @@ export default defineEventHandler(async (event) => {
   }
   const name = decodeURIComponent(rawName)
 
-  const service = new VersionConstraintService()
-  const existing = await service.findByName(name)
+  const existing = await versionConstraintService.findByName(name)
   if (!existing) {
     throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })
   }
@@ -47,7 +46,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only superusers can set organization scope' })
   }
 
-  const constraint = await service.update(name, {
+  const constraint = await versionConstraintService.update(name, {
     description: body.description,
     severity: body.severity,
     scope: body.scope,

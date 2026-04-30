@@ -37,7 +37,7 @@
  */
 import { NuxtAuthHandler } from '#auth'
 import GithubProvider from 'next-auth/providers/github'
-import { UserService } from '../../services/user.service'
+import { userService } from '../../services/singletons'
 
 export default NuxtAuthHandler({
   secret: process.env.AUTH_SECRET || 'replace-me-in-production',
@@ -74,7 +74,6 @@ export default NuxtAuthHandler({
       // Fetch user role and team from database on every token refresh
       if (token.userId) {
         try {
-          const userService = new UserService()
           const authData = await userService.getAuthData(token.userId as string)
           
           if (authData) {
@@ -114,7 +113,6 @@ export default NuxtAuthHandler({
           const isSuperuser = user.email && superuserEmails.includes(user.email.toLowerCase())
           const role = isSuperuser ? 'superuser' : 'user'
 
-          const userService = new UserService()
           await userService.createOrUpdateUser({
             id: user.id,
             email: user.email || '',

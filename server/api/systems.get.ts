@@ -1,5 +1,5 @@
 import type { ApiResponse, System } from '~~/types/api'
-import { SystemService } from '../services/system.service'
+import { systemService } from '../services/singletons'
 
 /**
  * @openapi
@@ -52,7 +52,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<System>> =>
     const limit = query.limit ? parseInt(query.limit as string, 10) : 50
     const offset = query.offset ? parseInt(query.offset as string, 10) : 0
 
-    const systemService = new SystemService()
     const result = await systemService.findAll({
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'

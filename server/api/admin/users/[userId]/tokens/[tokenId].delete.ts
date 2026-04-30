@@ -1,4 +1,4 @@
-import { TokenService } from '../../../../../services/token.service'
+import { tokenService } from '../../../../../services/singletons'
 import { AuditLogRepository } from '../../../../../repositories/audit-log.repository'
 
 /**
@@ -34,7 +34,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'tokenId is required' })
   }
 
-  const tokenService = new TokenService()
   const revoked = await tokenService.revokeToken(tokenId)
 
   if (!revoked) {

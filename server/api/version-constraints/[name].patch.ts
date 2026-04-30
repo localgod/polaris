@@ -1,4 +1,4 @@
-import { VersionConstraintService } from '../../services/version-constraint.service'
+import { versionConstraintService } from '../../services/singletons'
 import { VersionConstraintRepository } from '../../repositories/version-constraint.repository'
 
 export default defineEventHandler(async (event) => {
@@ -36,10 +36,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const service = new VersionConstraintService()
-
   try {
-    const result = await service.updateStatus(name, { status: body.status, reason: body.reason }, user.id)
+    const result = await versionConstraintService.updateStatus(name, { status: body.status, reason: body.reason }, user.id)
     return {
       success: true,
       message: `Version constraint ${body.status === 'active' ? 'enabled' : 'disabled'} successfully`,

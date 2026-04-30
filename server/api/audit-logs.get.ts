@@ -1,4 +1,4 @@
-import { AuditLogService } from '../services/audit-log.service'
+import { auditLogService } from '../services/singletons'
 
 /**
  * @openapi
@@ -90,8 +90,6 @@ export default defineEventHandler(async (event) => {
     sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
   }
 
-  const auditLogService = new AuditLogService()
-  
   try {
     const result = await auditLogService.getAuditLogs(filters)
     

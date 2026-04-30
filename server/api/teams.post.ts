@@ -1,5 +1,5 @@
 import type { ApiResponse } from '~~/types/api'
-import { TeamService } from '../services/team.service'
+import { teamService } from '../services/singletons'
 
 /**
  * @openapi
@@ -49,7 +49,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateTeamR
   const body = await readBody(event)
 
   try {
-    const teamService = new TeamService()
     const name = await teamService.create({
       name: body?.name,
       email: body?.email,

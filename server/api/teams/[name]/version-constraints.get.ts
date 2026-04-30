@@ -1,4 +1,4 @@
-import { TeamService } from '../../../services/team.service'
+import { teamService } from '../../../services/singletons'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -8,7 +8,6 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Team name is required' })
     }
 
-    const teamService = new TeamService()
     const result = await teamService.findConstraints(teamName)
 
     return { success: true, data: result }

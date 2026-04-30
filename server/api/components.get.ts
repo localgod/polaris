@@ -1,5 +1,5 @@
 import type { ApiResponse, Component } from '~~/types/api'
-import { ComponentService } from '../services/component.service'
+import { componentService } from '../services/singletons'
 
 /**
  * @openapi
@@ -120,7 +120,6 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Component>>
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
     }
 
-    const componentService = new ComponentService()
     const result = await componentService.findAll(filters)
     
     return {

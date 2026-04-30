@@ -1,4 +1,4 @@
-import { VersionConstraintService } from '../../services/version-constraint.service'
+import { versionConstraintService } from '../../services/singletons'
 
 export default defineEventHandler(async (event) => {
   const rawName = getRouterParam(event, 'name')
@@ -7,8 +7,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const name = decodeURIComponent(rawName)
-  const service = new VersionConstraintService()
-  const constraint = await service.findByName(name)
+  const constraint = await versionConstraintService.findByName(name)
 
   if (!constraint) {
     throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })

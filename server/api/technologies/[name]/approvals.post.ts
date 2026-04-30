@@ -1,4 +1,4 @@
-import { TechnologyService } from '../../../services/technology.service'
+import { technologyService } from '../../../services/singletons'
 
 /**
  * @openapi
@@ -77,8 +77,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const service = new TechnologyService()
-  const result = await service.setApproval({
+  const result = await technologyService.setApproval({
     technologyName,
     teamName: body.teamName,
     time: body.time,

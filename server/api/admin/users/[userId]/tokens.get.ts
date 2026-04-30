@@ -1,4 +1,4 @@
-import { TokenService } from '../../../../services/token.service'
+import { tokenService } from '../../../../services/singletons'
 
 /**
  * @openapi
@@ -26,7 +26,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'userId is required' })
   }
 
-  const tokenService = new TokenService()
   const tokens = await tokenService.listTokens(userId)
 
   return {

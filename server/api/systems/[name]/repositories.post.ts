@@ -1,4 +1,4 @@
-import { SystemService } from '../../../services/system.service'
+import { systemService } from '../../../services/singletons'
 
 /**
  * @openapi
@@ -117,7 +117,6 @@ export default defineEventHandler(async (event) => {
     })
   }
   
-  const systemService = new SystemService()
   const repository = await systemService.addRepository(systemName, body, user.id)
   
   setResponseStatus(event, 201)

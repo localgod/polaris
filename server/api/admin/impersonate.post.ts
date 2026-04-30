@@ -1,5 +1,5 @@
 import { getRealUser } from '../../utils/auth'
-import { UserService } from '../../services/user.service'
+import { userService } from '../../services/singletons'
 
 /**
  * Start impersonating a user. Superuser only.
@@ -24,7 +24,6 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify target user exists
-  const userService = new UserService()
   const target = await userService.findById(body.userId)
 
   if (!target) {
