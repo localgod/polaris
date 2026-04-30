@@ -280,7 +280,7 @@
           variant="subtle"
           icon="i-lucide-shield"
           title="Access"
-          description="The audit log is only accessible to superusers. Navigate to /audit to view the full history of governance decisions."
+          description="The audit log is accessible to all authenticated users. Navigate to /audit to view the full history of governance decisions."
         />
       </div>
     </UCard>
