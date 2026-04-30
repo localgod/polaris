@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.49] - 2026-04-30
+
+## What's Changed
+
+* No changes
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.48...v0.1.49
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
