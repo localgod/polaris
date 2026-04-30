@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.61] - 2026-04-30
+
+## What's Changed
+
+- Fix: push SKIP/LIMIT into Neo4j for list endpoints @localgod (#435)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.60...v0.1.61
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
