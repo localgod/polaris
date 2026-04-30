@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.51] - 2026-04-30
+
+## What's Changed
+
+- Fix: docs/concepts.vue incorrectly states audit log is superuser-only @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#402)
+- Fix: Show Create Technology button to all authenticated users @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#403)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.50...v0.1.51
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
