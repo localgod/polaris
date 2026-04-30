@@ -1,5 +1,6 @@
 import { SystemRepository } from '../repositories/system.repository'
 import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
+import { TeamRepository } from '../repositories/team.repository'
 import type { System, CreateSystemParams, RepositoryInput } from '../repositories/system.repository'
 import type { Repository } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
@@ -22,10 +23,12 @@ export interface CreateSystemInput {
 export class SystemService {
   private systemRepo: SystemRepository
   private sourceRepoRepo: SourceRepositoryRepository
+  private teamRepo: TeamRepository
 
   constructor() {
     this.systemRepo = new SystemRepository()
     this.sourceRepoRepo = new SourceRepositoryRepository()
+    this.teamRepo = new TeamRepository()
   }
 
   /**
@@ -99,6 +102,15 @@ export class SystemService {
       throw createError({
         statusCode: 409,
         message: `A system with the name '${input.name}' already exists`
+      })
+    }
+
+    // Business logic: validate that the owner team exists
+    const teamExists = await this.teamRepo.exists(input.ownerTeam)
+    if (!teamExists) {
+      throw createError({
+        statusCode: 422,
+        message: `Team '${input.ownerTeam}' does not exist`
       })
     }
 

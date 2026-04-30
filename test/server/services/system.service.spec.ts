@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SystemService } from '../../../server/services/system.service'
 import { SystemRepository } from '../../../server/repositories/system.repository'
+import { TeamRepository } from '../../../server/repositories/team.repository'
 import type { System } from '../../../server/repositories/system.repository'
 import '../../fixtures/service-test-helper'
 
 vi.mock('../../../server/repositories/system.repository')
 vi.mock('../../../server/repositories/source-repository.repository')
+vi.mock('../../../server/repositories/team.repository')
 vi.mock('../../../server/utils/repository', () => ({
   normalizeRepoUrl: vi.fn((url: string) => url.toLowerCase().replace(/\.git$/, ''))
 }))
@@ -93,12 +95,14 @@ describe('SystemService', () => {
 
     it('should create system with valid input', async () => {
       vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
+      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(true)
       vi.mocked(SystemRepository.prototype.create).mockResolvedValue('new-system')
 
       const result = await systemService.create(validInput)
 
       expect(result).toBe('new-system')
       expect(SystemRepository.prototype.exists).toHaveBeenCalledWith('new-system')
+      expect(TeamRepository.prototype.exists).toHaveBeenCalledWith('Platform Team')
       expect(SystemRepository.prototype.create).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'new-system',
@@ -143,6 +147,14 @@ describe('SystemService', () => {
       expect(SystemRepository.prototype.create).not.toHaveBeenCalled()
     })
 
+    it('should throw 422 when owner team does not exist', async () => {
+      vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
+      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(false)
+
+      await expect(systemService.create(validInput)).rejects.toThrow("Team 'Platform Team' does not exist")
+      expect(SystemRepository.prototype.create).not.toHaveBeenCalled()
+    })
+
     it('should normalize repository URLs', async () => {
       const inputWithRepos = {
         ...validInput,
@@ -158,6 +170,7 @@ describe('SystemService', () => {
       }
 
       vi.mocked(SystemRepository.prototype.exists).mockResolvedValue(false)
+      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(true)
       vi.mocked(SystemRepository.prototype.create).mockResolvedValue('new-system')
 
       await systemService.create(inputWithRepos)

@@ -1,4 +1,4 @@
-MERGE (team:Team {name: $ownerTeam})
+MATCH (team:Team {name: $ownerTeam})
 CREATE (s:System {
   name: $name,
   domain: $domain,
