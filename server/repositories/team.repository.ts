@@ -128,10 +128,10 @@ export class TeamRepository extends BaseRepository {
    * @returns Array of teams
    */
   async findAll(sort?: SortParams): Promise<Team[]> {
-    let query = await loadQuery('teams/find-all.cypher')
+    const query = await loadQuery('teams/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, teamSortConfig)
-    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
-    const { records } = await this.executeQuery(query)
+    const finalQuery = injectOrderBy(query, orderBy)
+    const { records } = await this.executeQuery(finalQuery)
     
     return records.map(record => this.mapToTeam(record))
   }
