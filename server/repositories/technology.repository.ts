@@ -3,6 +3,7 @@ import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Technology } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
 import { buildCreateChanges } from '../utils/audit-diff'
+import { toDateString } from '../utils/neo4j'
 
 const technologySortConfig: SortConfig = {
   allowedFields: {
@@ -257,52 +258,29 @@ export class TechnologyRepository extends BaseRepository {
     }
   }
 
-  /**
-   * Convert a Neo4j temporal value to an ISO date string.
-   * Handles Neo4j Date, DateTime, and raw {year,month,day} objects.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toDateString(val: any): string | null {
-    if (!val) return null
-    if (typeof val === 'string') return val
-    if (typeof val.toString === 'function' && typeof val.year !== 'undefined' && !('low' in val.year)) {
-      return val.toString()
-    }
-    // Raw Neo4j integer objects: {year: {low, high}, month: {low, high}, day: {low, high}, ...}
-    const y = val.year?.low ?? val.year
-    const m = val.month?.low ?? val.month
-    const d = val.day?.low ?? val.day
-    if (y != null && m != null && d != null) {
-      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    }
-    return null
-  }
 
   /**
    * Map Neo4j record to TechnologyDetail domain object
    */
   private mapToTechnologyDetail(record: Neo4jRecord): TechnologyDetail {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const versions = record.get('versions').filter((v: { version?: string }) => v.version).map((v: any) => ({
+    const versions = record.get('versions').filter((v: { version?: string }) => v.version).map((v: { releaseDate?: unknown; eolDate?: unknown }) => ({
       ...v,
-      releaseDate: this.toDateString(v.releaseDate),
-      eolDate: this.toDateString(v.eolDate)
+      releaseDate: toDateString(v.releaseDate),
+      eolDate: toDateString(v.eolDate)
     }))
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const technologyApprovals = record.get('technologyApprovals').filter((a: { team?: string }) => a.team).map((a: any) => ({
+    const technologyApprovals = record.get('technologyApprovals').filter((a: { team?: string }) => a.team).map((a: { approvedAt?: unknown; deprecatedAt?: unknown; eolDate?: unknown }) => ({
       ...a,
-      approvedAt: this.toDateString(a.approvedAt),
-      deprecatedAt: this.toDateString(a.deprecatedAt),
-      eolDate: this.toDateString(a.eolDate)
+      approvedAt: toDateString(a.approvedAt),
+      deprecatedAt: toDateString(a.deprecatedAt),
+      eolDate: toDateString(a.eolDate)
     }))
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const versionApprovals = record.get('versionApprovals').filter((a: { team?: string }) => a.team).map((a: any) => ({
+    const versionApprovals = record.get('versionApprovals').filter((a: { team?: string }) => a.team).map((a: { approvedAt?: unknown; deprecatedAt?: unknown; eolDate?: unknown }) => ({
       ...a,
-      approvedAt: this.toDateString(a.approvedAt),
-      deprecatedAt: this.toDateString(a.deprecatedAt),
-      eolDate: this.toDateString(a.eolDate)
+      approvedAt: toDateString(a.approvedAt),
+      deprecatedAt: toDateString(a.deprecatedAt),
+      eolDate: toDateString(a.eolDate)
     }))
 
     return {
