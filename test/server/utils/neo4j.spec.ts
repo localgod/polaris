@@ -15,6 +15,10 @@ describe('toDateString', () => {
     expect(toDateString('2024-03-15')).toBe('2024-03-15')
   })
 
+  it('returns an empty string value as-is', () => {
+    expect(toDateString('')).toBe('')
+  })
+
   it('returns null for an unrecognised value', () => {
     expect(toDateString(42)).toBeNull()
     expect(toDateString({ year: 2024, month: 3, day: 15 })).toBeNull()
