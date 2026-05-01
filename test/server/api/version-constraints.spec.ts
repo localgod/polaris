@@ -144,3 +144,17 @@ describe('DELETE /api/version-constraints/{name}', () => {
     })
   })
 })
+
+describe('PUT /api/version-constraints/{name} - subjectTeam reassignment authorization', () => {
+  it.todo('allows a superuser to reassign a constraint to any team via the real PUT handler')
+
+  it.todo('allows reassignment when the caller belongs to both the current and target team via the real PUT handler')
+
+  it.todo('allows updates when subjectTeam is unchanged via the real PUT handler')
+
+  it.todo('denies reassignment when the caller is not a member of the target team via the real PUT handler')
+
+  it.todo('denies updates when the caller is not a member of the existing team via the real PUT handler')
+
+  it.todo('denies reassignment to a third team when the caller only belongs to the current team via the real PUT handler')
+})
