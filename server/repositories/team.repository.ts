@@ -377,7 +377,7 @@ export class TeamRepository extends BaseRepository {
   async findAllNames(): Promise<string[]> {
     const query = await loadQuery('teams/find-all-names.cypher')
     const { records } = await this.executeQuery(query)
-    return records.map(record => record.get('name'))
+    return records.map(record => record.get('name')).filter(Boolean)
   }
 
   /**
