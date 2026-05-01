@@ -107,7 +107,7 @@ jobs:
             LAYERS='["integration","server-api","server-services","server-repositories","server-utils","schema","app-e2e","smoke"]'
           else
             # Take matched layers, drop 'config' (not a test layer), append 'smoke' if any code changed
-            LAYERS=$(echo '${{ steps.filter.outputs.changes }}' | jq -c '[.[] | select(. != "config")]')
+            LAYERS=$(echo '${{ steps.filter.outputs.changes }}' | jq -c '[.[] | select(. != "config" and . != "build")]')
             if [ "$LAYERS" != "[]" ]; then
               LAYERS=$(echo "$LAYERS" | jq -c '. + ["smoke"]')
             fi
