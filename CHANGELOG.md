@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.73] - 2026-05-01
+
+## What's Changed
+
+- feat: handler-level tests for route handlers @localgod (#450)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.72...v0.1.73
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
