@@ -232,10 +232,8 @@ export class TechnologyRepository extends BaseRepository {
    * Fetch the existing APPROVES relationship for a team→technology pair, if any.
    */
   async findExistingApproval(technologyName: string, teamName: string): Promise<{ time: string | null; notes: string | null } | null> {
-    const { records } = await this.executeQuery(`
-      MATCH (team:Team {name: $teamName})-[a:APPROVES]->(t:Technology {name: $technologyName})
-      RETURN a.time as time, a.notes as notes
-    `, { technologyName, teamName })
+    const query = await loadQuery('technologies/find-existing-approval.cypher')
+    const { records } = await this.executeQuery(query, { technologyName, teamName })
 
     if (records.length === 0) return null
     return {
