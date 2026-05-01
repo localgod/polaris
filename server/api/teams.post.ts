@@ -46,6 +46,7 @@ interface CreateTeamResponse {
 
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateTeamResponse>> => {
   const user = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
   const body = await readBody(event)
 
   try {
@@ -53,7 +54,8 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateTeamR
       name: body?.name,
       email: body?.email,
       responsibilityArea: body?.responsibilityArea,
-      userId: user.id
+      userId: user.id,
+      realUserId
     })
 
     setResponseStatus(event, 201)

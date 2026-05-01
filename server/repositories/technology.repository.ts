@@ -21,6 +21,7 @@ export interface UpsertApprovalParams {
   time: string
   notes: string | null
   userId: string
+  realUserId?: string | null
 }
 
 export interface UpdateTechnologyParams {
@@ -31,6 +32,7 @@ export interface UpdateTechnologyParams {
   ownerTeam: string | null
   lastReviewed: string | null
   userId: string
+  realUserId?: string | null
 }
 
 export interface CreateTechnologyParams {
@@ -42,6 +44,7 @@ export interface CreateTechnologyParams {
   componentName: string | null
   componentPackageManager: string | null
   userId: string
+  realUserId?: string | null
 }
 
 export interface TechnologyDetail extends Technology {
@@ -148,6 +151,7 @@ export class TechnologyRepository extends BaseRepository {
       componentName: params.componentName || null,
       componentPackageManager: params.componentPackageManager || null,
       userId: params.userId,
+      realUserId: params.realUserId ?? null,
       changes,
     })
 
@@ -184,9 +188,9 @@ export class TechnologyRepository extends BaseRepository {
     return records[0]!.get('name')
   }
 
-  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
     const query = await loadQuery('technologies/delete.cypher')
-    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
+    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 
   /**
@@ -210,9 +214,9 @@ export class TechnologyRepository extends BaseRepository {
   /**
    * Link a component to a technology via IS_VERSION_OF
    */
-  async linkComponent(params: { technologyName: string; componentName: string; componentVersion: string; userId: string }): Promise<{ technologyName: string; componentName: string; componentVersion: string }> {
+  async linkComponent(params: { technologyName: string; componentName: string; componentVersion: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; componentName: string; componentVersion: string }> {
     const query = await loadQuery('technologies/link-component.cypher')
-    const { records } = await this.executeQuery(query, params)
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
 
     if (records.length === 0) {
       throw new Error('Failed to link component — technology or component not found')

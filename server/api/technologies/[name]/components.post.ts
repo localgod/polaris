@@ -40,6 +40,7 @@ import { technologyService } from '../../../services/singletons'
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
   if (!rawName) {
@@ -56,7 +57,8 @@ export default defineEventHandler(async (event) => {
     technologyName,
     componentName: body.componentName,
     componentVersion: body.componentVersion,
-    userId: user.id
+    userId: user.id,
+    realUserId
   })
 
   return { success: true, data: result }

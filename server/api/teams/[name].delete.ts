@@ -46,6 +46,7 @@ import { teamService } from '../../services/singletons'
 export default defineEventHandler(async (event) => {
   // Require superuser access for deleting teams
   const user = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
   
   const name = decodeURIComponent(rawName)
   
-  await teamService.delete(name, user.id)
+  await teamService.delete(name, user.id, realUserId)
   
   setResponseStatus(event, 204)
   return null

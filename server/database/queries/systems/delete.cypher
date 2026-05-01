@@ -9,6 +9,7 @@ CREATE (a:AuditLog {
   changedFields: [],
   changes: $changes,
   source: 'API',
-  userId: $userId
+  userId: $userId,
+  realUserId: $realUserId
 })
 DETACH DELETE s

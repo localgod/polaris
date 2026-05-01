@@ -72,6 +72,7 @@ import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuthorization(event)
+  const realUserId = await getImpersonatorId(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -183,7 +184,8 @@ export default defineEventHandler(async (event) => {
       changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description'],
       changes: $changes,
       source: 'API',
-      userId: $userId
+      userId: $userId,
+      realUserId: $realUserId
     })
     CREATE (a)-[:AUDITS]->(s)
     
@@ -199,6 +201,7 @@ export default defineEventHandler(async (event) => {
     environment: body.environment,
     description: body.description || null,
     userId: user.id,
+    realUserId,
     changes,
   })
   

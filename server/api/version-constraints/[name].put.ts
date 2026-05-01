@@ -12,6 +12,7 @@ interface UpdateRequest {
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
   if (!rawName) {
@@ -59,7 +60,8 @@ export default defineEventHandler(async (event) => {
     versionRange: body.versionRange,
     governsTechnology: body.governsTechnology,
     status: body.status,
-    userId: user.id
+    userId: user.id,
+    realUserId
   })
 
   return { success: true, message: 'Version constraint updated successfully', constraint }

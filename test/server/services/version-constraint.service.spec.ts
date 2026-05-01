@@ -68,7 +68,7 @@ describe('VersionConstraintService', () => {
 
       await service.delete('test-vc', 'user-123')
 
-      expect(VersionConstraintRepository.prototype.delete).toHaveBeenCalledWith('test-vc', 'user-123')
+      expect(VersionConstraintRepository.prototype.delete).toHaveBeenCalledWith('test-vc', 'user-123', undefined)
     })
 
     it('should throw when constraint does not exist', async () => {

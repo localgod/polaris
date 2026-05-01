@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "2.0.0",
+    "version": "0.1.28",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",
@@ -41,8 +41,8 @@
       "description": "Team management endpoints"
     },
     {
-      "name": "Policies",
-      "description": "Policy and compliance endpoints"
+      "name": "Version Constraints",
+      "description": "Version constraint endpoints"
     },
     {
       "name": "Compliance",
@@ -373,39 +373,14 @@
           }
         }
       },
-      "UnmappedComponent": {
+      "Technology": {
         "type": "object",
-        "required": [
-          "name",
-          "version"
-        ],
         "properties": {
           "name": {
-            "type": "string",
-            "description": "Component name"
-          },
-          "version": {
-            "type": "string",
-            "description": "Component version"
-          },
-          "packageManager": {
-            "type": "string",
-            "nullable": true,
-            "description": "Package manager (npm, maven, pypi, cargo, etc.)"
-          },
-          "purl": {
-            "type": "string",
-            "nullable": true,
-            "description": "Package URL"
-          },
-          "cpe": {
-            "type": "string",
-            "nullable": true,
-            "description": "Common Platform Enumeration"
+            "type": "string"
           },
           "type": {
             "type": "string",
-            "nullable": true,
             "enum": [
               "application",
               "framework",
@@ -419,49 +394,22 @@
               "file",
               "machine-learning-model",
               "data"
-            ],
-            "description": "Component type"
+            ]
           },
-          "group": {
+          "domain": {
             "type": "string",
             "nullable": true,
-            "description": "Maven groupId, npm scope, etc."
-          },
-          "hashes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Hash"
-            },
-            "description": "Component hashes"
-          },
-          "licenses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/License"
-            },
-            "description": "Component licenses"
-          },
-          "systems": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Systems using this component"
-          },
-          "systemCount": {
-            "type": "integer",
-            "description": "Number of systems using this component"
-          }
-        }
-      },
-      "Technology": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
+            "enum": [
+              "foundational-runtime",
+              "framework",
+              "data-platform",
+              "integration-platform",
+              "security-identity",
+              "infrastructure",
+              "observability",
+              "developer-tooling",
+              "other"
+            ]
           },
           "vendor": {
             "type": "string",
@@ -514,9 +462,6 @@
             "type": "string"
           },
           "approvedBy": {
-            "type": "string"
-          },
-          "versionConstraint": {
             "type": "string"
           }
         }
@@ -624,7 +569,7 @@
           }
         }
       },
-      "Policy": {
+      "VersionConstraint": {
         "type": "object",
         "properties": {
           "name": {
@@ -634,32 +579,22 @@
             "type": "string",
             "nullable": true
           },
-          "ruleType": {
-            "type": "string"
-          },
           "severity": {
-            "type": "string"
-          },
-          "effectiveDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "expiryDate": {
-            "type": "string",
-            "nullable": true
-          },
-          "enforcedBy": {
             "type": "string"
           },
           "scope": {
             "type": "string"
           },
-          "status": {
-            "type": "string"
-          },
-          "enforcerTeam": {
+          "subjectTeam": {
             "type": "string",
             "nullable": true
+          },
+          "versionRange": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
           },
           "subjectTeams": {
             "type": "array",
@@ -681,37 +616,35 @@
       "Violation": {
         "type": "object",
         "properties": {
-          "violationId": {
+          "team": {
             "type": "string"
           },
-          "policyName": {
+          "system": {
             "type": "string"
           },
-          "systemName": {
-            "type": "string"
-          },
-          "componentName": {
+          "component": {
             "type": "string"
           },
           "componentVersion": {
             "type": "string"
           },
-          "severity": {
+          "technology": {
             "type": "string"
           },
-          "detectedAt": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "resolvedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
+          "constraint": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string"
+              },
+              "versionRange": {
+                "type": "string",
+                "nullable": true
+              }
+            }
           }
         }
       },
@@ -856,14 +789,14 @@
         }
       }
     },
-    "/admin/licenses/whitelist": {
+    "/admin/licenses/allowed": {
       "get": {
         "tags": [
           "Admin",
           "Licenses"
         ],
-        "summary": "Get license whitelist management data",
-        "description": "Retrieves all licenses with whitelist status for superadmin management.\nIncludes filtering and search capabilities.\n\n**Authorization:** Superuser only\n",
+        "summary": "Get license allowed management data",
+        "description": "Retrieves all licenses with allowed status for superadmin management.\nIncludes filtering and search capabilities.\n\n**Authorization:** Superuser only\n",
         "security": [
           {
             "sessionAuth": []
@@ -895,11 +828,11 @@
           },
           {
             "in": "query",
-            "name": "whitelisted",
+            "name": "allowed",
             "schema": {
               "type": "boolean"
             },
-            "description": "Filter by whitelist status"
+            "description": "Filter by allowed status"
           },
           {
             "in": "query",
@@ -930,7 +863,7 @@
         ],
         "responses": {
           "200": {
-            "description": "License whitelist data retrieved successfully",
+            "description": "License allowed data retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -958,7 +891,7 @@
                               "osiApproved": {
                                 "type": "boolean"
                               },
-                              "whitelisted": {
+                              "allowed": {
                                 "type": "boolean"
                               },
                               "componentCount": {
@@ -981,7 +914,7 @@
                         "total": {
                           "type": "integer"
                         },
-                        "whitelisted": {
+                        "allowed": {
                           "type": "integer"
                         },
                         "byCategory": {
@@ -999,7 +932,7 @@
                       "name": "MIT License",
                       "category": "permissive",
                       "osiApproved": true,
-                      "whitelisted": true,
+                      "allowed": true,
                       "componentCount": 42
                     }
                   ],
@@ -1007,7 +940,7 @@
                   "total": 1,
                   "statistics": {
                     "total": 25,
-                    "whitelisted": 8
+                    "allowed": 8
                   }
                 }
               }
@@ -1026,8 +959,8 @@
           "Admin",
           "Licenses"
         ],
-        "summary": "Update license whitelist status",
-        "description": "Updates whitelist status for one or multiple licenses.\nSupports both single license and bulk operations.\n\n**Authorization:** Superuser only\n",
+        "summary": "Update license allowed status",
+        "description": "Updates allowed status for one or multiple licenses.\nSupports both single license and bulk operations.\n\n**Authorization:** Superuser only\n",
         "security": [
           {
             "sessionAuth": []
@@ -1051,17 +984,17 @@
                     },
                     "description": "Multiple license IDs (for bulk update)"
                   },
-                  "whitelisted": {
+                  "allowed": {
                     "type": "boolean",
-                    "description": "New whitelist status"
+                    "description": "New allowed status"
                   }
                 },
                 "required": [
-                  "whitelisted"
+                  "allowed"
                 ],
                 "example": {
                   "licenseId": "MIT",
-                  "whitelisted": true
+                  "allowed": true
                 }
               }
             }
@@ -1069,7 +1002,7 @@
         },
         "responses": {
           "200": {
-            "description": "Whitelist status updated successfully",
+            "description": "Allowed status updated successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -1089,7 +1022,7 @@
                 },
                 "example": {
                   "success": true,
-                  "message": "License whitelist status updated successfully",
+                  "message": "License allowed status updated successfully",
                   "updated": 1
                 }
               }
@@ -1566,7 +1499,7 @@
                             "technology": {
                               "type": "string"
                             },
-                            "category": {
+                            "type": {
                               "type": "string"
                             },
                             "vendor": {
@@ -1618,7 +1551,7 @@
                   "data": {
                     "team": "frontend-team",
                     "technology": "react",
-                    "category": "framework",
+                    "type": "framework",
                     "vendor": "Meta",
                     "version": "18.2.0",
                     "approval": {
@@ -1656,7 +1589,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Filter by entity type (e.g., Policy, Technology)"
+            "description": "Filter by entity type (e.g., VersionConstraint, Technology)"
           },
           {
             "in": "query",
@@ -1812,7 +1745,7 @@
                                   "technology": {
                                     "type": "string"
                                   },
-                                  "category": {
+                                  "type": {
                                     "type": "string"
                                   },
                                   "systemCount": {
@@ -1883,7 +1816,7 @@
                       {
                         "team": "frontend-team",
                         "technology": "jQuery",
-                        "category": "library",
+                        "type": "library",
                         "systemCount": 3,
                         "systems": [
                           "web-portal",
@@ -2055,105 +1988,60 @@
         }
       }
     },
-    "/components/unmapped": {
+    "/components/description": {
       "get": {
         "tags": [
           "Components"
         ],
-        "summary": "Get all unmapped components",
-        "description": "Retrieves all components across all systems that are not mapped to a known technology.\n\nResults are ordered by system count (most used first) to help prioritize mapping efforts.\n\n**Use Cases:**\n- Identify components that need technology mapping\n- Find widely-used internal libraries\n- Discover shadow IT or unapproved dependencies\n",
+        "summary": "Fetch package description from registry",
+        "description": "Returns the description for a package from its public registry (npm, PyPI,\nNuGet, Cargo, etc.). Results are cached server-side for 1 hour. Returns null\nwhen the registry is unsupported or the package has no description.\n",
         "parameters": [
           {
             "in": "query",
-            "name": "limit",
+            "name": "name",
+            "required": true,
             "schema": {
-              "type": "integer",
-              "default": 50,
-              "minimum": 1,
-              "maximum": 200
+              "type": "string"
             },
-            "description": "Number of results per page"
+            "description": "Package name"
           },
           {
             "in": "query",
-            "name": "offset",
+            "name": "packageManager",
+            "required": true,
             "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
+              "type": "string"
             },
-            "description": "Pagination offset"
+            "description": "Package manager (npm, pypi, maven, nuget, cargo, golang)"
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Package group or scope (e.g. npm scope without @, Maven groupId)"
           }
         ],
         "responses": {
           "200": {
-            "description": "Unmapped components retrieved successfully",
+            "description": "Description retrieved (may be null)",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "allOf": [
-                          {
-                            "$ref": "#/components/schemas/UnmappedComponent"
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "systems": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "systemCount": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    "count": {
-                      "type": "integer",
-                      "description": "Number of items in current page"
-                    },
-                    "total": {
-                      "type": "integer",
-                      "description": "Total number of unmapped components"
+                    "description": {
+                      "type": "string",
+                      "nullable": true
                     }
                   }
-                },
-                "example": {
-                  "success": true,
-                  "data": [
-                    {
-                      "name": "@company/internal-ui",
-                      "version": "2.1.0",
-                      "packageManager": "npm",
-                      "license": "proprietary",
-                      "systems": [
-                        "web-portal",
-                        "admin-dashboard",
-                        "mobile-api"
-                      ],
-                      "systemCount": 3
-                    }
-                  ],
-                  "count": 1,
-                  "total": 1
                 }
               }
             }
           },
-          "500": {
-            "description": "Failed to fetch unmapped components"
+          "400": {
+            "description": "Missing required parameters"
           }
         }
       }
@@ -2441,59 +2329,6 @@
         }
       }
     },
-    "/licenses/{id}/allow": {
-      "post": {
-        "tags": [
-          "Licenses"
-        ],
-        "summary": "Allow a previously denied license",
-        "description": "Removes a license from the organization's denied licenses list.\n\nComponents using this license will no longer appear as violations\n(unless denied by another policy).\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "License ID (e.g., MIT, Apache-2.0)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "License allowed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "removed": {
-                      "type": "boolean",
-                      "description": "Whether the license was removed (false if wasn't denied)"
-                    },
-                    "deniedLicenses": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "License ID is required"
-          }
-        }
-      }
-    },
     "/licenses/{id}/components": {
       "get": {
         "tags": [
@@ -2531,94 +2366,6 @@
         "responses": {
           "200": {
             "description": "Components retrieved successfully"
-          }
-        }
-      }
-    },
-    "/licenses/{id}/deny": {
-      "post": {
-        "tags": [
-          "Licenses"
-        ],
-        "summary": "Deny a license organization-wide",
-        "description": "Adds a license to the organization's denied licenses list.\nCreates the \"Organization License Policy\" if it doesn't exist.\n\nOnce denied, any component using this license will appear as a violation.\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "License ID (e.g., MIT, Apache-2.0)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "License denied successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "added": {
-                      "type": "boolean",
-                      "description": "Whether the license was newly added (false if already denied)"
-                    },
-                    "deniedLicenses": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "License ID is required"
-          },
-          "404": {
-            "description": "License not found"
-          }
-        }
-      }
-    },
-    "/licenses/denied": {
-      "get": {
-        "tags": [
-          "Licenses"
-        ],
-        "summary": "Get list of denied license IDs",
-        "description": "Returns the list of license IDs that are denied by the\nOrganization License Policy.\n",
-        "responses": {
-          "200": {
-            "description": "Denied licenses retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "deniedLicenses": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -2706,56 +2453,30 @@
         }
       }
     },
-    "/policies": {
+    "/licenses/violations": {
       "get": {
         "tags": [
-          "Policies"
+          "Licenses"
         ],
-        "summary": "List all policies",
-        "description": "Retrieves a list of all policies with optional filtering",
+        "summary": "Get license violations",
+        "description": "Returns components using disallowed licenses. Supports pagination, sorting, and search.",
         "parameters": [
           {
             "in": "query",
-            "name": "scope",
+            "name": "search",
             "schema": {
               "type": "string"
             },
-            "description": "Filter by policy scope"
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by policy status"
-          },
-          {
-            "in": "query",
-            "name": "enforcedBy",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by enforcement mechanism"
-          },
-          {
-            "in": "query",
-            "name": "ruleType",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "technology-approval",
-                "license-compliance"
-              ]
-            },
-            "description": "Filter by policy rule type"
+            "description": "Search by component name, license ID, system name, or team name (case-insensitive)"
           },
           {
             "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
-              "default": 50
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200
             },
             "description": "Number of results per page"
           },
@@ -2764,753 +2485,49 @@
             "name": "offset",
             "schema": {
               "type": "integer",
-              "default": 0
+              "default": 0,
+              "minimum": 0
             },
             "description": "Pagination offset"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved policies",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/Policy"
-                          }
-                        },
-                        "total": {
-                          "type": "integer",
-                          "description": "Total number of policies"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
           },
-          "500": {
-            "description": "Failed to fetch policies",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Policies"
-        ],
-        "summary": "Create a new policy",
-        "description": "Creates a new policy for governance enforcement.\n\nFor license-compliance policies, you must specify:\n- `licenseMode`: Either 'allowlist' or 'denylist'\n- `allowedLicenses` or `deniedLicenses`: Array of license IDs\n\nOrganization-scope policies automatically create SUBJECT_TO relationships\nwith all teams.\n",
-        "security": [
-          {
-            "session": []
-          },
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "name",
-                  "ruleType",
-                  "severity"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Unique policy name",
-                    "example": "Prohibit MIT License"
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Policy description",
-                    "example": "MIT license is not allowed due to legal requirements"
-                  },
-                  "ruleType": {
-                    "type": "string",
-                    "enum": [
-                      "approval",
-                      "compliance",
-                      "security",
-                      "license-compliance"
-                    ],
-                    "description": "Type of policy rule",
-                    "example": "license-compliance"
-                  },
-                  "severity": {
-                    "type": "string",
-                    "enum": [
-                      "critical",
-                      "error",
-                      "warning",
-                      "info"
-                    ],
-                    "description": "Severity level for violations",
-                    "example": "error"
-                  },
-                  "scope": {
-                    "type": "string",
-                    "enum": [
-                      "organization",
-                      "team"
-                    ],
-                    "default": "organization",
-                    "description": "Policy scope"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "active",
-                      "draft",
-                      "archived"
-                    ],
-                    "default": "active",
-                    "description": "Policy status"
-                  },
-                  "enforcedBy": {
-                    "type": "string",
-                    "description": "Team responsible for enforcement",
-                    "example": "Security"
-                  },
-                  "licenseMode": {
-                    "type": "string",
-                    "enum": [
-                      "allowlist",
-                      "denylist"
-                    ],
-                    "description": "Required for license-compliance policies",
-                    "example": "denylist"
-                  },
-                  "allowedLicenses": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "License IDs to allow (for allowlist mode)",
-                    "example": [
-                      "Apache-2.0",
-                      "BSD-3-Clause"
-                    ]
-                  },
-                  "deniedLicenses": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "License IDs to deny (for denylist mode)",
-                    "example": [
-                      "MIT",
-                      "MIT/X11"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Policy created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Policy created successfully"
-                    },
-                    "policy": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "ruleType": {
-                          "type": "string"
-                        },
-                        "severity": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "licenseMode": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "relationshipsCreated": {
-                      "type": "integer",
-                      "example": 7
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - validation failed"
-          },
-          "401": {
-            "description": "Unauthorized - authentication required"
-          },
-          "409": {
-            "description": "Conflict - policy already exists"
-          }
-        }
-      }
-    },
-    "/policies/{name}": {
-      "delete": {
-        "tags": [
-          "Policies"
-        ],
-        "summary": "Delete a policy",
-        "description": "Deletes a policy and all its relationships.\nRequires superuser access or policy creator.\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Policy name"
-          }
-        ],
-        "security": [
-          {
-            "sessionAuth": []
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Policy deleted successfully"
-          },
-          "400": {
-            "description": "Policy name is required"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "403": {
-            "description": "Superuser access required"
-          },
-          "404": {
-            "description": "Policy not found"
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Policies"
-        ],
-        "summary": "Get policy details",
-        "description": "Retrieves detailed information about a specific policy including:\n- Policy metadata and rules\n- Enforcing team\n- Teams subject to the policy\n- Technologies and versions governed by the policy\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Policy name",
-            "example": "react-version-policy"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Policy details retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "allOf": [
-                            {
-                              "$ref": "#/components/schemas/Policy"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "governedVersions": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "technology": {
-                                        "type": "string"
-                                      },
-                                      "version": {
-                                        "type": "string"
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                },
-                "example": {
-                  "success": true,
-                  "data": {
-                    "name": "react-version-policy",
-                    "description": "All React versions must be 18.x or higher",
-                    "ruleType": "version-constraint",
-                    "severity": "high",
-                    "status": "active",
-                    "enforcerTeam": "frontend-platform",
-                    "subjectTeams": [
-                      "frontend-team",
-                      "mobile-team"
-                    ],
-                    "governedTechnologies": [
-                      "React"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Policy name is required"
-          },
-          "404": {
-            "description": "Policy not found"
-          },
-          "500": {
-            "description": "Failed to fetch policy"
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "Policies"
-        ],
-        "summary": "Update a policy",
-        "description": "Updates a policy's status or other properties.\n\nStatus values:\n- `active`: Policy is enforced, violations are detected\n- `draft`: Policy exists but is not enforced\n- `archived`: Policy is disabled and hidden from active views\n\nRequires superuser access or policy creator.\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Policy name"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "active",
-                      "draft",
-                      "archived"
-                    ],
-                    "description": "New policy status"
-                  },
-                  "reason": {
-                    "type": "string",
-                    "description": "Reason for the status change (recommended when disabling)"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Policy updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "policy": {
-                      "type": "object"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error"
-          },
-          "404": {
-            "description": "Policy not found"
-          }
-        }
-      }
-    },
-    "/policies/license-violations": {
-      "get": {
-        "tags": [
-          "Policies",
-          "License Compliance"
-        ],
-        "summary": "Get license compliance violations",
-        "description": "Retrieves all license compliance violations with optional filtering. Returns components using licenses not allowed by active license compliance policies.",
-        "parameters": [
           {
             "in": "query",
-            "name": "severity",
+            "name": "sortBy",
             "schema": {
               "type": "string",
               "enum": [
-                "critical",
-                "error",
-                "warning",
-                "info"
+                "componentName",
+                "componentVersion",
+                "licenseId",
+                "systemName",
+                "teamName"
               ]
             },
-            "description": "Filter by violation severity"
+            "description": "Field to sort by"
           },
           {
             "in": "query",
-            "name": "team",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by team name"
-          },
-          {
-            "in": "query",
-            "name": "system",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by system name"
-          },
-          {
-            "in": "query",
-            "name": "license",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by license ID (SPDX identifier)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved license violations",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "team": {
-                            "type": "string",
-                            "description": "Team name"
-                          },
-                          "system": {
-                            "type": "string",
-                            "description": "System name"
-                          },
-                          "component": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "version": {
-                                "type": "string"
-                              },
-                              "purl": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "license": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "category": {
-                                "type": "string"
-                              },
-                              "osiApproved": {
-                                "type": "boolean"
-                              }
-                            }
-                          },
-                          "policy": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "description": {
-                                "type": "string"
-                              },
-                              "severity": {
-                                "type": "string"
-                              },
-                              "ruleType": {
-                                "type": "string"
-                              },
-                              "enforcedBy": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "count": {
-                      "type": "integer",
-                      "description": "Number of violations returned"
-                    },
-                    "summary": {
-                      "type": "object",
-                      "description": "Violation count by severity",
-                      "properties": {
-                        "critical": {
-                          "type": "integer"
-                        },
-                        "error": {
-                          "type": "integer"
-                        },
-                        "warning": {
-                          "type": "integer"
-                        },
-                        "info": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid filter parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to fetch license violations",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/policies/violations": {
-      "get": {
-        "tags": [
-          "Policies"
-        ],
-        "summary": "Get policy violations",
-        "description": "Retrieves all policy violations across the organization.\n\nA violation occurs when:\n- A team uses a technology (USES relationship)\n- The team does not have approval for that technology (no APPROVES relationship)\n- An active policy governs that technology\n- The team is subject to that policy\n\nResults are ordered by severity (critical first) then by team and technology name.\n",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "severity",
-            "required": false,
+            "name": "sortOrder",
             "schema": {
               "type": "string",
               "enum": [
-                "critical",
-                "error",
-                "warning",
-                "info"
-              ]
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
             },
-            "description": "Filter by policy severity"
-          },
-          {
-            "in": "query",
-            "name": "team",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by team name"
-          },
-          {
-            "in": "query",
-            "name": "technology",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by technology name"
+            "description": "Sort direction"
           }
         ],
         "responses": {
           "200": {
-            "description": "Policy violations retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "team": {
-                            "type": "string"
-                          },
-                          "technology": {
-                            "type": "string"
-                          },
-                          "technologyCategory": {
-                            "type": "string"
-                          },
-                          "policy": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "description": {
-                                "type": "string"
-                              },
-                              "severity": {
-                                "type": "string"
-                              },
-                              "ruleType": {
-                                "type": "string"
-                              },
-                              "enforcedBy": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "count": {
-                      "type": "integer"
-                    },
-                    "summary": {
-                      "type": "object",
-                      "properties": {
-                        "critical": {
-                          "type": "integer"
-                        },
-                        "error": {
-                          "type": "integer"
-                        },
-                        "warning": {
-                          "type": "integer"
-                        },
-                        "info": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "data": [
-                    {
-                      "team": "frontend-team",
-                      "technology": "jQuery",
-                      "technologyCategory": "library",
-                      "policy": {
-                        "name": "deprecated-libraries",
-                        "description": "Deprecated libraries must not be used",
-                        "severity": "error",
-                        "ruleType": "deprecation",
-                        "enforcedBy": "architecture-team"
-                      }
-                    }
-                  ],
-                  "count": 1,
-                  "summary": {
-                    "critical": 0,
-                    "error": 1,
-                    "warning": 0,
-                    "info": 0
-                  }
-                }
-              }
-            }
+            "description": "License violations"
+          },
+          "400": {
+            "description": "Invalid query parameters"
           },
           "500": {
-            "description": "Failed to fetch policy violations"
+            "description": "Failed to fetch license violations"
           }
         }
       }
@@ -4461,98 +3478,6 @@
         }
       }
     },
-    "/systems/{name}/unmapped-components": {
-      "get": {
-        "tags": [
-          "Systems"
-        ],
-        "summary": "Get unmapped components for a system",
-        "description": "Retrieves all components used by a system that are not mapped to a known technology.\n\nThese components need manual review to determine if they should be:\n- Mapped to an existing technology\n- Added as a new technology\n- Marked as internal/proprietary\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "System name",
-            "example": "web-portal"
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "default": 50
-            },
-            "description": "Number of results per page"
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "schema": {
-              "type": "integer",
-              "default": 0
-            },
-            "description": "Pagination offset"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Unmapped components retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/UnmappedComponent"
-                      }
-                    },
-                    "count": {
-                      "type": "integer",
-                      "description": "Number of items in current page"
-                    },
-                    "total": {
-                      "type": "integer",
-                      "description": "Total number of unmapped components"
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "data": [
-                    {
-                      "name": "@company/internal-ui",
-                      "version": "2.1.0",
-                      "packageManager": "npm",
-                      "license": "proprietary"
-                    }
-                  ],
-                  "count": 1,
-                  "total": 1
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "System name is required"
-          },
-          "404": {
-            "description": "System not found"
-          },
-          "500": {
-            "description": "Failed to fetch unmapped components"
-          }
-        }
-      }
-    },
     "/teams": {
       "get": {
         "tags": [
@@ -4919,7 +3844,7 @@
                     "approvals": [
                       {
                         "technology": "react",
-                        "category": "framework",
+                        "type": "framework",
                         "time": "adopt",
                         "approvedAt": "2024-01-15T10:00:00Z",
                         "approvedBy": "architecture-team",
@@ -4936,115 +3861,6 @@
           },
           "404": {
             "description": "Team not found"
-          }
-        }
-      }
-    },
-    "/teams/{name}/policies": {
-      "get": {
-        "tags": [
-          "Teams"
-        ],
-        "summary": "Get team policies",
-        "description": "Retrieves policies enforced by and applicable to a specific team.\n\nReturns two categories:\n- **Enforced**: Policies this team is responsible for enforcing\n- **Subject To**: Policies that apply to this team\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Team name",
-            "example": "frontend-team"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Team policies retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "team": {
-                          "type": "string"
-                        },
-                        "enforced": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/Policy"
-                          }
-                        },
-                        "subjectTo": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/Policy"
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "enforcedBy": {
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        "enforcedCount": {
-                          "type": "integer"
-                        },
-                        "subjectToCount": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "data": {
-                    "team": "frontend-team",
-                    "enforced": [
-                      {
-                        "name": "react-version-policy",
-                        "description": "All React versions must be 18.x or higher",
-                        "ruleType": "version-constraint",
-                        "severity": "high",
-                        "status": "active"
-                      }
-                    ],
-                    "subjectTo": [
-                      {
-                        "name": "security-scanning-policy",
-                        "description": "All systems must have security scanning enabled",
-                        "ruleType": "security",
-                        "severity": "critical",
-                        "status": "active",
-                        "enforcedBy": "security-team"
-                      }
-                    ],
-                    "enforcedCount": 1,
-                    "subjectToCount": 1
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Team name is required"
-          },
-          "500": {
-            "description": "Failed to fetch team policies"
           }
         }
       }
@@ -5093,7 +3909,7 @@
                               "technology": {
                                 "type": "string"
                               },
-                              "category": {
+                              "type": {
                                 "type": "string"
                               },
                               "vendor": {
@@ -5163,7 +3979,7 @@
                     "usage": [
                       {
                         "technology": "React",
-                        "category": "framework",
+                        "type": "framework",
                         "vendor": "Meta",
                         "systemCount": 8,
                         "firstUsed": "2023-01-15",
@@ -5276,23 +4092,41 @@
                 "type": "object",
                 "required": [
                   "name",
-                  "category"
+                  "type"
                 ],
                 "properties": {
                   "name": {
                     "type": "string",
                     "description": "Unique technology name"
                   },
-                  "category": {
+                  "type": {
                     "type": "string",
                     "enum": [
-                      "language",
+                      "application",
                       "framework",
                       "library",
-                      "database",
+                      "container",
                       "platform",
-                      "tool",
-                      "runtime",
+                      "operating-system",
+                      "device",
+                      "device-driver",
+                      "firmware",
+                      "file",
+                      "machine-learning-model",
+                      "data"
+                    ]
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "foundational-runtime",
+                      "framework",
+                      "data-platform",
+                      "integration-platform",
+                      "security-identity",
+                      "infrastructure",
+                      "observability",
+                      "developer-tooling",
                       "other"
                     ]
                   },
@@ -5376,7 +4210,7 @@
           "Technologies"
         ],
         "summary": "Get technology details",
-        "description": "Retrieves detailed information about a specific technology including versions, components, systems, policies, and approvals.\n\nReturns comprehensive data about:\n- Technology metadata (category, vendor, risk level)\n- All versions with release and EOL dates\n- Components using this technology\n- Systems that depend on it\n- Applicable policies\n- Technology-level and version-specific approvals\n",
+        "description": "Retrieves detailed information about a specific technology including versions, components, systems, policies, and approvals.\n\nReturns comprehensive data about:\n- Technology metadata (type, vendor, risk level)\n- All versions with release and EOL dates\n- Components using this technology\n- Systems that depend on it\n- Applicable policies\n- Technology-level and version-specific approvals\n",
         "parameters": [
           {
             "in": "path",
@@ -5449,7 +4283,7 @@
                   "success": true,
                   "data": {
                     "name": "React",
-                    "category": "framework",
+                    "type": "framework",
                     "vendor": "Meta",
                     "lastReviewed": "2025-10-01",
                     "ownerTeamName": "Frontend Platform",
@@ -5507,11 +4341,39 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "category"
+                  "type"
                 ],
                 "properties": {
-                  "category": {
-                    "type": "string"
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "application",
+                      "framework",
+                      "library",
+                      "container",
+                      "platform",
+                      "operating-system",
+                      "device",
+                      "device-driver",
+                      "firmware",
+                      "file",
+                      "machine-learning-model",
+                      "data"
+                    ]
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "foundational-runtime",
+                      "framework",
+                      "data-platform",
+                      "integration-platform",
+                      "security-identity",
+                      "infrastructure",
+                      "observability",
+                      "developer-tooling",
+                      "other"
+                    ]
                   },
                   "vendor": {
                     "type": "string"
@@ -5596,9 +4458,6 @@
                       "eliminate"
                     ]
                   },
-                  "versionConstraint": {
-                    "type": "string"
-                  },
                   "notes": {
                     "type": "string"
                   }
@@ -5622,6 +4481,63 @@
           },
           "422": {
             "description": "Invalid TIME value"
+          }
+        }
+      }
+    },
+    "/technologies/{name}/components": {
+      "post": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Link a component to a technology",
+        "description": "Creates an IS_VERSION_OF relationship between a component and a technology.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "componentName",
+                  "componentVersion"
+                ],
+                "properties": {
+                  "componentName": {
+                    "type": "string"
+                  },
+                  "componentVersion": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Component linked"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "404": {
+            "description": "Technology not found"
           }
         }
       }
@@ -5732,6 +4648,33 @@
           },
           "500": {
             "description": "Failed to fetch users"
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Application version",
+        "description": "Returns the version of the running application, baked in at build time.",
+        "responses": {
+          "200": {
+            "description": "Current application version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string",
+                      "example": "1.2.3"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

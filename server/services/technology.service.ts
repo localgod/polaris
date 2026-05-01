@@ -25,6 +25,7 @@ export interface SetApprovalInput {
   time: string
   notes?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface CreateTechnologyInput {
@@ -36,6 +37,7 @@ export interface CreateTechnologyInput {
   componentName?: string
   componentPackageManager?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface UpdateTechnologyInput {
@@ -46,6 +48,7 @@ export interface UpdateTechnologyInput {
   ownerTeam?: string
   lastReviewed?: string
   userId: string
+  realUserId?: string | null
 }
 
 /**
@@ -124,7 +127,8 @@ export class TechnologyService {
       ownerTeam: input.ownerTeam || null,
       componentName: input.componentName || null,
       componentPackageManager: input.componentPackageManager || null,
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.techRepo.create(params)
@@ -147,7 +151,7 @@ export class TechnologyService {
    * @param userId - ID of the user performing the deletion
    * @throws 404 if technology not found
    */
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     const tech = await this.techRepo.findByName(name)
 
     if (!tech) {
@@ -165,7 +169,7 @@ export class TechnologyService {
       ownerTeam: tech.ownerTeamName ?? null,
     })
 
-    await this.techRepo.delete(name, userId, changes)
+    await this.techRepo.delete(name, userId, changes, realUserId)
   }
 
   /**
@@ -225,7 +229,8 @@ export class TechnologyService {
       vendor: input.vendor || null,
       ownerTeam: input.ownerTeam || null,
       lastReviewed: input.lastReviewed || null,
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.techRepo.update({ ...params, changes })
@@ -234,7 +239,7 @@ export class TechnologyService {
   /**
    * Link a component to a technology via IS_VERSION_OF
    */
-  async linkComponent(input: { technologyName: string; componentName: string; componentVersion: string; userId: string }) {
+  async linkComponent(input: { technologyName: string; componentName: string; componentVersion: string; userId: string; realUserId?: string | null }) {
     const exists = await this.techRepo.exists(input.technologyName)
     if (!exists) {
       throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
@@ -278,7 +283,8 @@ export class TechnologyService {
       teamName: input.teamName,
       time: input.time,
       notes: input.notes || null,
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.techRepo.upsertApproval({ ...params, changes })

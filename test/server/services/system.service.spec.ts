@@ -208,7 +208,8 @@ describe('SystemService', () => {
       expect(SystemRepository.prototype.delete).toHaveBeenCalledWith(
         'polaris-api',
         'user-123',
-        expect.any(Object)
+        expect.any(Object),
+        undefined
       )
     })
 

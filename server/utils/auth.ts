@@ -76,6 +76,20 @@ export async function getCurrentUser(event: H3Event) {
 export { getRealUser }
 
 /**
+ * When a superuser is actively impersonating another user, return the real
+ * superuser's ID so it can be stored alongside the impersonated userId in
+ * audit log entries.  Returns null when no impersonation is in effect.
+ */
+export async function getImpersonatorId(event: H3Event): Promise<string | null> {
+  const [realUser, currentUser] = await Promise.all([
+    getRealUser(event),
+    getCurrentUser(event)
+  ])
+  if (!realUser || !currentUser) return null
+  return realUser.id !== currentUser.id ? realUser.id : null
+}
+
+/**
  * Check if the current user is authenticated
  */
 export async function requireAuth(event: H3Event) {

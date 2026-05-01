@@ -45,13 +45,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Token not found' })
   }
   const currentUser = await getCurrentUser(event)
+  const realUserId = await getImpersonatorId(event)
   const auditRepo = new AuditLogRepository()
   await auditRepo.create({
     operation: 'DELETE',
     entityType: 'ApiToken',
     entityId: tokenId,
     entityLabel: `Token ${tokenId} for user ${userId}`,
-    userId: currentUser.id
+    userId: currentUser.id,
+    realUserId
   })
 
   return { success: true, message: 'Token revoked' }

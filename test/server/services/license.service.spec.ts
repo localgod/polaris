@@ -300,7 +300,7 @@ describe('LicenseService', () => {
       const result = await service.updateAllowedStatus('GPL-3.0', true)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledWith('GPL-3.0')
-      expect(LicenseRepository.prototype.updateAllowedStatus).toHaveBeenCalledWith('GPL-3.0', true, undefined)
+      expect(LicenseRepository.prototype.updateAllowedStatus).toHaveBeenCalledWith('GPL-3.0', true, undefined, undefined)
       expect(result).toBe(true)
     })
 
@@ -311,7 +311,7 @@ describe('LicenseService', () => {
       const result = await service.updateAllowedStatus('MIT', false)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledWith('MIT')
-      expect(LicenseRepository.prototype.updateAllowedStatus).toHaveBeenCalledWith('MIT', false, undefined)
+      expect(LicenseRepository.prototype.updateAllowedStatus).toHaveBeenCalledWith('MIT', false, undefined, undefined)
       expect(result).toBe(true)
     })
 
@@ -355,7 +355,7 @@ describe('LicenseService', () => {
       const result = await service.bulkUpdateAllowedStatus(['MIT', 'Apache-2.0'], false)
 
       expect(LicenseRepository.prototype.findById).toHaveBeenCalledTimes(2)
-      expect(LicenseRepository.prototype.bulkUpdateAllowedStatus).toHaveBeenCalledWith(['MIT', 'Apache-2.0'], false, undefined)
+      expect(LicenseRepository.prototype.bulkUpdateAllowedStatus).toHaveBeenCalledWith(['MIT', 'Apache-2.0'], false, undefined, undefined)
       expect(result).toEqual({ success: true, updated: 2, errors: [] })
     })
 
