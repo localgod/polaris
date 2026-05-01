@@ -12,10 +12,8 @@
       />
     </div>
 
-    <USkeleton v-if="pending" class="h-64 w-full" />
-
     <UAlert
-      v-else-if="error"
+      v-if="error"
       color="error"
       variant="subtle"
       icon="i-lucide-alert-circle"
@@ -23,10 +21,10 @@
       :description="error.message"
     />
 
-    <template v-else-if="data">
+    <template v-else>
       <!-- Summary -->
-      <div v-if="data.count > 0" class="grid grid-cols-4 gap-4">
-        <UCard v-for="(count, level) in data.summary" :key="level">
+      <div v-if="summary" class="grid grid-cols-4 gap-4">
+        <UCard v-for="(count, level) in summary" :key="level">
           <div class="text-center">
             <p class="text-2xl font-bold">{{ count }}</p>
             <p class="text-sm text-(--ui-text-muted) capitalize">{{ level }}</p>
@@ -34,59 +32,61 @@
         </UCard>
       </div>
 
-      <UCard v-if="data.count === 0">
-        <div class="text-center text-(--ui-text-muted) py-12">
-          No violations found.
+      <UCard>
+        <div class="flex flex-wrap items-center gap-2 pb-4 border-b border-(--ui-border) mb-4">
+          <USelect
+            v-model="severityFilter"
+            :items="severityItems"
+            placeholder="All severities"
+            class="w-40"
+          />
+          <UInput
+            v-model="teamFilter"
+            placeholder="Filter by team..."
+            icon="i-lucide-search"
+            class="max-w-xs"
+          />
+          <UInput
+            v-model="technologyFilter"
+            placeholder="Filter by technology..."
+            icon="i-lucide-search"
+            class="max-w-xs"
+          />
+          <UButton
+            v-if="severityFilter || teamFilter || technologyFilter"
+            label="Clear"
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-x"
+            @click="clearFilters"
+          />
         </div>
-      </UCard>
 
-      <div v-else class="space-y-4">
-        <UCard v-for="(violation, idx) in data.data" :key="idx">
-          <template #header>
-            <div class="flex justify-between items-center">
-              <div>
-                <h3 class="font-semibold">{{ violation.constraint.name }}</h3>
-                <p class="text-sm text-(--ui-text-muted)">{{ violation.constraint.description }}</p>
-              </div>
-              <UBadge :color="getSeverityColor(violation.constraint.severity)" variant="subtle">
-                {{ violation.constraint.severity }}
-              </UBadge>
+        <UTable
+          :data="violations"
+          :columns="columns"
+          :loading="pending"
+          class="flex-1"
+        >
+          <template #empty>
+            <div class="text-center py-8">
+              <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
+              <h3 class="mt-4">No Version Violations!</h3>
+              <p class="text-(--ui-text-muted) mt-2">All components are within allowed version ranges.</p>
             </div>
           </template>
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <span class="text-(--ui-text-muted)">Team</span>
-              <p class="font-medium">{{ violation.team }}</p>
-            </div>
-            <div>
-              <span class="text-(--ui-text-muted)">System</span>
-              <p class="font-medium">{{ violation.system }}</p>
-            </div>
-            <div>
-              <span class="text-(--ui-text-muted)">Technology</span>
-              <p class="font-medium">{{ violation.technology }}</p>
-            </div>
-            <div>
-              <span class="text-(--ui-text-muted)">Component</span>
-              <p class="font-medium">{{ violation.component }}</p>
-            </div>
-            <div>
-              <span class="text-(--ui-text-muted)">Version</span>
-              <p class="font-medium"><code>{{ violation.componentVersion }}</code></p>
-            </div>
-            <div v-if="violation.constraint.versionRange">
-              <span class="text-(--ui-text-muted)">Required Range</span>
-              <p class="font-medium"><code>{{ violation.constraint.versionRange }}</code></p>
-            </div>
-          </div>
-        </UCard>
-      </div>
+        </UTable>
+      </UCard>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { h, resolveComponent } from 'vue'
+import type { TableColumn } from '@nuxt/ui'
+
 definePageMeta({ middleware: 'auth' })
+
 interface Violation {
   team: string
   system: string
@@ -114,7 +114,10 @@ interface ViolationsResponse {
   }
 }
 
-const { data, pending, error } = await useFetch<ViolationsResponse>('/api/version-constraints/violations')
+const { getSortableHeader } = useSortableTable()
+
+const UBadge = resolveComponent('UBadge')
+const NuxtLink = resolveComponent('NuxtLink')
 
 function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
   const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
@@ -122,6 +125,115 @@ function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | '
   }
   return colors[severity] || 'neutral'
 }
+
+const severityItems = ['critical', 'error', 'warning', 'info']
+
+const severityFilter = ref<string | undefined>(undefined)
+const teamFilter = ref('')
+const technologyFilter = ref('')
+
+function clearFilters() {
+  severityFilter.value = undefined
+  teamFilter.value = ''
+  technologyFilter.value = ''
+}
+
+const queryParams = computed(() => {
+  const params: Record<string, string> = {}
+  if (severityFilter.value) params.severity = severityFilter.value
+  if (teamFilter.value) params.team = teamFilter.value
+  if (technologyFilter.value) params.technology = technologyFilter.value
+  return params
+})
+
+const { data, pending, error } = await useFetch<ViolationsResponse>('/api/version-constraints/violations', {
+  query: queryParams
+})
+
+const violations = computed(() => data.value?.data || [])
+const summary = computed(() => data.value?.summary)
+
+const columns: TableColumn<Violation>[] = [
+  {
+    id: 'constraint',
+    accessorFn: row => row.constraint.name,
+    header: ({ column }) => getSortableHeader(column, 'Constraint'),
+    cell: ({ row }) => {
+      return h('div', {}, [
+        h('strong', {}, row.original.constraint.name),
+        row.original.constraint.description
+          ? h('p', { class: 'text-sm text-(--ui-text-muted)' }, row.original.constraint.description)
+          : null
+      ].filter(Boolean))
+    }
+  },
+  {
+    id: 'severity',
+    accessorFn: row => row.constraint.severity,
+    header: ({ column }) => getSortableHeader(column, 'Severity'),
+    cell: ({ row }) => {
+      return h(UBadge, {
+        color: getSeverityColor(row.original.constraint.severity),
+        variant: 'subtle'
+      }, () => row.original.constraint.severity)
+    }
+  },
+  {
+    id: 'component',
+    accessorFn: row => row.component,
+    header: ({ column }) => getSortableHeader(column, 'Component'),
+    cell: ({ row }) => {
+      return h('div', {}, [
+        h('strong', {}, row.original.component),
+        h('br'),
+        h('code', { class: 'text-sm' }, row.original.componentVersion)
+      ])
+    }
+  },
+  {
+    id: 'versionRange',
+    accessorFn: row => row.constraint.versionRange ?? '',
+    header: ({ column }) => getSortableHeader(column, 'Required Range'),
+    cell: ({ row }) => {
+      const range = row.original.constraint.versionRange
+      if (!range) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h('code', { class: 'text-sm' }, range)
+    }
+  },
+  {
+    id: 'technology',
+    accessorFn: row => row.technology,
+    header: ({ column }) => getSortableHeader(column, 'Technology'),
+    cell: ({ row }) => {
+      return h(NuxtLink, {
+        to: `/technologies/${encodeURIComponent(row.original.technology)}`,
+        class: 'hover:underline'
+      }, () => row.original.technology)
+    }
+  },
+  {
+    id: 'system',
+    accessorFn: row => row.system,
+    header: ({ column }) => getSortableHeader(column, 'System'),
+    cell: ({ row }) => {
+      return h(NuxtLink, {
+        to: `/systems/${encodeURIComponent(row.original.system)}`,
+        class: 'hover:underline'
+      }, () => row.original.system)
+    }
+  },
+  {
+    id: 'team',
+    accessorFn: row => row.team,
+    header: ({ column }) => getSortableHeader(column, 'Team'),
+    cell: ({ row }) => {
+      return h(NuxtLink, {
+        to: `/teams/${encodeURIComponent(row.original.team)}`,
+        class: 'hover:underline'
+      }, () => row.original.team)
+    }
+  }
+]
 
 useHead({ title: 'Violations - Polaris' })
 </script>
