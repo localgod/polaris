@@ -76,10 +76,14 @@ import { auditLogService } from '../services/singletons'
  */
 
 export default defineEventHandler(async (event) => {
-  await requireAuth(event)
+  const user = await requireAuth(event)
 
   const query = getQuery(event)
-  
+
+  if (query.userId && user.role !== 'superuser' && query.userId !== user.id) {
+    throw createError({ statusCode: 403, message: 'You can only view your own audit history' })
+  }
+
   const filters = {
     entityType: query.entityType as string | undefined,
     operation: query.operation as string | undefined,
