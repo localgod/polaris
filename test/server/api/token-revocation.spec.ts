@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
+import { expect, vi, beforeAll } from 'vitest'
 import { createError } from 'h3'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
 import { mockEvent } from '../../fixtures/h3-event'
 import handler from '../../../server/api/admin/users/[userId]/tokens/[tokenId].delete'
 import { tokenService } from '../../../server/services/singletons'
@@ -28,71 +29,84 @@ beforeAll(() => {
 
 const superuser = { id: 'admin-1', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
 
-beforeEach(() => {
-  vi.clearAllMocks()
-  mockGetImpersonatorId.mockResolvedValue(null)
-  mockGetCurrentUser.mockResolvedValue(superuser)
-})
+const feature = await loadFeature('./test/server/api/token-revocation.feature')
 
-describe('DELETE /api/admin/users/:userId/tokens/:tokenId', () => {
-  it('revokes a token when superuser and ownership matches', async () => {
-    mockRequireSuperuser.mockResolvedValue(superuser)
-    vi.mocked(tokenService.revokeToken).mockResolvedValue(true)
+describeFeature(feature, ({ Background, Scenario }) => {
+  let result: Awaited<ReturnType<typeof handler>>
+  let caughtError: unknown
 
-    const result = await handler(mockEvent({
-      method: 'DELETE',
-      params: { userId: 'user-1', tokenId: 'tok-1' }
-    }))
-
-    expect(result.success).toBe(true)
-    expect(tokenService.revokeToken).toHaveBeenCalledWith('tok-1', 'user-1')
+  Background(({ Given }) => {
+    Given('the API server is running', () => {
+      vi.clearAllMocks()
+      mockGetImpersonatorId.mockResolvedValue(null)
+      mockGetCurrentUser.mockResolvedValue(superuser)
+    })
   })
 
-  it('throws 404 when token does not belong to userId (IDOR prevention)', async () => {
-    mockRequireSuperuser.mockResolvedValue(superuser)
-    vi.mocked(tokenService.revokeToken).mockResolvedValue(false)
-
-    await expect(handler(mockEvent({
-      method: 'DELETE',
-      params: { userId: 'wrong-user', tokenId: 'tok-1' }
-    }))).rejects.toMatchObject({ statusCode: 404 })
+  Scenario('Superuser revokes a token they own', ({ Given, When, Then, And }) => {
+    Given('I am a superuser', () => { mockRequireSuperuser.mockResolvedValue(superuser) })
+    When('I request DELETE "/api/admin/users/user-1/tokens/tok-1"', async () => {
+      vi.mocked(tokenService.revokeToken).mockResolvedValue(true)
+      result = await handler(mockEvent({ method: 'DELETE', params: { userId: 'user-1', tokenId: 'tok-1' } }))
+    })
+    Then('the response should be successful', () => { expect(result.success).toBe(true) })
+    And('the token should be revoked with the correct userId', () => {
+      expect(tokenService.revokeToken).toHaveBeenCalledWith('tok-1', 'user-1')
+    })
   })
 
-  it('throws 401 when not authenticated', async () => {
-    mockRequireSuperuser.mockRejectedValue(createError({ statusCode: 401, message: 'Unauthorized' }))
-
-    await expect(handler(mockEvent({
-      method: 'DELETE',
-      params: { userId: 'user-1', tokenId: 'tok-1' }
-    }))).rejects.toMatchObject({ statusCode: 401 })
+  Scenario('Token not belonging to userId returns 404', ({ Given, When, Then }) => {
+    Given('I am a superuser', () => { mockRequireSuperuser.mockResolvedValue(superuser) })
+    When('I request DELETE with a tokenId that belongs to a different user', async () => {
+      vi.mocked(tokenService.revokeToken).mockResolvedValue(false)
+      caughtError = await handler(mockEvent({ method: 'DELETE', params: { userId: 'wrong-user', tokenId: 'tok-1' } })).catch(e => e)
+    })
+    Then('the request should be rejected with status 404', () => {
+      expect(caughtError).toMatchObject({ statusCode: 404 })
+    })
   })
 
-  it('throws 403 when authenticated but not superuser', async () => {
-    mockRequireSuperuser.mockRejectedValue(
-      createError({ statusCode: 403, message: 'Superuser access required' })
-    )
-
-    await expect(handler(mockEvent({
-      method: 'DELETE',
-      params: { userId: 'user-1', tokenId: 'tok-1' }
-    }))).rejects.toMatchObject({ statusCode: 403 })
+  Scenario('Unauthenticated request is rejected', ({ Given, When, Then }) => {
+    Given('I am not authenticated', () => {
+      mockRequireSuperuser.mockRejectedValue(createError({ statusCode: 401, message: 'Unauthorized' }))
+    })
+    When('I request DELETE "/api/admin/users/user-1/tokens/tok-1"', async () => {
+      caughtError = await handler(mockEvent({ method: 'DELETE', params: { userId: 'user-1', tokenId: 'tok-1' } })).catch(e => e)
+    })
+    Then('the request should be rejected with status 401', () => {
+      expect(caughtError).toMatchObject({ statusCode: 401 })
+    })
   })
 
-  it('throws 400 when tokenId is missing', async () => {
-    mockRequireSuperuser.mockResolvedValue(superuser)
-
-    await expect(handler(mockEvent({
-      method: 'DELETE',
-      params: { userId: 'user-1' }
-    }))).rejects.toMatchObject({ statusCode: 400 })
+  Scenario('Non-superuser is rejected', ({ Given, When, Then }) => {
+    Given('I am authenticated but not a superuser', () => {
+      mockRequireSuperuser.mockRejectedValue(createError({ statusCode: 403, message: 'Superuser access required' }))
+    })
+    When('I request DELETE "/api/admin/users/user-1/tokens/tok-1"', async () => {
+      caughtError = await handler(mockEvent({ method: 'DELETE', params: { userId: 'user-1', tokenId: 'tok-1' } })).catch(e => e)
+    })
+    Then('the request should be rejected with status 403', () => {
+      expect(caughtError).toMatchObject({ statusCode: 403 })
+    })
   })
 
-  it('throws 400 when userId is missing', async () => {
-    mockRequireSuperuser.mockResolvedValue(superuser)
+  Scenario('Missing tokenId returns 400', ({ Given, When, Then }) => {
+    Given('I am a superuser', () => { mockRequireSuperuser.mockResolvedValue(superuser) })
+    When('I request DELETE with a missing tokenId', async () => {
+      caughtError = await handler(mockEvent({ method: 'DELETE', params: { userId: 'user-1' } })).catch(e => e)
+    })
+    Then('the request should be rejected with status 400', () => {
+      expect(caughtError).toMatchObject({ statusCode: 400 })
+    })
+  })
 
-    await expect(handler(mockEvent({
-      method: 'DELETE',
-      params: { tokenId: 'tok-1' }
-    }))).rejects.toMatchObject({ statusCode: 400 })
+  Scenario('Missing userId returns 400', ({ Given, When, Then }) => {
+    Given('I am a superuser', () => { mockRequireSuperuser.mockResolvedValue(superuser) })
+    When('I request DELETE with a missing userId', async () => {
+      caughtError = await handler(mockEvent({ method: 'DELETE', params: { tokenId: 'tok-1' } })).catch(e => e)
+    })
+    Then('the request should be rejected with status 400', () => {
+      expect(caughtError).toMatchObject({ statusCode: 400 })
+    })
   })
 })
