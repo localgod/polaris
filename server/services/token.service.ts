@@ -81,7 +81,7 @@ export class TokenService {
       createdAt,
       expiresAt,
       createdBy: userId,
-      description: options.description || null
+      description: options.description?.trim() || null
     }
     
     const savedToken = await this.tokenRepo.create(params)

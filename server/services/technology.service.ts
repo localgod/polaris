@@ -122,11 +122,11 @@ export class TechnologyService {
     const params: CreateTechnologyParams = {
       name: input.name,
       type: input.type,
-      domain: input.domain || null,
-      vendor: input.vendor || null,
-      ownerTeam: input.ownerTeam || null,
-      componentName: input.componentName || null,
-      componentPackageManager: input.componentPackageManager || null,
+      domain: input.domain?.trim() || null,
+      vendor: input.vendor?.trim() || null,
+      ownerTeam: input.ownerTeam?.trim() || null,
+      componentName: input.componentName?.trim() || null,
+      componentPackageManager: input.componentPackageManager?.trim() || null,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     }
@@ -215,20 +215,20 @@ export class TechnologyService {
     }
     const after: Record<string, unknown> = {
       type: input.type,
-      domain: input.domain || null,
-      vendor: input.vendor || null,
-      ownerTeam: input.ownerTeam || null,
-      lastReviewed: input.lastReviewed || null,
+      domain: input.domain?.trim() || null,
+      vendor: input.vendor?.trim() || null,
+      ownerTeam: input.ownerTeam?.trim() || null,
+      lastReviewed: input.lastReviewed?.trim() || null,
     }
     const changes = buildAuditChanges(before, after, allFields)
 
     const params: UpdateTechnologyParams = {
       name: input.name,
       type: input.type,
-      domain: input.domain || null,
-      vendor: input.vendor || null,
-      ownerTeam: input.ownerTeam || null,
-      lastReviewed: input.lastReviewed || null,
+      domain: input.domain?.trim() || null,
+      vendor: input.vendor?.trim() || null,
+      ownerTeam: input.ownerTeam?.trim() || null,
+      lastReviewed: input.lastReviewed?.trim() || null,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     }
@@ -282,7 +282,7 @@ export class TechnologyService {
       technologyName: input.technologyName,
       teamName: input.teamName,
       time: input.time,
-      notes: input.notes || null,
+      notes: input.notes?.trim() || null,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     }

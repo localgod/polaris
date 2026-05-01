@@ -58,8 +58,8 @@ export class TeamService {
 
     return await this.teamRepo.create({
       name: input.name,
-      email: input.email || null,
-      responsibilityArea: input.responsibilityArea || null,
+      email: input.email?.trim() || null,
+      responsibilityArea: input.responsibilityArea?.trim() || null,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     })
