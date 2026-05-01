@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.71] - 2026-05-01
+
+## What's Changed
+
+- Fix: use ?.trim() || null for user-supplied input fields @localgod (#448)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.70...v0.1.71
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
