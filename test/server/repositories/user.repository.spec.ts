@@ -78,6 +78,31 @@ describe('UserRepository', () => {
     })
   })
 
+  describe('canManageTeam()', () => {
+    it('should return true when user has CAN_MANAGE relationship with the team', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (u:User { id: $id, email: $email, name: 'Manager', role: 'user', provider: 'github' })
+        CREATE (t:Team { name: $team })
+        CREATE (u)-[:CAN_MANAGE]->(t)
+      `, { id: `${PREFIX}manager`, email: `${PREFIX}manager@test.com`, team: `${PREFIX}ManagedTeam` })
+
+      const result = await repo.canManageTeam(`${PREFIX}manager`, `${PREFIX}ManagedTeam`)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when user has no CAN_MANAGE relationship with the team', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (u:User { id: $id, email: $email, name: 'Non Manager', role: 'user', provider: 'github' })
+        CREATE (t:Team { name: $team })
+      `, { id: `${PREFIX}non-manager`, email: `${PREFIX}nonmanager@test.com`, team: `${PREFIX}OtherTeam` })
+
+      const result = await repo.canManageTeam(`${PREFIX}non-manager`, `${PREFIX}OtherTeam`)
+      expect(result).toBe(false)
+    })
+  })
+
   describe('getAuthData()', () => {
     it('should return auth data with role and teams', async () => {
       if (!ctx.neo4jAvailable) return

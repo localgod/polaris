@@ -281,6 +281,19 @@ export class UserRepository extends BaseRepository {
   }
 
   /**
+   * Check if a user has a CAN_MANAGE relationship with a specific team
+   *
+   * @param userId - User ID
+   * @param teamName - Team name
+   * @returns True if the user can manage the team
+   */
+  async canManageTeam(userId: string, teamName: string): Promise<boolean> {
+    const query = await loadQuery('users/can-manage-team.cypher')
+    const { records } = await this.executeQuery(query, { userId, teamName })
+    return records[0]?.get('canManage') || false
+  }
+
+  /**
    * Delete a user and all associated tokens
    */
   async deleteUser(userId: string): Promise<boolean> {
