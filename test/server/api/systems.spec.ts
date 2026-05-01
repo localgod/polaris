@@ -1,290 +1,151 @@
-import { expect, beforeEach, vi } from 'vitest'
-import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
-import type { ApiResponse, System } from '../../../types/api'
-import { SystemService } from '../../../server/services/system.service'
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
+import { createError } from 'h3'
+import { mockEvent } from '../../fixtures/h3-event'
+import getHandler from '../../../server/api/systems.get'
+import postHandler from '../../../server/api/systems.post'
+import { systemService } from '../../../server/services/singletons'
 
-// Mock the SystemService
-vi.mock('../../../server/services/system.service')
+vi.mock('../../../server/services/singletons', () => ({
+  systemService: { findAll: vi.fn(), create: vi.fn() }
+}))
 
-const mockSystems: System[] = [
-  {
-    name: 'polaris-api',
-    domain: 'Platform',
-    ownerTeam: 'Platform Team',
-    businessCriticality: 'high',
-    environment: 'prod',
-    componentCount: 42,
-    repositoryCount: 2
-  },
-  {
-    name: 'customer-portal',
-    domain: 'Customer',
-    ownerTeam: 'Customer Team',
-    businessCriticality: 'critical',
-    environment: 'prod',
-    componentCount: 156,
-    repositoryCount: 3
-  }
-]
+// Auth functions are Nuxt globals — create fns with vi.hoisted so they
+// exist before module evaluation, then register them as globals in beforeAll.
+const { mockRequireAuth, mockGetImpersonatorId } = vi.hoisted(() => ({
+  mockRequireAuth: vi.fn(),
+  mockGetImpersonatorId: vi.fn().mockResolvedValue(null)
+}))
+
+beforeAll(() => {
+  vi.stubGlobal('requireAuth', mockRequireAuth)
+  vi.stubGlobal('getImpersonatorId', mockGetImpersonatorId)
+})
+
+const mockSystem = {
+  name: 'polaris-api',
+  domain: 'Platform',
+  ownerTeam: 'Platform Team',
+  businessCriticality: 'high' as const,
+  environment: 'prod' as const,
+  componentCount: 10,
+  repositoryCount: 2
+}
+
+const mockUser = { id: 'user-1', email: 'user@example.com', role: 'user' as const, teams: [] }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockGetImpersonatorId.mockResolvedValue(null)
 })
 
-const feature = await loadFeature('./test/server/api/systems.feature')
+describe('GET /api/systems', () => {
+  it('returns paginated systems with defaults', async () => {
+    vi.mocked(systemService.findAll).mockResolvedValue({ data: [mockSystem], count: 1, total: 1 })
 
-describeFeature(feature, ({ Background, Scenario }) => {
-  let responseData: ApiResponse<System> | ApiResponse<{ name: string }>
-  let responseStatus: number
+    const result = await getHandler(mockEvent())
 
-  Background(({ Given }) => {
-    Given('the API server is running', () => {
-      // API is always available in unit tests
-      expect(true).toBe(true)
+    expect(result.success).toBe(true)
+    expect(result.data).toHaveLength(1)
+    expect(result.total).toBe(1)
+    expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 50, 0)
+  })
+
+  it('passes parsed limit and offset to service', async () => {
+    vi.mocked(systemService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
+
+    await getHandler(mockEvent({ query: { limit: '10', offset: '20' } }))
+
+    expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 10, 20)
+  })
+
+  it('clamps limit to 200', async () => {
+    vi.mocked(systemService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
+
+    await getHandler(mockEvent({ query: { limit: '9999' } }))
+
+    expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 200, 0)
+  })
+
+  it('clamps limit minimum to 1', async () => {
+    vi.mocked(systemService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
+
+    await getHandler(mockEvent({ query: { limit: '0' } }))
+
+    expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 1, 0)
+  })
+
+  it('rejects non-integer limit', async () => {
+    const result = await getHandler(mockEvent({ query: { limit: 'abc' } }))
+
+    expect(result.success).toBe(false)
+    expect(result.error).toMatch(/integer/)
+    expect(systemService.findAll).not.toHaveBeenCalled()
+  })
+
+  it('rejects non-integer offset', async () => {
+    const result = await getHandler(mockEvent({ query: { offset: 'xyz' } }))
+
+    expect(result.success).toBe(false)
+    expect(systemService.findAll).not.toHaveBeenCalled()
+  })
+
+  it('returns error response when service throws', async () => {
+    vi.mocked(systemService.findAll).mockRejectedValue(new Error('DB down'))
+
+    const result = await getHandler(mockEvent())
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('DB down')
+  })
+})
+
+describe('POST /api/systems', () => {
+  const validBody = {
+    name: 'new-system',
+    domain: 'Platform',
+    ownerTeam: 'Platform Team',
+    businessCriticality: 'high',
+    environment: 'prod'
+  }
+
+  it('creates a system and returns success', async () => {
+    mockRequireAuth.mockResolvedValue(mockUser)
+    vi.mocked(systemService.create).mockResolvedValue('new-system')
+
+    const result = await postHandler(mockEvent({ method: 'POST', body: validBody }))
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual([{ name: 'new-system' }])
+    expect(systemService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'new-system', userId: 'user-1' })
+    )
+  })
+
+  it('throws 401 when unauthenticated', async () => {
+    mockRequireAuth.mockRejectedValue(createError({ statusCode: 401, message: 'Unauthorized' }))
+
+    await expect(postHandler(mockEvent({ method: 'POST', body: validBody }))).rejects.toMatchObject({
+      statusCode: 401
     })
   })
 
-  Scenario('Successfully retrieve all systems', ({ When, Then, And }) => {
-    When('I request GET "/api/systems"', async () => {
-      // Mock successful service response
-      vi.mocked(SystemService.prototype.findAll).mockResolvedValue({
-        data: mockSystems,
-        count: mockSystems.length
-      })
+  it('re-throws createError from service (e.g. 409 conflict)', async () => {
+    mockRequireAuth.mockResolvedValue(mockUser)
+    vi.mocked(systemService.create).mockRejectedValue(
+      createError({ statusCode: 409, message: 'System already exists' })
+    )
 
-      // Simulate API endpoint logic
-      const systemService = new SystemService()
-      const result = await systemService.findAll()
-      
-      responseData = {
-        success: true,
-        data: result.data,
-        count: result.count
-      }
-      responseStatus = 200
-    })
-
-    Then('the response status should be 200', () => {
-      expect(responseStatus).toBe(200)
-    })
-
-    And('the response should have content type "application/json"', () => {
-      expect(responseData).toBeDefined()
-    })
-
-    And('the response should match the ApiResponse schema', () => {
-      expect(responseData).toHaveProperty('success')
-      expect(responseData).toHaveProperty('data')
-      expect(responseData).toHaveProperty('count')
-    })
-
-    And('the response should contain "success" field with value true', () => {
-      expect(responseData.success).toBe(true)
-    })
-
-    And('the response should contain "data" field as an array', () => {
-      expect(Array.isArray(responseData.data)).toBe(true)
-    })
-
-    And('the response should contain "count" field as a number', () => {
-      expect(typeof responseData.count).toBe('number')
-      expect(responseData.count).toBe(mockSystems.length)
-    })
-
-    And('each system in the response should have required fields', () => {
-      const systems = responseData.data as System[]
-      systems.forEach(system => {
-        expect(system).toHaveProperty('name')
-        expect(system).toHaveProperty('domain')
-        expect(system).toHaveProperty('ownerTeam')
-        expect(system).toHaveProperty('businessCriticality')
-        expect(system).toHaveProperty('environment')
-        expect(system).toHaveProperty('componentCount')
-        expect(system).toHaveProperty('repositoryCount')
-      })
+    await expect(postHandler(mockEvent({ method: 'POST', body: validBody }))).rejects.toMatchObject({
+      statusCode: 409
     })
   })
 
-  Scenario('Successfully create a new system', ({ When, Then, And }) => {
-    When('I request POST "/api/systems" with valid system data', async () => {
-      const validSystemData = {
-        name: 'new-system',
-        domain: 'Platform',
-        ownerTeam: 'Platform Team',
-        businessCriticality: 'medium',
-        environment: 'dev'
-      }
+  it('wraps unexpected service errors as 500', async () => {
+    mockRequireAuth.mockResolvedValue(mockUser)
+    vi.mocked(systemService.create).mockRejectedValue(new Error('unexpected'))
 
-      // Mock successful service response
-      vi.mocked(SystemService.prototype.create).mockResolvedValue('new-system')
-
-      // Simulate API endpoint logic
-      const systemService = new SystemService()
-      const name = await systemService.create(validSystemData)
-      
-      responseData = {
-        success: true,
-        data: [{ name }],
-        count: 1
-      }
-      responseStatus = 201
-    })
-
-    Then('the response status should be 201', () => {
-      expect(responseStatus).toBe(201)
-    })
-
-    And('the response should have content type "application/json"', () => {
-      expect(responseData).toBeDefined()
-    })
-
-    And('the response should match the ApiResponse schema', () => {
-      expect(responseData).toHaveProperty('success')
-      expect(responseData).toHaveProperty('data')
-      expect(responseData).toHaveProperty('count')
-    })
-
-    And('the response should contain "success" field with value true', () => {
-      expect(responseData.success).toBe(true)
-    })
-
-    And('the response should contain "data" field with the created system', () => {
-      expect(Array.isArray(responseData.data)).toBe(true)
-      expect(responseData.data).toHaveLength(1)
-      expect(responseData.data[0]).toHaveProperty('name', 'new-system')
-    })
-
-    And('the response should contain "count" field with value 1', () => {
-      expect(responseData.count).toBe(1)
-    })
-  })
-
-  Scenario('Fail to create system with missing required fields', ({ When, Then, And }) => {
-    When('I request POST "/api/systems" with missing required fields', async () => {
-      const invalidData = {
-        name: 'incomplete-system'
-        // Missing required fields: domain, ownerTeam, businessCriticality, environment
-      }
-
-      // Mock service throwing validation error
-      vi.mocked(SystemService.prototype.create).mockRejectedValue(
-        new Error('Missing required fields: domain, ownerTeam, businessCriticality, environment')
-      )
-
-      // Simulate API endpoint logic with error handling
-      try {
-        const systemService = new SystemService()
-        await systemService.create(invalidData as unknown as Parameters<typeof systemService.create>[0])
-      } catch (error) {
-        responseData = {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to create system',
-          data: []
-        }
-        responseStatus = 400
-      }
-    })
-
-    Then('the response status should be 400', () => {
-      expect(responseStatus).toBe(400)
-    })
-
-    And('the response should contain "success" field with value false', () => {
-      expect(responseData.success).toBe(false)
-    })
-
-    And('the response should contain an error message', () => {
-      expect(responseData).toHaveProperty('error')
-      expect(typeof responseData.error).toBe('string')
-      expect(responseData.error).toContain('Missing required fields')
-    })
-  })
-
-  Scenario('Fail to create system with invalid field values', ({ When, Then, And }) => {
-    When('I request POST "/api/systems" with invalid field values', async () => {
-      const invalidData = {
-        name: 'invalid-system',
-        domain: 'Platform',
-        ownerTeam: 'Platform Team',
-        businessCriticality: 'invalid-value', // Invalid enum value
-        environment: 'dev'
-      }
-
-      // Mock service throwing validation error
-      vi.mocked(SystemService.prototype.create).mockRejectedValue(
-        new Error('Invalid businessCriticality value. Must be one of: critical, high, medium, low')
-      )
-
-      // Simulate API endpoint logic with error handling
-      try {
-        const systemService = new SystemService()
-        await systemService.create(invalidData as unknown as Parameters<typeof systemService.create>[0])
-      } catch (error) {
-        responseData = {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to create system',
-          data: []
-        }
-        responseStatus = 422
-      }
-    })
-
-    Then('the response status should be 422', () => {
-      expect(responseStatus).toBe(422)
-    })
-
-    And('the response should contain "success" field with value false', () => {
-      expect(responseData.success).toBe(false)
-    })
-
-    And('the response should contain an error message', () => {
-      expect(responseData).toHaveProperty('error')
-      expect(typeof responseData.error).toBe('string')
-      expect(responseData.error).toContain('Invalid')
-    })
-  })
-
-  Scenario('Fail to create duplicate system', ({ When, Then, And }) => {
-    When('I request POST "/api/systems" with a duplicate system name', async () => {
-      const duplicateData = {
-        name: 'polaris-api', // Already exists
-        domain: 'Platform',
-        ownerTeam: 'Platform Team',
-        businessCriticality: 'high',
-        environment: 'prod'
-      }
-
-      // Mock service throwing duplicate error
-      vi.mocked(SystemService.prototype.create).mockRejectedValue(
-        new Error('System with name "polaris-api" already exists')
-      )
-
-      // Simulate API endpoint logic with error handling
-      try {
-        const systemService = new SystemService()
-        await systemService.create(duplicateData)
-      } catch (error) {
-        responseData = {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to create system',
-          data: []
-        }
-        responseStatus = 409
-      }
-    })
-
-    Then('the response status should be 409', () => {
-      expect(responseStatus).toBe(409)
-    })
-
-    And('the response should contain "success" field with value false', () => {
-      expect(responseData.success).toBe(false)
-    })
-
-    And('the response should contain an error message about duplicate', () => {
-      expect(responseData).toHaveProperty('error')
-      expect(typeof responseData.error).toBe('string')
-      expect(responseData.error).toContain('already exists')
+    await expect(postHandler(mockEvent({ method: 'POST', body: validBody }))).rejects.toMatchObject({
+      statusCode: 500
     })
   })
 })
