@@ -1,104 +1,95 @@
-# API Integration Tests
+# API Handler Tests
 
-This directory contains API-layer tests (Gherkin/BDD-style examples). This file focuses on API-specific patterns and examples. For general testing principles, scripts and the three-layer strategy, see `../README.md`.
+This directory contains handler-level tests for `server/api/**` route handlers. For general testing principles, scripts, and the full layer overview see [`test/README.md`](../../README.md).
 
-## Overview
+## Approach
 
-API tests verify that endpoints return correct responses with proper structure and error handling. These tests **mock the service layer** to avoid database dependencies and focus on API contract testing.
+Each route handler is called directly with a mocked H3 event. Tests do not spin up an HTTP server — they exercise the actual handler function, which means auth guards, query parameter validation, path parameter extraction, error propagation, and response shaping are all covered.
 
-## Test Pattern
+This is distinct from the service-layer tests in `test/server/services/`, which mock the repository layer and test business logic in isolation.
 
-### 1. Feature File (`.feature`)
+## Infrastructure
 
-Define test scenarios in Gherkin syntax:
+### `test/fixtures/h3-event.ts` — `mockEvent()`
 
-```gherkin
-Feature: Components API
-  As a client application
-  I want to retrieve component data via the API
-  So that I can display SBOM information to users
+Creates a real H3 event with injected query params, path params, and body:
 
-  Background:
-    Given the API server is running
+```ts
+import { mockEvent } from '../../fixtures/h3-event'
 
-  @api
-  Scenario: Successfully retrieve all components
-    When I request GET "/api/components"
-    Then the response status should be 200
-    And the response should have property "success" equal to true
-    And the response should have property "data" as an array
-    And the response should have property "count" as a number
+// GET with query params
+mockEvent({ query: { limit: '10', offset: '0' } })
+
+// POST with body
+mockEvent({ method: 'POST', body: { name: 'React', type: 'library' } })
+
+// DELETE with path params
+mockEvent({ method: 'DELETE', params: { userId: 'u-1', tokenId: 'tok-1' } })
 ```
 
-### 2. Spec File (`.spec.ts`)
+Body injection uses the `h3ParsedBody` symbol so `readBody()` returns it immediately without needing a real HTTP stream.
 
-Implement scenarios with mocked services:
+### `test/setup/h3-globals.ts` — Nuxt auto-import stubs
 
-```typescript
-import { expect, beforeEach, vi } from 'vitest'
-import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
-import type { ApiResponse, YourType } from '~~/types/api'
-import { YourService } from '../../../server/services/your.service'
+Nuxt injects h3 functions (`defineEventHandler`, `getQuery`, `readBody`, `getRouterParam`, etc.) and `server/utils/auth` exports as globals at build time. In Vitest these are wired via `setupFiles`.
 
-// Mock the service layer
-vi.mock('../../../server/services/your.service')
+Auth functions (`requireAuth`, `requireSuperuser`, etc.) are registered as stubs that throw by default. Individual tests override them with `vi.stubGlobal()` + `vi.hoisted()`:
 
-const mockData: YourType[] = [
-  // Your mock data here
-]
+```ts
+const { mockRequireAuth } = vi.hoisted(() => ({
+  mockRequireAuth: vi.fn()
+}))
 
-beforeEach(() => {
-  vi.clearAllMocks()
+beforeAll(() => {
+  vi.stubGlobal('requireAuth', mockRequireAuth)
 })
+```
 
-const feature = await loadFeature('./test/server/api/your-endpoint.feature')
+`vi.hoisted` ensures the fn exists before module evaluation. `vi.stubGlobal` replaces the global directly — `vi.mock('../../../server/utils/auth')` does not work here because handlers reference auth functions as globals, not module imports.
 
-describeFeature(feature, ({ Background, Scenario }) => {
-  let responseData: ApiResponse<YourType>
+## Test format
 
-  Background(({ Given }) => {
-    Given('the API server is running', () => {
-      expect(true).toBe(true)
-    })
+Tests use [vitest-cucumber](https://github.com/amiceli/vitest-cucumber) with `.feature` files. Each `.feature` file describes the observable behaviour of one or more route handlers; the corresponding `.spec.ts` file wires the Gherkin steps to actual handler calls.
+
+```
+systems.feature        ← Gherkin scenarios
+systems.spec.ts        ← step implementations calling getHandler / postHandler
+```
+
+### Example
+
+```ts
+Scenario('Non-integer limit is rejected', ({ When, Then, And }) => {
+  When('I request GET "/api/systems" with limit "abc"', async () => {
+    getResult = await getHandler(mockEvent({ query: { limit: 'abc' } }))
   })
-
-  Scenario('Successfully retrieve data', ({ When, Then, And }) => {
-    When('I request GET "/api/your-endpoint"', async () => {
-      // Mock successful service response
-      vi.mocked(YourService.prototype.findAll).mockResolvedValue({
-        data: mockData,
-        count: mockData.length
-      })
-
-      // Simulate API endpoint logic
-      const service = new YourService()
-      const result = await service.findAll()
-      
-      responseData = {
-        success: true,
-        data: result.data,
-        count: result.count
-      }
-    })
-
-    Then('the response status should be 200', () => {
-      expect(responseData).toBeDefined()
-    })
-
-    And('the response should have property "success" equal to true', () => {
-      expect(responseData.success).toBe(true)
-    })
+  Then('the response should be unsuccessful', () => {
+    expect(getResult.success).toBe(false)
+  })
+  And('the response error should mention integers', () => {
+    expect(getResult.error).toMatch(/integer/)
   })
 })
 ```
 
-## Related Documentation
+## What is covered
 
-- [Test README](../README.md) - Canonical server testing overview
-- [Service Tests](../services/README.md) - Testing service layer
-- [Repository Tests](../repositories/README.md) - Testing data layer
-- [vitest-cucumber](https://vitest-cucumber.miceli.click/) - BDD testing framework
+| Concern | Covered |
+|---|---|
+| Auth guard execution (401/403) | ✅ |
+| Query param parsing and validation | ✅ |
+| Pagination clamping `[1, 200]` | ✅ |
+| Path param extraction | ✅ |
+| Service delegation (correct args) | ✅ |
+| Error re-throwing (`createError` 409 etc.) | ✅ |
+| Unexpected error wrapping (500) | ✅ |
+| Response shape (`success`, `data`, `total`) | ✅ |
+| Nitro routing (URL → handler mapping) | ❌ requires HTTP server |
+| H3 middleware execution order | ❌ requires HTTP server |
 
-## Example Test
+## Adding tests for a new handler
 
-See [`components.spec.ts`](./components.spec.ts) for a complete working example.
+1. Create `<handler-name>.feature` with Gherkin scenarios describing the observable behaviour
+2. Create `<handler-name>.spec.ts` importing the handler and wiring steps via `mockEvent()`
+3. Mock singletons with `vi.mock('../../../server/services/singletons', ...)`
+4. Stub auth globals with `vi.hoisted` + `vi.stubGlobal` in `beforeAll`

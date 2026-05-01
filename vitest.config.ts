@@ -13,6 +13,7 @@ export default defineConfig({
     testTimeout: 60000, // 60 seconds for e2e tests
     hookTimeout: 60000, // 60 seconds for beforeAll/afterAll
     globalSetup: ['./test/setup/global-setup.ts'],
+    setupFiles: ['./test/setup/h3-globals.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'json', 'html', 'lcov'],
@@ -30,7 +31,6 @@ export default defineConfig({
         'app/pages/**',
         'app/components/**',
         'app/plugins/**',
-        'server/api/**',
         'server/database/queries/**',
         'schema/scripts/**',
         'server/scripts/**',
