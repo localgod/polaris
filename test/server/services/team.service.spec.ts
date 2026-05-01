@@ -59,7 +59,8 @@ describe('TeamService', () => {
       expect(TeamRepository.prototype.delete).toHaveBeenCalledWith(
         'Platform',
         'user-123',
-        expect.any(Object)
+        expect.any(Object),
+        undefined
       )
     })
 

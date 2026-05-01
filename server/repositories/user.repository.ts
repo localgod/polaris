@@ -49,6 +49,7 @@ export interface AssignTeamsParams {
   teams: string[]
   canManage?: string[]
   performedBy?: string
+  realUserId?: string | null
 }
 
 export interface CreateOrUpdateUserParams {
@@ -169,7 +170,7 @@ export class UserRepository extends BaseRepository {
    * @throws Error if user not found
    */
   async assignTeams(params: AssignTeamsParams): Promise<User> {
-    const { userId, teams, canManage, performedBy } = params
+    const { userId, teams, canManage, performedBy, realUserId } = params
     
     // Capture previous team memberships for audit
     const previousUser = await this.findById(userId)
@@ -225,7 +226,8 @@ export class UserRepository extends BaseRepository {
             WHEN 'REMOVE_TEAM_MEMBER' THEN 'Removed from team: ' + evt.team
           END,
           source: 'API',
-          userId: $performedBy
+          userId: $performedBy,
+          realUserId: $realUserId
         })
         CREATE (a)-[:AUDITS]->(u)
         CREATE (a)-[:AUDITS]->(t)
@@ -237,7 +239,8 @@ export class UserRepository extends BaseRepository {
       await this.executeQuery(auditQuery, {
         userId,
         events: auditEvents,
-        performedBy: performedBy || 'anonymous'
+        performedBy: performedBy || 'anonymous',
+        realUserId: realUserId ?? null
       })
     }
     

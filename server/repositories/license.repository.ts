@@ -309,7 +309,7 @@ export class LicenseRepository extends BaseRepository {
    * @param allowed - New allowed status
    * @returns True if license was updated
    */
-  async updateAllowedStatus(id: string, allowed: boolean, userId?: string): Promise<boolean> {
+  async updateAllowedStatus(id: string, allowed: boolean, userId?: string, realUserId?: string | null): Promise<boolean> {
     const cypher = `
       MATCH (l:License {id: $id})
       WITH l, l.allowed as previousAllowed
@@ -328,13 +328,14 @@ export class LicenseRepository extends BaseRepository {
         changedFields: ['allowed'],
         reason: null,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(l)
       RETURN count(l) as updated
     `
     
-    const { records } = await this.executeQuery(cypher, { id, allowed, userId: userId || null })
+    const { records } = await this.executeQuery(cypher, { id, allowed, userId: userId || null, realUserId: realUserId ?? null })
     return records[0]?.get('updated').toNumber() > 0
   }
 
@@ -374,7 +375,7 @@ export class LicenseRepository extends BaseRepository {
    * @returns Number of licenses updated
    * @throws Error if any license does not exist
    */
-  async bulkUpdateAllowedStatus(licenseIds: string[], allowed: boolean, userId?: string): Promise<number> {
+  async bulkUpdateAllowedStatus(licenseIds: string[], allowed: boolean, userId?: string, realUserId?: string | null): Promise<number> {
     if (licenseIds.length === 0) return 0
     
     const cypher = `
@@ -404,13 +405,14 @@ export class LicenseRepository extends BaseRepository {
         changedFields: ['allowed'],
         reason: null,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(license)
       RETURN count(license) as updated
     `
     
-    const { records } = await this.executeQueryWithSession(cypher, { licenseIds, allowed, userId: userId || null })
+    const { records } = await this.executeQueryWithSession(cypher, { licenseIds, allowed, userId: userId || null, realUserId: realUserId ?? null })
     
     // If no records returned, it means some licenses don't exist
     if (records.length === 0) {

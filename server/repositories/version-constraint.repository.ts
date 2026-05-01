@@ -68,6 +68,7 @@ export interface CreateVersionConstraintInput {
   governsTechnology?: string
   status?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface CreateVersionConstraintResult {
@@ -89,6 +90,7 @@ export interface UpdateVersionConstraintInput {
   governsTechnology?: string | null
   status?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface UpdateStatusResult {
@@ -200,7 +202,7 @@ export class VersionConstraintRepository extends BaseRepository {
     return records[0]!.get('createdBy') || null
   }
 
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     await this.executeQuery(`
       MATCH (vc:VersionConstraint {name: $name})
       CREATE (a:AuditLog {
@@ -211,11 +213,12 @@ export class VersionConstraintRepository extends BaseRepository {
         entityId: vc.name,
         entityLabel: vc.name,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       WITH vc
       DETACH DELETE vc
-    `, { name, userId })
+    `, { name, userId, realUserId: realUserId ?? null })
   }
 
   async create(input: CreateVersionConstraintInput): Promise<CreateVersionConstraintResult> {
@@ -242,7 +245,8 @@ export class VersionConstraintRepository extends BaseRepository {
         entityLabel: vc.name,
         changedFields: ['name', 'severity', 'scope', 'status', 'versionRange'],
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(vc)
     `, {
@@ -253,7 +257,8 @@ export class VersionConstraintRepository extends BaseRepository {
       subjectTeam: input.subjectTeam || null,
       versionRange: input.versionRange,
       status: input.status || 'active',
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     })
 
     let relationshipsCreated = 0
@@ -296,7 +301,7 @@ export class VersionConstraintRepository extends BaseRepository {
     return { constraint, relationshipsCreated }
   }
 
-  async updateStatus(name: string, input: UpdateStatusInput, userId?: string): Promise<UpdateStatusResult> {
+  async updateStatus(name: string, input: UpdateStatusInput, userId?: string, realUserId?: string | null): Promise<UpdateStatusResult> {
     const current = await this.findByName(name)
     if (!current) {
       throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })
@@ -328,7 +333,8 @@ export class VersionConstraintRepository extends BaseRepository {
         changedFields: ['status'],
         reason: $reason,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(vc)
     `, {
@@ -337,7 +343,8 @@ export class VersionConstraintRepository extends BaseRepository {
       reason: input.reason || null,
       previousStatus,
       newStatus,
-      userId: userId || 'anonymous'
+      userId: userId || 'anonymous',
+      realUserId: realUserId ?? null
     })
 
     const updated = await this.findByName(name)
@@ -350,7 +357,7 @@ export class VersionConstraintRepository extends BaseRepository {
 
   async update(name: string, input: UpdateVersionConstraintInput): Promise<VersionConstraint> {
     const setClauses: string[] = ['vc.updatedAt = datetime()']
-    const params: Record<string, unknown> = { name, userId: input.userId }
+    const params: Record<string, unknown> = { name, userId: input.userId, realUserId: input.realUserId ?? null }
 
     if (input.description !== undefined) {
       setClauses.push('vc.description = $description')
@@ -389,7 +396,8 @@ export class VersionConstraintRepository extends BaseRepository {
         entityId: vc.name,
         entityLabel: vc.name,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(vc)
     `, params)

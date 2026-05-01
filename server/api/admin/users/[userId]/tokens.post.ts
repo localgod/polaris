@@ -64,6 +64,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const currentUser = await getCurrentUser(event)
+  const realUserId = await getImpersonatorId(event)
   const auditRepo = new AuditLogRepository()
   await auditRepo.create({
     operation: 'CREATE',
@@ -71,7 +72,8 @@ export default defineEventHandler(async (event) => {
     entityId: result.id,
     entityLabel: `Token for ${user.name || user.email}`,
     changedFields: ['description', 'expiresAt'],
-    userId: currentUser.id
+    userId: currentUser.id,
+    realUserId
   })
 
   setResponseStatus(event, 201)

@@ -92,6 +92,7 @@ export class SBOMService {
     await this.sbomRepo.createAuditLog({
       systemName: system.name,
       userId: input.userId,
+      realUserId: input.realUserId ?? null,
       format: input.format,
       componentsAdded: result.componentsAdded,
       componentsUpdated: result.componentsUpdated

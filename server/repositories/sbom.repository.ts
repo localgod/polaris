@@ -91,6 +91,7 @@ export class SBOMRepository extends BaseRepository {
     format: string
     componentsAdded: number
     componentsUpdated: number
+    realUserId?: string | null
   }): Promise<void> {
     await this.executeQuery(`
       MATCH (s:System {name: $systemName})
@@ -104,12 +105,14 @@ export class SBOMRepository extends BaseRepository {
         changedFields: ['components'],
         source: 'API',
         userId: $userId,
+        realUserId: $realUserId,
         metadata: $metadata
       })
       CREATE (a)-[:AUDITS]->(s)
     `, {
       systemName: params.systemName,
       userId: params.userId,
+      realUserId: params.realUserId ?? null,
       metadata: `format=${params.format} added=${params.componentsAdded} updated=${params.componentsUpdated}`
     })
   }

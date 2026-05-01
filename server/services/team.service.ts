@@ -43,6 +43,7 @@ export class TeamService {
     email?: string | null
     responsibilityArea?: string | null
     userId: string
+    realUserId?: string | null
   }): Promise<string> {
     if (!input.name) {
       throw createError({
@@ -63,7 +64,8 @@ export class TeamService {
       name: input.name,
       email: input.email || null,
       responsibilityArea: input.responsibilityArea || null,
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     })
   }
 
@@ -94,6 +96,7 @@ export class TeamService {
     email?: string | null
     responsibilityArea?: string | null
     userId: string
+    realUserId?: string | null
   }): Promise<string> {
     const current = await this.teamRepo.findByName(input.name)
     if (!current) {
@@ -145,7 +148,8 @@ export class TeamService {
       responsibilityArea: input.responsibilityArea ?? null,
       changedFields,
       changes,
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     })
   }
 
@@ -160,7 +164,7 @@ export class TeamService {
    * @param name - Team name
    * @throws Error if team not found or owns systems
    */
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     // Fetch current state to capture before-values for the audit log
     const team = await this.teamRepo.findByName(name)
 
@@ -187,7 +191,7 @@ export class TeamService {
       responsibilityArea: team.responsibilityArea,
     })
 
-    await this.teamRepo.delete(name, userId, changes)
+    await this.teamRepo.delete(name, userId, changes, realUserId)
   }
 
   /**

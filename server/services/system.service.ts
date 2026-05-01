@@ -15,6 +15,7 @@ export interface CreateSystemInput {
   environment: string
   repositories?: RepositoryInput[]
   userId: string
+  realUserId?: string | null
 }
 
 /**
@@ -128,7 +129,8 @@ export class SystemService {
       businessCriticality: input.businessCriticality,
       environment: input.environment,
       repositories,
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.systemRepo.create(params)
@@ -144,7 +146,7 @@ export class SystemService {
    * @param name - System name
    * @throws Error if system not found
    */
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     // Fetch current state to capture before-values for the audit log
     const system = await this.systemRepo.findByName(name)
     
@@ -163,7 +165,7 @@ export class SystemService {
       ownerTeam: system.ownerTeam,
     })
     
-    await this.systemRepo.delete(name, userId, changes)
+    await this.systemRepo.delete(name, userId, changes, realUserId)
   }
 
   /**
@@ -184,7 +186,7 @@ export class SystemService {
   async addRepository(systemName: string, data: {
     url: string
     name?: string
-  }, userId: string): Promise<Repository> {
+  }, userId: string, realUserId?: string | null): Promise<Repository> {
     // Business logic: validate system exists
     const system = await this.systemRepo.findByName(systemName)
     if (!system) {
@@ -200,7 +202,7 @@ export class SystemService {
     // Business logic: extract name if not provided
     const name = data.name || this.extractRepoName(normalizedUrl)
     
-    return await this.systemRepo.addRepository(systemName, normalizedUrl, name, userId)
+    return await this.systemRepo.addRepository(systemName, normalizedUrl, name, userId, realUserId)
   }
 
   /**

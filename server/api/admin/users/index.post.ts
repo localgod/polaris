@@ -60,6 +60,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const currentUser = await getCurrentUser(event)
+  const realUserId = await getImpersonatorId(event)
   const auditRepo = new AuditLogRepository()
   await auditRepo.create({
     operation: 'CREATE',
@@ -67,7 +68,8 @@ export default defineEventHandler(async (event) => {
     entityId: id,
     entityLabel: body.name || body.email,
     changedFields: ['name', 'email', 'provider'],
-    userId: currentUser.id
+    userId: currentUser.id,
+    realUserId
   })
 
   setResponseStatus(event, 201)

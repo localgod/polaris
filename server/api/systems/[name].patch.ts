@@ -59,6 +59,7 @@ import { buildAuditChanges } from '../../utils/audit-diff'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuthorization(event)
+  const realUserId = await getImpersonatorId(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -153,6 +154,7 @@ export default defineEventHandler(async (event) => {
   const changes = buildAuditChanges(currentProps, incomingState, changedFields)
 
   params.userId = user.id
+  params.realUserId = realUserId
   params.changes = JSON.stringify(changes)
 
   const query = `
@@ -169,7 +171,8 @@ export default defineEventHandler(async (event) => {
       changedFields: ${JSON.stringify(changedFields)},
       changes: $changes,
       source: 'API',
-      userId: $userId
+      userId: $userId,
+      realUserId: $realUserId
     })
     CREATE (a)-[:AUDITS]->(s)
     RETURN s {

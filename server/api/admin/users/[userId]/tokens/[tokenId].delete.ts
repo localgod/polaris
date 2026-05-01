@@ -42,13 +42,15 @@ export default defineEventHandler(async (event) => {
 
   const userId = getRouterParam(event, 'userId')
   const currentUser = await getCurrentUser(event)
+  const realUserId = await getImpersonatorId(event)
   const auditRepo = new AuditLogRepository()
   await auditRepo.create({
     operation: 'DELETE',
     entityType: 'ApiToken',
     entityId: tokenId,
     entityLabel: `Token ${tokenId} for user ${userId}`,
-    userId: currentUser.id
+    userId: currentUser.id,
+    realUserId
   })
 
   return { success: true, message: 'Token revoked' }
