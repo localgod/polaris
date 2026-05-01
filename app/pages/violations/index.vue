@@ -164,7 +164,7 @@ const columns: TableColumn<Violation>[] = [
         row.original.constraint.description
           ? h('p', { class: 'text-sm text-(--ui-text-muted)' }, row.original.constraint.description)
           : null
-      ].filter(Boolean) as ReturnType<typeof h>[])
+      ].filter(Boolean))
     }
   },
   {
