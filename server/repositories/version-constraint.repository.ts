@@ -263,10 +263,10 @@ export class VersionConstraintRepository extends BaseRepository {
       CREATE (a)-[:AUDITS]->(vc)
     `, {
       name: input.name,
-      description: input.description || null,
+      description: input.description?.trim() || null,
       severity: input.severity,
       scope: input.scope || 'organization',
-      subjectTeam: input.subjectTeam || null,
+      subjectTeam: input.subjectTeam?.trim() || null,
       versionRange: input.versionRange,
       status: input.status || 'active',
       userId: input.userId,
@@ -352,7 +352,7 @@ export class VersionConstraintRepository extends BaseRepository {
     `, {
       name,
       status: newStatus,
-      reason: input.reason || null,
+      reason: input.reason?.trim() || null,
       previousStatus,
       newStatus,
       userId: userId || 'anonymous',
@@ -373,7 +373,7 @@ export class VersionConstraintRepository extends BaseRepository {
 
     if (input.description !== undefined) {
       setClauses.push('vc.description = $description')
-      params.description = input.description || null
+      params.description = input.description?.trim() || null
     }
     if (input.severity !== undefined) {
       setClauses.push('vc.severity = $severity')
