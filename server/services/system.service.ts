@@ -2,10 +2,18 @@ import { SystemRepository } from '../repositories/system.repository'
 import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
 import { TeamRepository } from '../repositories/team.repository'
 import type { System, CreateSystemParams, RepositoryInput } from '../repositories/system.repository'
-import type { Repository } from '~~/types/api'
+import type { Repository, BusinessCriticality, SystemEnvironment } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
 import type { SortParams } from '../utils/sorting'
 import { buildDeleteChanges } from '../utils/audit-diff'
+
+export const VALID_CRITICALITIES = [
+  'critical', 'high', 'medium', 'low'
+] as const satisfies BusinessCriticality[]
+
+export const VALID_ENVIRONMENTS = [
+  'dev', 'test', 'staging', 'prod'
+] as const satisfies SystemEnvironment[]
 
 export interface CreateSystemInput {
   name: string
@@ -75,8 +83,7 @@ export class SystemService {
     }
 
     // Business logic: validate businessCriticality
-    const validCriticalities = ['critical', 'high', 'medium', 'low']
-    if (!validCriticalities.includes(input.businessCriticality)) {
+    if (!VALID_CRITICALITIES.includes(input.businessCriticality as BusinessCriticality)) {
       throw createError({
         statusCode: 422,
         message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
@@ -84,8 +91,7 @@ export class SystemService {
     }
 
     // Business logic: validate environment
-    const validEnvironments = ['dev', 'test', 'staging', 'prod']
-    if (!validEnvironments.includes(input.environment)) {
+    if (!VALID_ENVIRONMENTS.includes(input.environment as SystemEnvironment)) {
       throw createError({
         statusCode: 422,
         message: 'Invalid environment value. Must be one of: dev, test, staging, prod'

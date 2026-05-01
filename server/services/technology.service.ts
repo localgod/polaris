@@ -1,19 +1,23 @@
 import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
-import type { Technology, ComponentType, TechnologyDomain } from '~~/types/api'
+import type { Technology, ComponentType, TechnologyDomain, TimeValue } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
 
-const VALID_TYPES: ComponentType[] = [
+const VALID_TYPES = [
   'application', 'framework', 'library', 'container', 'platform',
   'operating-system', 'device', 'device-driver', 'firmware',
   'file', 'machine-learning-model', 'data'
-]
+] as const satisfies ComponentType[]
 
-const VALID_DOMAINS: TechnologyDomain[] = [
+const VALID_DOMAINS = [
   'foundational-runtime', 'framework', 'data-platform',
   'integration-platform', 'security-identity', 'infrastructure',
   'observability', 'developer-tooling', 'other'
-]
+] as const satisfies TechnologyDomain[]
+
+const VALID_TIME_VALUES = [
+  'tolerate', 'invest', 'migrate', 'eliminate'
+] as const satisfies TimeValue[]
 
 export interface SetApprovalInput {
   technologyName: string
@@ -242,11 +246,10 @@ export class TechnologyService {
    * Set or update a team's TIME approval for a technology
    */
   async setApproval(input: SetApprovalInput): Promise<{ time: string; team: string }> {
-    const validTimeValues = ['tolerate', 'invest', 'migrate', 'eliminate']
-    if (!validTimeValues.includes(input.time)) {
+    if (!VALID_TIME_VALUES.includes(input.time as TimeValue)) {
       throw createError({
         statusCode: 422,
-        message: `Invalid TIME value. Must be one of: ${validTimeValues.join(', ')}`
+        message: `Invalid TIME value. Must be one of: ${VALID_TIME_VALUES.join(', ')}`
       })
     }
 
