@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.65] - 2026-05-01
+
+## What's Changed
+
+- [WIP] Fix duplicate TypeScript union types in VALID\_TYPES and VALID\_DOMAINS @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#422)
+- [WIP] Fix audit log userId filter to restrict access for non-superusers @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#421)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.64...v0.1.65
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
