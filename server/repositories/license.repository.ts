@@ -30,6 +30,8 @@ export interface LicenseComponent {
 export interface LicenseViolation {
   teamName: string
   systemName: string
+  systemBusinessCriticality: string | null
+  systemEnvironment: string | null
   componentName: string
   componentVersion: string
   componentPurl: string | null
@@ -507,6 +509,8 @@ export class LicenseRepository extends BaseRepository {
       ${whereClause}
       RETURN team.name as teamName,
              sys.name as systemName,
+             sys.businessCriticality as systemBusinessCriticality,
+             sys.environment as systemEnvironment,
              comp.name as componentName,
              comp.version as componentVersion,
              comp.purl as componentPurl,
@@ -525,6 +529,8 @@ export class LicenseRepository extends BaseRepository {
     const data = records.map(record => ({
       teamName: record.get('teamName'),
       systemName: record.get('systemName'),
+      systemBusinessCriticality: record.get('systemBusinessCriticality') || null,
+      systemEnvironment: record.get('systemEnvironment') || null,
       componentName: record.get('componentName'),
       componentVersion: record.get('componentVersion'),
       componentPurl: record.get('componentPurl'),

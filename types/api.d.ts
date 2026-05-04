@@ -185,6 +185,8 @@ export interface User {
 export interface LicenseViolation {
   teamName: string
   systemName: string
+  systemBusinessCriticality: BusinessCriticality | null
+  systemEnvironment: SystemEnvironment | null
   componentName: string
   componentVersion: string
   componentPurl: string | null

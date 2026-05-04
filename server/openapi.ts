@@ -429,6 +429,8 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
           properties: {
             team: { type: 'string' },
             system: { type: 'string' },
+            systemBusinessCriticality: { type: 'string', nullable: true, enum: ['critical', 'high', 'medium', 'low'] },
+            systemEnvironment: { type: 'string', nullable: true, enum: ['dev', 'test', 'staging', 'prod'] },
             component: { type: 'string' },
             componentVersion: { type: 'string' },
             technology: { type: 'string' },

@@ -6,6 +6,8 @@ MATCH (team)-[:SUBJECT_TO]->(vc)
 {{WHERE_CONDITIONS}}
 RETURN team.name as teamName,
        sys.name as systemName,
+       sys.businessCriticality as systemBusinessCriticality,
+       sys.environment as systemEnvironment,
        comp.name as componentName,
        comp.version as componentVersion,
        tech.name as technologyName,
