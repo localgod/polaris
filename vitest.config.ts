@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: ['test/integration/**'],
     fileParallelism: false,
     testTimeout: 60000, // 60 seconds for e2e tests
     hookTimeout: 60000, // 60 seconds for beforeAll/afterAll

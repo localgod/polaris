@@ -209,8 +209,8 @@ jobs:
           NEO4J_USERNAME: neo4j
           NEO4J_PASSWORD: testpassword
 
-      - name: Start dev server (E2E tests only)
-        if: matrix.test-layer == 'app-e2e'
+      - name: Start dev server (E2E and HTTP integration tests)
+        if: matrix.test-layer == 'app-e2e' || matrix.test-layer == 'integration'
         run: |
           npm run dev &
           echo "Waiting for dev server to be ready..."
