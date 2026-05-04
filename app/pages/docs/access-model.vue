@@ -79,6 +79,15 @@
       </div>
     </UCard>
 
+    <!-- API Token Self-Service -->
+    <UAlert
+      color="info"
+      variant="subtle"
+      icon="i-lucide-key"
+      title="API Token Self-Service"
+      description="Any authenticated user can generate and revoke their own API tokens from their profile page (/profile). Tokens are useful for scripting and CI pipeline integrations such as SBOM submission. Superusers additionally manage tokens for technical users via the Users admin page."
+    />
+
     <!-- Impersonation -->
     <UAlert
       color="info"
@@ -114,7 +123,7 @@ const roles = [
   {
     icon: 'i-lucide-user',
     title: 'Authenticated (User)',
-    description: 'Can create and manage systems, technologies, version constraints, and submit SBOMs. Can view audit logs and their own profile.',
+    description: 'Can create and manage systems, technologies, version constraints, and submit SBOMs. Can view audit logs, their own profile, and manage their own API tokens.',
   },
   {
     icon: 'i-lucide-shield-alert',
@@ -169,7 +178,7 @@ const accessRows = [
   { element: 'Technologies', view: 'Public', create: 'Authenticated', edit: 'Owner team*', delete: 'Owner team*', notes: '* Superusers or members of the technology\'s steward team' },
   { element: 'Teams', view: 'Public', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Full team management is superuser-only' },
   { element: 'Users', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Technical users only; OAuth users are created on sign-in' },
-  { element: 'API Tokens', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Managed per technical user; token value shown once' },
+  { element: 'API Tokens', view: 'Authenticated', create: 'Authenticated', edit: '—', delete: 'Authenticated', notes: 'Users manage their own tokens from /profile. Superusers also manage tokens for technical users. Token value shown once on creation.' },
   { element: 'Version Constraints', view: 'Public', create: 'Authenticated', edit: 'Creator*', delete: 'Creator*', notes: '* Superusers or the user who created the version constraint' },
   { element: 'Licenses', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Discovered via SBOM ingestion; not directly managed' },
   { element: 'License Allow/Deny', view: 'Superuser', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Superusers manage the organization license whitelist' },
@@ -196,7 +205,8 @@ const creationRows = [
   { element: 'Teams', method: 'Created via the UI by superusers' },
   { element: 'Users (OAuth)', method: 'Created automatically on first sign-in via GitHub OAuth' },
   { element: 'Users (Technical)', method: 'Created via the UI by superusers for API access' },
-  { element: 'API Tokens', method: 'Generated via the UI by superusers for technical users' },
+  { element: 'API Tokens (own)', method: 'Generated from the profile page (/profile) by any authenticated user' },
+  { element: 'API Tokens (technical users)', method: 'Generated via the Users admin page by superusers' },
   { element: 'Version Constraints', method: 'Created via the UI by authenticated users' },
   { element: 'Licenses', method: 'Discovered automatically from SBOM component metadata' },
   { element: 'Approvals', method: 'Created when a team member approves a technology for their team' },
