@@ -189,22 +189,22 @@ export class SBOMService {
     const supplier = comp.supplier as Record<string, unknown> | undefined
     return {
       name: comp.name as string,
-      version: (comp.version as string) || null,
+      version: (comp.version as string)?.trim() || null,
       packageManager: this.extractPackageManager(comp.purl as string | null),
-      purl: (comp.purl as string) || null,
-      cpe: (comp.cpe as string) || null,
-      bomRef: (comp['bom-ref'] as string) || null,
-      type: (comp.type as string) || null,
-      group: (comp.group as string) || null,
-      scope: (comp.scope as string) || null,
+      purl: (comp.purl as string)?.trim() || null,
+      cpe: (comp.cpe as string)?.trim() || null,
+      bomRef: (comp['bom-ref'] as string)?.trim() || null,
+      type: (comp.type as string)?.trim() || null,
+      group: (comp.group as string)?.trim() || null,
+      scope: (comp.scope as string)?.trim() || null,
       hashes: this.extractCycloneDXHashes((comp.hashes as unknown[]) || []),
       licenses: this.extractCycloneDXLicenses((comp.licenses as unknown[]) || []),
-      copyright: (comp.copyright as string) || null,
-      supplier: (supplier?.name as string) || null,
-      author: (comp.author as string) || null,
-      publisher: (comp.publisher as string) || null,
-      homepage: (comp.homepage as string) || null,
-      description: (comp.description as string) || null,
+      copyright: (comp.copyright as string)?.trim() || null,
+      supplier: (supplier?.name as string)?.trim() || null,
+      author: (comp.author as string)?.trim() || null,
+      publisher: (comp.publisher as string)?.trim() || null,
+      homepage: (comp.homepage as string)?.trim() || null,
+      description: (comp.description as string)?.trim() || null,
       externalReferences: this.extractCycloneDXReferences((comp.externalReferences as unknown[]) || [])
     }
   }
@@ -217,7 +217,7 @@ export class SBOMService {
     
     return {
       name: pkg.name as string,
-      version: (pkg.versionInfo as string) || null,
+      version: (pkg.versionInfo as string)?.trim() || null,
       packageManager: this.extractPackageManager(purl),
       purl: purl,
       cpe: this.extractCpeFromExternalRefs((pkg.externalRefs as unknown[]) || []),
@@ -227,12 +227,12 @@ export class SBOMService {
       scope: null,
       hashes: this.extractSPDXHashes((pkg.checksums as unknown[]) || []),
       licenses: this.extractSPDXLicenses(pkg),
-      copyright: (pkg.copyrightText as string) || null,
+      copyright: (pkg.copyrightText as string)?.trim() || null,
       supplier: this.extractEntityName(pkg.supplier as string | undefined),
       author: this.extractEntityName(pkg.originator as string | undefined),
       publisher: null,
-      homepage: (pkg.homepage as string) || null,
-      description: (pkg.description as string) || null,
+      homepage: (pkg.homepage as string)?.trim() || null,
+      description: (pkg.description as string)?.trim() || null,
       externalReferences: this.extractSPDXReferences((pkg.externalRefs as unknown[]) || [])
     }
   }
@@ -265,7 +265,7 @@ export class SBOMService {
       const ref = r as Record<string, unknown>
       return ref.referenceType === 'purl'
     }) as Record<string, unknown> | undefined
-    return (purlRef?.referenceLocator as string) || null
+    return (purlRef?.referenceLocator as string)?.trim() || null
   }
 
   /**
@@ -277,7 +277,7 @@ export class SBOMService {
       const ref = r as Record<string, unknown>
       return ref.referenceType === 'cpe23Type' || ref.referenceType === 'cpe22Type'
     }) as Record<string, unknown> | undefined
-    return (cpeRef?.referenceLocator as string) || null
+    return (cpeRef?.referenceLocator as string)?.trim() || null
   }
 
   /**
@@ -326,10 +326,10 @@ export class SBOMService {
       } else if (license.license) {
         const lic = license.license as Record<string, unknown>
         return [{
-          id: (lic.id as string) || null,
-          name: (lic.name as string) || null,
-          url: (lic.url as string) || null,
-          text: (lic.text as string) || null,
+          id: (lic.id as string)?.trim() || null,
+          name: (lic.name as string)?.trim() || null,
+          url: (lic.url as string)?.trim() || null,
+          text: (lic.text as string)?.trim() || null,
           expression: null
         }]
       }

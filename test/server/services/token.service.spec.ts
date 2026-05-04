@@ -80,6 +80,50 @@ describe('TokenService', () => {
     })
   })
 
+  describe('createToken() — description coercion', () => {
+    beforeEach(() => {
+      vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
+        id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
+        expiresAt: null, revoked: false, createdBy: 'user-1', description: null
+      })
+    })
+
+    it('should pass a provided description string through unchanged', async () => {
+      await service.createToken('user-1', { description: 'My token' })
+
+      const params = vi.mocked(TokenRepository.prototype.create).mock.calls[0][0]
+      expect(params.description).toBe('My token')
+    })
+
+    it('should coerce undefined description to null', async () => {
+      await service.createToken('user-1')
+
+      const params = vi.mocked(TokenRepository.prototype.create).mock.calls[0][0]
+      expect(params.description).toBeNull()
+    })
+
+    it('should coerce empty string description to null', async () => {
+      await service.createToken('user-1', { description: '' })
+
+      const params = vi.mocked(TokenRepository.prototype.create).mock.calls[0][0]
+      expect(params.description).toBeNull()
+    })
+
+    it('should coerce whitespace-only description to null', async () => {
+      await service.createToken('user-1', { description: '   ' })
+
+      const params = vi.mocked(TokenRepository.prototype.create).mock.calls[0][0]
+      expect(params.description).toBeNull()
+    })
+
+    it('should trim whitespace from description that has real content', async () => {
+      await service.createToken('user-1', { description: '  My token  ' })
+
+      const params = vi.mocked(TokenRepository.prototype.create).mock.calls[0][0]
+      expect(params.description).toBe('My token')
+    })
+  })
+
   describe('revokeToken()', () => {
     it('should pass both tokenId and userId to repository', async () => {
       vi.mocked(TokenRepository.prototype.revoke).mockResolvedValue(true)
