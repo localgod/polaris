@@ -53,6 +53,7 @@ interface SetApprovalRequest {
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
   if (!rawName) {
@@ -82,7 +83,8 @@ export default defineEventHandler(async (event) => {
     teamName: body.teamName,
     time: body.time,
     notes: body.notes,
-    userId: user.id
+    userId: user.id,
+    realUserId
   })
 
   return {

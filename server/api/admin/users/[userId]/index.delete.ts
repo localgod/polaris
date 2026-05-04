@@ -45,13 +45,15 @@ export default defineEventHandler(async (event) => {
   await userRepo.deleteUser(userId)
 
   const currentUser = await getCurrentUser(event)
+  const realUserId = await getImpersonatorId(event)
   const auditRepo = new AuditLogRepository()
   await auditRepo.create({
     operation: 'DELETE',
     entityType: 'User',
     entityId: userId,
     entityLabel: user.name || user.email,
-    userId: currentUser.id
+    userId: currentUser.id,
+    realUserId
   })
 
   return { success: true, message: 'Technical user deleted' }

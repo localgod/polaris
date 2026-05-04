@@ -188,24 +188,11 @@
       </template>
       <div class="space-y-6">
         <p class="text-(--ui-text-muted)">
-          Team approvals allow organizations to control which technologies teams can use, ensuring compliance with organizational standards while giving teams flexibility within approved boundaries.
+          Each team independently assigns a TIME category (Tolerate, Invest, Migrate, Eliminate) to the technologies it uses. Compliance violations are detected when a component appears in an SBOM without a corresponding team approval, or when the assigned category is Eliminate.
         </p>
         <div>
-          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Approval Workflow</p>
+          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">How it works</p>
           <UTimeline :items="approvalWorkflowSteps" />
-        </div>
-        <div>
-          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Approval Levels</p>
-          <div class="space-y-3">
-            <UPageFeature
-              v-for="level in approvalLevels"
-              :key="level.title"
-              :icon="level.icon"
-              :title="level.title"
-              :description="level.description"
-              orientation="horizontal"
-            />
-          </div>
         </div>
         <div>
           <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Stewardship</p>
@@ -367,16 +354,9 @@ const timeCategories = [
 ]
 
 const approvalWorkflowSteps: TimelineItem[] = [
-  { icon: 'i-lucide-send', title: 'Request', description: 'Team requests approval to use a technology' },
-  { icon: 'i-lucide-eye', title: 'Review', description: 'Technology stewards review the request' },
-  { icon: 'i-lucide-gavel', title: 'Decision', description: 'Request is approved, denied, or requires changes' },
-  { icon: 'i-lucide-rocket', title: 'Implementation', description: 'Approved technologies can be used by the team' },
-]
-
-const approvalLevels = [
-  { icon: 'i-lucide-globe', title: 'Organization-wide', description: 'Approved for all teams automatically' },
-  { icon: 'i-lucide-users', title: 'Team-specific', description: 'Approved only for the requesting team' },
-  { icon: 'i-lucide-sliders', title: 'Conditional', description: 'Approved with specific constraints or version requirements' },
+  { icon: 'i-lucide-search', title: 'Identify', description: 'A team identifies a technology it uses or plans to use' },
+  { icon: 'i-lucide-tag', title: 'Categorise', description: 'A team member or superuser sets the TIME category for that technology' },
+  { icon: 'i-lucide-shield-check', title: 'Compliance checked', description: 'SBOMs are scanned; components without a team approval, or with an Eliminate category, are flagged as violations' },
 ]
 
 const stewardshipDuties = [

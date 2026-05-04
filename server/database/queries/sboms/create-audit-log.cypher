@@ -9,6 +9,7 @@ CREATE (a:AuditLog {
   changedFields: ['components'],
   source: 'API',
   userId: $userId,
+  realUserId: $realUserId,
   metadata: $metadata
 })
 CREATE (a)-[:AUDITS]->(s)

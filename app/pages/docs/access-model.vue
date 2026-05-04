@@ -172,7 +172,7 @@ const accessRows = [
   { element: 'API Tokens', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Managed per technical user; token value shown once' },
   { element: 'Version Constraints', view: 'Public', create: 'Authenticated', edit: 'Creator*', delete: 'Creator*', notes: '* Superusers or the user who created the version constraint' },
   { element: 'Licenses', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Discovered via SBOM ingestion; not directly managed' },
-  { element: 'License Allow/Deny', view: 'Authenticated', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Superusers manage the organization license whitelist' },
+  { element: 'License Allow/Deny', view: 'Superuser', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Superusers manage the organization license whitelist' },
   { element: 'Violations', view: 'Authenticated', create: '—', edit: '—', delete: '—', notes: 'Compliance and version constraint violations; read-only for authenticated users' },
   { element: 'Approvals', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Team members approve technologies for their team' },
   { element: 'SBOMs', view: '—', create: 'Authenticated', edit: '—', delete: '—', notes: 'Submitted via API; creates/updates components and licenses' },

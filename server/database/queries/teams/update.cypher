@@ -13,6 +13,7 @@ CREATE (a:AuditLog {
   changedFields: $changedFields,
   changes: $changes,
   source: 'API',
-  userId: $userId
+  userId: $userId,
+  realUserId: $realUserId
 })
 RETURN t.name as name

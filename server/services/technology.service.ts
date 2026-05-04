@@ -1,19 +1,23 @@
 import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
-import type { Technology, ComponentType, TechnologyDomain } from '~~/types/api'
+import type { Technology, ComponentType, TechnologyDomain, TimeValue } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
 
-const VALID_TYPES: ComponentType[] = [
+const VALID_TYPES = [
   'application', 'framework', 'library', 'container', 'platform',
   'operating-system', 'device', 'device-driver', 'firmware',
   'file', 'machine-learning-model', 'data'
-]
+] as const satisfies ComponentType[]
 
-const VALID_DOMAINS: TechnologyDomain[] = [
+const VALID_DOMAINS = [
   'foundational-runtime', 'framework', 'data-platform',
   'integration-platform', 'security-identity', 'infrastructure',
   'observability', 'developer-tooling', 'other'
-]
+] as const satisfies TechnologyDomain[]
+
+const VALID_TIME_VALUES = [
+  'tolerate', 'invest', 'migrate', 'eliminate'
+] as const satisfies TimeValue[]
 
 export interface SetApprovalInput {
   technologyName: string
@@ -21,6 +25,7 @@ export interface SetApprovalInput {
   time: string
   notes?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface CreateTechnologyInput {
@@ -32,6 +37,7 @@ export interface CreateTechnologyInput {
   componentName?: string
   componentPackageManager?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface UpdateTechnologyInput {
@@ -42,6 +48,7 @@ export interface UpdateTechnologyInput {
   ownerTeam?: string
   lastReviewed?: string
   userId: string
+  realUserId?: string | null
 }
 
 /**
@@ -59,13 +66,9 @@ export class TechnologyService {
    * 
    * @returns Array of technologies with count
    */
-  async findAll(sort?: SortParams): Promise<{ data: Technology[]; count: number }> {
-    const technologies = await this.techRepo.findAll(sort)
-    
-    return {
-      data: technologies,
-      count: technologies.length
-    }
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Technology[]; count: number; total: number }> {
+    const { data, total } = await this.techRepo.findAll(sort, limit, offset)
+    return { data, count: data.length, total }
   }
 
   /**
@@ -119,12 +122,13 @@ export class TechnologyService {
     const params: CreateTechnologyParams = {
       name: input.name,
       type: input.type,
-      domain: input.domain || null,
-      vendor: input.vendor || null,
-      ownerTeam: input.ownerTeam || null,
-      componentName: input.componentName || null,
-      componentPackageManager: input.componentPackageManager || null,
-      userId: input.userId
+      domain: input.domain?.trim() || null,
+      vendor: input.vendor?.trim() || null,
+      ownerTeam: input.ownerTeam?.trim() || null,
+      componentName: input.componentName?.trim() || null,
+      componentPackageManager: input.componentPackageManager?.trim() || null,
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.techRepo.create(params)
@@ -147,7 +151,7 @@ export class TechnologyService {
    * @param userId - ID of the user performing the deletion
    * @throws 404 if technology not found
    */
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     const tech = await this.techRepo.findByName(name)
 
     if (!tech) {
@@ -165,7 +169,7 @@ export class TechnologyService {
       ownerTeam: tech.ownerTeamName ?? null,
     })
 
-    await this.techRepo.delete(name, userId, changes)
+    await this.techRepo.delete(name, userId, changes, realUserId)
   }
 
   /**
@@ -211,21 +215,22 @@ export class TechnologyService {
     }
     const after: Record<string, unknown> = {
       type: input.type,
-      domain: input.domain || null,
-      vendor: input.vendor || null,
-      ownerTeam: input.ownerTeam || null,
-      lastReviewed: input.lastReviewed || null,
+      domain: input.domain?.trim() || null,
+      vendor: input.vendor?.trim() || null,
+      ownerTeam: input.ownerTeam?.trim() || null,
+      lastReviewed: input.lastReviewed?.trim() || null,
     }
     const changes = buildAuditChanges(before, after, allFields)
 
     const params: UpdateTechnologyParams = {
       name: input.name,
       type: input.type,
-      domain: input.domain || null,
-      vendor: input.vendor || null,
-      ownerTeam: input.ownerTeam || null,
-      lastReviewed: input.lastReviewed || null,
-      userId: input.userId
+      domain: input.domain?.trim() || null,
+      vendor: input.vendor?.trim() || null,
+      ownerTeam: input.ownerTeam?.trim() || null,
+      lastReviewed: input.lastReviewed?.trim() || null,
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.techRepo.update({ ...params, changes })
@@ -234,7 +239,7 @@ export class TechnologyService {
   /**
    * Link a component to a technology via IS_VERSION_OF
    */
-  async linkComponent(input: { technologyName: string; componentName: string; componentVersion: string; userId: string }) {
+  async linkComponent(input: { technologyName: string; componentName: string; componentVersion: string; userId: string; realUserId?: string | null }) {
     const exists = await this.techRepo.exists(input.technologyName)
     if (!exists) {
       throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
@@ -246,11 +251,10 @@ export class TechnologyService {
    * Set or update a team's TIME approval for a technology
    */
   async setApproval(input: SetApprovalInput): Promise<{ time: string; team: string }> {
-    const validTimeValues = ['tolerate', 'invest', 'migrate', 'eliminate']
-    if (!validTimeValues.includes(input.time)) {
+    if (!VALID_TIME_VALUES.includes(input.time as TimeValue)) {
       throw createError({
         statusCode: 422,
-        message: `Invalid TIME value. Must be one of: ${validTimeValues.join(', ')}`
+        message: `Invalid TIME value. Must be one of: ${VALID_TIME_VALUES.join(', ')}`
       })
     }
 
@@ -278,9 +282,9 @@ export class TechnologyService {
       technologyName: input.technologyName,
       teamName: input.teamName,
       time: input.time,
-      approvedBy: input.userId,
-      notes: input.notes || null,
-      userId: input.userId
+      notes: input.notes?.trim() || null,
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.techRepo.upsertApproval({ ...params, changes })

@@ -81,11 +81,18 @@ describe('TokenService', () => {
   })
 
   describe('revokeToken()', () => {
-    it('should delegate to repository', async () => {
+    it('should pass both tokenId and userId to repository', async () => {
       vi.mocked(TokenRepository.prototype.revoke).mockResolvedValue(true)
 
-      expect(await service.revokeToken('token-id')).toBe(true)
-      expect(TokenRepository.prototype.revoke).toHaveBeenCalledWith('token-id')
+      expect(await service.revokeToken('token-id', 'user-1')).toBe(true)
+      expect(TokenRepository.prototype.revoke).toHaveBeenCalledWith('token-id', 'user-1')
+    })
+
+    it('should return false when token does not belong to userId', async () => {
+      vi.mocked(TokenRepository.prototype.revoke).mockResolvedValue(false)
+
+      expect(await service.revokeToken('token-id', 'wrong-user')).toBe(false)
+      expect(TokenRepository.prototype.revoke).toHaveBeenCalledWith('token-id', 'wrong-user')
     })
   })
 

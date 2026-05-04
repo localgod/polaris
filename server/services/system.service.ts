@@ -2,10 +2,18 @@ import { SystemRepository } from '../repositories/system.repository'
 import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
 import { TeamRepository } from '../repositories/team.repository'
 import type { System, CreateSystemParams, RepositoryInput } from '../repositories/system.repository'
-import type { Repository } from '~~/types/api'
+import type { Repository, BusinessCriticality, SystemEnvironment } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
 import type { SortParams } from '../utils/sorting'
 import { buildDeleteChanges } from '../utils/audit-diff'
+
+export const VALID_CRITICALITIES = [
+  'critical', 'high', 'medium', 'low'
+] as const satisfies BusinessCriticality[]
+
+export const VALID_ENVIRONMENTS = [
+  'dev', 'test', 'staging', 'prod'
+] as const satisfies SystemEnvironment[]
 
 export interface CreateSystemInput {
   name: string
@@ -15,6 +23,7 @@ export interface CreateSystemInput {
   environment: string
   repositories?: RepositoryInput[]
   userId: string
+  realUserId?: string | null
 }
 
 /**
@@ -36,13 +45,9 @@ export class SystemService {
    * 
    * @returns Array of systems with count
    */
-  async findAll(sort?: SortParams): Promise<{ data: System[]; count: number }> {
-    const systems = await this.systemRepo.findAll(sort)
-    
-    return {
-      data: systems,
-      count: systems.length
-    }
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: System[]; count: number; total: number }> {
+    const { data, total } = await this.systemRepo.findAll(sort, limit, offset)
+    return { data, count: data.length, total }
   }
 
   /**
@@ -79,8 +84,7 @@ export class SystemService {
     }
 
     // Business logic: validate businessCriticality
-    const validCriticalities = ['critical', 'high', 'medium', 'low']
-    if (!validCriticalities.includes(input.businessCriticality)) {
+    if (!VALID_CRITICALITIES.includes(input.businessCriticality as BusinessCriticality)) {
       throw createError({
         statusCode: 422,
         message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
@@ -88,8 +92,7 @@ export class SystemService {
     }
 
     // Business logic: validate environment
-    const validEnvironments = ['dev', 'test', 'staging', 'prod']
-    if (!validEnvironments.includes(input.environment)) {
+    if (!VALID_ENVIRONMENTS.includes(input.environment as SystemEnvironment)) {
       throw createError({
         statusCode: 422,
         message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
@@ -128,7 +131,8 @@ export class SystemService {
       businessCriticality: input.businessCriticality,
       environment: input.environment,
       repositories,
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     }
 
     return await this.systemRepo.create(params)
@@ -144,7 +148,7 @@ export class SystemService {
    * @param name - System name
    * @throws Error if system not found
    */
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     // Fetch current state to capture before-values for the audit log
     const system = await this.systemRepo.findByName(name)
     
@@ -163,7 +167,7 @@ export class SystemService {
       ownerTeam: system.ownerTeam,
     })
     
-    await this.systemRepo.delete(name, userId, changes)
+    await this.systemRepo.delete(name, userId, changes, realUserId)
   }
 
   /**
@@ -184,7 +188,7 @@ export class SystemService {
   async addRepository(systemName: string, data: {
     url: string
     name?: string
-  }, userId: string): Promise<Repository> {
+  }, userId: string, realUserId?: string | null): Promise<Repository> {
     // Business logic: validate system exists
     const system = await this.systemRepo.findByName(systemName)
     if (!system) {
@@ -200,7 +204,7 @@ export class SystemService {
     // Business logic: extract name if not provided
     const name = data.name || this.extractRepoName(normalizedUrl)
     
-    return await this.systemRepo.addRepository(systemName, normalizedUrl, name, userId)
+    return await this.systemRepo.addRepository(systemName, normalizedUrl, name, userId, realUserId)
   }
 
   /**

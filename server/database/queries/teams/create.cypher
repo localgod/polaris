@@ -14,6 +14,7 @@ CREATE (a:AuditLog {
   changedFields: ['name', 'email', 'responsibilityArea'],
   changes: $changes,
   source: 'API',
-  userId: $userId
+  userId: $userId,
+  realUserId: $realUserId
 })
 RETURN t.name as name

@@ -29,8 +29,8 @@ describe('TechnologyRepository', () => {
         CREATE (:Technology { name: $t2, type: 'framework', domain: 'framework' })
       `, { t1: `${PREFIX}TypeScript`, t2: `${PREFIX}Nuxt` })
 
-      const result = await repo.findAll()
-      const test = result.filter(t => t.name.startsWith(PREFIX))
+      const { data } = await repo.findAll()
+      const test = data.filter(t => t.name.startsWith(PREFIX))
 
       expect(test.length).toBeGreaterThanOrEqual(2)
     })

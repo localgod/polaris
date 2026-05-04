@@ -208,6 +208,8 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     }
   }
 
+  const realUserId = await getImpersonatorId(event)
+
   // 3. Parse request body
   let body: unknown
   
@@ -256,7 +258,8 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
       sbom: validatedBody.sbom,
       repositoryUrl: validatedBody.repositoryUrl,
       format: result.format as 'cyclonedx' | 'spdx',
-      userId: user.id
+      userId: user.id,
+      realUserId
     })
 
     setResponseStatus(event, 200)

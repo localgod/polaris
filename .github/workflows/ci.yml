@@ -8,6 +8,10 @@ on:
     branches-ignore:
       - main
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -31,11 +35,105 @@ jobs:
         run: npm run mdlint
 
       - name: eslint
-        run: npm run lint 
+        run: npm run lint
+
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      test-layers: ${{ steps.build-matrix.outputs.test-layers }}
+      run-tests: ${{ steps.build-matrix.outputs.run-tests }}
+      build-required: ${{ steps.build-matrix.outputs.build-required }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            config:
+              - 'package.json'
+              - 'package-lock.json'
+              - 'vitest.config.ts'
+              - 'tsconfig.json'
+              - 'nuxt.config.ts'
+            build:
+              - 'app/**'
+              - 'server/**'
+              - 'public/**'
+              - 'types/**'
+              - 'nuxt.config.ts'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'Dockerfile'
+              - '.nuxtrc'
+            integration:
+              - 'server/**'
+              - 'types/**'
+              - 'test/integration/**'
+            server-api:
+              - 'server/api/**'
+              - 'server/plugins/**'
+              - 'server/middleware/**'
+              - 'types/**'
+            server-services:
+              - 'server/services/**'
+              - 'server/utils/**'
+              - 'types/**'
+            server-repositories:
+              - 'server/database/**'
+              - 'server/repositories/**'
+              - 'server/schemas/**'
+              - 'types/**'
+            server-utils:
+              - 'server/utils/**'
+              - 'server/middleware/**'
+              - 'types/**'
+            schema:
+              - 'schema/**'
+            app-e2e:
+              - 'app/**'
+              - 'types/**'
+
+      - name: Build test matrix
+        id: build-matrix
+        run: |
+          # Config changes (package.json, vitest.config.ts, etc.) could break anything — run all layers
+          if [[ '${{ steps.filter.outputs.config }}' == 'true' ]]; then
+            echo "Config files changed — running all test layers"
+            LAYERS='["integration","server-api","server-services","server-repositories","server-utils","schema","app-e2e","smoke"]'
+          else
+            # Take matched layers, drop 'config' (not a test layer), append 'smoke' if any code changed
+            LAYERS=$(echo '${{ steps.filter.outputs.changes }}' | jq -c '[.[] | select(. != "config" and . != "build")]')
+            if [ "$LAYERS" != "[]" ]; then
+              LAYERS=$(echo "$LAYERS" | jq -c '. + ["smoke"]')
+            fi
+          fi
+
+          if [ "$LAYERS" == "[]" ]; then
+            echo "No relevant code changes — skipping tests"
+            echo "run-tests=false" >> $GITHUB_OUTPUT
+          else
+            echo "Running test layers: $LAYERS"
+            echo "run-tests=true" >> $GITHUB_OUTPUT
+          fi
+          echo "test-layers=$LAYERS" >> $GITHUB_OUTPUT
+
+          # Build is required when app, server, or config files changed
+          if [[ '${{ steps.filter.outputs.build }}' == 'true' ]]; then
+            echo "build-required=true" >> $GITHUB_OUTPUT
+          else
+            echo "build-required=false" >> $GITHUB_OUTPUT
+          fi
 
   test:
     runs-on: ubuntu-latest
-    
+    needs: detect-changes
+    if: needs.detect-changes.outputs.run-tests == 'true'
+
     permissions:
       contents: read
       pull-requests: write
@@ -43,16 +141,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Test layers aligned with new test directory structure
-        # integration - Complex business workflows (test:integration)
-        # server-api - API endpoint integration tests (test:server:api)
-        # server-services - Service layer unit tests (test:server:services)
-        # server-repositories - Repository layer unit tests (test:server:repositories)
-        # server-utils - Server utility tests (test:server:utils)
-        # schema - Database schema and migration tests (test:schema)
-        # app-e2e - Frontend E2E tests (test:app:e2e)
-        # smoke - Critical smoke tests across all layers (test:smoke)
-        test-layer: [integration, server-api, server-services, server-repositories, server-utils, schema, app-e2e, smoke]
+        test-layer: ${{ fromJson(needs.detect-changes.outputs.test-layers) }}
 
     services:
       neo4j:
@@ -158,9 +247,9 @@ jobs:
 
   coverage-report:
     runs-on: ubuntu-latest
-    needs: test
-    if: always()
-    
+    needs: [detect-changes, test]
+    if: always() && needs.detect-changes.outputs.run-tests == 'true'
+
     permissions:
       contents: read
       pull-requests: write
@@ -174,9 +263,6 @@ jobs:
         with:
           node-version: 'lts/*'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
 
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v8
@@ -199,13 +285,13 @@ jobs:
         run: |
           # Install nyc globally for coverage merging
           npm install -g nyc
-          
+
           # Create output directory
           mkdir -p coverage
-          
+
           # Find and merge all coverage-final.json files
           echo "Merging coverage reports from all test layers..."
-          
+
           # Copy all coverage-final.json files to a temp directory
           mkdir -p .nyc_output
           find coverage-artifacts -name 'coverage-final.json' -type f | while read file; do
@@ -213,18 +299,18 @@ jobs:
             echo "Found coverage from: $layer"
             cp "$file" ".nyc_output/coverage-${layer}.json"
           done
-          
+
           # List what we're merging
           echo ""
           echo "Coverage files to merge:"
           ls -la .nyc_output/
-          
+
           # Merge all coverage files
           if [ -n "$(ls -A .nyc_output/*.json 2>/dev/null)" ]; then
             echo ""
             echo "Merging coverage reports..."
             nyc merge .nyc_output coverage/coverage-final.json
-            
+
             # Generate reports in multiple formats
             echo ""
             echo "Generating coverage reports..."
@@ -236,10 +322,10 @@ jobs:
               --reporter=lcov \
               --reporter=html \
               --reporter=text
-            
+
             echo ""
             echo "✅ Coverage reports merged successfully"
-            
+
             # Show summary
             if [ -f "coverage/coverage-summary.json" ]; then
               echo ""
@@ -259,6 +345,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.build-required == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v6

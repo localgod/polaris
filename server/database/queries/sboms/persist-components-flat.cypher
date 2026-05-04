@@ -13,7 +13,6 @@ OPTIONAL MATCH (existing:Component {name: comp.name, version: COALESCE(comp.vers
 WITH s, comp, componentPurl, existing IS NOT NULL AS componentExists
 
 // MERGE component by the unique constraint fields (name, version, packageManager)
-// This avoids constraint violations when different PURLs map to the same component
 MERGE (c:Component {name: comp.name, version: COALESCE(comp.version, 'unknown'), packageManager: COALESCE(comp.packageManager, 'unknown')})
 ON CREATE SET
   c.purl = componentPurl,
@@ -67,34 +66,27 @@ MERGE (s)-[r:USES]->(c)
 ON CREATE SET r.addedAt = $timestamp
 ON MATCH SET r.lastSeenAt = $timestamp
 
-// Store component index for later use
-WITH s, c, comp.index AS compIndex, componentExists, relationshipExists
-
-// Delete existing hashes and licenses to replace with new ones
+// Delete existing hashes and recreate fresh
+WITH s, c, comp, componentExists, relationshipExists
 OPTIONAL MATCH (c)-[oldHashRel:HAS_HASH]->(oldHash:Hash)
 DELETE oldHashRel, oldHash
 
-WITH s, c, compIndex, componentExists, relationshipExists
+// Delete existing license relationships only — License nodes are shared across
+// components so we never delete the node itself, only the relationship.
+// This avoids the expensive NOT EXISTS graph scan that was here previously.
+WITH s, c, comp, componentExists, relationshipExists
+OPTIONAL MATCH (c)-[oldLicRel:HAS_LICENSE]->()
+DELETE oldLicRel
 
-OPTIONAL MATCH (c)-[oldLicRel:HAS_LICENSE]->(oldLic:License)
-WHERE NOT EXISTS {
-  MATCH (c2:Component)-[:HAS_LICENSE]->(oldLic)
-  WHERE c2 <> c
-}
-DELETE oldLicRel, oldLic
-
-WITH s, c, compIndex, componentExists, relationshipExists
-
+// Delete existing external references — ExternalReference nodes are per-component
+// (created with CREATE not MERGE) so both the node and relationship are removed.
+WITH s, c, comp, componentExists, relationshipExists
 OPTIONAL MATCH (c)-[oldRefRel:HAS_REFERENCE]->(oldRef:ExternalReference)
-WHERE NOT EXISTS {
-  MATCH (c2:Component)-[:HAS_REFERENCE]->(oldRef)
-  WHERE c2 <> c
-}
 DELETE oldRefRel, oldRef
 
-// Create Hash nodes for this component
-WITH s, c, compIndex, componentExists, relationshipExists, $hashes AS allHashes
-FOREACH (hash IN [h IN allHashes WHERE h.componentIndex = compIndex AND h.algorithm IS NOT NULL AND h.value IS NOT NULL] |
+// Create Hash nodes — comp.hashes is embedded per-component, no cross-row filtering needed
+WITH s, c, comp, componentExists, relationshipExists
+FOREACH (hash IN [h IN comp.hashes WHERE h.algorithm IS NOT NULL AND h.value IS NOT NULL] |
   CREATE (hashNode:Hash {
     algorithm: hash.algorithm,
     value: hash.value
@@ -102,16 +94,16 @@ FOREACH (hash IN [h IN allHashes WHERE h.componentIndex = compIndex AND h.algori
   CREATE (c)-[:HAS_HASH]->(hashNode)
 )
 
-// Create License nodes for this component
-WITH s, c, compIndex, componentExists, relationshipExists, $licenses AS allLicenses, $timestamp AS timestamp
-FOREACH (license IN [lic IN allLicenses WHERE lic.componentIndex = compIndex AND (lic.id IS NOT NULL OR lic.name IS NOT NULL)] |
+// Create License nodes — comp.licenses is embedded per-component
+WITH s, c, comp, componentExists, relationshipExists
+FOREACH (license IN [lic IN comp.licenses WHERE lic.id IS NOT NULL OR lic.name IS NOT NULL] |
   MERGE (l:License {id: COALESCE(license.id, license.name)})
-  ON CREATE SET 
+  ON CREATE SET
     l.name = COALESCE(license.name, license.id),
     l.spdxId = COALESCE(license.id, license.name),
     l.url = license.url,
     l.text = license.text,
-    l.osiApproved = CASE 
+    l.osiApproved = CASE
       WHEN COALESCE(license.id, license.name) IN ['MIT', 'Apache-2.0', 'BSD-3-Clause', 'BSD-2-Clause', 'GPL-2.0', 'GPL-3.0', 'LGPL-2.1', 'LGPL-3.0', 'MPL-2.0', 'ISC', 'EPL-1.0', 'EPL-2.0']
       THEN true
       ELSE false
@@ -129,20 +121,20 @@ FOREACH (license IN [lic IN allLicenses WHERE lic.componentIndex = compIndex AND
     END,
     l.deprecated = false,
     l.allowed = false,
-    l.createdAt = timestamp,
-    l.updatedAt = timestamp
+    l.createdAt = $timestamp,
+    l.updatedAt = $timestamp
   ON MATCH SET
-    l.updatedAt = timestamp,
+    l.updatedAt = $timestamp,
     l.url = COALESCE(l.url, license.url),
     l.text = COALESCE(l.text, license.text)
   MERGE (c)-[r:HAS_LICENSE]->(l)
-  ON CREATE SET r.createdAt = timestamp, r.source = 'SBOM', r.expression = license.expression
+  ON CREATE SET r.createdAt = $timestamp, r.source = 'SBOM', r.expression = license.expression
   ON MATCH SET r.expression = COALESCE(license.expression, r.expression)
 )
 
-// Create ExternalReference nodes for this component
-WITH s, c, compIndex, componentExists, relationshipExists, $externalReferences AS allRefs
-FOREACH (ref IN [r IN allRefs WHERE r.componentIndex = compIndex AND r.type IS NOT NULL AND r.url IS NOT NULL] |
+// Create ExternalReference nodes — comp.externalReferences is embedded per-component
+WITH s, c, comp, componentExists, relationshipExists
+FOREACH (ref IN [r IN comp.externalReferences WHERE r.type IS NOT NULL AND r.url IS NOT NULL] |
   CREATE (er:ExternalReference {
     type: ref.type,
     url: ref.url

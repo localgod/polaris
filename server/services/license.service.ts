@@ -110,7 +110,7 @@ export class LicenseService {
    * @param allowed - New allowed status
    * @returns True if license was updated successfully
    */
-  async updateAllowedStatus(id: string, allowed: boolean, userId?: string): Promise<boolean> {
+  async updateAllowedStatus(id: string, allowed: boolean, userId?: string, realUserId?: string | null): Promise<boolean> {
     // Verify license exists
     const license = await this.licenseRepo.findById(id)
     if (!license) {
@@ -118,7 +118,7 @@ export class LicenseService {
     }
     
     // Update allowed status and create audit log
-    const updated = await this.licenseRepo.updateAllowedStatus(id, allowed, userId)
+    const updated = await this.licenseRepo.updateAllowedStatus(id, allowed, userId, realUserId)
     
     if (!updated) {
       throw new Error(`Failed to update allowed status for license '${id}'`)
@@ -140,7 +140,7 @@ export class LicenseService {
    * @param allowed - New allowed status
    * @returns Operation summary with success status, updated count, and any errors
    */
-  async bulkUpdateAllowedStatus(licenseIds: string[], allowed: boolean, userId?: string): Promise<{
+  async bulkUpdateAllowedStatus(licenseIds: string[], allowed: boolean, userId?: string, realUserId?: string | null): Promise<{
     success: boolean
     updated: number
     errors: string[]
@@ -190,7 +190,7 @@ export class LicenseService {
       }
 
       // All licenses exist, proceed with atomic bulk update
-      const updated = await this.licenseRepo.bulkUpdateAllowedStatus(licenseIds, allowed, userId)
+      const updated = await this.licenseRepo.bulkUpdateAllowedStatus(licenseIds, allowed, userId, realUserId)
       
       // Check if all licenses were updated (should not happen with atomic transaction, but safety check)
       if (updated < licenseIds.length) {

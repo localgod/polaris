@@ -34,21 +34,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'tokenId is required' })
   }
 
-  const revoked = await tokenService.revokeToken(tokenId)
+  const userId = getRouterParam(event, 'userId')
+  if (!userId) {
+    throw createError({ statusCode: 400, message: 'userId is required' })
+  }
+
+  const revoked = await tokenService.revokeToken(tokenId, userId)
 
   if (!revoked) {
     throw createError({ statusCode: 404, message: 'Token not found' })
   }
-
-  const userId = getRouterParam(event, 'userId')
   const currentUser = await getCurrentUser(event)
+  const realUserId = await getImpersonatorId(event)
   const auditRepo = new AuditLogRepository()
   await auditRepo.create({
     operation: 'DELETE',
     entityType: 'ApiToken',
     entityId: tokenId,
     entityLabel: `Token ${tokenId} for user ${userId}`,
-    userId: currentUser.id
+    userId: currentUser.id,
+    realUserId
   })
 
   return { success: true, message: 'Token revoked' }

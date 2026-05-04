@@ -81,7 +81,7 @@ export class TokenService {
       createdAt,
       expiresAt,
       createdBy: userId,
-      description: options.description || null
+      description: options.description?.trim() || null
     }
     
     const savedToken = await this.tokenRepo.create(params)
@@ -143,13 +143,14 @@ export class TokenService {
   }
 
   /**
-   * Revoke a token by ID
-   * 
+   * Revoke a token by ID, verifying it belongs to the given user.
+   *
    * @param tokenId - Token ID
-   * @returns true if token was revoked, false if not found
+   * @param userId  - User who must own the token
+   * @returns true if token was revoked, false if not found or not owned by userId
    */
-  async revokeToken(tokenId: string): Promise<boolean> {
-    return await this.tokenRepo.revoke(tokenId)
+  async revokeToken(tokenId: string, userId: string): Promise<boolean> {
+    return await this.tokenRepo.revoke(tokenId, userId)
   }
 
   /**

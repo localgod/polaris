@@ -39,7 +39,10 @@ Every audit log entry contains:
 - `currentState` (Map, optional) - Complete state after the change
 
 **Actor Information**
-- `userId` (String) - ID of the user who performed the action
+- `userId` (String) - ID of the effective user who performed the action (the impersonated user when
+  impersonation is active; otherwise the real logged-in user)
+- `realUserId` (String, optional) - ID of the real superuser who initiated the action while
+  impersonating another user; `null` when no impersonation is in effect
 - `userName` (String, optional) - Name of the user at time of action
 - `userEmail` (String, optional) - Email of the user at time of action
 

@@ -21,12 +21,13 @@ describe('TeamService', () => {
 
   describe('findAll()', () => {
     it('should return teams with count', async () => {
-      vi.mocked(TeamRepository.prototype.findAll).mockResolvedValue([mockTeam])
+      vi.mocked(TeamRepository.prototype.findAll).mockResolvedValue({ data: [mockTeam], total: 1 })
 
       const result = await service.findAll()
 
       expect(result.data).toHaveLength(1)
       expect(result.count).toBe(1)
+      expect(result.total).toBe(1)
       expect(TeamRepository.prototype.findAll).toHaveBeenCalledOnce()
     })
   })
@@ -59,7 +60,8 @@ describe('TeamService', () => {
       expect(TeamRepository.prototype.delete).toHaveBeenCalledWith(
         'Platform',
         'user-123',
-        expect.any(Object)
+        expect.any(Object),
+        undefined
       )
     })
 
