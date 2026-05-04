@@ -58,4 +58,38 @@ describe('TechnologyRepository', () => {
       expect(tech!.domain).toBe('data-platform')
     })
   })
+
+  describe('findExistingApproval()', () => {
+    it('should return null when no APPROVES relationship exists', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Technology { name: $tech, type: 'library', domain: 'developer-tooling' })
+        CREATE (:Team { name: $team })
+      `, { tech: `${PREFIX}TypeScript`, team: `${PREFIX}Architects` })
+
+      const result = await repo.findExistingApproval(`${PREFIX}TypeScript`, `${PREFIX}Architects`)
+
+      expect(result).toBeNull()
+    })
+
+    it('should return { time, notes } when an APPROVES relationship exists', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library', domain: 'developer-tooling' })
+        CREATE (team:Team { name: $team })
+        CREATE (team)-[:APPROVES { time: $time, notes: $notes }]->(t)
+      `, {
+        tech: `${PREFIX}TypeScript`,
+        team: `${PREFIX}Architects`,
+        time: '2024-01-15',
+        notes: 'Approved after review'
+      })
+
+      const result = await repo.findExistingApproval(`${PREFIX}TypeScript`, `${PREFIX}Architects`)
+
+      expect(result).not.toBeNull()
+      expect(result!.time).toBe('2024-01-15')
+      expect(result!.notes).toBe('Approved after review')
+    })
+  })
 })
