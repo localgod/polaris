@@ -136,6 +136,21 @@ export class TokenRepository extends BaseRepository {
   }
 
   /**
+   * Count active (non-revoked) tokens for a user.
+   *
+   * @param userId - User ID
+   * @returns Number of active tokens
+   */
+  async countActive(userId: string): Promise<number> {
+    const query = `
+      MATCH (u:User {id: $userId})-[:HAS_API_TOKEN]->(t:ApiToken {revoked: false})
+      RETURN count(t) AS total
+    `
+    const { records } = await this.executeQuery(query, { userId })
+    return (records[0]?.get('total') as number) ?? 0
+  }
+
+  /**
    * List all tokens for a user
    * 
    * @param userId - User ID

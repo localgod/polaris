@@ -164,6 +164,16 @@ export class TokenService {
   }
 
   /**
+   * Count active (non-revoked) tokens for a user.
+   *
+   * @param userId - User ID
+   * @returns Number of active tokens
+   */
+  async countActiveTokens(userId: string): Promise<number> {
+    return await this.tokenRepo.countActive(userId)
+  }
+
+  /**
    * Generate a secure random token
    * 
    * @returns Base64-encoded random token (32 bytes)
