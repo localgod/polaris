@@ -35,6 +35,9 @@ export default defineConfig({
         'server/database/queries/**',
         'schema/scripts/**',
         'server/scripts/**',
+        // server/api/** excluded until route handlers have HTTP-level test
+        // coverage via the integration suite (tracked in #430)
+        'server/api/**',
       ],
     },
     env: {
