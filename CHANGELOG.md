@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.85] - 2026-05-04
+
+## What's Changed
+
+- feat: self-service API token management for authenticated users @localgod (#474)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.84...v0.1.85
+
 ## [0.1.82] - 2026-05-04
 
 ## What's Changed
