@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest'
 
-const BASE_URL = process.env.INTEGRATION_BASE_URL || 'http://localhost:3000'
+const BASE_URL = process.env.NUXT_TEST_BASE_URL || process.env.INTEGRATION_BASE_URL || 'http://localhost:3000'
 
 async function rawFetch(path: string, init: RequestInit = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
