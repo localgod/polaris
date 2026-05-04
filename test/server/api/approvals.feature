@@ -46,3 +46,20 @@ Feature: Technology Approvals API
     Given I am authenticated as a member of "Platform Team"
     When I request POST approvals for technology "My%20Tech"
     Then the approval should be set for technology "My Tech"
+
+  Scenario: Team member sets environment-scoped approval
+    Given I am authenticated as a member of "Platform Team"
+    When I request POST "/api/technologies/React/approvals" for "Platform Team" with time "eliminate" and environment "prod"
+    Then the response should be successful
+    And the approval should be set with environment "prod"
+
+  Scenario: Blanket approval is set when environment is omitted
+    Given I am authenticated as a member of "Platform Team"
+    When I request POST "/api/technologies/React/approvals" for "Platform Team" with time "invest"
+    Then the response should be successful
+    And the approval should be set with environment null
+
+  Scenario: Invalid environment value returns 422
+    Given I am authenticated as a member of "Platform Team"
+    When I request POST "/api/technologies/React/approvals" with invalid environment "production"
+    Then the request should be rejected with status 422

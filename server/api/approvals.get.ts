@@ -41,6 +41,13 @@
  *           type: string
  *         description: Specific version to check
  *         example: "18.2.0"
+ *       - in: query
+ *         name: environment
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [dev, test, staging, prod]
+ *         description: System environment to check. Environment-specific approval takes precedence over a blanket approval for the same team.
  *     responses:
  *       200:
  *         description: Approval status retrieved successfully
@@ -105,6 +112,7 @@ export default defineEventHandler(async (event) => {
   const team = query.team as string
   const technology = query.technology as string
   const version = query.version as string | undefined
+  const environment = (query.environment as string | undefined) ?? null
   
   if (!team || !technology) {
     throw createError({
@@ -114,7 +122,7 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    const result = await teamService.checkApproval(team, technology, version)
+    const result = await teamService.checkApproval(team, technology, version, environment)
     
     return {
       success: true,

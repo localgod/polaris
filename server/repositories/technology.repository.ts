@@ -20,6 +20,7 @@ export interface UpsertApprovalParams {
   teamName: string
   time: string
   notes: string | null
+  environment: string | null
   userId: string
   realUserId?: string | null
 }
@@ -64,6 +65,7 @@ export interface TechnologyDetail extends Technology {
   technologyApprovals?: Array<{
     team: string
     time: string | null
+    environment: string | null
     approvedAt: string | null
     deprecatedAt: string | null
     eolDate: string | null
@@ -235,9 +237,9 @@ export class TechnologyRepository extends BaseRepository {
   /**
    * Fetch the existing APPROVES relationship for a team→technology pair, if any.
    */
-  async findExistingApproval(technologyName: string, teamName: string): Promise<{ time: string | null; notes: string | null } | null> {
+  async findExistingApproval(technologyName: string, teamName: string, environment: string | null): Promise<{ time: string | null; notes: string | null } | null> {
     const query = await loadQuery('technologies/find-existing-approval.cypher')
-    const { records } = await this.executeQuery(query, { technologyName, teamName })
+    const { records } = await this.executeQuery(query, { technologyName, teamName, environment })
 
     if (records.length === 0) return null
     return {

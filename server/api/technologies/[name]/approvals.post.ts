@@ -48,6 +48,7 @@ import { technologyService } from '../../../services/singletons'
 interface SetApprovalRequest {
   teamName: string
   time: string
+  environment?: string | null
   notes?: string
 }
 
@@ -82,6 +83,7 @@ export default defineEventHandler(async (event) => {
     technologyName,
     teamName: body.teamName,
     time: body.time,
+    environment: body.environment ?? null,
     notes: body.notes,
     userId: user.id,
     realUserId

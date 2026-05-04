@@ -67,12 +67,12 @@ describe('TechnologyRepository', () => {
         CREATE (:Team { name: $team })
       `, { tech: `${PREFIX}TypeScript`, team: `${PREFIX}Architects` })
 
-      const result = await repo.findExistingApproval(`${PREFIX}TypeScript`, `${PREFIX}Architects`)
+      const result = await repo.findExistingApproval(`${PREFIX}TypeScript`, `${PREFIX}Architects`, null)
 
       expect(result).toBeNull()
     })
 
-    it('should return { time, notes } when an APPROVES relationship exists', async () => {
+    it('should return { time, notes } when a blanket APPROVES relationship exists', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (t:Technology { name: $tech, type: 'library', domain: 'developer-tooling' })
@@ -85,11 +85,24 @@ describe('TechnologyRepository', () => {
         notes: 'Approved after review'
       })
 
-      const result = await repo.findExistingApproval(`${PREFIX}TypeScript`, `${PREFIX}Architects`)
+      const result = await repo.findExistingApproval(`${PREFIX}TypeScript`, `${PREFIX}Architects`, null)
 
       expect(result).not.toBeNull()
       expect(result!.time).toBe('2024-01-15')
       expect(result!.notes).toBe('Approved after review')
+    })
+
+    it('should return null when only a different environment approval exists', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library', domain: 'developer-tooling' })
+        CREATE (team:Team { name: $team })
+        CREATE (team)-[:APPROVES { time: 'invest', environment: 'dev' }]->(t)
+      `, { tech: `${PREFIX}TypeScript`, team: `${PREFIX}Architects` })
+
+      const result = await repo.findExistingApproval(`${PREFIX}TypeScript`, `${PREFIX}Architects`, 'prod')
+
+      expect(result).toBeNull()
     })
   })
 })

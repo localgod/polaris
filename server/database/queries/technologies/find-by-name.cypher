@@ -36,6 +36,7 @@ RETURN t.name as name,
        collect(DISTINCT {
          team: approvalTeam.name,
          time: techApproval.time,
+         environment: techApproval.environment,
          approvedAt: techApproval.approvedAt,
          deprecatedAt: techApproval.deprecatedAt,
          eolDate: techApproval.eolDate,
