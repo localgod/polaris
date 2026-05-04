@@ -1,151 +1,119 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { mockEvent } from '../../fixtures/h3-event'
+import listHandler from '../../../server/api/licenses.get'
+import getHandler from '../../../server/api/licenses/[id].get'
+import statisticsHandler from '../../../server/api/licenses/statistics.get'
+import { licenseService } from '../../../server/services/singletons'
 import { LicenseRepository } from '../../../server/repositories/license.repository'
-import type { License } from '../../../server/repositories/license.repository'
 
-// Mock the LicenseRepository
+vi.mock('../../../server/services/singletons', () => ({
+  licenseService: { findAll: vi.fn() }
+}))
+
 vi.mock('../../../server/repositories/license.repository')
+vi.mock('spdx-license-list/full.js', () => ({ default: {} }))
 
-const mockLicenses: License[] = [
-  {
-    id: 'MIT',
-    name: 'MIT License',
-    spdxId: 'MIT',
-    osiApproved: true,
-    url: 'https://opensource.org/licenses/MIT',
-    category: 'permissive',
-    text: null,
-    deprecated: false,
-    allowed: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-    componentCount: 42
-  },
-  {
-    id: 'Apache-2.0',
-    name: 'Apache License 2.0',
-    spdxId: 'Apache-2.0',
-    osiApproved: true,
-    url: 'https://opensource.org/licenses/Apache-2.0',
-    category: 'permissive',
-    text: null,
-    deprecated: false,
-    allowed: false,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-    componentCount: 28
-  },
-  {
-    id: 'GPL-3.0',
-    name: 'GNU General Public License v3.0',
-    spdxId: 'GPL-3.0',
-    osiApproved: true,
-    url: 'https://opensource.org/licenses/GPL-3.0',
-    category: 'copyleft',
-    text: null,
-    deprecated: false,
-    allowed: false,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-    componentCount: 5
-  }
-]
+const mockLicense = {
+  id: 'MIT', name: 'MIT License', spdxId: 'MIT', osiApproved: true,
+  url: 'https://opensource.org/licenses/MIT', category: 'permissive',
+  text: null, deprecated: false, allowed: true,
+  createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z', componentCount: 42
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
 })
 
 describe('GET /api/licenses', () => {
-  it('should return all licenses', async () => {
-    vi.mocked(LicenseRepository.prototype.findAll).mockResolvedValue(mockLicenses)
+  it('should return licenses with count and total', async () => {
+    vi.mocked(licenseService.findAll).mockResolvedValue({ data: [mockLicense], count: 1, total: 1 })
 
-    const licenseRepo = new LicenseRepository()
-    const result = await licenseRepo.findAll()
+    const result = await listHandler(mockEvent())
 
-    expect(result).toEqual(mockLicenses)
-    expect(result.length).toBe(3)
-    expect(LicenseRepository.prototype.findAll).toHaveBeenCalledOnce()
+    expect(result).toMatchObject({ success: true, count: 1, total: 1 })
+    expect(result.data).toHaveLength(1)
   })
 
-  it('should filter licenses by category', async () => {
-    const permissiveLicenses = mockLicenses.filter(l => l.category === 'permissive')
-    vi.mocked(LicenseRepository.prototype.findAll).mockResolvedValue(permissiveLicenses)
+  it('should clamp limit to 200 maximum', async () => {
+    vi.mocked(licenseService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
 
-    const licenseRepo = new LicenseRepository()
-    const result = await licenseRepo.findAll({ category: 'permissive' })
+    await listHandler(mockEvent({ query: { limit: '999' } }))
 
-    expect(result).toEqual(permissiveLicenses)
-    expect(result.length).toBe(2)
-    expect(result.every(l => l.category === 'permissive')).toBe(true)
+    expect(licenseService.findAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 200 }))
   })
 
-  it('should filter licenses by OSI approval', async () => {
-    const osiApprovedLicenses = mockLicenses.filter(l => l.osiApproved)
-    vi.mocked(LicenseRepository.prototype.findAll).mockResolvedValue(osiApprovedLicenses)
+  it('should clamp limit to 1 minimum', async () => {
+    vi.mocked(licenseService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
 
-    const licenseRepo = new LicenseRepository()
-    const result = await licenseRepo.findAll({ osiApproved: true })
+    await listHandler(mockEvent({ query: { limit: '0' } }))
 
-    expect(result).toEqual(osiApprovedLicenses)
-    expect(result.every(l => l.osiApproved)).toBe(true)
+    expect(licenseService.findAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 1 }))
   })
 
-  it('should search licenses by name', async () => {
-    const searchResults = mockLicenses.filter(l => l.name.toLowerCase().includes('apache'))
-    vi.mocked(LicenseRepository.prototype.findAll).mockResolvedValue(searchResults)
+  it('should return error on non-numeric limit', async () => {
+    const result = await listHandler(mockEvent({ query: { limit: 'abc' } }))
 
-    const licenseRepo = new LicenseRepository()
-    const result = await licenseRepo.findAll({ search: 'apache' })
+    expect(result).toMatchObject({ success: false })
+  })
 
-    expect(result).toEqual(searchResults)
-    expect(result.length).toBe(1)
-    expect(result[0].id).toBe('Apache-2.0')
+  it('should pass category filter to service', async () => {
+    vi.mocked(licenseService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
+
+    await listHandler(mockEvent({ query: { category: 'permissive' } }))
+
+    expect(licenseService.findAll).toHaveBeenCalledWith(expect.objectContaining({ category: 'permissive' }))
+  })
+
+  it('should coerce osiApproved string to boolean', async () => {
+    vi.mocked(licenseService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
+
+    await listHandler(mockEvent({ query: { osiApproved: 'true' } }))
+
+    expect(licenseService.findAll).toHaveBeenCalledWith(expect.objectContaining({ osiApproved: true }))
   })
 })
 
-describe('GET /api/licenses/[id]', () => {
-  it('should return license by ID', async () => {
-    const license = mockLicenses[0]
-    vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(license)
-
-    const licenseRepo = new LicenseRepository()
-    const result = await licenseRepo.findById('MIT')
-
-    expect(result).toEqual(license)
-    expect(result?.id).toBe('MIT')
-    expect(LicenseRepository.prototype.findById).toHaveBeenCalledWith('MIT')
-  })
-
-  it('should return null for non-existent license', async () => {
+describe('GET /api/licenses/:id', () => {
+  it('should return 404 response when license is not found', async () => {
     vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(null)
 
-    const licenseRepo = new LicenseRepository()
-    const result = await licenseRepo.findById('NONEXISTENT')
+    const result = await getHandler(mockEvent({ params: { id: 'NONEXISTENT' } }))
 
-    expect(result).toBeNull()
+    expect(result).toMatchObject({ success: false, error: expect.stringContaining('not found') })
+  })
+
+  it('should return license data when found', async () => {
+    vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(mockLicense)
+
+    const result = await getHandler(mockEvent({ params: { id: 'MIT' } }))
+
+    expect(result).toMatchObject({ success: true, count: 1 })
+    expect(result.data[0]).toMatchObject({ id: 'MIT' })
+  })
+
+  it('should return error response when id param is missing', async () => {
+    const result = await getHandler(mockEvent({ params: {} }))
+
+    expect(result).toMatchObject({ success: false })
   })
 })
 
 describe('GET /api/licenses/statistics', () => {
-  it('should return license statistics', async () => {
-    const statistics = {
-      total: 3,
-      byCategory: {
-        permissive: 2,
-        copyleft: 1
-      },
-      osiApproved: 3,
-      deprecated: 0
-    }
-    vi.mocked(LicenseRepository.prototype.getStatistics).mockResolvedValue(statistics)
+  it('should return statistics from repository', async () => {
+    const stats = { total: 10, byCategory: { permissive: 7, copyleft: 3 }, osiApproved: 8, deprecated: 1 }
+    vi.mocked(LicenseRepository.prototype.getStatistics).mockResolvedValue(stats)
 
-    const licenseRepo = new LicenseRepository()
-    const result = await licenseRepo.getStatistics()
+    const result = await statisticsHandler(mockEvent())
 
-    expect(result).toEqual(statistics)
-    expect(result.total).toBe(3)
-    expect(result.byCategory.permissive).toBe(2)
-    expect(result.byCategory.copyleft).toBe(1)
-    expect(result.osiApproved).toBe(3)
-    expect(result.deprecated).toBe(0)
+    expect(result).toMatchObject({ success: true, count: 1 })
+    expect(result.data[0]).toEqual(stats)
+  })
+
+  it('should return error response on repository failure', async () => {
+    vi.mocked(LicenseRepository.prototype.getStatistics).mockRejectedValue(new Error('DB error'))
+
+    const result = await statisticsHandler(mockEvent())
+
+    expect(result).toMatchObject({ success: false, error: 'DB error' })
   })
 })
