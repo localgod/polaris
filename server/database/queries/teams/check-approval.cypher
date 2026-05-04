@@ -1,8 +1,23 @@
 MATCH (team:Team {name: $team})
 MATCH (tech:Technology {name: $technology})
 OPTIONAL MATCH (tech)-[:HAS_VERSION]->(v:Version {version: $version})
-OPTIONAL MATCH (team)-[versionApproval:APPROVES]->(v)
-OPTIONAL MATCH (team)-[techApproval:APPROVES]->(tech)
+// Priority 1: version-level, environment-specific
+OPTIONAL MATCH (team)-[versionApprovalEnv:APPROVES]->(v)
+  WHERE $environment IS NOT NULL AND versionApprovalEnv.environment = $environment
+// Priority 2: version-level, blanket
+OPTIONAL MATCH (team)-[versionApprovalBlanket:APPROVES]->(v)
+  WHERE versionApprovalBlanket.environment IS NULL
+// Priority 3: technology-level, environment-specific
+OPTIONAL MATCH (team)-[techApprovalEnv:APPROVES]->(tech)
+  WHERE $environment IS NOT NULL AND techApprovalEnv.environment = $environment
+// Priority 4: technology-level, blanket
+OPTIONAL MATCH (team)-[techApprovalBlanket:APPROVES]->(tech)
+  WHERE techApprovalBlanket.environment IS NULL
+WITH team, tech, v,
+     versionApprovalEnv, versionApprovalBlanket,
+     techApprovalEnv, techApprovalBlanket,
+     coalesce(versionApprovalEnv, versionApprovalBlanket) AS versionApproval,
+     coalesce(techApprovalEnv, techApprovalBlanket) AS techApproval
 RETURN team.name as teamName,
        tech.name as technologyName,
        tech.type as type,

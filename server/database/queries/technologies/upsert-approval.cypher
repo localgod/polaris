@@ -1,15 +1,35 @@
 MATCH (team:Team {name: $teamName})
 MATCH (t:Technology {name: $technologyName})
-MERGE (team)-[a:APPROVES]->(t)
-SET a.time = $time,
-    a.approvedAt = CASE WHEN a.approvedAt IS NULL THEN datetime() ELSE a.approvedAt END,
-    a.approvedBy = $approvedBy,
-    a.notes = $notes
-WITH t, team, a
+// Find existing approval for this (team, technology, environment) triple.
+// environment IS NULL matches both absent-property and explicit-null (blanket approvals).
+OPTIONAL MATCH (team)-[existing:APPROVES]->(t)
+  WHERE (existing.environment IS NULL AND $environment IS NULL)
+     OR existing.environment = $environment
+WITH team, t, existing, (existing IS NULL) AS isNew
+FOREACH (_ IN CASE WHEN isNew THEN [1] ELSE [] END |
+  CREATE (team)-[:APPROVES {
+    environment: $environment,
+    time: $time,
+    approvedAt: datetime(),
+    approvedBy: $approvedBy,
+    notes: $notes
+  }]->(t)
+)
+FOREACH (_ IN CASE WHEN NOT isNew THEN [1] ELSE [] END |
+  SET existing.time = $time,
+      existing.approvedBy = $approvedBy,
+      existing.notes = $notes
+)
+// Re-match to get the relationship regardless of which branch ran
+WITH team, t, isNew
+MATCH (team)-[a:APPROVES]->(t)
+  WHERE (a.environment IS NULL AND $environment IS NULL)
+     OR a.environment = $environment
+WITH team, t, a, isNew
 CREATE (al:AuditLog {
   id: randomUUID(),
   timestamp: datetime(),
-  operation: CASE WHEN a.approvedAt = datetime() THEN 'CREATE' ELSE 'UPDATE' END,
+  operation: CASE WHEN isNew THEN 'CREATE' ELSE 'UPDATE' END,
   entityType: 'TechnologyApproval',
   entityId: t.name,
   entityLabel: team.name + ' -> ' + t.name + ' (' + $time + ')',

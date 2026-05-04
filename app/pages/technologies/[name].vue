@@ -148,6 +148,15 @@
               />
             </UFormField>
 
+            <UFormField label="Environment" hint="Leave blank to apply to all environments">
+              <USelect
+                v-model="approvalForm.environment"
+                :items="environmentItems"
+                placeholder="All environments"
+                @update:model-value="onTeamChange"
+              />
+            </UFormField>
+
             <UFormField label="Notes">
               <UTextarea
                 v-model="approvalForm.notes"
@@ -375,6 +384,13 @@ const versionColumns: TableColumn<VersionDetail>[] = [
   }
 ]
 
+function getEnvironmentColor(environment: string | null | undefined): 'error' | 'warning' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'neutral'> = {
+    prod: 'error', staging: 'warning', test: 'neutral', dev: 'neutral'
+  }
+  return colors[environment || ''] || 'neutral'
+}
+
 const approvalColumns: TableColumn<TechnologyApproval>[] = [
   {
     accessorKey: 'team',
@@ -394,6 +410,15 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
       const time = row.getValue('time') as string | null
       if (!time) return '—'
       return h(resolveComponent('UBadge'), { color: getTimeCategoryColor(time), variant: 'subtle' }, () => time)
+    }
+  },
+  {
+    accessorKey: 'environment',
+    header: ({ column }) => getSortableHeader(column, 'Environment'),
+    cell: ({ row }) => {
+      const env = row.original.environment
+      if (!env) return h('span', { class: 'text-(--ui-text-muted)' }, 'all')
+      return h(resolveComponent('UBadge'), { color: getEnvironmentColor(env), variant: 'subtle' }, () => env)
     }
   },
   {
@@ -481,6 +506,7 @@ const approvalError = ref('')
 const approvalForm = ref({
   teamName: '',
   time: '',
+  environment: null as string | null,
   notes: ''
 })
 
@@ -495,9 +521,21 @@ const timeItems = [
   { label: 'Eliminate — phase out and decommission', value: 'eliminate' }
 ]
 
+const environmentItems = [
+  { label: 'All environments', value: null },
+  { label: 'dev', value: 'dev' },
+  { label: 'test', value: 'test' },
+  { label: 'staging', value: 'staging' },
+  { label: 'prod', value: 'prod' }
+]
+
 const existingApproval = computed(() => {
   if (!approvalForm.value.teamName || !tech.value?.technologyApprovals) return null
-  return tech.value.technologyApprovals.find(a => a.team === approvalForm.value.teamName) || null
+  const env = approvalForm.value.environment
+  return tech.value.technologyApprovals.find(a =>
+    a.team === approvalForm.value.teamName &&
+    (env ? a.environment === env : !a.environment)
+  ) || null
 })
 
 function onTeamChange() {
@@ -516,6 +554,7 @@ function openApprovalModal() {
   approvalForm.value = {
     teamName: userTeams.value.length === 1 ? userTeams.value[0]! : '',
     time: '',
+    environment: null,
     notes: ''
   }
   // Pre-fill if single team and existing approval
@@ -535,6 +574,7 @@ async function submitApproval() {
       body: {
         teamName: approvalForm.value.teamName,
         time: approvalForm.value.time,
+        environment: approvalForm.value.environment || null,
         notes: approvalForm.value.notes || undefined
       }
     })

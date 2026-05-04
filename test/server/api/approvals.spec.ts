@@ -130,4 +130,43 @@ describeFeature(feature, ({ Background, Scenario }) => {
       )
     })
   })
+
+  Scenario('Team member sets environment-scoped approval', ({ Given, When, Then, And }) => {
+    Given('I am authenticated as a member of "Platform Team"', () => { mockRequireAuth.mockResolvedValue(memberUser) })
+    When('I request POST "/api/technologies/React/approvals" for "Platform Team" with time "eliminate" and environment "prod"', async () => {
+      vi.mocked(technologyService.setApproval).mockResolvedValue({ technologyName: 'React', teamName: 'Platform Team', time: 'eliminate' })
+      result = await handler(mockEvent({ method: 'POST', params: { name: 'React' }, body: { teamName: 'Platform Team', time: 'eliminate', environment: 'prod' } }))
+    })
+    Then('the response should be successful', () => { expect(result.success).toBe(true) })
+    And('the approval should be set with environment "prod"', () => {
+      expect(technologyService.setApproval).toHaveBeenCalledWith(
+        expect.objectContaining({ environment: 'prod' })
+      )
+    })
+  })
+
+  Scenario('Blanket approval is set when environment is omitted', ({ Given, When, Then, And }) => {
+    Given('I am authenticated as a member of "Platform Team"', () => { mockRequireAuth.mockResolvedValue(memberUser) })
+    When('I request POST "/api/technologies/React/approvals" for "Platform Team" with time "invest"', async () => {
+      vi.mocked(technologyService.setApproval).mockResolvedValue({ technologyName: 'React', teamName: 'Platform Team', time: 'invest' })
+      result = await handler(mockEvent({ method: 'POST', params: { name: 'React' }, body: { teamName: 'Platform Team', time: 'invest' } }))
+    })
+    Then('the response should be successful', () => { expect(result.success).toBe(true) })
+    And('the approval should be set with environment null', () => {
+      expect(technologyService.setApproval).toHaveBeenCalledWith(
+        expect.objectContaining({ environment: null })
+      )
+    })
+  })
+
+  Scenario('Invalid environment value returns 422', ({ Given, When, Then }) => {
+    Given('I am authenticated as a member of "Platform Team"', () => { mockRequireAuth.mockResolvedValue(memberUser) })
+    When('I request POST "/api/technologies/React/approvals" with invalid environment "production"', async () => {
+      vi.mocked(technologyService.setApproval).mockRejectedValue(Object.assign(new Error('Invalid environment'), { statusCode: 422 }))
+      caughtError = await handler(mockEvent({ method: 'POST', params: { name: 'React' }, body: { teamName: 'Platform Team', time: 'invest', environment: 'production' } })).catch(e => e)
+    })
+    Then('the request should be rejected with status 422', () => {
+      expect(caughtError).toMatchObject({ statusCode: 422 })
+    })
+  })
 })

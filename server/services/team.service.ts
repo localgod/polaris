@@ -244,8 +244,8 @@ export class TeamService {
    * @returns Approval status
    * @throws Error if team or technology not found
    */
-  async checkApproval(team: string, technology: string, version?: string): Promise<ApprovalStatus> {
-    const result = await this.teamRepo.checkApproval(team, technology, version)
+  async checkApproval(team: string, technology: string, version?: string, environment?: string | null): Promise<ApprovalStatus> {
+    const result = await this.teamRepo.checkApproval(team, technology, version, environment)
     
     if (!result) {
       throw createError({

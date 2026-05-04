@@ -355,7 +355,8 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
           type: 'object',
           properties: {
             team: { type: 'string' },
-            time: { type: 'string' },
+            time: { type: 'string', enum: ['tolerate', 'invest', 'migrate', 'eliminate'] },
+            environment: { type: 'string', nullable: true, enum: ['dev', 'test', 'staging', 'prod'] },
             approvedAt: { type: 'string' },
             deprecatedAt: { type: 'string' },
             eolDate: { type: 'string' },

@@ -317,9 +317,9 @@ export class TeamRepository extends BaseRepository {
    * @param version - Optional version
    * @returns Approval status
    */
-  async checkApproval(team: string, technology: string, version?: string): Promise<ApprovalStatus | null> {
+  async checkApproval(team: string, technology: string, version?: string, environment?: string | null): Promise<ApprovalStatus | null> {
     const query = await loadQuery('teams/check-approval.cypher')
-    const { records } = await this.executeQuery(query, { team, technology, version: version || null })
+    const { records } = await this.executeQuery(query, { team, technology, version: version || null, environment: environment ?? null })
     
     if (records.length === 0) {
       return null

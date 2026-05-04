@@ -121,6 +121,7 @@ export interface Technology {
 export interface TechnologyApproval {
   team?: string
   time?: TimeValue
+  environment?: SystemEnvironment | null
   approvedAt?: string
   deprecatedAt?: string
   eolDate?: string

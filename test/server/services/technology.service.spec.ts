@@ -113,6 +113,56 @@ describe('TechnologyService', () => {
     })
   })
 
+  describe('setApproval()', () => {
+    const baseInput = {
+      technologyName: 'React',
+      teamName: 'Platform Team',
+      time: 'invest',
+      userId: 'u1'
+    }
+
+    beforeEach(() => {
+      vi.mocked(TechnologyRepository.prototype.exists).mockResolvedValue(true)
+      vi.mocked(TechnologyRepository.prototype.findExistingApproval).mockResolvedValue(null)
+      vi.mocked(TechnologyRepository.prototype.upsertApproval).mockResolvedValue({ time: 'invest', team: 'Platform Team' })
+    })
+
+    it('should pass environment=null for a blanket approval', async () => {
+      await service.setApproval(baseInput)
+
+      expect(TechnologyRepository.prototype.upsertApproval).toHaveBeenCalledWith(
+        expect.objectContaining({ environment: null })
+      )
+    })
+
+    it('should pass environment when provided', async () => {
+      await service.setApproval({ ...baseInput, environment: 'prod' })
+
+      expect(TechnologyRepository.prototype.upsertApproval).toHaveBeenCalledWith(
+        expect.objectContaining({ environment: 'prod' })
+      )
+      expect(TechnologyRepository.prototype.findExistingApproval).toHaveBeenCalledWith('React', 'Platform Team', 'prod')
+    })
+
+    it('should reject an invalid environment value', async () => {
+      await expect(service.setApproval({ ...baseInput, environment: 'production' }))
+        .rejects.toMatchObject({ statusCode: 422 })
+    })
+
+    it('should reject an invalid TIME value', async () => {
+      await expect(service.setApproval({ ...baseInput, time: 'adopt' }))
+        .rejects.toMatchObject({ statusCode: 422 })
+    })
+
+    it('should look up existing approval scoped to the same environment', async () => {
+      vi.mocked(TechnologyRepository.prototype.findExistingApproval).mockResolvedValue({ time: 'tolerate', notes: null })
+
+      await service.setApproval({ ...baseInput, environment: 'staging' })
+
+      expect(TechnologyRepository.prototype.findExistingApproval).toHaveBeenCalledWith('React', 'Platform Team', 'staging')
+    })
+  })
+
   describe('update() — optional field coercion', () => {
     beforeEach(() => {
       vi.mocked(TechnologyRepository.prototype.findByName).mockResolvedValue(mockTech)

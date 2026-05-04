@@ -24,6 +24,7 @@ export interface SetApprovalInput {
   teamName: string
   time: string
   notes?: string
+  environment?: string | null
   userId: string
   realUserId?: string | null
 }
@@ -258,6 +259,14 @@ export class TechnologyService {
       })
     }
 
+    const VALID_ENVIRONMENTS = ['dev', 'test', 'staging', 'prod']
+    if (input.environment && !VALID_ENVIRONMENTS.includes(input.environment)) {
+      throw createError({
+        statusCode: 422,
+        message: `Invalid environment. Must be one of: ${VALID_ENVIRONMENTS.join(', ')}`
+      })
+    }
+
     const exists = await this.techRepo.exists(input.technologyName)
     if (!exists) {
       throw createError({
@@ -266,8 +275,10 @@ export class TechnologyService {
       })
     }
 
-    // Fetch existing approval for this team to compute the diff
-    const existing = await this.techRepo.findExistingApproval(input.technologyName, input.teamName)
+    const environment = input.environment ?? null
+
+    // Fetch existing approval for this (team, environment) pair to compute the diff
+    const existing = await this.techRepo.findExistingApproval(input.technologyName, input.teamName, environment)
     const before: Record<string, unknown> = {
       time: existing?.time ?? null,
       notes: existing?.notes ?? null,
@@ -283,6 +294,7 @@ export class TechnologyService {
       teamName: input.teamName,
       time: input.time,
       notes: input.notes?.trim() || null,
+      environment,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     }
