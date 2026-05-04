@@ -97,6 +97,15 @@
       description="Superusers can impersonate other users to verify what they see. While impersonating, the UI respects the impersonated user's role — superuser-only actions and navigation items are hidden if the impersonated user is not a superuser."
     />
 
+    <!-- API Token Self-Service -->
+    <UAlert
+      color="info"
+      variant="subtle"
+      icon="i-lucide-key"
+      title="API Token Self-Service"
+      description="Authenticated users can generate and revoke their own API tokens from their profile page (/profile). Tokens are suitable for use in CI pipelines and scripts. A maximum of 10 active tokens is allowed per user."
+    />
+
     <!-- Audit Trail -->
     <UAlert
       color="neutral"
@@ -123,7 +132,7 @@ const roles = [
   {
     icon: 'i-lucide-user',
     title: 'Authenticated (User)',
-    description: 'Can create and manage systems, technologies, version constraints, and submit SBOMs. Can view audit logs, their own profile, and manage their own API tokens.',
+    description: 'Can create and manage systems, technologies, version constraints, and submit SBOMs. Can view audit logs, manage their own API tokens, and view their own profile.',
   },
   {
     icon: 'i-lucide-shield-alert',
