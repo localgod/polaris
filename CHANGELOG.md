@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.75] - 2026-05-04
+
+## What's Changed
+
+- Refactor inline Cypher in findExistingApproval and createAuditLog @[copilot-swe-agent[bot]](https://github.com/apps/copilot-swe-agent) (#423)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.74...v0.1.75
+
 ## [0.1.28] - 2026-04-25
 
 ## What's Changed
