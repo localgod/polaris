@@ -39,20 +39,6 @@ export default defineConfig({
         // coverage via the integration suite (tracked in #430)
         'server/api/**',
       ],
-      // Thresholds set at ~3-5 points below the current measured baseline
-      // (post-#457 test refactor). These are floors, not targets — raise them
-      // as coverage improves. Branch coverage is the more meaningful metric
-      // for this codebase; the low branch numbers deserve attention first.
-      //
-      // Measured baseline (2026-05-04, post-#457):
-      //   repositories: lines 62%, branches 52%, functions 68%
-      //   services:     lines 66%, branches 62%, functions 68%
-      //   utils:        lines 63%, branches 56%, functions 68%
-      thresholds: {
-        'server/repositories/**': { lines: 58, branches: 48, functions: 63 },
-        'server/services/**':     { lines: 61, branches: 57, functions: 63 },
-        'server/utils/**':        { lines: 58, branches: 51, functions: 63 },
-      },
     },
     env: {
       // Test database configuration

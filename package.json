@@ -56,6 +56,7 @@
     "test:unit": "vitest run test/server/services test/server/repositories test/server/utils test/app/components test/app/composables",
     "test:smoke": "vitest run -t '@smoke'",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:check": "vitest run --config vitest.coverage.config.ts --coverage",
     "test:ci": "vitest run --reporter=verbose --reporter=json --outputFile=test-results.json",
     "test:vitest-ui": "vitest --ui",
     "seed": "tsx schema/scripts/seed.ts",
