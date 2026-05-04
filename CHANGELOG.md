@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.82] - 2026-05-04
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(actions): bump dorny/paths-filter from 3 to 4 @[dependabot[bot]](https://github.com/apps/dependabot) (#463)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.81...v0.1.82
+
 ## [0.1.78] - 2026-05-04
 
 ## What's Changed
