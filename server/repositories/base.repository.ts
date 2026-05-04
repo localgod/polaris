@@ -5,16 +5,23 @@ import type { Driver, QueryResult } from 'neo4j-driver'
  * All repositories should extend this class
  */
 export abstract class BaseRepository {
-  protected driver: Driver
+  // When an injected driver is provided (tests), store it directly.
+  // Otherwise keep undefined and resolve via useDriver() on first use,
+  // so the nuxt-neo4j plugin has time to initialise _driver before any
+  // query runs (avoids "Cannot access '_driver' before initialization").
+  private _injectedDriver: Driver | undefined
 
   constructor(driver?: Driver) {
-    // Allow driver injection for testing, otherwise use Nuxt composable
-    this.driver = driver || useDriver() // Singleton driver from nuxt-neo4j
+    this._injectedDriver = driver
+  }
+
+  protected get driver(): Driver {
+    return this._injectedDriver ?? useDriver()
   }
 
   /**
    * Execute a Cypher query with parameters
-   * 
+   *
    * @param query - Cypher query string
    * @param params - Query parameters
    * @returns Query result with records
@@ -28,10 +35,10 @@ export abstract class BaseRepository {
 
   /**
    * Execute a Cypher query using a session transaction
-   * 
+   *
    * This method is useful for complex queries with nested data structures
    * that may not work well with executeQuery.
-   * 
+   *
    * @param query - Cypher query string
    * @param params - Query parameters
    * @returns Query result with records

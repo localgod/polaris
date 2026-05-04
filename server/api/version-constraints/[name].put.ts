@@ -12,6 +12,7 @@ interface UpdateRequest {
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
   if (!rawName) {
@@ -24,6 +25,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })
   }
 
+  let body: UpdateRequest
+  try {
+    body = await readBody(event)
+  } catch {
+    throw createError({ statusCode: 400, message: 'Invalid JSON in request body' })
+  }
+
   // Authorization: superuser can edit anything; team member can edit team-scoped constraints
   if (user.role !== 'superuser') {
     if (existing.scope !== 'team' || !existing.subjectTeam) {
@@ -33,13 +41,11 @@ export default defineEventHandler(async (event) => {
     if (!userTeamNames.includes(existing.subjectTeam)) {
       throw createError({ statusCode: 403, message: `You must be a member of team "${existing.subjectTeam}" to edit this version constraint` })
     }
-  }
-
-  let body: UpdateRequest
-  try {
-    body = await readBody(event)
-  } catch {
-    throw createError({ statusCode: 400, message: 'Invalid JSON in request body' })
+    if (body.subjectTeam && body.subjectTeam !== existing.subjectTeam) {
+      if (!userTeamNames.includes(body.subjectTeam)) {
+        throw createError({ statusCode: 403, message: 'You must be a member of the target team to reassign this constraint' })
+      }
+    }
   }
 
   if (user.role !== 'superuser' && body.scope === 'organization') {
@@ -54,7 +60,8 @@ export default defineEventHandler(async (event) => {
     versionRange: body.versionRange,
     governsTechnology: body.governsTechnology,
     status: body.status,
-    userId: user.id
+    userId: user.id,
+    realUserId
   })
 
   return { success: true, message: 'Version constraint updated successfully', constraint }

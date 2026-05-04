@@ -3,6 +3,7 @@ import { VersionConstraintRepository } from '../../repositories/version-constrai
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
   if (!rawName) {
@@ -37,7 +38,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const result = await versionConstraintService.updateStatus(name, { status: body.status, reason: body.reason }, user.id)
+    const result = await versionConstraintService.updateStatus(name, { status: body.status, reason: body.reason }, user.id, realUserId)
     return {
       success: true,
       message: `Version constraint ${body.status === 'active' ? 'enabled' : 'disabled'} successfully`,

@@ -31,6 +31,7 @@ import { technologyService } from '../../services/singletons'
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
 
@@ -63,7 +64,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await technologyService.delete(name, user.id)
+  await technologyService.delete(name, user.id, realUserId)
 
   setResponseStatus(event, 204)
   return null

@@ -5,15 +5,17 @@
  * and consistent setup/teardown across all repository test files.
  */
 import neo4j, { type Driver, type Session } from 'neo4j-driver'
-import { loadQuery, injectWhereConditions } from '../../server/utils/query-loader'
+import { loadQuery, injectOrderBy, injectWhereConditions } from '../../server/utils/query-loader'
 import { cleanupTestData } from './db-cleanup'
 
 // Wire Nuxt auto-imports that repositories expect as globals
 declare global {
   var loadQuery: (path: string) => Promise<string>
+  var injectOrderBy: (query: string, orderBy: string) => string
   var injectWhereConditions: (query: string, conditions: string[]) => string
 }
 global.loadQuery = loadQuery
+global.injectOrderBy = injectOrderBy
 global.injectWhereConditions = injectWhereConditions
 
 const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687'

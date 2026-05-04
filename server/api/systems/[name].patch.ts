@@ -56,9 +56,12 @@
  *         description: Validation error - invalid field values
  */
 import { buildAuditChanges } from '../../utils/audit-diff'
+import { VALID_CRITICALITIES, VALID_ENVIRONMENTS } from '../../services/system.service'
+import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuthorization(event)
+  const realUserId = await getImpersonatorId(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -85,8 +88,7 @@ export default defineEventHandler(async (event) => {
   
   // Validate businessCriticality if provided
   if (body.businessCriticality) {
-    const validCriticalities = ['critical', 'high', 'medium', 'low']
-    if (!validCriticalities.includes(body.businessCriticality)) {
+    if (!VALID_CRITICALITIES.includes(body.businessCriticality as BusinessCriticality)) {
       throw createError({
         statusCode: 422,
         message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
@@ -96,8 +98,7 @@ export default defineEventHandler(async (event) => {
   
   // Validate environment if provided
   if (body.environment) {
-    const validEnvironments = ['dev', 'test', 'staging', 'prod']
-    if (!validEnvironments.includes(body.environment)) {
+    if (!VALID_ENVIRONMENTS.includes(body.environment as SystemEnvironment)) {
       throw createError({
         statusCode: 422,
         message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
@@ -153,6 +154,7 @@ export default defineEventHandler(async (event) => {
   const changes = buildAuditChanges(currentProps, incomingState, changedFields)
 
   params.userId = user.id
+  params.realUserId = realUserId
   params.changes = JSON.stringify(changes)
 
   const query = `
@@ -169,7 +171,8 @@ export default defineEventHandler(async (event) => {
       changedFields: ${JSON.stringify(changedFields)},
       changes: $changes,
       source: 'API',
-      userId: $userId
+      userId: $userId,
+      realUserId: $realUserId
     })
     CREATE (a)-[:AUDITS]->(s)
     RETURN s {

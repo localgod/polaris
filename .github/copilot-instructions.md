@@ -1,110 +1,111 @@
-## Polaris — Copilot Instructions
+# Polaris — Copilot Review Instructions
 
-This file gives contextual guidance to GitHub Copilot / code suggestion systems to provide useful, safe, and repository-aware suggestions for contributors working on Polaris.
+Focus reviews on **runtime failures and production risks**. Skip style, naming, documentation, and convention reminders — ESLint, `mdlint`, and the PR template handle those.
 
-## High-level project summary
+## Stack context
 
-- Polaris is an enterprise Technology Catalog built with Nuxt 4 (Vue 3 + TypeScript) and Neo4j (graph DB).
-- Server implements a 3-layer pattern: Endpoint (server/api) → Service (server/services) → Repository (server/repositories). Cypher queries live under `server/database/queries/`.
-- Database schema and migrations are in `schema/` with an idempotent migration runner and seed/fixture system.
-- Tests use Vitest and Gherkin-style feature files in `test/`. Neo4j Community Edition is used in the dev container; tests use prefix-based isolation (enforced pattern: `test_<feature>_`).
-
-## Goals for suggestions
-
-When offering completions, prioritize suggestions that:
-- Follow existing architecture and patterns (3-layer server pattern, use of repositories + external `.cypher` files).
-- Preserve type-safety (Typescript) and existing interfaces/types in `types/`.
-- Include or update tests (happy-path + at least one edge case) when changing behavior in server or core logic.
-- Keep migrations and schema changes small, reversible, and accompanied by `.down.cypher` rollback scripts.
-- Update relevant documentation (`README.md`, `CONTRIBUTING.md`, or `content/`) when public behavior or developer workflow changes.
-
-## Coding conventions & patterns
-
-- Language: TypeScript for server and app code. Keep `type: "module"` semantics from `package.json`.
-- Server imports: Always use relative imports within `server/` (e.g. `../services/my.service`). Do NOT use `~/server/` or `@` aliases in server code. Use `~~/` alias for types only when appropriate.
-- Queries: Load `.cypher` files via the project's `loadQuery()` utility (auto-imported from `server/utils/`). Do not inline complex Cypher in TS files.
-- Repository classes: Keep DB access logic in `server/repositories/*`. No business logic in repositories.
-- Service classes: Business rules, orchestration and validation live in `server/services/*` and return `{ data, count }` where appropriate.
-- Tests: Use the Gherkin-style feature files in `test/` and matching `.spec.ts` implementations. Test data must use the enforced prefix pattern `test_<feature>_`.
-- Migrations: Name migrations using the timestamp template and include `.up` and `.down` cypher files. Prefer small, idempotent changes.
-
-## Scripts you should reference
-
-Use the scripts in `package.json` when producing run instructions or suggestions. Run `npm run` to list available scripts. Example script names you may find in `package.json` include:
-- `npm run dev`, `npm run build`, `npm run preview`
-- `npm run migrate:status|up|down|create|validate`
-- `npm run seed`, `npm run seed:clear`
-- test/coverage-related scripts (see `package.json` for exact names)
-- `npm run lint`, `npm run lint:fix`, `npm run mdlint`
-
-## Devcontainer & local environment
-
-- Devcontainer is configured in `.devcontainer/devcontainer.json` and starts Neo4j (ports 7474 & 7687 forwarded).
-- `postCreateCommand` runs `.devcontainer/scripts/post-create.sh` which sets up `.env`, dependencies and starts Neo4j.
-- When giving setup steps, reference the devcontainer flow first (preferred), then local Docker Compose fallback (`.devcontainer/docker-compose.yml`).
-
-## Tests & test data guidance
-
-- Always add tests for server/service/repository changes. Unit tests for services and integration tests for repositories are expected.
-- Use test data prefixes following the `test_<feature>_` pattern and ensure cleanup with `afterAll` / `beforeEach` hooks or provided cleanup helpers.
-- When suggesting tests, include the matching `.feature` Gherkin file (if applicable) and a `.spec.ts` that implements the steps.
-
-## Documentation & PR workflow
-
-- If a suggestion changes public APIs, environment variables, developer workflow, or schema, include updates to relevant docs (`README.md`, `CONTRIBUTING.md`, `content/` or `docs/`).
-- Branch protection: `main` is protected. All changes must go through feature branches and PRs. Suggest clear commit messages and PR descriptions.
-- When suggesting commit messages or PR titles, use the project's prefixes: `Add:`, `Fix:`, `Update:`, `Refactor:`, `Docs:`.
-
-## Security, secrets, and sensitive data
-
-- Never expose secrets, API keys, tokens, or `.env` values in suggestions. Replace secrets with placeholders (e.g. `process.env.NEO4J_PASSWORD`).
-- When referencing API tokens, note that tokens are shown once at creation (see server README). Do not suggest printing or storing plaintext tokens in the repo.
-- Avoid suggesting code that would log secrets or PII in production. For audit logging suggestions, recommend excluding credentials and sensitive values.
-
-## Areas where caution is required
-
-- Schema and migration changes: recommend running migrations in a test/dev environment first and provide rollback scripts. Suggest small, reversible steps.
-- Production database changes: do not suggest destructive commands or data wipes without explicit confirmation and safe rollback instructions.
-- CI/CD changes: changes to GitHub Actions or branch protection rules are sensitive—flag them and avoid automatic edits.
-
-## Helpful verification steps to include in suggestions
-
-When changing code, suggest a short verification checklist, for example:
-1. Run `npm run lint` and `npm run mdlint`.
-2. Run the relevant test script(s) declared in `package.json` locally (use `npm run` to list available scripts). For CI-like output, run the script named for CI/tests in `package.json`.
-3. Run `npm run migrate:status` and `npm run migrate:validate` before applying migrations.
-4. Start the devcontainer (`Reopen in container`) or run `npm run dev` and check http://localhost:3000.
-
-## Good vs Bad suggestion examples
-
-- Good: "Add a `TeamService` method `findByName` that uses `TeamRepository.findByName()`. Add unit tests for service logic and update `server/api/teams/[name].get.ts` to use the service."
-- Bad: "Inline a Cypher query inside the API route (breaking the repository pattern)." 
-- Good: "When adding a migration, generate `.up.cypher` and `.down.cypher` files with descriptive header comments and a `migrate:create` command example." 
-- Bad: "Suggest altering `main` branch protection or direct pushes to `main`."
-
-## Prompting tips for human users (examples to include in PR descriptions)
-
-- "Implement: Add service to validate TIME approvals for a technology; include unit tests and update API endpoint."
-- "Docs: Update `CONTRIBUTING.md` with new migration best practices and required test isolation pattern." 
-- "Migrations: Create migration `add_auditlog_schema` with up/down scripts and include verification Cypher queries." 
-
-## Contributor etiquette
-
-- Respect the Code of Conduct in `CODE_OF_CONDUCT.md`.
-- Keep suggestions concise and provide reasoning when proposing architectural changes.
-- Prefer documentation and tests alongside code changes.
-
-## When to refuse or escalate
-
-If a requested suggestion would:
-- Expose secrets or credentials
-- Require changing production policy (branch protection/CI) without review
-- Perform large, risky schema migrations without tests or rollback
-
-Then respond with a clarification request or recommend opening an issue/PR for discussion.
+- Nuxt 4 (Vue 3 + TypeScript, `type: "module"`) + Neo4j 5 Community (Bolt protocol)
+- 3-layer server pattern: `server/api` → `server/services` → `server/repositories` → `server/database/queries/*.cypher`
+- Auth via `nuxt-auth-utils`; all API routes protected by server middleware in `server/middleware/`
+- Idempotent migrations in `schema/`; test isolation via `test_<feature>_` node prefixes
 
 ---
 
-Last reviewed: 2025-11-19
+## Flag these — runtime failure patterns
 
-References: `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `.devcontainer/devcontainer.json`, `package.json`
+### Neo4j / Cypher
+
+**Relationship-safe deletes**
+`DELETE n` throws at runtime if the node has relationships. Flag any `DELETE` that isn't `DETACH DELETE` unless the caller explicitly guarantees no relationships exist.
+
+**Unbounded queries**
+`MATCH (n:Label)` without `LIMIT` on large collections will exhaust memory or hit the query timeout. Flag in any non-administrative read path.
+
+**Cypher built by string interpolation**
+Parameters are safe; template literals or string concatenation that embed values directly into Cypher are injection risks and bypass Neo4j's type system. Flag any Cypher constructed outside of parameterized queries.
+
+**Null node dereference**
+`MATCH ... WHERE` returns nothing if no node matches — it doesn't throw. Flag code that accesses properties on a query result without a null/undefined guard.
+
+**Unindexed WHERE clauses**
+`MATCH (n:Label) WHERE n.newProp = $val` on a property with no index does a full graph scan. Flag new filter predicates on properties that have no corresponding `CREATE INDEX IF NOT EXISTS` in a migration.
+
+**Missing batching on bulk writes**
+`MATCH (n:Label) SET n.x = $val` over an unbounded set will hit memory limits. Flag un-batched bulk mutations; suggest `CALL { … } IN TRANSACTIONS OF 500 ROWS`.
+
+---
+
+### API routes and middleware
+
+**Missing authentication**
+Every route in `server/api/` must call `requireUserSession()` (or equivalent) or be explicitly marked public. Flag new handlers that do neither.
+
+**Authentication without authorization**
+Confirming identity is not the same as confirming permission. Flag admin-level operations (writes, deletes, role changes) that check `session` but not the user's role or superuser status.
+
+**Unvalidated request input**
+Flag routes that spread or pass `event.body` / query params directly to a service or repository without schema validation or explicit type narrowing. Malformed input reaches the DB layer silently.
+
+**Swallowed errors**
+`catch (e) {}` or `catch (e) { return null }` hides production failures and makes incidents invisible. Flag silent catch blocks; errors should be re-thrown or surfaced as an appropriate HTTP error.
+
+---
+
+### Service / repository layer
+
+**Multi-step writes outside a transaction**
+Operations that write to several nodes or relationships and can partially fail need a single transaction boundary. Flag sequential `await repository.*()` write calls that are not wrapped in a transaction.
+
+**N+1 queries**
+A `for…of` loop that calls a repository method per iteration is an N+1. Flag these; suggest a single batched query instead.
+
+**Business logic in repositories**
+Repositories translate between the app and Neo4j only. Conditional defaults, fallbacks, or orchestration logic in a repository obscures where bugs originate. Flag it and suggest moving to the service layer.
+
+---
+
+### Migrations
+
+**Non-idempotent scripts**
+Migrations are re-run in CI. `CREATE CONSTRAINT` / `CREATE INDEX` without `IF NOT EXISTS` will fail on a second run. `CREATE` instead of `MERGE` on seed-like data will duplicate nodes. Flag both.
+
+**Missing `.down.cypher`**
+Every `.up.cypher` needs a matching rollback. Flag missing down scripts.
+
+**Destructive operations without a safety comment**
+`DETACH DELETE` or `REMOVE n.property` in a migration will delete production data on re-deploy. Flag these without an explicit `// intentional, irreversible` comment and a preceding count check.
+
+---
+
+### TypeScript / async
+
+**Unawaited async calls**
+An `async` function whose returned Promise is not awaited will silently drop errors. Flag unawaited calls, especially inside middleware, event handlers, and `setup()`.
+
+**`as` casts on unverified data**
+`someValue as MyType` with no runtime check is a latent crash if the actual shape differs — common with Neo4j query results or external API responses. Flag casts that skip validation.
+
+**Non-nullable access on optional fields**
+Accessing `.property` on a value typed as `T | undefined | null` without narrowing first will throw at runtime. Flag these.
+
+---
+
+### Nuxt / SSR
+
+**Unguarded browser API usage**
+`window`, `localStorage`, `document`, and other browser globals crash during SSR. Flag any usage in composables, plugins, or middleware that isn't wrapped in `import.meta.client` or `process.client`.
+
+**Composables called outside `setup()`**
+`useXxx()` composables called inside event handlers, `setTimeout`, or non-setup async callbacks lose their component instance. Flag these.
+
+---
+
+## Do not flag
+
+- Code style, indentation, or naming (ESLint owns this)
+- Missing or outdated comments and documentation
+- Test file structure or naming
+- Commit message format or PR description content
+- Migrations lacking descriptive header comments
+
+Raise a comment only when code can **fail, throw, produce wrong data, or expose a security gap at runtime**.

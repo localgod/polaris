@@ -31,8 +31,8 @@ describe('VersionConstraintRepository', () => {
         })
       `, { name: `${PREFIX}test-vc` })
 
-      const result = await repo.findAll()
-      const test = result.filter(c => c.name.startsWith(PREFIX))
+      const { data } = await repo.findAll()
+      const test = data.filter(c => c.name.startsWith(PREFIX))
 
       expect(test.length).toBeGreaterThanOrEqual(1)
       expect(test[0].name).toBe(`${PREFIX}test-vc`)

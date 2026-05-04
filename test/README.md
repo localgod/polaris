@@ -52,35 +52,48 @@ Polaris follows a **layered testing approach** that separates concerns by archit
 
 ### Layer 1: API Tests (`test/server/api/`)
 
-**Purpose:** Test API contracts and response structures
+**Purpose:** Test route handler behaviour — auth guards, input validation, service delegation, error propagation, and response shaping.
 
-**Approach:** Mock the service layer
-- Yes Test HTTP response structure
-- Yes Test required fields and types
-- Yes Test error handling
-- No No database calls
-- No No business logic testing
+**Approach:** Call the actual handler function with a mocked H3 event. Mock the service singleton. Auth functions (`requireAuth`, `requireSuperuser`, etc.) are Nuxt globals — stub them with `vi.stubGlobal()`.
+
+- ✅ Auth guard execution (401/403 paths)
+- ✅ Query param parsing and validation (NaN rejection, clamping)
+- ✅ Path param extraction
+- ✅ Service delegation (correct args forwarded)
+- ✅ Error re-throwing (`createError` 409 etc.) and wrapping (500)
+- ✅ Response shape (`success`, `data`, `total`)
+- ❌ No database calls
+- ❌ No Nitro routing or HTTP middleware
+
+Tests use Gherkin (`.feature` + `.spec.ts`) so scenarios describe observable API behaviour in plain language. See [`test/server/api/README.md`](server/api/README.md) for the full pattern.
 
 **Example:**
 ```typescript
-import { vi } from 'vitest'
-import { ComponentService } from '../../../server/services/component.service'
+import { vi, beforeAll } from 'vitest'
+import { loadFeature, describeFeature } from '@amiceli/vitest-cucumber'
+import { mockEvent } from '../../fixtures/h3-event'
+import getHandler from '../../../server/api/systems.get'
+import { systemService } from '../../../server/services/singletons'
 
-vi.mock('../../../server/services/component.service')
+vi.mock('../../../server/services/singletons', () => ({
+  systemService: { findAll: vi.fn() }
+}))
 
-// Mock service response
-vi.mocked(ComponentService.prototype.findAll).mockResolvedValue({
-  data: mockComponents,
-  count: mockComponents.length
+const { mockRequireAuth } = vi.hoisted(() => ({ mockRequireAuth: vi.fn() }))
+beforeAll(() => { vi.stubGlobal('requireAuth', mockRequireAuth) })
+
+const feature = await loadFeature('./test/server/api/systems.feature')
+
+describeFeature(feature, ({ Scenario }) => {
+  Scenario('Non-integer limit is rejected', ({ When, Then }) => {
+    When('I request GET "/api/systems" with limit "abc"', async () => {
+      result = await getHandler(mockEvent({ query: { limit: 'abc' } }))
+    })
+    Then('the response should be unsuccessful', () => {
+      expect(result.success).toBe(false)
+    })
+  })
 })
-
-// Test API response structure
-const responseData = {
-  success: true,
-  data: result.data,
-  count: result.count
-}
-expect(responseData.success).toBe(true)
 ```
 
 ### Layer 2: Service Tests (`test/server/services/`)

@@ -84,6 +84,7 @@ import { systemService } from '../../../services/singletons'
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
   
@@ -117,7 +118,7 @@ export default defineEventHandler(async (event) => {
     })
   }
   
-  const repository = await systemService.addRepository(systemName, body, user.id)
+  const repository = await systemService.addRepository(systemName, body, user.id, realUserId)
   
   setResponseStatus(event, 201)
   return {

@@ -19,9 +19,9 @@ export interface UpsertApprovalParams {
   technologyName: string
   teamName: string
   time: string
-  approvedBy: string
   notes: string | null
   userId: string
+  realUserId?: string | null
 }
 
 export interface UpdateTechnologyParams {
@@ -32,6 +32,7 @@ export interface UpdateTechnologyParams {
   ownerTeam: string | null
   lastReviewed: string | null
   userId: string
+  realUserId?: string | null
 }
 
 export interface CreateTechnologyParams {
@@ -43,6 +44,7 @@ export interface CreateTechnologyParams {
   componentName: string | null
   componentPackageManager: string | null
   userId: string
+  realUserId?: string | null
 }
 
 export interface TechnologyDetail extends Technology {
@@ -91,13 +93,14 @@ export class TechnologyRepository extends BaseRepository {
    * 
    * @returns Array of technologies
    */
-  async findAll(sort?: SortParams): Promise<Technology[]> {
-    let query = await loadQuery('technologies/find-all.cypher')
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Technology[]; total: number }> {
+    const query = await loadQuery('technologies/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, technologySortConfig)
-    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
-    const { records } = await this.executeQuery(query)
-    
-    return records.map(record => this.mapToTechnology(record))
+    const finalQuery = injectOrderBy(query, orderBy)
+    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+
+    const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    return { data: records.map(record => this.mapToTechnology(record)), total }
   }
 
   /**
@@ -148,6 +151,7 @@ export class TechnologyRepository extends BaseRepository {
       componentName: params.componentName || null,
       componentPackageManager: params.componentPackageManager || null,
       userId: params.userId,
+      realUserId: params.realUserId ?? null,
       changes,
     })
 
@@ -184,9 +188,9 @@ export class TechnologyRepository extends BaseRepository {
     return records[0]!.get('name')
   }
 
-  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
     const query = await loadQuery('technologies/delete.cypher')
-    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
+    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 
   /**
@@ -210,9 +214,9 @@ export class TechnologyRepository extends BaseRepository {
   /**
    * Link a component to a technology via IS_VERSION_OF
    */
-  async linkComponent(params: { technologyName: string; componentName: string; componentVersion: string; userId: string }): Promise<{ technologyName: string; componentName: string; componentVersion: string }> {
+  async linkComponent(params: { technologyName: string; componentName: string; componentVersion: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; componentName: string; componentVersion: string }> {
     const query = await loadQuery('technologies/link-component.cypher')
-    const { records } = await this.executeQuery(query, params)
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
 
     if (records.length === 0) {
       throw new Error('Failed to link component — technology or component not found')
@@ -246,7 +250,7 @@ export class TechnologyRepository extends BaseRepository {
 
   async upsertApproval(params: UpsertApprovalParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<{ time: string; team: string }> {
     const query = await loadQuery('technologies/upsert-approval.cypher')
-    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
+    const { records } = await this.executeQuery(query, { ...params, approvedBy: params.userId, changes: JSON.stringify(params.changes) })
 
     if (records.length === 0) {
       throw new Error('Failed to set approval — technology or team not found')

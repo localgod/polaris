@@ -29,6 +29,7 @@ export interface AuditLog {
   source: string
   userId: string | null
   userName: string | null
+  realUserId: string | null
 }
 
 export interface AuditLogFilters {
@@ -172,7 +173,8 @@ export class AuditLogRepository extends BaseRepository {
       reason: a.properties.reason || null,
       source: a.properties.source || '',
       userId: a.properties.userId || null,
-      userName: record.get('performerName') || null
+      userName: record.get('performerName') || null,
+      realUserId: a.properties.realUserId || null
     }
   }
 
@@ -188,6 +190,7 @@ export class AuditLogRepository extends BaseRepository {
     changes?: Record<string, { before: unknown; after: unknown }> | null
     source?: string
     userId: string
+    realUserId?: string | null
   }): Promise<void> {
     await this.executeQuery(`
       CREATE (a:AuditLog {
@@ -200,7 +203,8 @@ export class AuditLogRepository extends BaseRepository {
         changedFields: $changedFields,
         changes: $changes,
         source: $source,
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
     `, {
       operation: params.operation,
@@ -210,7 +214,8 @@ export class AuditLogRepository extends BaseRepository {
       changedFields: params.changedFields || [],
       changes: params.changes ? JSON.stringify(params.changes) : null,
       source: params.source || 'API',
-      userId: params.userId
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
     })
   }
 }

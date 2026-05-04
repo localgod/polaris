@@ -21,23 +21,25 @@ describe('TechnologyService', () => {
 
   describe('findAll()', () => {
     it('should return technologies with count', async () => {
-      vi.mocked(TechnologyRepository.prototype.findAll).mockResolvedValue([mockTech])
+      vi.mocked(TechnologyRepository.prototype.findAll).mockResolvedValue({ data: [mockTech], total: 1 })
 
       const result = await service.findAll()
 
       expect(result.data).toHaveLength(1)
       expect(result.data[0].name).toBe('React')
       expect(result.count).toBe(1)
+      expect(result.total).toBe(1)
       expect(TechnologyRepository.prototype.findAll).toHaveBeenCalledOnce()
     })
 
     it('should return empty result when none exist', async () => {
-      vi.mocked(TechnologyRepository.prototype.findAll).mockResolvedValue([])
+      vi.mocked(TechnologyRepository.prototype.findAll).mockResolvedValue({ data: [], total: 0 })
 
       const result = await service.findAll()
 
       expect(result.data).toEqual([])
       expect(result.count).toBe(0)
+      expect(result.total).toBe(0)
     })
   })
 

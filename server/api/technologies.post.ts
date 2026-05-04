@@ -64,10 +64,11 @@ interface CreateTechnologyResponse {
 
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateTechnologyResponse>> => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
   const body = await readBody<CreateTechnologyRequest>(event)
 
   try {
-    const name = await technologyService.create({ ...body, userId: user.id })
+    const name = await technologyService.create({ ...body, userId: user.id, realUserId })
 
     setResponseStatus(event, 201)
     return {

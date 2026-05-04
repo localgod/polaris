@@ -52,6 +52,7 @@ import { AuditLogRepository } from '../../../repositories/audit-log.repository'
  */
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const body = await readBody(event)
 
@@ -82,7 +83,8 @@ export default defineEventHandler(async (event) => {
         ...(result.componentsAdded > 0 ? ['sbom'] : [])
       ],
       source: 'GitHub Import',
-      userId: user.id
+      userId: user.id,
+      realUserId
     })
 
     return {

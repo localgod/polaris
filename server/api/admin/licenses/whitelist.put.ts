@@ -82,6 +82,7 @@ interface AllowedUpdateResponse {
 export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> => {
   // Require superuser access
   const user = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   try {
     const body = await readBody<AllowedUpdateRequest>(event)
@@ -114,7 +115,7 @@ export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> 
     // Handle single license update
     if (body.licenseId) {
       try {
-        await licenseService.updateAllowedStatus(body.licenseId, body.allowed, user.id)
+        await licenseService.updateAllowedStatus(body.licenseId, body.allowed, user.id, realUserId)
         setResponseStatus(event, 200)
         return {
           success: true,
@@ -138,7 +139,7 @@ export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> 
 
     // Handle bulk license update
     if (body.licenseIds) {
-      const result = await licenseService.bulkUpdateAllowedStatus(body.licenseIds, body.allowed, user.id)
+      const result = await licenseService.bulkUpdateAllowedStatus(body.licenseIds, body.allowed, user.id, realUserId)
       
       if (result.success) {
         setResponseStatus(event, 200)

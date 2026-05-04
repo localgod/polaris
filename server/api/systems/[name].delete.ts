@@ -32,6 +32,7 @@ import { systemService } from '../../services/singletons'
 export default defineEventHandler(async (event) => {
   // Require authorization (authenticated + team membership)
   const user = await requireAuthorization(event)
+  const realUserId = await getImpersonatorId(event)
   
   const rawName = getRouterParam(event, 'name')
   
@@ -47,7 +48,7 @@ export default defineEventHandler(async (event) => {
   // Validate that user's team owns this system
   await validateTeamOwnership(event, 'System', name)
   
-  await systemService.delete(name, user.id)
+  await systemService.delete(name, user.id, realUserId)
   
   setResponseStatus(event, 204)
   return null

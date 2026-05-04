@@ -16,7 +16,8 @@ CREATE (al:AuditLog {
   changedFields: ['time', 'notes'],
   changes: $changes,
   source: 'API',
-  userId: $userId
+  userId: $userId,
+  realUserId: $realUserId
 })
 CREATE (al)-[:AUDITS]->(t)
 RETURN a.time as time, team.name as team

@@ -91,6 +91,7 @@ import { userService } from '../../../../services/singletons'
 export default defineEventHandler(async (event) => {
   // Require superuser access
   const currentUser = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
   
   const userId = getRouterParam(event, 'userId')
   
@@ -117,7 +118,8 @@ export default defineEventHandler(async (event) => {
       userId,
       teams: body.teams,
       canManage: body.canManage,
-      performedBy: currentUser.id
+      performedBy: currentUser.id,
+      realUserId
     })
 
     setResponseStatus(event, 200)

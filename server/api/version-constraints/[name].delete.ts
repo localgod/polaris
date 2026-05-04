@@ -3,6 +3,7 @@ import { VersionConstraintRepository } from '../../repositories/version-constrai
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
   if (!rawName) {
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await versionConstraintService.delete(name, user.id)
+  await versionConstraintService.delete(name, user.id, realUserId)
 
   setResponseStatus(event, 204)
   return null

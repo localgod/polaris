@@ -20,7 +20,8 @@ CREATE (a:AuditLog {
   entityLabel: s.name + ' <- ' + r.url,
   changedFields: ['repositories'],
   source: 'API',
-  userId: $userId
+  userId: $userId,
+  realUserId: $realUserId
 })
 CREATE (a)-[:AUDITS]->(s)
 RETURN r.url as url,

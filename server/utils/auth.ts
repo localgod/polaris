@@ -1,7 +1,8 @@
 import { getServerSession } from '#auth'
 import type { H3Event } from 'h3'
-import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { tokenService, userService } from '../services/singletons'
+import { UserRepository } from '../repositories/user.repository'
+import { TeamRepository } from '../repositories/team.repository'
 
 const IMPERSONATE_COOKIE = 'polaris-impersonate'
 
@@ -73,6 +74,20 @@ export async function getCurrentUser(event: H3Event) {
  * Used by impersonation endpoints to verify superuser status.
  */
 export { getRealUser }
+
+/**
+ * When a superuser is actively impersonating another user, return the real
+ * superuser's ID so it can be stored alongside the impersonated userId in
+ * audit log entries.  Returns null when no impersonation is in effect.
+ */
+export async function getImpersonatorId(event: H3Event): Promise<string | null> {
+  const [realUser, currentUser] = await Promise.all([
+    getRealUser(event),
+    getCurrentUser(event)
+  ])
+  if (!realUser || !currentUser) return null
+  return realUser.id !== currentUser.id ? realUser.id : null
+}
 
 /**
  * Check if the current user is authenticated
@@ -160,22 +175,8 @@ export async function canManageTeam(event: H3Event, teamName: string) {
   }
   
   // Check if user has CAN_MANAGE relationship with the team
-  const driver = useDriver()
-  const session = driver.session()
-  
-  try {
-    const result = await session.run(
-      `
-      MATCH (u:User {id: $userId})-[:CAN_MANAGE]->(t:Team {name: $teamName})
-      RETURN count(t) > 0 as canManage
-      `,
-      { userId: user.id, teamName }
-    )
-    
-    return result.records[0]?.get('canManage') || false
-  } finally {
-    await session.close()
-  }
+  const userRepo = new UserRepository()
+  return await userRepo.canManageTeam(user.id, teamName)
 }
 
 /**
@@ -226,15 +227,8 @@ export async function getUserTeams(event: H3Event): Promise<string[]> {
   
   // Superusers have access to all teams
   if (user.role === 'superuser') {
-    const driver = useDriver()
-    const session = driver.session()
-    
-    try {
-      const result = await session.run('MATCH (t:Team) RETURN t.name as name')
-      return result.records.map((record: Neo4jRecord) => record.get('name'))
-    } finally {
-      await session.close()
-    }
+    const teamRepo = new TeamRepository()
+    return await teamRepo.findAllNames()
   }
   
   return user.teams?.map(team => team.name) || []
@@ -256,43 +250,21 @@ export async function validateTeamOwnership(
     return
   }
   
-  const driver = useDriver()
-  const session = driver.session()
-  
-  try {
-    let query = ''
-    
-    if (resourceType === 'System') {
-      // Check if system is owned by one of user's teams
-      query = `
-        MATCH (s:System {name: $resourceName})
-        MATCH (t:Team)-[:OWNS]->(s)
-        WHERE t.name IN $teamNames
-        RETURN count(s) > 0 as hasAccess
-      `
-    } else if (resourceType === 'Technology') {
-      // Check if technology is stewarded by one of user's teams
-      query = `
-        MATCH (tech:Technology {name: $resourceName})
-        MATCH (t:Team)-[:STEWARDED_BY]->(tech)
-        WHERE t.name IN $teamNames
-        RETURN count(tech) > 0 as hasAccess
-      `
-    }
-    
-    const teamNames = user.teams?.map(team => team.name) || []
-    const result = await session.run(query, { resourceName, teamNames })
-    
-    const hasAccess = result.records[0]?.get('hasAccess') || false
-    
-    if (!hasAccess) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Forbidden',
-        message: `Access denied. This ${resourceType.toLowerCase()} is not owned by any of your teams.`
-      })
-    }
-  } finally {
-    await session.close()
+  const teamNames = user.teams?.map(team => team.name) || []
+  const teamRepo = new TeamRepository()
+  let hasAccess = false
+
+  if (resourceType === 'System') {
+    hasAccess = await teamRepo.ownsSystem(teamNames, resourceName)
+  } else if (resourceType === 'Technology') {
+    hasAccess = await teamRepo.stewardsTechnology(teamNames, resourceName)
+  }
+
+  if (!hasAccess) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+      message: `Access denied. This ${resourceType.toLowerCase()} is not owned by any of your teams.`
+    })
   }
 }

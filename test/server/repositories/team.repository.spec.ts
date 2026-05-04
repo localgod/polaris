@@ -29,8 +29,8 @@ describe('TeamRepository', () => {
         CREATE (:Team { name: $t2, responsibilityArea: 'Frontend' })
       `, { t1: `${PREFIX}backend`, t2: `${PREFIX}frontend` })
 
-      const result = await repo.findAll()
-      const test = result.filter(t => t.name.startsWith(PREFIX))
+      const { data } = await repo.findAll()
+      const test = data.filter(t => t.name.startsWith(PREFIX))
 
       expect(test.length).toBeGreaterThanOrEqual(2)
     })
@@ -49,8 +49,8 @@ describe('TeamRepository', () => {
         u2: `${PREFIX}member2`, e2: `${PREFIX}m2@test.com`
       })
 
-      const result = await repo.findAll()
-      const team = result.find(t => t.name === `${PREFIX}counted`)
+      const { data } = await repo.findAll()
+      const team = data.find(t => t.name === `${PREFIX}counted`)
 
       expect(team).toBeDefined()
       expect(team!.memberCount).toBe(2)
@@ -62,8 +62,8 @@ describe('TeamRepository', () => {
         CREATE (:Team { name: $team })
       `, { team: `${PREFIX}empty` })
 
-      const result = await repo.findAll()
-      const team = result.find(t => t.name === `${PREFIX}empty`)
+      const { data } = await repo.findAll()
+      const team = data.find(t => t.name === `${PREFIX}empty`)
 
       expect(team).toBeDefined()
       expect(team!.memberCount).toBe(0)
@@ -131,6 +131,70 @@ describe('TeamRepository', () => {
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(true)
       await repo.delete(`${PREFIX}to-delete`, 'test-user', {})
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
+    })
+  })
+
+  describe('findAllNames()', () => {
+    it('should return all team names', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Team { name: $t1 })
+        CREATE (:Team { name: $t2 })
+      `, { t1: `${PREFIX}names-a`, t2: `${PREFIX}names-b` })
+
+      const names = await repo.findAllNames()
+      expect(names).toContain(`${PREFIX}names-a`)
+      expect(names).toContain(`${PREFIX}names-b`)
+    })
+  })
+
+  describe('ownsSystem()', () => {
+    it('should return true when one of the teams owns the system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (s:System { name: $sys })
+        CREATE (t)-[:OWNS]->(s)
+      `, { team: `${PREFIX}own-team`, sys: `${PREFIX}own-sys` })
+
+      const result = await repo.ownsSystem([`${PREFIX}own-team`], `${PREFIX}own-sys`)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when none of the teams own the system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (s:System { name: $sys })
+      `, { team: `${PREFIX}no-own-team`, sys: `${PREFIX}no-own-sys` })
+
+      const result = await repo.ownsSystem([`${PREFIX}no-own-team`], `${PREFIX}no-own-sys`)
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('stewardsTechnology()', () => {
+    it('should return true when one of the teams stewards the technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (tech:Technology { name: $tech })
+        CREATE (t)-[:STEWARDED_BY]->(tech)
+      `, { team: `${PREFIX}stew-team`, tech: `${PREFIX}stew-tech` })
+
+      const result = await repo.stewardsTechnology([`${PREFIX}stew-team`], `${PREFIX}stew-tech`)
+      expect(result).toBe(true)
+    })
+
+    it('should return false when none of the teams steward the technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (tech:Technology { name: $tech })
+      `, { team: `${PREFIX}no-stew-team`, tech: `${PREFIX}no-stew-tech` })
+
+      const result = await repo.stewardsTechnology([`${PREFIX}no-stew-team`], `${PREFIX}no-stew-tech`)
+      expect(result).toBe(false)
     })
   })
 })

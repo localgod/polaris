@@ -127,13 +127,14 @@ export class TeamRepository extends BaseRepository {
    * 
    * @returns Array of teams
    */
-  async findAll(sort?: SortParams): Promise<Team[]> {
-    let query = await loadQuery('teams/find-all.cypher')
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Team[]; total: number }> {
+    const query = await loadQuery('teams/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, teamSortConfig)
-    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
-    const { records } = await this.executeQuery(query)
-    
-    return records.map(record => this.mapToTeam(record))
+    const finalQuery = injectOrderBy(query, orderBy)
+    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+
+    const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    return { data: records.map(record => this.mapToTeam(record)), total }
   }
 
   /**
@@ -185,6 +186,7 @@ export class TeamRepository extends BaseRepository {
     email: string | null
     responsibilityArea: string | null
     userId: string
+    realUserId?: string | null
   }): Promise<string> {
     const query = await loadQuery('teams/create.cypher')
     const changes = JSON.stringify(buildCreateChanges({
@@ -192,7 +194,7 @@ export class TeamRepository extends BaseRepository {
       email: params.email,
       responsibilityArea: params.responsibilityArea,
     }))
-    const { records } = await this.executeQuery(query, { ...params, changes })
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes })
     return records[0]!.get('name')
   }
 
@@ -210,9 +212,10 @@ export class TeamRepository extends BaseRepository {
     changedFields: string[]
     changes: Record<string, { before: unknown; after: unknown }>
     userId: string
+    realUserId?: string | null
   }): Promise<string> {
     const query = await loadQuery('teams/update.cypher')
-    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes: JSON.stringify(params.changes) })
     if (records.length === 0) {
       throw new Error(`Team '${params.name}' not found`)
     }
@@ -250,9 +253,9 @@ export class TeamRepository extends BaseRepository {
    * 
    * @param name - Team name
    */
-  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
     const query = await loadQuery('teams/delete.cypher')
-    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
+    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 
   /**
@@ -367,6 +370,43 @@ export class TeamRepository extends BaseRepository {
         migrationNeeded: usage.filter(u => u.complianceStatus === 'migration-needed').length
       }
     }
+  }
+
+  /**
+   * Find all team names
+   *
+   * @returns Array of team names
+   */
+  async findAllNames(): Promise<string[]> {
+    const query = await loadQuery('teams/find-all-names.cypher')
+    const { records } = await this.executeQuery(query)
+    return records.map(record => record.get('name')).filter(Boolean)
+  }
+
+  /**
+   * Check if any of the given teams own a specific system
+   *
+   * @param teamNames - List of team names to check
+   * @param systemName - System name
+   * @returns True if at least one team owns the system
+   */
+  async ownsSystem(teamNames: string[], systemName: string): Promise<boolean> {
+    const query = await loadQuery('teams/owns-system.cypher')
+    const { records } = await this.executeQuery(query, { teamNames, resourceName: systemName })
+    return records[0]?.get('hasAccess') || false
+  }
+
+  /**
+   * Check if any of the given teams steward a specific technology
+   *
+   * @param teamNames - List of team names to check
+   * @param technologyName - Technology name
+   * @returns True if at least one team stewards the technology
+   */
+  async stewardsTechnology(teamNames: string[], technologyName: string): Promise<boolean> {
+    const query = await loadQuery('teams/stewards-technology.cypher')
+    const { records } = await this.executeQuery(query, { teamNames, resourceName: technologyName })
+    return records[0]?.get('hasAccess') || false
   }
 
   /**

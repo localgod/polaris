@@ -18,6 +18,8 @@ export interface VersionConstraintFilters {
   status?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
 }
 
 const sortConfig: SortConfig = {
@@ -68,6 +70,7 @@ export interface CreateVersionConstraintInput {
   governsTechnology?: string
   status?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface CreateVersionConstraintResult {
@@ -89,6 +92,7 @@ export interface UpdateVersionConstraintInput {
   governsTechnology?: string | null
   status?: string
   userId: string
+  realUserId?: string | null
 }
 
 export interface UpdateStatusResult {
@@ -98,13 +102,16 @@ export interface UpdateStatusResult {
 
 export class VersionConstraintRepository extends BaseRepository {
 
-  async findAll(filters: VersionConstraintFilters = {}): Promise<VersionConstraint[]> {
+  async findAll(filters: VersionConstraintFilters = {}): Promise<{ data: VersionConstraint[]; total: number }> {
+    const limit = filters.limit ?? 50
+    const offset = filters.offset ?? 0
+
     let cypher = `
       MATCH (vc:VersionConstraint)
     `
 
     const conditions: string[] = []
-    const params: Record<string, string> = {}
+    const params: Record<string, unknown> = { limit, offset }
 
     if (filters.scope) {
       conditions.push('vc.scope = $scope')
@@ -126,6 +133,9 @@ export class VersionConstraintRepository extends BaseRepository {
       WITH vc,
            collect(DISTINCT subject.name) as subjectTeams,
            collect(DISTINCT tech.name) as governedTechnologies
+      WITH collect({vc: vc, subjectTeams: subjectTeams, governedTechnologies: governedTechnologies}) as allRows, count(vc) as total
+      UNWIND allRows as row
+      WITH row.vc as vc, row.subjectTeams as subjectTeams, row.governedTechnologies as governedTechnologies, total
       RETURN vc.name as name,
              vc.description as description,
              vc.severity as severity,
@@ -135,13 +145,17 @@ export class VersionConstraintRepository extends BaseRepository {
              vc.status as status,
              subjectTeams,
              governedTechnologies,
-             size(governedTechnologies) as technologyCount
+             size(governedTechnologies) as technologyCount,
+             total
       ORDER BY ${buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, sortConfig)}
+      SKIP toInteger($offset)
+      LIMIT toInteger($limit)
     `
 
     const { records } = await this.executeQuery(cypher, params)
 
-    return records.map(record => this.mapToConstraint(record))
+    const totalCount = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    return { data: records.map(record => this.mapToConstraint(record)), total: totalCount }
   }
 
   async findViolations(filters: ViolationFilters): Promise<Violation[]> {
@@ -200,7 +214,7 @@ export class VersionConstraintRepository extends BaseRepository {
     return records[0]!.get('createdBy') || null
   }
 
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     await this.executeQuery(`
       MATCH (vc:VersionConstraint {name: $name})
       CREATE (a:AuditLog {
@@ -211,11 +225,12 @@ export class VersionConstraintRepository extends BaseRepository {
         entityId: vc.name,
         entityLabel: vc.name,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       WITH vc
       DETACH DELETE vc
-    `, { name, userId })
+    `, { name, userId, realUserId: realUserId ?? null })
   }
 
   async create(input: CreateVersionConstraintInput): Promise<CreateVersionConstraintResult> {
@@ -242,18 +257,20 @@ export class VersionConstraintRepository extends BaseRepository {
         entityLabel: vc.name,
         changedFields: ['name', 'severity', 'scope', 'status', 'versionRange'],
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(vc)
     `, {
       name: input.name,
-      description: input.description || null,
+      description: input.description?.trim() || null,
       severity: input.severity,
       scope: input.scope || 'organization',
-      subjectTeam: input.subjectTeam || null,
+      subjectTeam: input.subjectTeam?.trim() || null,
       versionRange: input.versionRange,
       status: input.status || 'active',
-      userId: input.userId
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
     })
 
     let relationshipsCreated = 0
@@ -296,7 +313,7 @@ export class VersionConstraintRepository extends BaseRepository {
     return { constraint, relationshipsCreated }
   }
 
-  async updateStatus(name: string, input: UpdateStatusInput, userId?: string): Promise<UpdateStatusResult> {
+  async updateStatus(name: string, input: UpdateStatusInput, userId?: string, realUserId?: string | null): Promise<UpdateStatusResult> {
     const current = await this.findByName(name)
     if (!current) {
       throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })
@@ -328,16 +345,18 @@ export class VersionConstraintRepository extends BaseRepository {
         changedFields: ['status'],
         reason: $reason,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(vc)
     `, {
       name,
       status: newStatus,
-      reason: input.reason || null,
+      reason: input.reason?.trim() || null,
       previousStatus,
       newStatus,
-      userId: userId || 'anonymous'
+      userId: userId || 'anonymous',
+      realUserId: realUserId ?? null
     })
 
     const updated = await this.findByName(name)
@@ -350,11 +369,11 @@ export class VersionConstraintRepository extends BaseRepository {
 
   async update(name: string, input: UpdateVersionConstraintInput): Promise<VersionConstraint> {
     const setClauses: string[] = ['vc.updatedAt = datetime()']
-    const params: Record<string, unknown> = { name, userId: input.userId }
+    const params: Record<string, unknown> = { name, userId: input.userId, realUserId: input.realUserId ?? null }
 
     if (input.description !== undefined) {
       setClauses.push('vc.description = $description')
-      params.description = input.description || null
+      params.description = input.description?.trim() || null
     }
     if (input.severity !== undefined) {
       setClauses.push('vc.severity = $severity')
@@ -389,7 +408,8 @@ export class VersionConstraintRepository extends BaseRepository {
         entityId: vc.name,
         entityLabel: vc.name,
         source: 'API',
-        userId: $userId
+        userId: $userId,
+        realUserId: $realUserId
       })
       CREATE (a)-[:AUDITS]->(vc)
     `, params)

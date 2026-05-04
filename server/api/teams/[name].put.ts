@@ -45,6 +45,7 @@ import { teamService } from '../../services/singletons'
  */
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
 
@@ -63,7 +64,8 @@ export default defineEventHandler(async (event) => {
     newName: body?.name,
     email: body?.email,
     responsibilityArea: body?.responsibilityArea,
-    userId: user.id
+    userId: user.id,
+    realUserId
   })
 
   return {

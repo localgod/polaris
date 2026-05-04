@@ -40,6 +40,7 @@ export interface CreateSystemParams {
   environment: string
   repositories: RepositoryInput[]
   userId: string
+  realUserId?: string | null
 }
 
 
@@ -54,13 +55,14 @@ export class SystemRepository extends BaseRepository {
    * 
    * @returns Array of systems
    */
-  async findAll(sort?: SortParams): Promise<System[]> {
-    let query = await loadQuery('systems/find-all.cypher')
+  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: System[]; total: number }> {
+    const query = await loadQuery('systems/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, systemSortConfig)
-    query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
-    const { records } = await this.executeQuery(query)
-    
-    return records.map(record => this.mapToSystem(record))
+    const finalQuery = injectOrderBy(query, orderBy)
+    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+
+    const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    return { data: records.map(record => this.mapToSystem(record)), total }
   }
 
   /**
@@ -127,7 +129,7 @@ export class SystemRepository extends BaseRepository {
       businessCriticality: params.businessCriticality,
       environment: params.environment,
     }))
-    const { records } = await this.executeQuery(query, { ...params, changes })
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes })
     
     if (records.length === 0) {
       throw new Error('Failed to create system')
@@ -141,9 +143,9 @@ export class SystemRepository extends BaseRepository {
    * 
    * @param name - System name
    */
-  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>): Promise<void> {
+  async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
     const query = await loadQuery('systems/delete.cypher')
-    await this.executeQuery(query, { name, userId, changes: JSON.stringify(changes) })
+    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 
   /**
@@ -154,13 +156,14 @@ export class SystemRepository extends BaseRepository {
    * @param name - Repository name
    * @returns Created/updated repository
    */
-  async addRepository(systemName: string, url: string, name: string, userId: string): Promise<Repository> {
+  async addRepository(systemName: string, url: string, name: string, userId: string, realUserId?: string | null): Promise<Repository> {
     const query = await loadQuery('systems/add-repository.cypher')
     const { records } = await this.executeQuery(query, {
       systemName,
       url,
       name,
-      userId
+      userId,
+      realUserId: realUserId ?? null
     })
 
     if (records.length === 0) {

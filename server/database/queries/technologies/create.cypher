@@ -30,7 +30,8 @@ CREATE (a:AuditLog {
   changedFields: ['name', 'type', 'domain', 'vendor'],
   changes: $changes,
   source: 'API',
-  userId: $userId
+  userId: $userId,
+  realUserId: $realUserId
 })
 CREATE (a)-[:AUDITS]->(t)
 RETURN t.name as name

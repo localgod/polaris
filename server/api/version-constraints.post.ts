@@ -20,6 +20,8 @@ export default defineEventHandler(async (event) => {
     return { success: false, error: 'unauthenticated', message: 'Authentication required' }
   }
 
+  const realUserId = await getImpersonatorId(event)
+
   let body: CreateRequest
   try {
     body = await readBody(event)
@@ -53,7 +55,8 @@ export default defineEventHandler(async (event) => {
       versionRange: body.versionRange,
       governsTechnology: body.governsTechnology,
       status: body.status,
-      userId: user.id
+      userId: user.id,
+      realUserId
     })
 
     setResponseStatus(event, 201)

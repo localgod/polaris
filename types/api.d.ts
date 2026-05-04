@@ -99,6 +99,12 @@ export type TechnologyDomain =
   | 'developer-tooling'
   | 'other'
 
+export type TimeValue = 'tolerate' | 'invest' | 'migrate' | 'eliminate'
+
+export type BusinessCriticality = 'critical' | 'high' | 'medium' | 'low'
+
+export type SystemEnvironment = 'dev' | 'test' | 'staging' | 'prod'
+
 export interface Technology {
   name: string
   type: ComponentType | null
@@ -114,7 +120,7 @@ export interface Technology {
 
 export interface TechnologyApproval {
   team?: string
-  time?: string
+  time?: TimeValue
   approvedAt?: string
   deprecatedAt?: string
   eolDate?: string
@@ -127,8 +133,8 @@ export interface System {
   name: string
   domain: string | null
   ownerTeam: string | null
-  businessCriticality: string | null
-  environment: string | null
+  businessCriticality: BusinessCriticality | null
+  environment: SystemEnvironment | null
   componentCount: number
   repositoryCount: number
   lastSbomScanAt: string | null

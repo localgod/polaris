@@ -23,9 +23,9 @@ export class VersionConstraintService {
     this.repo = new VersionConstraintRepository()
   }
 
-  async findAll(filters: VersionConstraintFilters = {}): Promise<{ data: VersionConstraint[]; count: number }> {
-    const constraints = await this.repo.findAll(filters)
-    return { data: constraints, count: constraints.length }
+  async findAll(filters: VersionConstraintFilters = {}): Promise<{ data: VersionConstraint[]; count: number; total: number }> {
+    const { data, total } = await this.repo.findAll(filters)
+    return { data, count: data.length, total }
   }
 
   async getViolations(filters: ViolationFilters): Promise<ViolationResult> {
@@ -52,12 +52,12 @@ export class VersionConstraintService {
     return await this.repo.findByName(name)
   }
 
-  async delete(name: string, userId: string): Promise<void> {
+  async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
     const exists = await this.repo.exists(name)
     if (!exists) {
       throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })
     }
-    await this.repo.delete(name, userId)
+    await this.repo.delete(name, userId, realUserId)
   }
 
   async create(input: CreateVersionConstraintInput): Promise<{ constraint: VersionConstraint; relationshipsCreated: number }> {
@@ -102,14 +102,14 @@ export class VersionConstraintService {
     return await this.repo.update(name, input)
   }
 
-  async updateStatus(name: string, input: UpdateStatusInput, userId: string): Promise<UpdateStatusResult> {
+  async updateStatus(name: string, input: UpdateStatusInput, userId: string, realUserId?: string | null): Promise<UpdateStatusResult> {
     if (input.status) {
       const validStatuses = ['active', 'draft', 'archived']
       if (!validStatuses.includes(input.status)) {
         throw createError({ statusCode: 400, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` })
       }
     }
-    return await this.repo.updateStatus(name, input, userId)
+    return await this.repo.updateStatus(name, input, userId, realUserId)
   }
 
   private validateFilters(filters: ViolationFilters): void {
