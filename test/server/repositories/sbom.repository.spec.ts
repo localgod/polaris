@@ -65,4 +65,61 @@ describe('SBOMRepository', () => {
       expect(check.records[0].get('count').toNumber()).toBeGreaterThanOrEqual(2)
     })
   })
+
+  describe('createAuditLog()', () => {
+    it('should create an AuditLog node linked to the System', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:System { name: $sys })
+      `, { sys: `${PREFIX}audit-system` })
+
+      await repo.createAuditLog({
+        systemName: `${PREFIX}audit-system`,
+        userId: `${PREFIX}user1`,
+        format: 'cyclonedx',
+        componentsAdded: 3,
+        componentsUpdated: 1,
+        realUserId: null
+      })
+
+      const check = await session.run(`
+        MATCH (a:AuditLog)-[:AUDITS]->(s:System { name: $sys })
+        WHERE a.userId = $userId
+        RETURN a
+      `, { sys: `${PREFIX}audit-system`, userId: `${PREFIX}user1` })
+
+      expect(check.records.length).toBe(1)
+      const node = check.records[0].get('a').properties
+      expect(node.operation).toBe('IMPORT_SBOM')
+      expect(node.entityType).toBe('System')
+    })
+
+    it('should store metadata as parseable JSON', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:System { name: $sys })
+      `, { sys: `${PREFIX}audit-json-system` })
+
+      await repo.createAuditLog({
+        systemName: `${PREFIX}audit-json-system`,
+        userId: `${PREFIX}user2`,
+        format: 'spdx',
+        componentsAdded: 5,
+        componentsUpdated: 2,
+        realUserId: null
+      })
+
+      const check = await session.run(`
+        MATCH (a:AuditLog)-[:AUDITS]->(s:System { name: $sys })
+        WHERE a.userId = $userId
+        RETURN a.metadata as metadata
+      `, { sys: `${PREFIX}audit-json-system`, userId: `${PREFIX}user2` })
+
+      expect(check.records.length).toBe(1)
+      const parsed = JSON.parse(check.records[0].get('metadata'))
+      expect(parsed.format).toBe('spdx')
+      expect(parsed.added).toBe(5)
+      expect(parsed.updated).toBe(2)
+    })
+  })
 })
