@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.79] - 2026-05-04
+
+## What's Changed
+
+- test: add HTTP integration test suite against real Nitro server @localgod (#462)
+
+## 🔧 Maintenance
+
+- chore: release v0.1.78 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#461)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.78...v0.1.79
+
 ## [0.1.78] - 2026-05-04
 
 ## What's Changed

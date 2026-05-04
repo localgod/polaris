@@ -1,6 +1,6 @@
 {
   "name": "polaris",
-  "version": "0.1.78",
+  "version": "0.1.79",
   "description": "Enterprise technology catalog built with Nuxt 4 and Neo4j graph database",
   "type": "module",
   "private": true,
@@ -52,7 +52,6 @@
     "test:app": "vitest run test/app",
     "test:app:e2e": "vitest run test/app/e2e",
     "test:schema": "vitest run test/schema",
-
     "test:unit": "vitest run test/server/services test/server/repositories test/server/utils test/app/components test/app/composables",
     "test:smoke": "vitest run -t '@smoke'",
     "test:coverage": "vitest run --coverage",
