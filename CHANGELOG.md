@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.80] - 2026-05-04
+
+## What's Changed
+
+- test(coverage): enforce minimum coverage thresholds @localgod (#467)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.79...v0.1.80
+
 ## [0.1.78] - 2026-05-04
 
 ## What's Changed
