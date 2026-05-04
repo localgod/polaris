@@ -85,11 +85,11 @@
     "vue": "^3.5.33"
   },
   "devDependencies": {
-    "@amiceli/vitest-cucumber": "^6.3.0",
+    "@amiceli/vitest-cucumber": "^6.4.0",
     "@cucumber/cucumber": "^12.8.2",
     "@cucumber/gherkin": "^39.0.0",
     "@cucumber/messages": "^32.3.1",
-    "@iconify-json/lucide": "^1.2.104",
+    "@iconify-json/lucide": "^1.2.105",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
     "@types/semver": "^7.7.1",
