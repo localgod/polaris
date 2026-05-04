@@ -35,6 +35,8 @@ const sortConfig: SortConfig = {
 export interface Violation {
   team: string
   system: string
+  systemBusinessCriticality: string | null
+  systemEnvironment: string | null
   component: string
   componentVersion: string
   technology: string
@@ -460,6 +462,8 @@ export class VersionConstraintRepository extends BaseRepository {
     return {
       team: record.get('teamName'),
       system: record.get('systemName'),
+      systemBusinessCriticality: record.get('systemBusinessCriticality') || null,
+      systemEnvironment: record.get('systemEnvironment') || null,
       component: record.get('componentName'),
       componentVersion: record.get('componentVersion'),
       technology: record.get('technologyName'),

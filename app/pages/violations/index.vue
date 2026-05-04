@@ -90,6 +90,8 @@ definePageMeta({ middleware: 'auth' })
 interface Violation {
   team: string
   system: string
+  systemBusinessCriticality: string | null
+  systemEnvironment: string | null
   component: string
   componentVersion: string
   technology: string
@@ -124,6 +126,20 @@ function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | '
     critical: 'error', error: 'error', warning: 'warning', info: 'neutral'
   }
   return colors[severity] || 'neutral'
+}
+
+function getCriticalityColor(criticality: string | null): 'error' | 'warning' | 'success' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
+    critical: 'error', high: 'warning', medium: 'success', low: 'neutral'
+  }
+  return colors[criticality || ''] || 'neutral'
+}
+
+function getEnvironmentColor(environment: string | null): 'error' | 'warning' | 'success' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
+    prod: 'error', staging: 'warning', test: 'neutral', dev: 'neutral'
+  }
+  return colors[environment || ''] || 'neutral'
 }
 
 const severityItems = ['critical', 'error', 'warning', 'info']
@@ -220,6 +236,26 @@ const columns: TableColumn<Violation>[] = [
         to: `/systems/${encodeURIComponent(row.original.system)}`,
         class: 'hover:underline'
       }, () => row.original.system)
+    }
+  },
+  {
+    id: 'systemBusinessCriticality',
+    accessorFn: row => row.systemBusinessCriticality ?? '',
+    header: ({ column }) => getSortableHeader(column, 'Criticality'),
+    cell: ({ row }) => {
+      const value = row.original.systemBusinessCriticality
+      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(UBadge, { color: getCriticalityColor(value), variant: 'subtle' }, () => value)
+    }
+  },
+  {
+    id: 'systemEnvironment',
+    accessorFn: row => row.systemEnvironment ?? '',
+    header: ({ column }) => getSortableHeader(column, 'Environment'),
+    cell: ({ row }) => {
+      const value = row.original.systemEnvironment
+      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(UBadge, { color: getEnvironmentColor(value), variant: 'subtle' }, () => value)
     }
   },
   {

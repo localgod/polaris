@@ -81,6 +81,20 @@ function getCategoryColor(category: string): 'success' | 'warning' | 'error' | '
   return colors[category?.toLowerCase()] || 'neutral'
 }
 
+function getCriticalityColor(criticality: string | null): 'error' | 'warning' | 'success' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
+    critical: 'error', high: 'warning', medium: 'success', low: 'neutral'
+  }
+  return colors[criticality || ''] || 'neutral'
+}
+
+function getEnvironmentColor(environment: string | null): 'error' | 'warning' | 'success' | 'neutral' {
+  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
+    prod: 'error', staging: 'warning', test: 'neutral', dev: 'neutral'
+  }
+  return colors[environment || ''] || 'neutral'
+}
+
 const columns: TableColumn<LicenseViolation>[] = [
   {
     accessorKey: 'componentName',
@@ -115,6 +129,24 @@ const columns: TableColumn<LicenseViolation>[] = [
         to: `/systems/${encodeURIComponent(row.original.systemName)}`,
         class: 'hover:underline'
       }, () => row.original.systemName)
+    }
+  },
+  {
+    accessorKey: 'systemBusinessCriticality',
+    header: ({ column }) => getSortableHeader(column, 'Criticality'),
+    cell: ({ row }) => {
+      const value = row.original.systemBusinessCriticality
+      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(UBadge, { color: getCriticalityColor(value), variant: 'subtle' }, () => value)
+    }
+  },
+  {
+    accessorKey: 'systemEnvironment',
+    header: ({ column }) => getSortableHeader(column, 'Environment'),
+    cell: ({ row }) => {
+      const value = row.original.systemEnvironment
+      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h(UBadge, { color: getEnvironmentColor(value), variant: 'subtle' }, () => value)
     }
   },
   {
