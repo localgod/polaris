@@ -729,19 +729,18 @@ async function confirmLinkComponent() {
 }
 
 const sorting = ref([])
-watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
-})
 
-const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/technologies', { query: queryParams })
+watch(sorting, () => { page.value = 1 })
+
+const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
+const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
+const offset = computed(() => (page.value - 1) * pageSize)
+
+const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/technologies', {
+  query: { limit: pageSize, offset, sortBy, sortOrder }
+})
 
 const technologies = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)

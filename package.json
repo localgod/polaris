@@ -65,12 +65,14 @@
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
+    "@cyclonedx/cdxgen": "^12.3.2",
     "@nuxt/eslint": "^1.13.0",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^4.0.3",
     "@nuxt/ui": "4.7.1",
     "@sidebase/nuxt-auth": "1.2.0",
     "ajv": "^8.20.0",
+    "d3": "^7.9.0",
     "eslint": "^10.3.0",
     "mermaid": "^11.13.0",
     "next-auth": "4.22.5",
@@ -80,9 +82,8 @@
     "spdx-expression-parse": "^4.0.0",
     "spdx-license-list": "^6.11.0",
     "tailwindcss": "^4.2.4",
-    "typescript": "^6.0.3",
     "tsx": "^4.21.0",
-    "@cyclonedx/cdxgen": "^12.3.2",
+    "typescript": "^6.0.3",
     "vue": "^3.5.33"
   },
   "devDependencies": {
@@ -92,6 +93,7 @@
     "@cucumber/messages": "^32.3.1",
     "@iconify-json/lucide": "^1.2.105",
     "@playwright/test": "^1.59.1",
+    "@types/d3": "^7.4.3",
     "@types/node": "^25.6.0",
     "@types/semver": "^7.7.1",
     "@types/swagger-jsdoc": "^6.0.4",

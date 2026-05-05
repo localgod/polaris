@@ -209,6 +209,36 @@ describe('SBOMService', () => {
       expect(persistCall.components[0].purl).toBe('pkg:npm/lodash@4.17.21')
     })
 
+    it('should decode percent-encoded @ in purl for scoped npm packages', async () => {
+      const sbomWithScopedPackage = {
+        ...validCycloneDxSbom,
+        components: [
+          {
+            type: 'library',
+            name: 'ui',
+            version: '4.3.0',
+            // cdxgen encodes @ as %40 in the namespace — must be normalized
+            purl: 'pkg:npm/%40nuxt/ui@4.3.0',
+            'bom-ref': 'pkg:npm/@nuxt/ui@4.3.0',
+          }
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithScopedPackage,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.components[0].purl).toBe('pkg:npm/@nuxt/ui@4.3.0')
+    })
+
     it('should extract package manager from purl', async () => {
       vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
         componentsAdded: 1,
@@ -292,6 +322,200 @@ describe('SBOMService', () => {
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
       expect(persistCall.components[0].licenses).toHaveLength(1)
       expect(persistCall.components[0].licenses[0].id).toBe('MIT')
+    })
+
+    it('should extract CycloneDX dependencies and directDeps and pass them to persistSBOM', async () => {
+      const sbomWithDeps = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'test-app',
+            version: '1.0.0',
+            'bom-ref': 'pkg:npm/test-app@1.0.0',
+          }
+        },
+        dependencies: [
+          { ref: 'pkg:npm/test-app@1.0.0', dependsOn: ['pkg:npm/lodash@4.17.21'] },
+          { ref: 'pkg:npm/lodash@4.17.21', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithDeps,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.dependencies).toContainEqual({
+        ref: 'pkg:npm/test-app@1.0.0',
+        dependsOn: ['pkg:npm/lodash@4.17.21'],
+      })
+      // directDeps is resolved from the root's dependsOn list in the service layer
+      expect(persistCall.directDeps).toEqual(['pkg:npm/lodash@4.17.21'])
+    })
+
+    it('should extract SPDX dependency relationships and pass them to persistSBOM', async () => {
+      const sbomWithRels = {
+        ...validSpdxSbom,
+        relationships: [
+          {
+            spdxElementId: 'SPDXRef-DOCUMENT',
+            relationshipType: 'DEPENDS_ON',
+            relatedSpdxElement: 'SPDXRef-Package-lodash',
+          },
+          {
+            spdxElementId: 'SPDXRef-Package-lodash',
+            relationshipType: 'DESCRIBES',
+            relatedSpdxElement: 'SPDXRef-DOCUMENT',
+          },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithRels,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'spdx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      // Only DEPENDS_ON type should be included, not DESCRIBES
+      expect(persistCall.dependencies).toContainEqual({
+        ref: 'SPDXRef-DOCUMENT',
+        dependsOn: ['SPDXRef-Package-lodash'],
+      })
+      expect(persistCall.dependencies).not.toContainEqual(
+        expect.objectContaining({ ref: 'SPDXRef-Package-lodash' })
+      )
+    })
+
+    it('should pass empty dependencies when SBOM has no dependency section', async () => {
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: validCycloneDxSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.dependencies).toEqual([])
+    })
+
+    it('should resolve directDeps via fallback when root bom-ref type differs from dependencies entry', async () => {
+      // Simulates cdxgen output when run without node_modules:
+      // metadata.component uses type=application, but dependencies[] uses type=npm.
+      const sbomWithTypeMismatch = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'my-app',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/my-app@1.0.0',
+          }
+        },
+        dependencies: [
+          // The application-typed entry has no dependsOn (cdxgen quirk)
+          { ref: 'pkg:application/my-app@1.0.0', dependsOn: [] },
+          // The npm-typed entry has the real direct deps
+          { ref: 'pkg:npm/my-app@1.0.0', dependsOn: ['pkg:npm/lodash@4.17.21', 'pkg:npm/express@4.18.2'] },
+          { ref: 'pkg:npm/lodash@4.17.21', dependsOn: [] },
+          { ref: 'pkg:npm/express@4.18.2', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 2, componentsUpdated: 0, relationshipsCreated: 2
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithTypeMismatch,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.directDeps).toEqual(['pkg:npm/lodash@4.17.21', 'pkg:npm/express@4.18.2'])
+    })
+
+    it('should use exact match directDeps when root bom-ref matches a non-empty dependsOn entry', async () => {
+      const sbomWithExactMatch = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'my-app',
+            version: '1.0.0',
+            'bom-ref': 'pkg:npm/my-app@1.0.0',
+          }
+        },
+        dependencies: [
+          { ref: 'pkg:npm/my-app@1.0.0', dependsOn: ['pkg:npm/lodash@4.17.21'] },
+          { ref: 'pkg:npm/lodash@4.17.21', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithExactMatch,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.directDeps).toEqual(['pkg:npm/lodash@4.17.21'])
+    })
+
+    it('should return empty directDeps when no dependency entry matches the root name', async () => {
+      const sbomNoMatch = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'my-app',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/my-app@1.0.0',
+          }
+        },
+        // No entry for my-app in dependencies at all
+        dependencies: [
+          { ref: 'pkg:npm/lodash@4.17.21', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomNoMatch,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.directDeps).toEqual([])
     })
 
     it('should handle nested CycloneDX components', async () => {

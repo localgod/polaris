@@ -39,19 +39,16 @@ export class ComponentRepository extends BaseRepository {
   /**
    * Build WHERE conditions and params from filters.
    *
-   * Conditions are split into two groups:
-   * - componentConditions: reference only `c` properties, safe to place
-   *   before OPTIONAL MATCHes (avoids scoping issues in Cypher)
-   * - joinConditions: reference variables from OPTIONAL MATCH (tech, l),
-   *   must be placed after those matches
+   * All conditions reference only `c` and are applied before any OPTIONAL MATCH.
+   * Join-based filters (technology, license, hasLicense) use EXISTS subqueries so
+   * that a WHERE clause after an OPTIONAL MATCH is never needed — in Cypher, WHERE
+   * after OPTIONAL MATCH applies only to the optional pattern and does not filter rows.
    */
   private buildFilterConditions(filters: ComponentFilters): {
     componentConditions: string[]
-    joinConditions: string[]
     params: Record<string, unknown>
   } {
     const componentConditions: string[] = []
-    const joinConditions: string[] = []
     const params: Record<string, unknown> = {}
 
     if (filters.search) {
@@ -75,25 +72,22 @@ export class ComponentRepository extends BaseRepository {
     }
 
     if (filters.technology) {
-      joinConditions.push('tech.name = $technology')
+      componentConditions.push('EXISTS { MATCH (c)-[:IS_VERSION_OF]->(:Technology {name: $technology}) }')
       params.technology = filters.technology
     }
 
     if (filters.license) {
-      joinConditions.push('l.id = $license')
+      componentConditions.push('EXISTS { MATCH (c)-[:HAS_LICENSE]->(:License {id: $license}) }')
       params.license = filters.license
-      // Filtering by a specific license implies hasLicense=true, so
-      // ignore hasLicense to avoid contradictory conditions (e.g.,
-      // license=MIT AND l IS NULL can never match).
     } else if (filters.hasLicense !== undefined) {
       if (filters.hasLicense) {
-        joinConditions.push('l IS NOT NULL')
+        componentConditions.push('EXISTS { (c)-[:HAS_LICENSE]->(:License) }')
       } else {
-        joinConditions.push('l IS NULL')
+        componentConditions.push('NOT EXISTS { (c)-[:HAS_LICENSE]->(:License) }')
       }
     }
 
-    return { componentConditions, joinConditions, params }
+    return { componentConditions, params }
   }
 
   /**
@@ -104,16 +98,6 @@ export class ComponentRepository extends BaseRepository {
    * - OPTIONAL MATCH when filtering by license presence (hasLicense)
    * - Empty when no license filtering is needed (avoids row multiplication)
    */
-  private buildLicenseMatch(filters: ComponentFilters): string {
-    if (filters.license) {
-      return 'MATCH (c)-[:HAS_LICENSE]->(l:License)'
-    }
-    if (filters.hasLicense !== undefined) {
-      return 'OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)'
-    }
-    return ''
-  }
-
   /**
    * Inject dynamic placeholders into a loaded query template.
    */
@@ -137,14 +121,10 @@ export class ComponentRepository extends BaseRepository {
    */
   async findAll(filters: ComponentFilters = {}): Promise<{ data: Component[]; total: number }> {
     const baseQuery = await loadQuery('components/find-all.cypher')
-    const { componentConditions, joinConditions, params } = this.buildFilterConditions(filters)
+    const { componentConditions, params } = this.buildFilterConditions(filters)
 
     const componentWhere = componentConditions.length > 0
       ? `WHERE ${componentConditions.join(' AND ')}`
-      : ''
-
-    const joinWhere = joinConditions.length > 0
-      ? `WHERE ${joinConditions.join(' AND ')}`
       : ''
 
     let pagination = ''
@@ -176,8 +156,6 @@ export class ComponentRepository extends BaseRepository {
 
     const cypher = this.injectPlaceholders(baseQuery, {
       '{{COMPONENT_WHERE}}': componentWhere,
-      '{{LICENSE_MATCH}}': this.buildLicenseMatch(filters),
-      '{{JOIN_WHERE}}': joinWhere,
       '{{PRE_AGGREGATION}}': preAggregation,
       '{{PRE_AGG_COLLECT}}': preAggCollect,
       '{{PRE_AGG_UNWIND}}': preAggUnwind,
