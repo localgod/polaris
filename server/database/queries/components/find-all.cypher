@@ -1,11 +1,12 @@
-// Phase 1: filter on component properties, then join and apply join filters
+// Phase 1: filter on component properties, then paginate.
+// All filters are applied via {{COMPONENT_WHERE}} before any OPTIONAL MATCH so that
+// WHERE clauses are never placed after OPTIONAL MATCH (which in Cypher only affects
+// the optional pattern, not the row).
 MATCH (c:Component)
 {{COMPONENT_WHERE}}
 OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(tech:Technology)
-{{LICENSE_MATCH}}
-{{JOIN_WHERE}}
 {{PRE_AGGREGATION}}
-WITH collect({c: c, tech: tech{{PRE_AGG_COLLECT}}}) as allRows, count(c) as total
+WITH collect({c: c, tech: tech{{PRE_AGG_COLLECT}}}) as allRows, count(DISTINCT c) as total
 UNWIND allRows as row
 WITH row.c as c, row.tech as tech, total{{PRE_AGG_UNWIND}}
 ORDER BY {{PRE_ORDER_BY}}

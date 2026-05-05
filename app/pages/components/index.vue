@@ -71,6 +71,7 @@
 
 <script setup lang="ts">
 import { h, resolveComponent, defineComponent, ref } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Component } from '~~/types/api'
 
@@ -90,10 +91,6 @@ const ComponentNameCell = defineComponent({
   setup(props) {
     const { state, fetch } = useComponentDescription(props.component)
 
-    const group = props.component.group
-    const name = props.component.name
-    const displayName = group ? `${group}/${name}` : name
-
     function tooltipContent() {
       if (state.value.pending) return 'Loading…'
       if (state.value.description) return state.value.description
@@ -101,8 +98,14 @@ const ComponentNameCell = defineComponent({
       return 'Hover to load description'
     }
 
-    return () =>
-      h(
+    return () => {
+      // Read from props inside the render function so the display name
+      // updates when the row is reused with a different component.
+      const displayName = props.component.group
+        ? `${props.component.group}/${props.component.name}`
+        : props.component.name
+
+      return h(
         UTooltip,
         {
           onMouseenter: fetch,
@@ -113,6 +116,7 @@ const ComponentNameCell = defineComponent({
           content: () => tooltipContent()
         }
       )
+    }
   }
 })
 
@@ -230,8 +234,6 @@ const columns: TableColumn<Component>[] = [
 
 const sorting = ref([])
 
-watch(sorting, () => { page.value = 1 })
-
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 const systemFilter = computed(() => route.query.system as string | undefined)
@@ -241,39 +243,30 @@ const pageSize = 20
 
 const searchInput = ref('')
 const debouncedSearch = ref('')
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-watch(searchInput, (value) => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    debouncedSearch.value = value
-    page.value = 1
-  }, 300)
-})
+// Reset page when any filter changes
+watch([debouncedSearch, licenseFilter, systemFilter, sorting], () => { page.value = 1 })
 
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = {
-    limit: pageSize,
-    offset: (page.value - 1) * pageSize
-  }
-  if (debouncedSearch.value) {
-    params.search = debouncedSearch.value
-  }
-  if (licenseFilter.value) {
-    params.license = licenseFilter.value
-  }
-  if (systemFilter.value) {
-    params.system = systemFilter.value
-  }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
-})
+const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
+watch(searchInput, updateSearch)
 
+const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
+const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
+const offset = computed(() => (page.value - 1) * pageSize)
+
+// Pass individual refs/computeds as query values so Nuxt tracks each one
+// as a reactive dependency for the fetch key — passing a computed object
+// does not work because reactive() unwraps it at setup time.
 const { data, pending, error } = await useFetch<ApiResponse<Component>>('/api/components', {
-  query: queryParams
+  query: {
+    limit: pageSize,
+    offset,
+    search: debouncedSearch,
+    license: licenseFilter,
+    system: systemFilter,
+    sortBy,
+    sortOrder,
+  },
 })
 
 const components = computed(() => data.value?.data || [])

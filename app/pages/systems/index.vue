@@ -269,7 +269,10 @@ const columns: TableColumn<System>[] = [
     cell: ({ row }) => {
       const system = row.original
       return h('div', {}, [
-        h('strong', {}, system.name),
+        h(resolveComponent('NuxtLink'), {
+          to: `/systems/${encodeURIComponent(system.name)}`,
+          class: 'font-semibold hover:underline'
+        }, () => system.name),
         h('p', { class: 'text-sm text-(--ui-text-muted)' }, system.domain)
       ])
     }
@@ -324,19 +327,18 @@ const columns: TableColumn<System>[] = [
 ]
 
 const sorting = ref([])
-watch(sorting, () => { page.value = 1 })
 const page = ref(1)
 const pageSize = 20
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
-})
 
-const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems', { query: queryParams })
+watch(sorting, () => { page.value = 1 })
+
+const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
+const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
+const offset = computed(() => (page.value - 1) * pageSize)
+
+const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems', {
+  query: { limit: pageSize, offset, sortBy, sortOrder }
+})
 
 const systems = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)

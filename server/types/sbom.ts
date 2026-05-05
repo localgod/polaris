@@ -59,10 +59,20 @@ export interface ExternalReference {
   url: string
 }
 
+export interface ComponentDependency {
+  /** bom-ref of the component that has dependencies */
+  ref: string
+  /** bom-refs of its direct dependencies */
+  dependsOn: string[]
+}
+
 export interface PersistSBOMParams {
   systemName: string
   repositoryUrl: string
   components: ExtractedComponent[]
+  dependencies: ComponentDependency[]
+  /** bomRefs of components that are direct dependencies of the system root */
+  directDeps: string[]
   format: 'cyclonedx' | 'spdx'
   timestamp: Date
 }

@@ -26,6 +26,25 @@ export interface System {
   repositoryCount: number
 }
 
+export interface GraphComponentRow {
+  systemName: string
+  name: string | null
+  version: string | null
+  packageManager: string | null
+  purl: string | null
+  cpe: string | null
+  type: string | null
+  group: string | null
+  scope: string | null
+  description: string | null
+  licenses: Array<{ id?: string; name?: string; allowed?: boolean }>
+  technologyName: string | null
+  /** True when this component is a direct dependency (has a DEPENDS_ON edge from another system component) */
+  direct: boolean
+  /** PURLs of components this component directly depends on (within the same system) */
+  dependsOnPurls: string[]
+}
+
 export interface RepositoryInput {
   url: string
   name: string
@@ -179,6 +198,43 @@ export class SystemRepository extends BaseRepository {
       lastSbomScanAt: record.get('lastSbomScanAt')?.toString() || null,
       systemCount: 1
     }
+  }
+
+  /**
+   * Get graph data for a system: all components and their technology links.
+   *
+   * Returns null when the system does not exist.
+   * Returns an empty array when the system exists but has no components.
+   *
+   * @param name - System name
+   * @returns Array of component rows with technology info, or null if system not found
+   */
+  async getGraph(name: string): Promise<GraphComponentRow[] | null> {
+    const query = await loadQuery('systems/graph.cypher')
+    const { records } = await this.executeQuery(query, { name })
+
+    // Zero rows → system not found
+    if (records.length === 0) return null
+
+    // One row with c.name = null → system exists but has no components
+    if (records.length === 1 && records[0]!.get('name') === null) return []
+
+    return records.map(record => ({
+      systemName: record.get('systemName') as string,
+      name: record.get('name') as string | null,
+      version: record.get('version') as string | null,
+      packageManager: record.get('packageManager') as string | null,
+      purl: record.get('purl') as string | null,
+      cpe: record.get('cpe') as string | null,
+      type: record.get('type') as string | null,
+      group: record.get('group') as string | null,
+      scope: record.get('scope') as string | null,
+      description: record.get('description') as string | null,
+      licenses: (record.get('licenses') as Array<{ id?: string; name?: string; allowed?: boolean }>) ?? [],
+      technologyName: record.get('technologyName') as string | null,
+      direct: (record.get('direct') as boolean) ?? false,
+      dependsOnPurls: (record.get('dependsOnPurls') as string[]) ?? [],
+    }))
   }
 
   /**

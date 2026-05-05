@@ -7,10 +7,22 @@ import type {
   ProcessSBOMInput,
   ProcessSBOMResult,
   ExtractedComponent,
+  ComponentDependency,
   ComponentHash,
   ComponentLicense,
   ExternalReference
 } from '../types/sbom'
+
+// SPDX relationship types that represent a dependency edge.
+// Defined at module level to avoid re-allocation on every call.
+const SPDX_DEPENDENCY_TYPES = new Set([
+  'DEPENDS_ON',
+  'DEV_DEPENDENCY_OF',
+  'OPTIONAL_DEPENDENCY_OF',
+  'PROVIDED_DEPENDENCY_OF',
+  'RUNTIME_DEPENDENCY_OF',
+  'TEST_DEPENDENCY_OF',
+])
 
 /**
  * Service for SBOM processing and persistence
@@ -73,14 +85,23 @@ export class SBOMService {
       throw error
     }
     
-    // 4. Extract components from SBOM
-    const components = this.extractComponents(input.sbom as Record<string, unknown>, input.format)
-    
+    // 4. Extract components and dependency relationships from SBOM
+    const sbomData = input.sbom as Record<string, unknown>
+    const components = this.extractComponents(sbomData, input.format)
+    const dependencies = this.extractDependencies(sbomData, input.format)
+    const { bomRef: rootBomRef, name: rootName } = this.extractRootBomRef(sbomData, input.format)
+    // Resolve direct deps here so the repository doesn't need to re-scan dependencies.
+    // Uses a fallback for SBOMs where the root bom-ref type differs between
+    // metadata.component and the dependencies[] entry (e.g. cdxgen without node_modules).
+    const directDeps = this.resolveDirectDeps(rootBomRef, rootName, dependencies)
+
     // 5. Persist to database
     const result = await this.sbomRepo.persistSBOM({
       systemName: system.name,
       repositoryUrl: normalizedUrl,
       components,
+      dependencies,
+      directDeps,
       format: input.format,
       timestamp: new Date()
     })
@@ -124,6 +145,119 @@ export class SBOMService {
     } else {
       return this.extractSPDXComponents(sbom)
     }
+  }
+
+  /**
+   * Extract the bomRef and name of the root component (the scanned system itself).
+   * CycloneDX: metadata.component['bom-ref'] and metadata.component.name
+   * SPDX: the SPDXID of the document element (SPDXRef-DOCUMENT); name is null
+   */
+  private extractRootBomRef(sbom: Record<string, unknown>, format: 'cyclonedx' | 'spdx'): { bomRef: string | null; name: string | null } {
+    if (format === 'cyclonedx') {
+      const metadata = sbom.metadata as Record<string, unknown> | undefined
+      const root = metadata?.component as Record<string, unknown> | undefined
+      return {
+        bomRef: (root?.['bom-ref'] as string)?.trim() || null,
+        name: (root?.name as string)?.trim() || null,
+      }
+    } else {
+      // SPDX: the document itself is the root; its SPDXID is typically SPDXRef-DOCUMENT
+      return {
+        bomRef: (sbom.SPDXID as string)?.trim() || null,
+        name: null,
+      }
+    }
+  }
+
+  /**
+   * Resolve the direct dependency bomRefs for the root component.
+   *
+   * cdxgen sometimes uses different purl types for the root component in
+   * `metadata.component` vs `dependencies[]`. For example, when run without
+   * `node_modules`, the root bom-ref may be `pkg:application/name@ver` while
+   * the dependencies entry uses `pkg:npm/name@ver`. The exact lookup finds the
+   * `application`-typed entry which has an empty `dependsOn` list.
+   *
+   * Strategy:
+   * 1. Exact match on `rootBomRef` — use it if `dependsOn` is non-empty.
+   * 2. Fallback: find the dependency entry whose purl name segment matches
+   *    `rootName` and has the most `dependsOn` entries.
+   */
+  private resolveDirectDeps(
+    rootBomRef: string | null,
+    rootName: string | null,
+    dependencies: ComponentDependency[]
+  ): string[] {
+    if (rootBomRef) {
+      const exact = dependencies.find(d => d.ref === rootBomRef)
+      if (exact && exact.dependsOn.length > 0) return exact.dependsOn
+    }
+
+    if (!rootName) return []
+
+    // Extract the name segment from a purl: pkg:<type>/<name>@<version> → <name>
+    const nameFromRef = (ref: string): string | null => {
+      const m = ref.match(/^pkg:[^/]+\/([^@]+)@/)
+      return m?.[1] ?? null
+    }
+
+    const candidates = dependencies
+      .filter(d => nameFromRef(d.ref) === rootName && d.dependsOn.length > 0)
+      .sort((a, b) => b.dependsOn.length - a.dependsOn.length)
+
+    return candidates[0]?.dependsOn ?? []
+  }
+
+  /**
+   * Extract component dependency relationships from a CycloneDX or SPDX SBOM.
+   *
+   * CycloneDX: reads the top-level `dependencies` array.
+   * SPDX: reads the top-level `relationships` array, filtered to dependency types.
+   *
+   * Returns an empty array if the SBOM has no dependency section.
+   */
+  private extractDependencies(sbom: Record<string, unknown>, format: 'cyclonedx' | 'spdx'): ComponentDependency[] {
+    if (format === 'cyclonedx') {
+      return this.extractCycloneDXDependencies(sbom)
+    } else {
+      return this.extractSPDXDependencies(sbom)
+    }
+  }
+
+  private extractCycloneDXDependencies(sbom: Record<string, unknown>): ComponentDependency[] {
+    const depsArray = sbom.dependencies as unknown[] | undefined
+    if (!Array.isArray(depsArray)) return []
+
+    return (depsArray as Record<string, unknown>[]).flatMap(dep => {
+      const ref = (dep.ref as string)?.trim()
+      if (!ref) return []
+      const dependsOn = dep.dependsOn as unknown[] | undefined
+      return [{
+        ref,
+        dependsOn: Array.isArray(dependsOn)
+          ? (dependsOn as string[]).map(r => r.trim()).filter(Boolean)
+          : [],
+      }]
+    })
+  }
+
+  private extractSPDXDependencies(sbom: Record<string, unknown>): ComponentDependency[] {
+    const relationships = sbom.relationships as unknown[] | undefined
+    if (!Array.isArray(relationships)) return []
+
+    // Group by spdxElementId → list of relatedSpdxElement
+    const map = new Map<string, string[]>()
+    for (const rel of relationships) {
+      const r = rel as Record<string, unknown>
+      if (!SPDX_DEPENDENCY_TYPES.has(r.relationshipType as string)) continue
+      const src = (r.spdxElementId as string)?.trim()
+      const tgt = (r.relatedSpdxElement as string)?.trim()
+      if (!src || !tgt) continue
+      if (!map.has(src)) map.set(src, [])
+      map.get(src)!.push(tgt)
+    }
+
+    return Array.from(map.entries()).map(([ref, dependsOn]) => ({ ref, dependsOn }))
   }
 
   /**
@@ -187,11 +321,12 @@ export class SBOMService {
    */
   private mapCycloneDXComponent(comp: Record<string, unknown>): ExtractedComponent {
     const supplier = comp.supplier as Record<string, unknown> | undefined
+    const purl = this.normalizePurl((comp.purl as string)?.trim() || null)
     return {
       name: comp.name as string,
       version: (comp.version as string)?.trim() || null,
-      packageManager: this.extractPackageManager(comp.purl as string | null),
-      purl: (comp.purl as string)?.trim() || null,
+      packageManager: this.extractPackageManager(purl),
+      purl,
       cpe: (comp.cpe as string)?.trim() || null,
       bomRef: (comp['bom-ref'] as string)?.trim() || null,
       type: (comp.type as string)?.trim() || null,
@@ -213,7 +348,7 @@ export class SBOMService {
    * Map SPDX package to ExtractedComponent
    */
   private mapSPDXPackage(pkg: Record<string, unknown>): ExtractedComponent {
-    const purl = this.extractPurlFromExternalRefs((pkg.externalRefs as unknown[]) || [])
+    const purl = this.normalizePurl(this.extractPurlFromExternalRefs((pkg.externalRefs as unknown[]) || []))
     
     return {
       name: pkg.name as string,
@@ -235,6 +370,17 @@ export class SBOMService {
       description: (pkg.description as string)?.trim() || null,
       externalReferences: this.extractSPDXReferences((pkg.externalRefs as unknown[]) || [])
     }
+  }
+
+  /**
+   * Normalize a purl by decoding percent-encoded characters that the purl spec
+   * does not require to be encoded. cdxgen encodes '@' as '%40' in the namespace
+   * portion of npm purls (e.g. pkg:npm/%40scope/name), which diverges from the
+   * spec and causes purl != bom-ref mismatches for scoped packages.
+   */
+  private normalizePurl(purl: string | null): string | null {
+    if (!purl) return null
+    return purl.replace(/%40/gi, '@')
   }
 
   /**

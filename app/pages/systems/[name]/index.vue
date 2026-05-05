@@ -115,6 +115,25 @@
           />
         </div>
       </UCard>
+
+      <UCard v-if="data.data.componentCount > 0">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-share-2" class="w-5 h-5 text-(--ui-primary)" />
+            <h2 class="text-lg font-semibold">Dependency Graph</h2>
+          </div>
+          <p class="text-sm text-(--ui-text-muted) mt-1">
+            Click a group to show direct dependencies. Click a component to drill into its dependencies.
+          </p>
+        </template>
+        <ClientOnly>
+          <SystemDependencyGraph
+            :system-name="data.data.name"
+            :nodes="graphData?.data?.nodes ?? []"
+            :edges="graphData?.data?.edges ?? []"
+          />
+        </ClientOnly>
+      </UCard>
     </template>
   </div>
 </template>
@@ -138,7 +157,40 @@ interface SystemResponse {
   data: System
 }
 
+interface GraphNode {
+  id: string
+  label: string
+  type: 'system' | 'group' | 'component' | 'technology'
+  packageManager?: string | null
+  count?: number
+  version?: string | null
+  componentType?: string | null
+  scope?: string | null
+  purl?: string | null
+  cpe?: string | null
+  group?: string | null
+  description?: string | null
+  licenses?: Array<{ id?: string; name?: string; allowed?: boolean }>
+  technologyName?: string | null
+}
+
+interface GraphEdge {
+  source: string
+  target: string
+}
+
+interface GraphResponse {
+  success: boolean
+  data: { nodes: GraphNode[]; edges: GraphEdge[] }
+}
+
 const { data, pending, error } = await useFetch<SystemResponse>(() => `/api/systems/${encodeURIComponent(route.params.name as string)}`)
+
+// Graph data fetched in parallel — passed as a prop so the graph component
+// stays purely presentational (no async setup, no hydration conflicts).
+const { data: graphData } = useFetch<GraphResponse>(
+  () => `/api/systems/${encodeURIComponent(route.params.name as string)}/graph`
+)
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString()

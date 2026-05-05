@@ -148,25 +148,45 @@ describe('SystemRepository', () => {
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
     })
 
-    it('should remove relationships but keep related nodes', async () => {
+    it('should delete components that are only used by the deleted system', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (s:System { name: $sys, domain: 'Test' })
-        CREATE (c:Component { name: $comp, version: '1.0.0' })
+        CREATE (c:Component { name: $comp, version: '1.0.0', purl: $purl })
         CREATE (s)-[:USES]->(c)
-      `, { sys: `${PREFIX}sys-rels`, comp: `${PREFIX}comp` })
+      `, { sys: `${PREFIX}sys-rels`, comp: `${PREFIX}comp`, purl: `pkg:npm/${PREFIX}comp@1.0.0` })
 
       await repo.delete(`${PREFIX}sys-rels`, 'test-user', {})
 
-      const result = await session.run(`
-        MATCH (c:Component { name: $comp })
-        OPTIONAL MATCH (c)<-[r:USES]-()
-        RETURN c, r
-      `, { comp: `${PREFIX}comp` })
+      const result = await session.run(
+        `MATCH (c:Component { name: $comp }) RETURN c`,
+        { comp: `${PREFIX}comp` }
+      )
+      expect(result.records.length).toBe(0)
+    })
 
+    it('should keep components that are still used by another system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (s1:System { name: $sys1, domain: 'Test' })
+        CREATE (s2:System { name: $sys2, domain: 'Test' })
+        CREATE (c:Component { name: $comp, version: '1.0.0', purl: $purl })
+        CREATE (s1)-[:USES]->(c)
+        CREATE (s2)-[:USES]->(c)
+      `, {
+        sys1: `${PREFIX}sys-shared-1`,
+        sys2: `${PREFIX}sys-shared-2`,
+        comp: `${PREFIX}shared-comp`,
+        purl: `pkg:npm/${PREFIX}shared-comp@1.0.0`
+      })
+
+      await repo.delete(`${PREFIX}sys-shared-1`, 'test-user', {})
+
+      const result = await session.run(
+        `MATCH (c:Component { name: $comp }) RETURN c`,
+        { comp: `${PREFIX}shared-comp` }
+      )
       expect(result.records.length).toBe(1)
-      expect(result.records[0].get('c')).not.toBeNull()
-      expect(result.records[0].get('r')).toBeNull()
     })
   })
 
