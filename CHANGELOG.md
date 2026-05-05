@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.86] - 2026-05-05
+
+## What's Changed
+
+- feat: dependency graph, SBOM pipeline fixes, and component filtering @localgod (#476)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.85...v0.1.86
+
 ## [0.1.82] - 2026-05-04
 
 ## What's Changed
