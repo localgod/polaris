@@ -14,7 +14,7 @@ async function getRealUser(event: H3Event) {
   // Check for Bearer token first
   const authHeader = getHeader(event, 'authorization')
   
-  const match = authHeader?.match(/^Bearer\s+(\S+)$/i)
+  const match = authHeader?.match(/^Bearer\s+(\S+)\s*$/i)
   if (match) {
     const token = match[1]
     
