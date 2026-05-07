@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.4.1] - 2026-05-07
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump simple-git from 3.35.2 to 3.36.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#485)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.4.0...v0.4.1
+
 ## [0.1.86] - 2026-05-05
 
 ## What's Changed
