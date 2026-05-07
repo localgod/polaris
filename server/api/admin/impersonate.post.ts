@@ -1,5 +1,6 @@
 import { getRealUser } from '../../utils/auth'
 import { userService } from '../../services/singletons'
+import { AuditLogRepository } from '../../repositories/audit-log.repository'
 
 /**
  * Start impersonating a user. Superuser only.
@@ -34,8 +35,17 @@ export default defineEventHandler(async (event) => {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE !== 'false',
     maxAge: 60 * 60 // 1 hour
+  })
+
+  const auditRepo = new AuditLogRepository()
+  await auditRepo.create({
+    operation: 'IMPERSONATION_STARTED',
+    entityType: 'User',
+    entityId: body.userId,
+    entityLabel: target.email,
+    userId: realUser.id,
   })
 
   return {

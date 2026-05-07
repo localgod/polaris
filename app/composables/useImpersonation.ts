@@ -10,10 +10,11 @@ interface ImpersonationState {
   user: ImpersonatedUser | null
 }
 
-const state = ref<ImpersonationState>({ active: false, user: null })
-const loading = ref(false)
-
 export function useImpersonation() {
+  // useState is request-scoped on the server and hydrated to the client,
+  // preventing state bleed between concurrent SSR requests.
+  const state = useState<ImpersonationState>('impersonation', () => ({ active: false, user: null }))
+  const loading = useState<boolean>('impersonation-loading', () => false)
   async function fetchStatus() {
     try {
       const data = await $fetch<ImpersonationState>('/api/admin/impersonate')
