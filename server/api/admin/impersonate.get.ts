@@ -22,7 +22,12 @@ export default defineEventHandler(async (event) => {
 
   if (!target) {
     // Stale cookie — clear it
-    deleteCookie(event, 'polaris-impersonate', { path: '/' })
+    deleteCookie(event, 'polaris-impersonate', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      secure: process.env.COOKIE_SECURE !== 'false',
+    })
     return { active: false, user: null }
   }
 
