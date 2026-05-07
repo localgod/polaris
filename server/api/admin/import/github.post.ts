@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
     const stack = error instanceof Error ? error.stack : undefined
 
     // Log the full error so it appears in production server logs
-    console.error('[github-import] Import failed:', message, stack)
+    event.context.logger.error({ err: error, stack }, 'GitHub import failed')
 
     // GitHub API errors — surface as 422 so the client gets a useful message
     if (

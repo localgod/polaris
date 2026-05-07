@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { randomBytes } from 'crypto'
 import { createBom } from '@cyclonedx/cdxgen'
+import { logger } from '../utils/logger'
 import {
   parseGitHubRepo,
   fetchRepoMetadata,
@@ -157,7 +158,7 @@ export class GitHubImportService {
         writeFileSync(filePath, file.content, 'utf-8')
       }
 
-      console.log(`[github-import] Running cdxgen in ${tempDir} for project "${projectName}" with ${manifests.length} manifest(s)`)
+      logger.info({ projectName, manifestCount: manifests.length }, 'Running cdxgen for GitHub import')
 
       // Run cdxgen
       const bom = await createBom(tempDir, {
@@ -168,7 +169,7 @@ export class GitHubImportService {
       })
 
       if (!bom) {
-        console.warn(`[github-import] cdxgen returned no BOM for "${projectName}"`)
+        logger.warn({ projectName }, 'cdxgen returned no BOM')
         return null
       }
 
@@ -180,7 +181,7 @@ export class GitHubImportService {
 
       return bom as object
     } catch (err) {
-      console.error(`[github-import] cdxgen threw for "${projectName}":`, err instanceof Error ? err.message : err)
+      logger.error({ err, projectName }, 'cdxgen threw during GitHub import')
       throw err
     } finally {
       // Always clean up

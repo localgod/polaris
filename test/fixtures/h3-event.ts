@@ -1,7 +1,11 @@
 import { createEvent } from 'h3'
 import { IncomingMessage, ServerResponse } from 'http'
+import pino from 'pino'
 
 const PARSED_BODY_SYMBOL = Symbol.for('h3ParsedBody')
+
+/** Silent pino logger used in tests so handler code can call event.context.logger without errors. */
+const testLogger = pino({ level: 'silent' })
 
 export interface MockEventOptions {
   method?: string
@@ -32,6 +36,8 @@ export function mockEvent(options: MockEventOptions = {}) {
 
   const res = new ServerResponse(req)
   const event = createEvent(req, res)
+
+  event.context.logger = testLogger
 
   if (Object.keys(params).length > 0) {
     event.context.params = params

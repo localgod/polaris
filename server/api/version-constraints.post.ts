@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    console.error('Version constraint creation error:', error)
+    event.context.logger.error({ err: error }, 'Version constraint creation error')
     setResponseStatus(event, 500)
     return { success: false, error: 'internal_error', message: error instanceof Error ? error.message : 'Internal server error' }
   }

@@ -3,6 +3,7 @@ import type { H3Event } from 'h3'
 import { tokenService, userService } from '../services/singletons'
 import { UserRepository } from '../repositories/user.repository'
 import { TeamRepository } from '../repositories/team.repository'
+import { logger } from './logger'
 
 const IMPERSONATE_COOKIE = 'polaris-impersonate'
 
@@ -28,7 +29,7 @@ async function getRealUser(event: H3Event) {
         }
       }
     } catch (error) {
-      console.error('Token resolution failed:', error)
+      logger.error({ err: error }, 'Token resolution failed')
     }
   }
   
@@ -62,7 +63,7 @@ export async function getCurrentUser(event: H3Event) {
       }
     }
   } catch (error) {
-    console.error('Impersonation lookup failed:', error)
+    logger.error({ err: error }, 'Impersonation lookup failed')
   }
 
   // Target user not found — fall back to real user
