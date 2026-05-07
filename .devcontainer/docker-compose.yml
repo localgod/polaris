@@ -7,6 +7,9 @@ services:
       - ..:/workspaces/polaris:cached
     command: sleep infinity
     network_mode: host
+    depends_on:
+      neo4j:
+        condition: service_healthy
 
   neo4j:
     image: neo4j:5-community
@@ -23,3 +26,9 @@ services:
       - ../.data/neo4j/import:/var/lib/neo4j/import
       - ../.data/neo4j/plugins:/plugins
     network_mode: host
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "devpassword", "RETURN 1"]
+      interval: 15s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
