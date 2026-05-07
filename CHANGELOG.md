@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.2.0] - 2026-05-07
+
+## What's Changed
+
+## 🚀 Features
+
+- feat: replace console.log/error with pino structured logging @localgod (#483)
+
+## 🔧 Maintenance
+
+- chore: release v0.1.86 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#477)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.1.86...v0.2.0
+
 ## [0.1.86] - 2026-05-05
 
 ## What's Changed
