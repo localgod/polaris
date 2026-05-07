@@ -51,7 +51,7 @@
               />
               <div v-show="state === 'expanded'" class="flex-1 min-w-0">
                 <div class="text-sm font-medium truncate">{{ session.user?.name || 'User' }}</div>
-                <div class="text-xs text-gray-500 truncate">{{ session.user?.email }}</div>
+                <div class="text-xs text-muted truncate">{{ session.user?.email }}</div>
               </div>
             </div>
             <UBadge
@@ -102,7 +102,7 @@
       </template>
 
       <template #footer="{ state }">
-        <span v-show="state === 'expanded'" class="text-xs text-gray-400 dark:text-gray-600">v{{ appVersion }}</span>
+        <span v-show="state === 'expanded'" class="text-xs text-muted">v{{ appVersion }}</span>
       </template>
     </USidebar>
 
@@ -156,45 +156,38 @@
     </main>
 
     <!-- Impersonate User Modal -->
-    <UModal v-model:open="impersonateModalOpen">
+    <UModal v-model:open="impersonateModalOpen" :ui="{ footer: 'justify-end' }">
       <template #header>
         <h3 class="text-lg font-semibold">Impersonate User</h3>
       </template>
       <template #body>
-        <p class="text-sm text-(--ui-text-muted) mb-4">
+        <p class="text-sm text-muted mb-4">
           Select a user to view the application as them. All permission checks will use their role and team memberships.
         </p>
 
-        <UInput
-          v-model="userSearch"
+        <USkeleton v-if="usersLoading" class="h-10 w-full" />
+
+        <USelectMenu
+          v-else
+          :items="selectableUsers"
+          :filter-fields="['label', 'email']"
+          searchable
           placeholder="Search users..."
-          icon="i-lucide-search"
-          class="mb-4"
-        />
-
-        <div v-if="usersLoading" class="text-center py-4 text-(--ui-text-muted)">
-          Loading users...
-        </div>
-
-        <div v-else class="divide-y divide-(--ui-border) max-h-80 overflow-y-auto">
-          <div
-            v-for="user in filteredUsers"
-            :key="user.id"
-            class="flex items-center justify-between py-3 px-1 hover:bg-(--ui-bg-elevated) rounded cursor-pointer"
-            @click="impersonateUser(user.id)"
-          >
-            <div>
-              <p class="text-sm font-medium">{{ user.name || user.email }}</p>
-              <p class="text-xs text-(--ui-text-muted)">{{ user.email }}</p>
+          class="w-full"
+          @update:model-value="(user) => user && impersonateUser(user.id)"
+        >
+          <template #item="{ item }">
+            <div class="flex items-center justify-between w-full gap-3">
+              <div class="min-w-0">
+                <p class="text-sm font-medium truncate">{{ item.label }}</p>
+                <p class="text-xs text-muted truncate">{{ item.email }}</p>
+              </div>
+              <UBadge :color="item.role === 'superuser' ? 'error' : 'neutral'" variant="subtle" size="xs">
+                {{ item.role }}
+              </UBadge>
             </div>
-            <UBadge :color="user.role === 'superuser' ? 'error' : 'neutral'" variant="subtle" size="xs">
-              {{ user.role }}
-            </UBadge>
-          </div>
-          <p v-if="filteredUsers.length === 0" class="text-sm text-(--ui-text-muted) text-center py-4">
-            No users found.
-          </p>
-        </div>
+          </template>
+        </USelectMenu>
 
         <UAlert
           v-if="impersonateError"
@@ -205,10 +198,8 @@
           class="mt-4"
         />
       </template>
-      <template #footer>
-        <div class="flex justify-end">
-          <UButton label="Cancel" variant="outline" @click="impersonateModalOpen = false" />
-        </div>
+      <template #footer="{ close }">
+        <UButton label="Cancel" variant="outline" @click="close" />
       </template>
     </UModal>
   </div>
@@ -235,17 +226,15 @@ watch(() => session.value?.user?.role, async (role) => {
 
 // Impersonate modal state
 const impersonateModalOpen = ref(false)
-const userSearch = ref('')
 const impersonateError = ref('')
 const usersLoading = ref(false)
 const allUsers = ref<{ id: string; email: string; name: string | null; role: string }[]>([])
 
-const filteredUsers = computed(() => {
-  const q = userSearch.value.toLowerCase()
+const selectableUsers = computed(() => {
   const currentUserId = session.value?.user?.id
   return allUsers.value
     .filter(u => u.id !== currentUserId)
-    .filter(u => !q || u.email.toLowerCase().includes(q) || (u.name && u.name.toLowerCase().includes(q)))
+    .map(u => ({ label: u.name || u.email, id: u.id, email: u.email, role: u.role }))
 })
 
 async function openImpersonateModal() {

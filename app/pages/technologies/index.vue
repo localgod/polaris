@@ -51,113 +51,69 @@
     </template>
 
     <!-- Edit Technology Modal -->
-    <UModal v-model:open="editModalOpen">
+    <UModal v-model:open="editModalOpen" :ui="{ footer: 'justify-end' }">
       <template #header>
-        <h3 class="text-lg font-semibold">Edit Technology: {{ editForm.name }}</h3>
+        <h3 class="text-lg font-semibold">Edit Technology: {{ editTechName }}</h3>
       </template>
       <template #body>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Type *</label>
-            <USelect v-model="editForm.type" :items="typeOptions" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Domain</label>
-            <USelect v-model="editForm.domain" :items="domainOptions" placeholder="No domain" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Vendor</label>
-            <UInput v-model="editForm.vendor" placeholder="e.g. Google, Microsoft" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Owner Team</label>
-            <USelect v-model="editForm.ownerTeam" :items="teamOptions" placeholder="No owner team" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Last Reviewed</label>
-            <UInput v-model="editForm.lastReviewed" type="date" />
-          </div>
-          <UAlert
-            v-if="editError"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-alert-circle"
-            :description="editError"
-            class="mt-2"
-          />
-        </div>
+        <UForm id="edit-tech-form" :schema="editSchema" :state="editState" class="space-y-4" @submit="onEdit">
+          <UFormField name="type" label="Type" required>
+            <USelect v-model="editState.type" :items="typeOptions" />
+          </UFormField>
+          <UFormField name="domain" label="Domain">
+            <USelect v-model="editState.domain" :items="domainOptions" placeholder="No domain" />
+          </UFormField>
+          <UFormField name="vendor" label="Vendor">
+            <UInput v-model="editState.vendor" placeholder="e.g. Google, Microsoft" />
+          </UFormField>
+          <UFormField name="ownerTeam" label="Owner Team">
+            <USelect v-model="editState.ownerTeam" :items="teamOptions" placeholder="No owner team" />
+          </UFormField>
+          <UFormField name="lastReviewed" label="Last Reviewed">
+            <UInput v-model="editState.lastReviewed" type="date" />
+          </UFormField>
+          <UAlert v-if="editError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="editError" />
+        </UForm>
       </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="editModalOpen = false" />
-          <UButton
-            :loading="editLoading"
-            :label="editLoading ? 'Saving...' : 'Save'"
-            @click="confirmEdit"
-          />
-        </div>
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+        <UButton type="submit" form="edit-tech-form" :loading="editLoading" label="Save" />
       </template>
     </UModal>
 
     <!-- Create Version Constraint Modal -->
-    <UModal v-model:open="vcModalOpen">
+    <UModal v-model:open="vcModalOpen" :ui="{ footer: 'justify-end' }">
       <template #header>
-        <h3 class="text-lg font-semibold">Create Version Constraint for {{ vcForm.governsTechnology }}</h3>
+        <h3 class="text-lg font-semibold">Create Version Constraint for {{ vcTechName }}</h3>
       </template>
       <template #body>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Name *</label>
-            <UInput v-model="vcForm.name" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Description</label>
-            <UInput v-model="vcForm.description" placeholder="What does this constraint enforce?" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Severity *</label>
-            <USelect v-model="vcForm.severity" :items="vcSeverityOptions" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Version Range *</label>
-            <UInput v-model="vcForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
-          </div>
+        <UForm id="vc-form" :schema="vcSchema" :state="vcState" class="space-y-4" @submit="onCreateVC">
+          <UFormField name="name" label="Name" required>
+            <UInput v-model="vcState.name" />
+          </UFormField>
+          <UFormField name="description" label="Description">
+            <UInput v-model="vcState.description" placeholder="What does this constraint enforce?" />
+          </UFormField>
+          <UFormField name="severity" label="Severity" required>
+            <USelect v-model="vcState.severity" :items="vcSeverityOptions" />
+          </UFormField>
+          <UFormField name="versionRange" label="Version Range" required>
+            <UInput v-model="vcState.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
+          </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Scope *</label>
-              <USelect
-                v-model="vcForm.scope"
-                :items="isSuperuser ? ['organization', 'team'] : ['team']"
-              />
-            </div>
-            <div v-if="vcForm.scope === 'team'">
-              <label class="block text-sm font-medium mb-1">Team *</label>
-              <USelect
-                v-model="vcForm.subjectTeam"
-                :items="isSuperuser ? teamOptions : userTeams"
-                placeholder="Select team"
-              />
-            </div>
+            <UFormField name="scope" label="Scope" required>
+              <USelect v-model="vcState.scope" :items="isSuperuser ? ['organization', 'team'] : ['team']" />
+            </UFormField>
+            <UFormField v-if="vcState.scope === 'team'" name="subjectTeam" label="Team" required>
+              <USelect v-model="vcState.subjectTeam" :items="isSuperuser ? teamOptions : userTeams" placeholder="Select team" />
+            </UFormField>
           </div>
-          <UAlert
-            v-if="vcError"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-alert-circle"
-            :description="vcError"
-            class="mt-2"
-          />
-        </div>
+          <UAlert v-if="vcError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="vcError" />
+        </UForm>
       </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="vcModalOpen = false" />
-          <UButton
-            :loading="vcLoading"
-            :label="vcLoading ? 'Creating...' : 'Create'"
-            @click="confirmCreateVC"
-          />
-        </div>
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+        <UButton type="submit" form="vc-form" :loading="vcLoading" label="Create" />
       </template>
     </UModal>
 
@@ -194,58 +150,28 @@
     </UModal>
 
     <!-- Set TIME Modal -->
-    <UModal v-model:open="timeModalOpen">
+    <UModal v-model:open="timeModalOpen" :ui="{ footer: 'justify-end' }">
       <template #header>
         <h3 class="text-lg font-semibold">Set TIME: {{ timeModalTech?.name }}</h3>
       </template>
       <template #body>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Team *</label>
-            <UInput
-              v-if="timeTeamReadonly"
-              :model-value="timeForm.teamName"
-              disabled
-            />
-            <USelect
-              v-else
-              v-model="timeForm.teamName"
-              :items="timeTeamOptions"
-              placeholder="Select team"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">TIME Value *</label>
-            <USelect
-              v-model="timeForm.time"
-              :items="timeOptions"
-              placeholder="Select TIME value"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Notes</label>
-            <UTextarea v-model="timeForm.notes" placeholder="Optional notes" />
-          </div>
-          <UAlert
-            v-if="timeError"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-alert-circle"
-            :description="timeError"
-            class="mt-2"
-          />
-        </div>
+        <UForm id="time-form" :schema="timeSchema" :state="timeState" class="space-y-4" @submit="onSetTime">
+          <UFormField name="teamName" label="Team" required>
+            <UInput v-if="timeTeamReadonly" :model-value="timeState.teamName" disabled />
+            <USelect v-else v-model="timeState.teamName" :items="timeTeamOptions" placeholder="Select team" />
+          </UFormField>
+          <UFormField name="time" label="TIME Value" required>
+            <USelect v-model="timeState.time" :items="timeOptions" placeholder="Select TIME value" />
+          </UFormField>
+          <UFormField name="notes" label="Notes">
+            <UTextarea v-model="timeState.notes" placeholder="Optional notes" />
+          </UFormField>
+          <UAlert v-if="timeError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="timeError" />
+        </UForm>
       </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="timeModalOpen = false" />
-          <UButton
-            :loading="timeLoading"
-            :label="timeLoading ? 'Saving...' : 'Save'"
-            :disabled="!timeForm.teamName || !timeForm.time"
-            @click="confirmSetTime"
-          />
-        </div>
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+        <UButton type="submit" form="time-form" :loading="timeLoading" label="Save" />
       </template>
     </UModal>
 
@@ -312,7 +238,8 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
-import type { TableColumn } from '@nuxt/ui'
+import * as z from 'zod'
+import type { TableColumn, FormSubmitEvent } from '@nuxt/ui'
 import type { ApiResponse, Technology } from '~~/types/api'
 
 const { getSortableHeader } = useSortableTable()
@@ -427,18 +354,20 @@ const columns: TableColumn<Technology>[] = [
 ]
 
 // Edit modal state
+const editSchema = z.object({
+  type: z.string().min(1, 'Type is required'),
+  domain: z.string().optional(),
+  vendor: z.string().optional(),
+  ownerTeam: z.string().optional(),
+  lastReviewed: z.string().optional()
+})
+type EditSchema = z.infer<typeof editSchema>
+
 const editModalOpen = ref(false)
 const editLoading = ref(false)
 const editError = ref('')
-const editForm = ref<{
-  name: string
-  type: string
-  domain: string | undefined
-  vendor: string
-  ownerTeam: string | undefined
-  lastReviewed: string
-}>({
-  name: '',
+const editTechName = ref('')
+const editState = reactive<Partial<EditSchema>>({
   type: '',
   domain: undefined,
   vendor: '',
@@ -465,74 +394,89 @@ const teamOptions = computed(() =>
 )
 
 function openEditModal(tech: Technology) {
-  editForm.value = {
-    name: tech.name,
+  editTechName.value = tech.name
+  Object.assign(editState, {
     type: tech.type || '',
     domain: tech.domain || undefined,
     vendor: tech.vendor || '',
     ownerTeam: tech.ownerTeamName || undefined,
     lastReviewed: tech.lastReviewed || ''
-  }
+  })
   editError.value = ''
   editModalOpen.value = true
 }
 
-async function confirmEdit() {
+async function onEdit(event: FormSubmitEvent<EditSchema>) {
   editLoading.value = true
   editError.value = ''
 
   try {
-    await $fetch(`/api/technologies/${encodeURIComponent(editForm.value.name)}`, {
+    await $fetch(`/api/technologies/${encodeURIComponent(editTechName.value)}`, {
       method: 'PUT',
       body: {
-        type: editForm.value.type,
-        domain: editForm.value.domain || null,
-        vendor: editForm.value.vendor || null,
-        ownerTeam: editForm.value.ownerTeam || null,
-        lastReviewed: editForm.value.lastReviewed || null
+        type: event.data.type,
+        domain: event.data.domain || null,
+        vendor: event.data.vendor || null,
+        ownerTeam: event.data.ownerTeam || null,
+        lastReviewed: event.data.lastReviewed || null
       }
     })
     editModalOpen.value = false
     await refreshNuxtData()
-  } catch (err: unknown) {
+  }
+  catch (err: unknown) {
     const error = err as { data?: { message?: string }; message?: string }
     editError.value = error.data?.message || error.message || 'Failed to update technology'
-  } finally {
+  }
+  finally {
     editLoading.value = false
   }
 }
 
 // Create Version Constraint modal state
+const vcSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  severity: z.string().min(1, 'Severity is required'),
+  scope: z.string().min(1, 'Scope is required'),
+  subjectTeam: z.string().optional(),
+  versionRange: z.string().min(1, 'Version range is required')
+}).refine(data => data.scope !== 'team' || !!data.subjectTeam, {
+  message: 'Team is required when scope is team',
+  path: ['subjectTeam']
+})
+type VcSchema = z.infer<typeof vcSchema>
+
 const vcModalOpen = ref(false)
 const vcLoading = ref(false)
 const vcError = ref('')
-const vcForm = ref({
+const vcTechName = ref('')
+const vcState = reactive<Partial<VcSchema>>({
   name: '',
   description: '',
-  severity: 'error' as string | undefined,
+  severity: 'error',
   scope: 'team',
-  subjectTeam: undefined as string | undefined,
-  versionRange: '',
-  governsTechnology: ''
+  subjectTeam: undefined,
+  versionRange: ''
 })
 const vcSeverityOptions = ['critical', 'error', 'warning', 'info']
 
 function openCreateVCModal(tech: Technology) {
   const defaultName = `${tech.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-version-constraint`
-  vcForm.value = {
+  vcTechName.value = tech.name
+  Object.assign(vcState, {
     name: defaultName,
     description: '',
     severity: 'error',
     scope: isSuperuser.value ? 'organization' : 'team',
     subjectTeam: isSuperuser.value ? undefined : (userTeams.value[0] || undefined),
-    versionRange: '',
-    governsTechnology: tech.name
-  }
+    versionRange: ''
+  })
   vcError.value = ''
   vcModalOpen.value = true
 }
 
-async function confirmCreateVC() {
+async function onCreateVC(event: FormSubmitEvent<VcSchema>) {
   vcLoading.value = true
   vcError.value = ''
 
@@ -540,20 +484,22 @@ async function confirmCreateVC() {
     await $fetch('/api/version-constraints', {
       method: 'POST',
       body: {
-        name: vcForm.value.name,
-        description: vcForm.value.description || undefined,
-        severity: vcForm.value.severity,
-        scope: vcForm.value.scope,
-        subjectTeam: vcForm.value.scope === 'team' ? vcForm.value.subjectTeam : undefined,
-        versionRange: vcForm.value.versionRange,
-        governsTechnology: vcForm.value.governsTechnology
+        name: event.data.name,
+        description: event.data.description || undefined,
+        severity: event.data.severity,
+        scope: event.data.scope,
+        subjectTeam: event.data.scope === 'team' ? event.data.subjectTeam : undefined,
+        versionRange: event.data.versionRange,
+        governsTechnology: vcTechName.value
       }
     })
     vcModalOpen.value = false
-  } catch (err: unknown) {
+  }
+  catch (err: unknown) {
     const error = err as { data?: { message?: string }; message?: string }
     vcError.value = error.data?.message || error.message || 'Failed to create version constraint'
-  } finally {
+  }
+  finally {
     vcLoading.value = false
   }
 }
@@ -589,13 +535,20 @@ async function confirmDelete() {
 }
 
 // Set TIME modal state
+const timeSchema = z.object({
+  teamName: z.string().min(1, 'Team is required'),
+  time: z.string().min(1, 'TIME value is required'),
+  notes: z.string().optional()
+})
+type TimeSchema = z.infer<typeof timeSchema>
+
 const timeModalOpen = ref(false)
 const timeLoading = ref(false)
 const timeError = ref('')
 const timeModalTech = ref<Technology | null>(null)
-const timeForm = ref({
-  teamName: undefined as string | undefined,
-  time: undefined as string | undefined,
+const timeState = reactive<Partial<TimeSchema>>({
+  teamName: undefined,
+  time: undefined,
   notes: ''
 })
 const timeOptions = ['invest', 'tolerate', 'migrate', 'eliminate']
@@ -616,30 +569,28 @@ function openTimeModal(tech: Technology) {
     ? undefined
     : (userTeams.value.length === 1 ? userTeams.value[0] : undefined)
 
-  // Pre-fill TIME value if the default team already has an approval
   const existingApproval = defaultTeam
     ? tech.approvals?.find(a => a.team === defaultTeam)
     : undefined
 
-  timeForm.value = {
+  Object.assign(timeState, {
     teamName: defaultTeam,
     time: existingApproval?.time || undefined,
     notes: existingApproval?.notes || ''
-  }
+  })
   timeError.value = ''
   timeModalOpen.value = true
 }
 
-// When team selection changes, pre-fill the existing TIME value
-watch(() => timeForm.value.teamName, (newTeam) => {
+watch(() => timeState.teamName, (newTeam) => {
   if (!newTeam || !timeModalTech.value) return
   const existing = timeModalTech.value.approvals?.find(a => a.team === newTeam)
-  timeForm.value.time = existing?.time || undefined
-  timeForm.value.notes = existing?.notes || ''
+  timeState.time = existing?.time || undefined
+  timeState.notes = existing?.notes || ''
 })
 
-async function confirmSetTime() {
-  if (!timeModalTech.value || !timeForm.value.teamName || !timeForm.value.time) return
+async function onSetTime(event: FormSubmitEvent<TimeSchema>) {
+  if (!timeModalTech.value) return
   timeLoading.value = true
   timeError.value = ''
 
@@ -647,17 +598,19 @@ async function confirmSetTime() {
     await $fetch(`/api/technologies/${encodeURIComponent(timeModalTech.value.name)}/approvals`, {
       method: 'POST',
       body: {
-        teamName: timeForm.value.teamName,
-        time: timeForm.value.time,
-        notes: timeForm.value.notes || undefined
+        teamName: event.data.teamName,
+        time: event.data.time,
+        notes: event.data.notes || undefined
       }
     })
     timeModalOpen.value = false
     await refreshNuxtData()
-  } catch (err: unknown) {
+  }
+  catch (err: unknown) {
     const error = err as { data?: { message?: string }; message?: string }
     timeError.value = error.data?.message || error.message || 'Failed to set TIME value'
-  } finally {
+  }
+  finally {
     timeLoading.value = false
   }
 }

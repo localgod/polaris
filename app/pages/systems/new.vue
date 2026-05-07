@@ -7,34 +7,24 @@
     />
 
     <UCard>
-      <form class="space-y-5" @submit.prevent="handleSubmit">
-        <UFormField label="System Name" required>
+      <UForm ref="form" :schema="schema" :state="state" class="space-y-5" @submit="onSubmit">
+        <UFormField name="name" label="System Name" required>
           <UInput
-            v-model="formData.name"
+            v-model="state.name"
             placeholder="e.g., customer-portal"
-            :color="fieldErrors.name ? 'error' : undefined"
-            @blur="validateField('name')"
           />
-          <template v-if="fieldErrors.name" #help>
-            <span class="text-(--ui-color-error-500)">{{ fieldErrors.name }}</span>
-          </template>
         </UFormField>
 
-        <UFormField label="Domain" required>
+        <UFormField name="domain" label="Domain" required>
           <UInput
-            v-model="formData.domain"
+            v-model="state.domain"
             placeholder="e.g., customer-experience"
-            :color="fieldErrors.domain ? 'error' : undefined"
-            @blur="validateField('domain')"
           />
-          <template v-if="fieldErrors.domain" #help>
-            <span class="text-(--ui-color-error-500)">{{ fieldErrors.domain }}</span>
-          </template>
         </UFormField>
 
-        <UFormField label="Owner Team" required>
+        <UFormField name="ownerTeam" label="Owner Team" required>
           <USelect
-            v-model="formData.ownerTeam"
+            v-model="state.ownerTeam"
             :items="teamItems"
             placeholder="Select a team"
           />
@@ -43,17 +33,17 @@
           </template>
         </UFormField>
 
-        <UFormField label="Business Criticality" required>
+        <UFormField name="businessCriticality" label="Business Criticality" required>
           <USelect
-            v-model="formData.businessCriticality"
+            v-model="state.businessCriticality"
             :items="criticalityItems"
             placeholder="Select criticality level"
           />
         </UFormField>
 
-        <UFormField label="Environment" required>
+        <UFormField name="environment" label="Environment" required>
           <USelect
-            v-model="formData.environment"
+            v-model="state.environment"
             :items="environmentItems"
             placeholder="Select environment"
           />
@@ -63,7 +53,7 @@
           <h3 class="text-sm font-medium mb-1">SCM Repositories</h3>
           <p class="text-sm text-(--ui-text-muted) mb-3">Add repository URLs for this system</p>
           <div class="space-y-3">
-            <UCard v-for="(repo, index) in formData.repositories" :key="index" variant="subtle">
+            <UCard v-for="(repo, index) in state.repositories" :key="index" variant="subtle">
               <div class="flex justify-between items-center mb-3">
                 <strong class="text-sm">Repository {{ index + 1 }}</strong>
                 <UButton
@@ -75,7 +65,7 @@
                 />
               </div>
               <div class="space-y-3">
-                <UFormField label="Repository URL" required>
+                <UFormField :name="`repositories.${index}.url`" label="Repository URL" required>
                   <UInput
                     v-model="repo.url"
                     type="url"
@@ -83,7 +73,7 @@
                     @blur="autoFillRepository(repo)"
                   />
                 </UFormField>
-                <UFormField label="Repository Name">
+                <UFormField :name="`repositories.${index}.name`" label="Repository Name">
                   <UInput
                     v-model="repo.name"
                     placeholder="Auto-filled from URL"
@@ -119,7 +109,7 @@
           <UButton
             type="submit"
             :loading="isSubmitting"
-            :label="isSubmitting ? 'Saving...' : 'Save System'"
+            label="Save System"
             color="primary"
           />
           <UButton
@@ -128,20 +118,14 @@
             variant="outline"
           />
         </div>
-      </form>
+      </UForm>
     </UCard>
   </div>
 </template>
 
 <script setup lang="ts">
-interface SystemFormData {
-  name: string
-  domain: string
-  ownerTeam: string
-  businessCriticality: string
-  environment: string
-  repositories: Array<{ url: string; name: string }>
-}
+import * as z from 'zod'
+import type { FormSubmitEvent } from '@nuxt/ui'
 
 interface Team {
   name: string
@@ -153,7 +137,22 @@ interface TeamsResponse {
   count: number
 }
 
-const formData = ref<SystemFormData>({
+const schema = z.object({
+  name: z.string().min(1, 'System name is required').regex(/^[a-z0-9-]+$/, 'Use lowercase letters, numbers, and hyphens only'),
+  domain: z.string().min(1, 'Domain is required'),
+  ownerTeam: z.string().min(1, 'Owner team is required'),
+  businessCriticality: z.string().min(1, 'Business criticality is required'),
+  environment: z.string().min(1, 'Environment is required'),
+  repositories: z.array(z.object({
+    url: z.string().url('Must be a valid URL'),
+    name: z.string()
+  })).default([])
+})
+
+type Schema = z.infer<typeof schema>
+
+const form = useTemplateRef('form')
+const state = reactive<Partial<Schema>>({
   name: '',
   domain: '',
   ownerTeam: '',
@@ -165,7 +164,6 @@ const formData = ref<SystemFormData>({
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const fieldErrors = ref<Record<string, string>>({})
 
 const { data: teamsData, error: teamsError } = await useFetch<TeamsResponse>('/api/teams')
 const teamItems = computed(() =>
@@ -194,44 +192,21 @@ function extractRepoName(url: string): string {
   return ''
 }
 
-function autoFillRepository(repo: SystemFormData['repositories'][0]) {
-  if (!repo.url) return
-  if (!repo.name) repo.name = extractRepoName(repo.url)
+function autoFillRepository(repo: { url: string; name: string }) {
+  if (!repo.url || repo.name) return
+  repo.name = extractRepoName(repo.url)
 }
 
 function addRepository() {
-  formData.value.repositories.push({ url: '', name: '' })
+  state.repositories ??= []
+  state.repositories.push({ url: '', name: '' })
 }
 
 function removeRepository(index: number) {
-  formData.value.repositories.splice(index, 1)
+  state.repositories?.splice(index, 1)
 }
 
-function validateField(field: string) {
-  switch (field) {
-    case 'name':
-      if (!formData.value.name) {
-        fieldErrors.value.name = 'System name is required'
-      }
-      else if (!/^[a-z0-9-]+$/.test(formData.value.name)) {
-        fieldErrors.value.name = 'Use lowercase letters, numbers, and hyphens only'
-      }
-      else {
-        delete fieldErrors.value.name
-      }
-      break
-    case 'domain':
-      if (!formData.value.domain) {
-        fieldErrors.value.domain = 'Domain is required'
-      }
-      else {
-        delete fieldErrors.value.domain
-      }
-      break
-  }
-}
-
-async function handleSubmit() {
+async function onSubmit(event: FormSubmitEvent<Schema>) {
   isSubmitting.value = true
   errorMessage.value = ''
   successMessage.value = ''
@@ -239,7 +214,7 @@ async function handleSubmit() {
   try {
     const response = await $fetch('/api/systems', {
       method: 'POST',
-      body: formData.value
+      body: event.data
     })
 
     if (response.success) {
@@ -253,7 +228,7 @@ async function handleSubmit() {
   catch (error: unknown) {
     const err = error as { statusCode?: number; data?: { message?: string; error?: string }; message?: string }
     if (err.statusCode === 409) {
-      errorMessage.value = err.data?.message || 'A system with this name already exists'
+      form.value?.setErrors([{ name: 'name', message: err.data?.message || 'A system with this name already exists' }])
     }
     else if (err.statusCode === 422) {
       errorMessage.value = err.data?.message || 'Invalid input data. Please check your entries.'

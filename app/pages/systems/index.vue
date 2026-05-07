@@ -66,15 +66,23 @@
     </template>
 
     <!-- Import from GitHub Modal -->
-    <UModal v-model:open="showImportModal">
+    <UModal v-model:open="showImportModal" :ui="{ footer: 'justify-end' }">
       <template #header>
         <h3 class="text-lg font-semibold">Import System from GitHub</h3>
       </template>
       <template #body>
-        <form class="space-y-4" @submit.prevent="handleImport">
-          <UFormField label="GitHub Repository" required>
+        <UForm id="import-form" :schema="importSchema" :state="importState" class="space-y-4" @submit="onImport">
+          <UAlert
+            color="info"
+            variant="subtle"
+            icon="i-lucide-info"
+            title="Initial scan may be incomplete"
+            description="Dependencies are discovered from manifest files fetched via the GitHub API. The full transitive dependency graph is only available after the polaris-sbom.yml workflow runs against this repository."
+          />
+
+          <UFormField name="repositoryUrl" label="GitHub Repository" required>
             <UInput
-              v-model="importForm.repositoryUrl"
+              v-model="importState.repositoryUrl"
               placeholder="owner/repo or https://github.com/owner/repo"
             />
             <template #help>
@@ -84,35 +92,20 @@
             </template>
           </UFormField>
 
-          <UFormField label="Domain">
-            <UInput
-              v-model="importForm.domain"
-              placeholder="Development"
-            />
+          <UFormField name="domain" label="Domain">
+            <UInput v-model="importState.domain" placeholder="Development" />
           </UFormField>
 
-          <UFormField label="Owner Team">
-            <USelect
-              v-model="importForm.ownerTeam"
-              :items="importTeamItems"
-              placeholder="Select a team (optional)"
-            />
+          <UFormField name="ownerTeam" label="Owner Team">
+            <USelect v-model="importState.ownerTeam" :items="importTeamItems" placeholder="Select a team (optional)" />
           </UFormField>
 
-          <UFormField label="Business Criticality">
-            <USelect
-              v-model="importForm.businessCriticality"
-              :items="importCriticalityItems"
-              placeholder="medium"
-            />
+          <UFormField name="businessCriticality" label="Business Criticality">
+            <USelect v-model="importState.businessCriticality" :items="importCriticalityItems" placeholder="medium" />
           </UFormField>
 
-          <UFormField label="Environment">
-            <USelect
-              v-model="importForm.environment"
-              :items="importEnvironmentItems"
-              placeholder="dev"
-            />
+          <UFormField name="environment" label="Environment">
+            <USelect v-model="importState.environment" :items="importEnvironmentItems" placeholder="dev" />
           </UFormField>
 
           <UAlert
@@ -122,84 +115,50 @@
             icon="i-lucide-alert-circle"
             :description="importError"
           />
-
-          <UAlert
-            v-if="importResult"
-            color="success"
-            variant="subtle"
-            icon="i-lucide-check-circle"
-          >
-            <template #description>
-              <div class="space-y-1">
-                <p>System <strong>{{ importResult.systemName }}</strong> imported.</p>
-                <p class="text-sm">
-                  {{ importResult.manifestsFound }} manifest(s) found,
-                  {{ importResult.componentsAdded }} component(s) added,
-                  {{ importResult.componentsUpdated }} updated.
-                </p>
-              </div>
-            </template>
-          </UAlert>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <UButton
-              label="Cancel"
-              variant="outline"
-              @click="closeImportModal"
-            />
-            <UButton
-              type="submit"
-              :loading="isImporting"
-              :label="isImporting ? 'Importing...' : 'Import'"
-              color="primary"
-              :disabled="!importForm.repositoryUrl || !!importResult"
-            />
-          </div>
-        </form>
+        </UForm>
+      </template>
+      <template #footer>
+        <UButton label="Cancel" color="neutral" variant="outline" @click="closeImportModal" />
+        <UButton
+          type="submit"
+          form="import-form"
+          :loading="isImporting"
+          label="Import"
+          color="primary"
+        />
       </template>
     </UModal>
 
     <!-- Edit System Modal -->
-    <UModal v-model:open="showEditSystemModal">
+    <UModal v-model:open="showEditSystemModal" :ui="{ footer: 'justify-end' }">
       <template #header>
-        <h3 class="text-lg font-semibold">Edit System: {{ editSystemForm.name }}</h3>
+        <h3 class="text-lg font-semibold">Edit System: {{ editSystemName }}</h3>
       </template>
       <template #body>
-        <form id="edit-system-form" class="space-y-4" @submit.prevent="confirmEditSystem">
-          <div>
-            <label class="block text-sm font-medium mb-1">Domain *</label>
-            <UInput v-model="editSystemForm.domain" required />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Owner Team *</label>
-            <USelect v-model="editSystemForm.ownerTeam" :items="editTeamOptions" placeholder="Select team" required />
-          </div>
+        <UForm id="edit-system-form" :schema="editSystemSchema" :state="editSystemState" class="space-y-4" @submit="onEditSystem">
+          <UFormField name="domain" label="Domain" required>
+            <UInput v-model="editSystemState.domain" />
+          </UFormField>
+          <UFormField name="ownerTeam" label="Owner Team" required>
+            <USelect v-model="editSystemState.ownerTeam" :items="editTeamOptions" placeholder="Select team" />
+          </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Criticality *</label>
-              <USelect v-model="editSystemForm.businessCriticality" :items="['low', 'medium', 'high', 'critical']" required />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Environment *</label>
-              <USelect v-model="editSystemForm.environment" :items="['dev', 'test', 'staging', 'prod']" required />
-            </div>
+            <UFormField name="businessCriticality" label="Criticality" required>
+              <USelect v-model="editSystemState.businessCriticality" :items="['low', 'medium', 'high', 'critical']" />
+            </UFormField>
+            <UFormField name="environment" label="Environment" required>
+              <USelect v-model="editSystemState.environment" :items="['dev', 'test', 'staging', 'prod']" />
+            </UFormField>
           </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Description</label>
-            <UTextarea v-model="editSystemForm.description" placeholder="System description" />
-          </div>
-        </form>
+          <UFormField name="description" label="Description">
+            <UTextarea v-model="editSystemState.description" placeholder="System description" />
+          </UFormField>
+          <UAlert v-if="editSystemError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="editSystemError" />
+        </UForm>
       </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton type="button" label="Cancel" color="neutral" variant="outline" @click="showEditSystemModal = false" />
-          <UButton
-            type="submit"
-            form="edit-system-form"
-            :loading="isEditingSystem"
-            :label="isEditingSystem ? 'Saving...' : 'Save'"
-          />
-        </div>
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+        <UButton type="submit" form="edit-system-form" :loading="isEditingSystem" label="Save" />
       </template>
     </UModal>
 
@@ -229,7 +188,8 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
-import type { TableColumn } from '@nuxt/ui'
+import * as z from 'zod'
+import type { TableColumn, FormSubmitEvent } from '@nuxt/ui'
 
 const { status } = useAuth()
 const { isSuperuser } = useEffectiveRole()
@@ -359,6 +319,15 @@ interface ImportResult {
   componentsUpdated: number
 }
 
+const importSchema = z.object({
+  repositoryUrl: z.string().min(1, 'Repository URL is required'),
+  domain: z.string().optional(),
+  ownerTeam: z.string().optional(),
+  businessCriticality: z.string().optional(),
+  environment: z.string().optional()
+})
+type ImportSchema = z.infer<typeof importSchema>
+
 const { data: teamsData } = await useFetch<TeamsResponse>('/api/teams')
 const importTeamItems = computed(() =>
   (teamsData.value?.data || []).map(t => ({ label: t.name, value: t.name }))
@@ -378,12 +347,12 @@ const importEnvironmentItems = [
   { label: 'Production', value: 'prod' }
 ]
 
+const toast = useToast()
 const showImportModal = ref(false)
 const isImporting = ref(false)
 const importError = ref('')
-const importResult = ref<ImportResult | null>(null)
 
-const importForm = ref({
+const importState = reactive<Partial<ImportSchema>>({
   repositoryUrl: '',
   domain: '',
   ownerTeam: '',
@@ -393,31 +362,22 @@ const importForm = ref({
 
 function closeImportModal() {
   showImportModal.value = false
-  // If import succeeded, refresh the systems list
-  if (importResult.value) {
-    refreshNuxtData()
-  }
-  // Reset form state after a short delay so the modal closes smoothly
   setTimeout(() => {
-    importForm.value = { repositoryUrl: '', domain: '', ownerTeam: '', businessCriticality: '', environment: '' }
+    Object.assign(importState, { repositoryUrl: '', domain: '', ownerTeam: '', businessCriticality: '', environment: '' })
     importError.value = ''
-    importResult.value = null
   }, 300)
 }
 
-async function handleImport() {
+async function onImport(event: FormSubmitEvent<ImportSchema>) {
   isImporting.value = true
   importError.value = ''
-  importResult.value = null
 
   try {
-    const body: Record<string, string> = {
-      repositoryUrl: importForm.value.repositoryUrl
-    }
-    if (importForm.value.domain) body.domain = importForm.value.domain
-    if (importForm.value.ownerTeam) body.ownerTeam = importForm.value.ownerTeam
-    if (importForm.value.businessCriticality) body.businessCriticality = importForm.value.businessCriticality
-    if (importForm.value.environment) body.environment = importForm.value.environment
+    const body: Record<string, string> = { repositoryUrl: event.data.repositoryUrl }
+    if (event.data.domain) body.domain = event.data.domain
+    if (event.data.ownerTeam) body.ownerTeam = event.data.ownerTeam
+    if (event.data.businessCriticality) body.businessCriticality = event.data.businessCriticality
+    if (event.data.environment) body.environment = event.data.environment
 
     const response = await $fetch<{ success: boolean; data: ImportResult }>('/api/admin/import/github', {
       method: 'POST',
@@ -425,20 +385,48 @@ async function handleImport() {
     })
 
     if (response.success) {
-      importResult.value = response.data
+      const result = response.data
+      closeImportModal()
+      await refreshNuxtData()
+      toast.add({
+        title: `${result.systemName} imported`,
+        description: `${result.manifestsFound} manifest(s) found · ${result.componentsAdded} added · ${result.componentsUpdated} updated`,
+        color: 'success',
+        icon: 'i-lucide-check-circle'
+      })
     }
-  } catch (error: unknown) {
+  }
+  catch (error: unknown) {
     const err = error as { data?: { message?: string }; message?: string }
     importError.value = err.data?.message || err.message || 'Import failed'
-  } finally {
+  }
+  finally {
     isImporting.value = false
   }
 }
 
 // --- Edit System ---
+const editSystemSchema = z.object({
+  domain: z.string().min(1, 'Domain is required'),
+  ownerTeam: z.string().min(1, 'Owner team is required'),
+  businessCriticality: z.string().min(1, 'Criticality is required'),
+  environment: z.string().min(1, 'Environment is required'),
+  description: z.string().optional()
+})
+type EditSystemSchema = z.infer<typeof editSystemSchema>
+
 const showEditSystemModal = ref(false)
 const isEditingSystem = ref(false)
-const editSystemForm = ref({ name: '', domain: '', ownerTeam: '', businessCriticality: '', environment: '', description: '' })
+const editSystemError = ref('')
+const editSystemName = ref('')
+const editSystemState = reactive<Partial<EditSystemSchema>>({
+  domain: '',
+  ownerTeam: '',
+  businessCriticality: '',
+  environment: '',
+  description: ''
+})
+
 const editTeamOptions = computed(() => {
   const teams = new Set<string>()
   systems.value.forEach(s => { if (s.ownerTeam) teams.add(s.ownerTeam) })
@@ -446,36 +434,37 @@ const editTeamOptions = computed(() => {
 })
 
 function openEditSystemModal(system: System) {
-  editSystemForm.value = {
-    name: system.name,
+  editSystemName.value = system.name
+  Object.assign(editSystemState, {
     domain: system.domain || '',
     ownerTeam: system.ownerTeam || '',
     businessCriticality: system.businessCriticality || 'medium',
     environment: system.environment || 'dev',
     description: ''
-  }
+  })
+  editSystemError.value = ''
   showEditSystemModal.value = true
 }
 
-async function confirmEditSystem() {
+async function onEditSystem(event: FormSubmitEvent<EditSystemSchema>) {
   isEditingSystem.value = true
+  editSystemError.value = ''
   try {
-    await $fetch(`/api/systems/${encodeURIComponent(editSystemForm.value.name)}`, {
+    await $fetch(`/api/systems/${encodeURIComponent(editSystemName.value)}`, {
       method: 'PUT',
       body: {
-        domain: editSystemForm.value.domain,
-        ownerTeam: editSystemForm.value.ownerTeam,
-        businessCriticality: editSystemForm.value.businessCriticality,
-        environment: editSystemForm.value.environment,
-        description: editSystemForm.value.description || null
+        ...event.data,
+        description: event.data.description || null
       }
     })
     showEditSystemModal.value = false
     await refreshNuxtData()
-  } catch (e: unknown) {
+  }
+  catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to update system')
-  } finally {
+    editSystemError.value = err.data?.message || err.message || 'Failed to update system'
+  }
+  finally {
     isEditingSystem.value = false
   }
 }
