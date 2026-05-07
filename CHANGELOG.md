@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.0] - 2026-05-07
+
+## What's Changed
+
+## 🚀 Features
+
+- fix: neo4j plugin fails fast on connection failure at startup @localgod (#492)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.4.2...v0.5.0
+
 ## [0.1.86] - 2026-05-05
 
 ## What's Changed
