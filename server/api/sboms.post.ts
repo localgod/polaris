@@ -311,7 +311,7 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     }
 
     // Internal error during processing
-    console.error('SBOM processing error:', error)
+    event.context.logger.error({ err: error }, 'SBOM processing error')
     setResponseStatus(event, 500)
     return {
       success: false,

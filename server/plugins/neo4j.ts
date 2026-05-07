@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger'
+
 /**
  * Neo4j server plugin
  * Initializes and verifies Neo4j connection at startup
@@ -8,15 +10,15 @@ export default defineNitroPlugin((nitroApp) => {
   // Verify connection at startup
   driver.verifyAuthentication()
     .then(() => {
-      console.log('✅ Neo4j connected successfully')
+      logger.info('Neo4j connected successfully')
     })
     .catch((err) => {
-      console.error('❌ Neo4j connection failed:', err)
+      logger.error({ err }, 'Neo4j connection failed')
     })
   
   // Cleanup on shutdown
   nitroApp.hooks.hook('close', async () => {
-    console.log('🔌 Closing Neo4j connection...')
+    logger.info('Closing Neo4j connection')
     await driver.close()
   })
 })

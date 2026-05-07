@@ -38,6 +38,7 @@
 import { NuxtAuthHandler } from '#auth'
 import GithubProvider from 'next-auth/providers/github'
 import { userService } from '../../services/singletons'
+import { logger } from '../../utils/logger'
 
 export default NuxtAuthHandler({
   secret: process.env.AUTH_SECRET || 'replace-me-in-production',
@@ -82,7 +83,7 @@ export default NuxtAuthHandler({
             token.teams = authData.teams
           }
         } catch (error) {
-          console.error('Error fetching user data from Neo4j:', error)
+          logger.error({ err: error }, 'Error fetching user data from Neo4j')
         }
       }
 
@@ -123,7 +124,7 @@ export default NuxtAuthHandler({
             role
           })
         } catch (error) {
-          console.error('Error creating/updating user in Neo4j:', error)
+          logger.error({ err: error }, 'Error creating/updating user in Neo4j')
           // Don't block sign in if database update fails
         }
       }

@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
       total
     }
   } catch (error) {
-    console.error('Error fetching users:', error)
+    event.context.logger.error({ err: error }, 'Error fetching users')
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to fetch users'

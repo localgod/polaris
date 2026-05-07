@@ -2,6 +2,7 @@ import Ajv from 'ajv'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import type { ErrorObject } from 'ajv'
+import { logger } from './logger'
 
 /**
  * SBOM format types
@@ -82,9 +83,9 @@ export class SbomValidator {
       
       this.initialized = true
       
-      console.log('✅ SBOM validators initialized successfully')
+      logger.info('SBOM validators initialized successfully')
     } catch (error) {
-      console.error('❌ Failed to initialize SBOM validators:', error)
+      logger.error({ err: error }, 'Failed to initialize SBOM validators')
       throw new Error(`Failed to initialize SBOM validators: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }

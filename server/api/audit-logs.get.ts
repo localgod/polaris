@@ -105,7 +105,7 @@ export default defineEventHandler(async (event) => {
       filters: result.filters
     }
   } catch (error) {
-    console.error('Audit log fetch error:', error)
+    event.context.logger.error({ err: error }, 'Audit log fetch error')
     setResponseStatus(event, 500)
     return {
       success: false,

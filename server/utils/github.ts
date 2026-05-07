@@ -3,6 +3,7 @@
  *
  * Used by the GitHub import feature to create systems without cloning repos.
  */
+import { logger } from './logger'
 
 export interface GitHubRepoMetadata {
   name: string
@@ -161,7 +162,7 @@ export async function fetchFileTree(owner: string, repo: string, branch: string)
   if (data.truncated) {
     // Repository has more than 100,000 tree entries; the tree is partial.
     // Log a warning but continue — manifests near the root will still be found.
-    console.warn(`[github] Tree response truncated for ${owner}/${repo}@${branch} — large repo, some manifests may be missed`)
+    logger.warn({ owner, repo, branch }, 'GitHub tree response truncated — large repo, some manifests may be missed')
   }
 
   return data.tree
