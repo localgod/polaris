@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.3.0] - 2026-05-07
+
+## What's Changed
+
+## 🚀 Features
+
+- fix: case-insensitive Bearer token parsing, reject empty tokens @localgod (#486)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.2.0...v0.3.0
+
 ## [0.1.86] - 2026-05-05
 
 ## What's Changed
