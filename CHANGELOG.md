@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.3] - 2026-05-13
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump fast-uri from 3.1.0 to 3.1.2 @[dependabot[bot]](https://github.com/apps/dependabot) (#496)
+- chore(deps)(deps): bump @cyclonedx/cdxgen from 12.3.2 to 12.3.3 @[dependabot[bot]](https://github.com/apps/dependabot) (#495)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.2...v0.5.3
+
 ## [0.5.0] - 2026-05-07
 
 ## What's Changed
