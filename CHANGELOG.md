@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.1] - 2026-05-13
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump mermaid from 11.14.0 to 11.15.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#499)
+- chore: release v0.5.0 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#493)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.0...v0.5.1
+
 ## [0.5.0] - 2026-05-07
 
 ## What's Changed
