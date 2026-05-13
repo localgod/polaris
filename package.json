@@ -65,7 +65,7 @@
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
-    "@cyclonedx/cdxgen": "^12.3.2",
+    "@cyclonedx/cdxgen": "^12.3.3",
     "@nuxt/eslint": "^1.13.0",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^4.0.3",
