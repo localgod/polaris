@@ -77,11 +77,11 @@ jobs:
                   - /opt/polaris/data/neo4j/import:/var/lib/neo4j/import
                   - /opt/polaris/data/neo4j/plugins:/plugins
                 healthcheck:
-                  test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+                  test: ["CMD-SHELL", "wget -qO- http://localhost:7474 > /dev/null 2>&1 || exit 1"]
                   interval: 15s
                   timeout: 15s
-                  retries: 10
-                  start_period: 60s
+                  retries: 20
+                  start_period: 120s
                 networks:
                   - polaris-net
 

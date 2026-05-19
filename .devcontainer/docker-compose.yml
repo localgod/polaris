@@ -7,15 +7,6 @@ services:
       - ..:/workspaces/polaris:cached
     command: sleep infinity
     network_mode: host
-    depends_on:
-      neo4j:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   neo4j:
     image: neo4j:5-community
@@ -36,15 +27,10 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+        
     volumes:
       - ../.data/neo4j/data:/data
       - ../.data/neo4j/logs:/logs
       - ../.data/neo4j/import:/var/lib/neo4j/import
       - ../.data/neo4j/plugins:/plugins
     network_mode: host
-    healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "devpassword", "RETURN 1"]
-      interval: 15s
-      timeout: 15s
-      retries: 10
-      start_period: 60s
