@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.12] - 2026-05-19
+
+## What's Changed
+
+- Add healthchecks for app and caddy services @localgod (#521)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.11...v0.5.12
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
