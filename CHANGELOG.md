@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.10] - 2026-05-19
+
+## What's Changed
+
+- Add Neo4j log rotation to prevent disk exhaustion @localgod (#518)
+
+## 🔧 Maintenance
+
+- chore: release v0.5.9 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#516)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.9...v0.5.10
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
