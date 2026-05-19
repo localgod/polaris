@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.5] - 2026-05-19
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump brace-expansion from 5.0.5 to 5.0.6 @[dependabot[bot]](https://github.com/apps/dependabot) (#509)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.4...v0.5.5
+
 ## [0.5.0] - 2026-05-07
 
 ## What's Changed
