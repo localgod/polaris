@@ -19,6 +19,16 @@ services:
       NEO4J_dbms_security_procedures_unrestricted: apoc.*
       NEO4J_server_memory_heap_initial__size: 512m
       NEO4J_server_memory_heap_max__size: 2G
+      # Rotate Neo4j internal log files: keep 7 files, max 20MB each
+      NEO4J_server_logs_debug_rotation_keep__number: 7
+      NEO4J_server_logs_debug_rotation_size: 20m
+      NEO4J_server_logs_user_rotation_keep__number: 7
+      NEO4J_server_logs_user_rotation_size: 20m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     volumes:
       - /opt/polaris/data/neo4j/data:/data
       - /opt/polaris/data/neo4j/logs:/logs
