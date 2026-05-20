@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.15] - 2026-05-20
+
+## What's Changed
+
+- fix: use sentinel file to prevent nuxt-dev starting before npm install completes @localgod (#527)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.14...v0.5.15
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
