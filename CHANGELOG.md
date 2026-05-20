@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.26] - 2026-05-20
+
+## What's Changed
+
+- Fix Watchtower Docker API version negotiation via socket-proxy @localgod (#545)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.25...v0.5.26
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
