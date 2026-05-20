@@ -71,6 +71,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     networks:
       - polaris-net
 
@@ -89,6 +91,20 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - polaris-net
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_POLL_INTERVAL: "86400"
+      WATCHTOWER_CLEANUP: "true"
     networks:
       - polaris-net
 

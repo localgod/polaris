@@ -82,6 +82,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     networks:
       - polaris-net
 
@@ -100,6 +102,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     networks:
       - polaris-net
 
