@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.17] - 2026-05-20
+
+## What's Changed
+
+- fix: invoke bash explicitly in Neo4j healthcheck for /dev/tcp support @localgod (#531)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.16...v0.5.17
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
