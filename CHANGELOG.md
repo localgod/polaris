@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.16] - 2026-05-20
+
+## What's Changed
+
+- fix: add Bolt port check to Neo4j healthcheck to prevent app startup race @localgod (#529)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.15...v0.5.16
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
