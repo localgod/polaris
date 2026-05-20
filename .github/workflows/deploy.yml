@@ -77,7 +77,7 @@ jobs:
                   - /opt/polaris/data/neo4j/import:/var/lib/neo4j/import
                   - /opt/polaris/data/neo4j/plugins:/plugins
                 healthcheck:
-                  test: ["CMD-SHELL", "wget -qO- http://localhost:7474 > /dev/null 2>&1 || exit 1"]
+                  test: ["CMD-SHELL", "wget -qO- http://localhost:7474 > /dev/null 2>&1 && (echo > /dev/tcp/localhost/7687) 2>/dev/null || exit 1"]
                   interval: 15s
                   timeout: 15s
                   retries: 20
