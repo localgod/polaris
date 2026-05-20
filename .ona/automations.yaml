@@ -109,6 +109,22 @@ tasks:
       echo "✅ Database reset complete"
 
 services:
+  # Neo4j graph database (started via docker-compose to avoid bare docker run overlayfs issues)
+  neo4j:
+    name: Neo4j
+    description: Neo4j graph database
+    commands:
+      start: |
+        docker compose -f .devcontainer/docker-compose.yml up neo4j
+      ready: |
+        if curl -sf http://localhost:7474 > /dev/null 2>&1; then
+          exit 0
+        else
+          exit 1
+        fi
+    triggeredBy:
+      - postEnvironmentStart
+
   # Nuxt development server with hot reload
   nuxt-dev:
     name: Nuxt Dev Server

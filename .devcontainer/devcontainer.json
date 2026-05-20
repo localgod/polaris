@@ -6,7 +6,8 @@
     "workspaceFolder": "/workspaces/polaris",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker": {
-            "moby": false
+            "moby": false,
+            "dockerDaemonOptions": "{\"storage-driver\": \"vfs\"}"
         },
         "ghcr.io/devcontainers/features/node": {
             "nodeGypDependencies": true,
