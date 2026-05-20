@@ -125,6 +125,8 @@ services:
   watchtower:
     image: containrrr/watchtower
     restart: unless-stopped
+    healthcheck:
+      disable: true
     environment:
       DOCKER_HOST: tcp://socket-proxy:2375
       WATCHTOWER_LABEL_ENABLE: "true"
