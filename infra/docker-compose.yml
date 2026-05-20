@@ -129,6 +129,7 @@ services:
       disable: true
     environment:
       DOCKER_HOST: tcp://socket-proxy:2375
+      DOCKER_API_VERSION: "1.41"
       WATCHTOWER_LABEL_ENABLE: "true"
       WATCHTOWER_POLL_INTERVAL: "86400"
       WATCHTOWER_CLEANUP: "true"
