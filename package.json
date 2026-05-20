@@ -66,6 +66,7 @@
   },
   "dependencies": {
     "@cyclonedx/cdxgen": "^12.4.1",
+    "@iconify-json/simple-icons": "^1.2.83",
     "@nuxt/eslint": "^1.13.0",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^4.0.3",

@@ -10,9 +10,10 @@
       <!-- Legend -->
       <div class="flex flex-wrap gap-3 text-sm">
         <div v-for="pm in packageManagers" :key="pm" class="flex items-center gap-1.5">
-          <span
-            class="inline-block w-3 h-3 rounded-full flex-shrink-0"
-            :style="{ backgroundColor: pmColor(pm) }"
+          <UIcon
+            :name="pmIcon(pm)"
+            class="flex-shrink-0 size-4"
+            :style="{ color: pmColor(pm) }"
           />
           <span class="text-(--ui-text-muted)">{{ pm }}</span>
         </div>
@@ -56,7 +57,14 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
           <div v-if="selectedNode.packageManager">
             <span class="text-(--ui-text-muted) block">Package Manager</span>
-            <span class="font-medium">{{ selectedNode.packageManager }}</span>
+            <span class="font-medium flex items-center gap-1">
+              <UIcon
+                :name="pmIcon(selectedNode.packageManager)"
+                class="size-4 flex-shrink-0"
+                :style="{ color: pmColor(selectedNode.packageManager) }"
+              />
+              {{ selectedNode.packageManager }}
+            </span>
           </div>
           <div v-if="selectedNode.componentType">
             <span class="text-(--ui-text-muted) block">Type</span>
@@ -172,7 +180,7 @@ const containerRef = ref<HTMLDivElement | null>(null)
 
 const hasNodes = computed(() => props.nodes.length > 0)
 
-// ── Colors ─────────────────────────────────────────────────────────────────
+// ── Colors & icons ─────────────────────────────────────────────────────────
 
 const PM_COLORS: Record<string, string> = {
   npm: '#cb3837', yarn: '#2c8ebb', maven: '#c71a36', gradle: '#02303a',
@@ -180,8 +188,25 @@ const PM_COLORS: Record<string, string> = {
   go: '#00add8', composer: '#885630', unknown: '#6b7280',
 }
 
+const PM_ICONS: Record<string, string> = {
+  npm:      'i-simple-icons-npm',
+  yarn:     'i-simple-icons-yarn',
+  maven:    'i-simple-icons-apachemaven',
+  gradle:   'i-simple-icons-gradle',
+  pypi:     'i-simple-icons-pypi',
+  cargo:    'i-simple-icons-rust',
+  nuget:    'i-simple-icons-nuget',
+  gem:      'i-simple-icons-rubygems',
+  go:       'i-simple-icons-go',
+  composer: 'i-simple-icons-composer',
+}
+
 function pmColor(pm: string | null | undefined): string {
   return PM_COLORS[(pm ?? 'unknown').toLowerCase()] ?? PM_COLORS.unknown
+}
+
+function pmIcon(pm: string | null | undefined): string {
+  return PM_ICONS[(pm ?? 'unknown').toLowerCase()] ?? 'i-lucide-package'
 }
 
 const packageManagers = computed(() =>
