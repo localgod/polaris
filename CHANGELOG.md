@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.28] - 2026-05-20
+
+## What's Changed
+
+- feat: use Simple Icons for package manager types @localgod (#563)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.27...v0.5.28
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
