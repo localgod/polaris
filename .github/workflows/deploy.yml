@@ -193,7 +193,20 @@ jobs:
 
             # Pull new image and restart stack
             docker compose pull
-            docker compose up -d --wait
+            docker compose up -d --wait || {
+              echo ""
+              echo "=== DEPLOY FAILED: app container never became healthy ==="
+              echo ""
+              echo "--- App container logs (last 150 lines) ---"
+              docker compose logs app --tail=150 2>&1 || true
+              echo ""
+              echo "--- Health check history ---"
+              docker inspect polaris-app-1 --format='{{range .State.Health.Log}}ExitCode={{.ExitCode}} Output={{.Output}}---{{end}}' 2>&1 || true
+              echo ""
+              echo "--- Container state ---"
+              docker inspect polaris-app-1 --format='Status={{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' 2>&1 || true
+              exit 1
+            }
 
             # Run database migrations
             docker compose pull migrate
