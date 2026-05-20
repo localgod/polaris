@@ -7,9 +7,10 @@ Production deployment for Polaris on a single Hetzner Ubuntu VM.
 - **App**: Nuxt 4 SSR in a Docker container (image from Docker Hub)
 - **Database**: Neo4j 5 Community + APOC in a Docker container
 - **Proxy**: Caddy in a Docker container (HTTP on port 80; swap `:80` for a domain name to get automatic TLS)
-- **Orchestration**: Docker Compose at `/opt/polaris/` (all three services)
+- **Orchestration**: Docker Compose at `/opt/polaris/` (all services)
 - **Provisioning**: Ansible playbook (one-time, idempotent) — installs Docker, configures UFW, creates system user
 - **Deploys**: GitHub Actions on push to `main`
+- **Auto-updates**: Watchtower polls Docker Hub daily and auto-updates `caddy` and `dozzle` when upstream images change. `app` and `neo4j` are excluded — `app` is managed by the deploy workflow, `neo4j` is never restarted automatically.
 
 ## Prerequisites
 
@@ -75,13 +76,15 @@ In your repository go to **Settings → Secrets and variables → Actions** and 
 
 ### 4. Trigger the first deploy
 
-Push any commit to `main`. The `Deploy` workflow will:
+Push any commit to `main`. The `Publish` workflow builds and pushes the Docker images, then the `Deploy` workflow:
 
-1. Build the Docker image and push it to Docker Hub
-2. SSH into the VM as `polaris`
-3. Write `/opt/polaris/.env` from the secrets above
-4. Run `docker compose pull && docker compose up -d`
-5. Run `npm run migrate:up` inside the app container
+1. SSHes into the VM as `polaris`
+2. Writes `/opt/polaris/.env`, `docker-compose.yml`, `Caddyfile`, and `dozzle/users.yml`
+3. Pulls all images (including the migrator)
+4. Runs database migrations (`docker compose run --rm migrate npm run migrate:up`)
+5. Starts the stack with the new images (`docker compose up -d --wait`)
+
+Migrations always run before the new `app` image starts, ensuring the database schema is up to date before the app serves traffic.
 
 After the workflow completes, `curl http://[2a01:4f9:c014:472c::1]` should return the Polaris app.
 

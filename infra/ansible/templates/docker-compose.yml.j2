@@ -71,6 +71,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     networks:
       - polaris-net
 
@@ -89,13 +91,47 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     networks:
       - polaris-net
+
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      POST: 1
+      ALLOW_STOP: 1
+      ALLOW_RESTARTS: 1
+    networks:
+      - socket-proxy-net
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_POLL_INTERVAL: "86400"
+      WATCHTOWER_CLEANUP: "true"
+    depends_on:
+      - socket-proxy
+    networks:
+      - polaris-net
+      - socket-proxy-net
 
 networks:
   polaris-net:
     driver: bridge
     enable_ipv6: true
+  socket-proxy-net:
+    driver: bridge
+    internal: true
 
 volumes:
   caddy_data:
