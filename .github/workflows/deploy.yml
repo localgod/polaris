@@ -38,7 +38,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: polaris
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          command_timeout: 10m
+          command_timeout: 20m
           script: |
             set -e
 
