@@ -75,6 +75,33 @@ import { useDebounceFn } from '@vueuse/core'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Component } from '~~/types/api'
 
+const PM_COLORS: Record<string, string> = {
+  npm: '#cb3837', yarn: '#2c8ebb', maven: '#c71a36', gradle: '#02303a',
+  pypi: '#3572a5', cargo: '#dea584', nuget: '#004880', gem: '#cc342d',
+  go: '#00add8', composer: '#885630', unknown: '#6b7280',
+}
+
+const PM_ICONS: Record<string, string> = {
+  npm:      'i-simple-icons-npm',
+  yarn:     'i-simple-icons-yarn',
+  maven:    'i-simple-icons-apachemaven',
+  gradle:   'i-simple-icons-gradle',
+  pypi:     'i-simple-icons-pypi',
+  cargo:    'i-simple-icons-rust',
+  nuget:    'i-simple-icons-nuget',
+  gem:      'i-simple-icons-rubygems',
+  go:       'i-simple-icons-go',
+  composer: 'i-simple-icons-composer',
+}
+
+function pmIcon(pm: string | null | undefined): string {
+  return PM_ICONS[(pm ?? 'unknown').toLowerCase()] ?? 'i-lucide-package'
+}
+
+function pmColor(pm: string | null | undefined): string {
+  return PM_COLORS[(pm ?? 'unknown').toLowerCase()] ?? PM_COLORS.unknown
+}
+
 const { status } = useAuth()
 const { getSortableHeader } = useSortableTable()
 
@@ -133,7 +160,15 @@ const columns: TableColumn<Component>[] = [
   },
   {
     accessorKey: 'packageManager',
-    header: ({ column }) => getSortableHeader(column, 'Package Manager')
+    header: ({ column }) => getSortableHeader(column, 'Package Manager'),
+    cell: ({ row }) => {
+      const pm = row.getValue('packageManager') as string | null
+      if (!pm) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      return h('span', { class: 'flex items-center gap-1' }, [
+        h(resolveComponent('UIcon'), { name: pmIcon(pm), style: { color: pmColor(pm) }, class: 'size-4 flex-shrink-0' }),
+        pm,
+      ])
+    },
   },
   {
     accessorKey: 'licenses',
