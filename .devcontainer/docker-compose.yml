@@ -33,7 +33,7 @@ services:
       - ../.data/neo4j/plugins:/plugins
     network_mode: host
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 > /dev/null 2>&1 && (echo > /dev/tcp/localhost/7687) 2>/dev/null || exit 1"]
+      test: ["CMD", "bash", "-c", "wget -qO- http://localhost:7474 > /dev/null 2>&1 && (echo > /dev/tcp/localhost/7687) 2>/dev/null"]
       interval: 15s
       timeout: 10s
       retries: 20
