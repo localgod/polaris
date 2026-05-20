@@ -53,11 +53,11 @@ jobs:
                   neo4j:
                     condition: service_healthy
                 healthcheck:
-                  test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/ping"]
+                  test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/ping"]
                   interval: 15s
                   timeout: 5s
-                  retries: 5
-                  start_period: 60s
+                  retries: 3
+                  start_period: 15s
                 networks:
                   - polaris-net
 
@@ -77,7 +77,7 @@ jobs:
                   - /opt/polaris/data/neo4j/import:/var/lib/neo4j/import
                   - /opt/polaris/data/neo4j/plugins:/plugins
                 healthcheck:
-                  test: ["CMD", "bash", "-c", "wget -qO- http://localhost:7474 > /dev/null 2>&1 && (echo > /dev/tcp/localhost/7687) 2>/dev/null"]
+                  test: ["CMD", "bash", "-c", "wget -qO- http://127.0.0.1:7474 > /dev/null 2>&1 && (echo > /dev/tcp/127.0.0.1/7687) 2>/dev/null"]
                   interval: 15s
                   timeout: 15s
                   retries: 20
@@ -113,7 +113,7 @@ jobs:
                   dozzle:
                     condition: service_healthy
                 healthcheck:
-                  test: ["CMD", "wget", "-qO-", "http://localhost:2019/config/"]
+                  test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2019/config/"]
                   interval: 30s
                   timeout: 10s
                   retries: 3
@@ -209,6 +209,38 @@ jobs:
 
             # Pull all images (app, neo4j, caddy, dozzle, watchtower)
             docker compose pull
+            docker compose up -d
+
+            # Wait for app to be healthy (up to 3 minutes), bypassing
+            # docker compose up --wait which misreads start_period state.
+            echo "Waiting for app to become healthy..."
+            APP_HEALTHY=false
+            for i in $(seq 1 36); do
+              STATUS=$(docker inspect polaris-app-1 --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+              echo "  [${i}/36] app health: $STATUS"
+              if [ "$STATUS" = "healthy" ]; then
+                APP_HEALTHY=true
+                break
+              fi
+              sleep 5
+            done
+
+            if [ "$APP_HEALTHY" = "false" ]; then
+              echo ""
+              echo "=== DEPLOY FAILED: app container never became healthy ==="
+              echo ""
+              echo "--- App container logs (last 150 lines) ---"
+              docker compose logs app --tail=150 2>&1 || true
+              echo ""
+              echo "--- Health check history ---"
+              docker inspect polaris-app-1 --format='{{range .State.Health.Log}}ExitCode={{.ExitCode}} Output={{.Output}}---{{end}}' 2>&1 || true
+              echo ""
+              echo "--- Container state ---"
+              docker inspect polaris-app-1 --format='Status={{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' 2>&1 || true
+              exit 1
+            fi
+
+            echo "App is healthy, proceeding."
 
             # Pull migrator image separately (profile-gated, not included above)
             docker compose pull migrate
