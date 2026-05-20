@@ -114,7 +114,18 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import * as d3 from 'd3'
+import {
+  select,
+  zoom,
+  zoomIdentity,
+  drag,
+  forceSimulation,
+  forceLink,
+  forceManyBody,
+  forceCenter,
+  forceCollide,
+} from 'd3'
+import type { Selection, Simulation, ZoomBehavior } from 'd3'
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -320,11 +331,11 @@ const visibleEdges = computed<GraphEdge[]>(() =>
 // ── D3 state ───────────────────────────────────────────────────────────────
 
 const positionCache = new Map<string, { x: number; y: number }>()
-let simulation: d3.Simulation<GraphNode, undefined> | null = null
-let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null
-let gRoot: d3.Selection<SVGGElement, unknown, null, undefined> | null = null
-let gLink: d3.Selection<SVGGElement, unknown, null, undefined> | null = null
-let gNode: d3.Selection<SVGGElement, unknown, null, undefined> | null = null
+let simulation: Simulation<GraphNode, undefined> | null = null
+let zoomBehavior: ZoomBehavior<SVGSVGElement, unknown> | null = null
+let gRoot: Selection<SVGGElement, unknown, null, undefined> | null = null
+let gLink: Selection<SVGGElement, unknown, null, undefined> | null = null
+let gNode: Selection<SVGGElement, unknown, null, undefined> | null = null
 
 const tooltip = ref({ visible: false, x: 0, y: 0, text: '' })
 const selectedNode = ref<GraphNode | null>(null)
@@ -350,14 +361,14 @@ function initSvg(): boolean {
   const svgEl = svgRef.value
   if (!svgEl) return false
 
-  const svg = d3.select(svgEl)
+  const svg = select(svgEl)
   svg.selectAll('*').remove()
 
   gRoot = svg.append('g').attr('class', 'root')
   gLink = gRoot.append('g').attr('class', 'links')
   gNode = gRoot.append('g').attr('class', 'nodes')
 
-  zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+  zoomBehavior = zoom<SVGSVGElement, unknown>()
     .scaleExtent([0.15, 4])
     .on('zoom', event => gRoot!.attr('transform', event.transform))
 
@@ -384,18 +395,17 @@ function updateGraph() {
     }
   })
 
-  const nodeById = new Map(simNodes.map(n => [n.id, n]))
+  // Fix #2: renamed from nodeById to avoid shadowing the component-scope computed
+  const simNodeById = new Map(simNodes.map(n => [n.id, n]))
   const simEdges = visibleEdges.value
     .map(e => {
       const src = typeof e.source === 'string' ? e.source : (e.source as GraphNode).id
       const tgt = typeof e.target === 'string' ? e.target : (e.target as GraphNode).id
-      return { source: nodeById.get(src)!, target: nodeById.get(tgt)! }
+      return { source: simNodeById.get(src)!, target: simNodeById.get(tgt)! }
     })
     .filter(e => e.source && e.target)
 
-  if (simulation) simulation.stop()
-
-  const drag = d3.drag<SVGGElement, GraphNode>()
+  const dragBehavior = drag<SVGGElement, GraphNode>()
     .on('start', (event, d) => {
       if (!event.active) simulation?.alphaTarget(0.3).restart()
       d.fx = d.x; d.fy = d.y
@@ -410,11 +420,13 @@ function updateGraph() {
     .selectAll<SVGLineElement, { source: GraphNode; target: GraphNode }>('line')
     .data(simEdges, d => `${d.source.id}→${d.target.id}`)
   linkSel.exit().remove()
+  // Fix #4: apply visual attributes on the merged selection so they apply to
+  // both entering and updating links (not just the enter selection)
   const links = linkSel.enter().append('line')
+    .merge(linkSel)
     .attr('stroke', 'var(--ui-border)')
     .attr('stroke-width', 1.5)
     .attr('stroke-opacity', 0.7)
-    .merge(linkSel)
 
   const nodeSel = gNode!
     .selectAll<SVGGElement, GraphNode>('g.node')
@@ -424,7 +436,7 @@ function updateGraph() {
   const nodeEnter = nodeSel.enter().append('g')
     .attr('class', 'node')
     .attr('cursor', 'pointer')
-    .call(drag)
+    .call(dragBehavior)
     .on('click', (_event, d) => {
       if (d.type === 'group') {
         toggleGroup(d.id)
@@ -438,7 +450,6 @@ function updateGraph() {
         }
       }
     })
-
     .on('mouseover', (event: MouseEvent, d: GraphNode) => {
       const cEl = containerRef.value
       if (!cEl) return
@@ -480,8 +491,12 @@ function updateGraph() {
     })
     .on('mouseout', () => { tooltip.value.visible = false })
 
-  nodeEnter.each(function(d) {
-    const g = d3.select(this)
+  // Fix #5: clear stale child elements on surviving nodes before redrawing,
+  // so all nodes (not just newly entered ones) get up-to-date visuals
+  const nodes = nodeEnter.merge(nodeSel)
+  nodes.selectAll('*').remove()
+  nodes.each(function(d) {
+    const g = select(this)
     if (d.type === 'system') {
       g.append('polygon').attr('points', `0,${-22} ${22},0 0,${22} ${-22},0`)
         .attr('fill', 'var(--ui-primary)').attr('stroke', 'var(--ui-bg)').attr('stroke-width', 2)
@@ -511,36 +526,58 @@ function updateGraph() {
         : truncate(d.label, 14))
   })
 
-  const nodes = nodeEnter.merge(nodeSel)
-
-  simulation = d3.forceSimulation<GraphNode>(simNodes)
-    .force('link', d3.forceLink<GraphNode, { source: GraphNode; target: GraphNode }>(simEdges)
-      .id(d => d.id)
-      .distance(d => {
-        const s = d.source as GraphNode; const t = d.target as GraphNode
-        if (s.type === 'system' || t.type === 'system') return 130
-        if (s.type === 'group' || t.type === 'group') return 90
-        return 60
+  // Fix #3: persist the simulation across renders; on subsequent calls update
+  // nodes/forces in-place and reheat with alpha(0.3) instead of recreating
+  // from scratch (which would trigger a full cold-start animation at alpha 1.0)
+  if (!simulation) {
+    simulation = forceSimulation<GraphNode>(simNodes)
+      .force('link', forceLink<GraphNode, { source: GraphNode; target: GraphNode }>(simEdges)
+        .id(d => d.id)
+        .distance(d => {
+          const s = d.source as GraphNode; const t = d.target as GraphNode
+          if (s.type === 'system' || t.type === 'system') return 130
+          if (s.type === 'group' || t.type === 'group') return 90
+          return 60
+        })
+      )
+      .force('charge', forceManyBody<GraphNode>().strength(d => {
+        if (d.type === 'system') return -600
+        if (d.type === 'group') return -300
+        return -80
+      }))
+      .force('center', forceCenter(width / 2, height / 2))
+      .force('collide', forceCollide<GraphNode>().radius(d => nodeRadius(d) + 8))
+      .on('tick', () => {
+        simNodes.forEach(n => {
+          if (n.x !== undefined && n.y !== undefined) positionCache.set(n.id, { x: n.x, y: n.y })
+        })
+        links
+          .attr('x1', d => (d.source as GraphNode).x ?? 0)
+          .attr('y1', d => (d.source as GraphNode).y ?? 0)
+          .attr('x2', d => (d.target as GraphNode).x ?? 0)
+          .attr('y2', d => (d.target as GraphNode).y ?? 0)
+        nodes.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`)
       })
-    )
-    .force('charge', d3.forceManyBody<GraphNode>().strength(d => {
-      if (d.type === 'system') return -600
-      if (d.type === 'group') return -300
-      return -80
-    }))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collide', d3.forceCollide<GraphNode>().radius(d => nodeRadius(d) + 8))
-    .on('tick', () => {
-      simNodes.forEach(n => {
-        if (n.x !== undefined && n.y !== undefined) positionCache.set(n.id, { x: n.x, y: n.y })
+  } else {
+    simulation.nodes(simNodes)
+    ;(simulation.force('link') as ReturnType<typeof forceLink<GraphNode, { source: GraphNode; target: GraphNode }>>)
+      ?.links(simEdges)
+    simulation.force('center', forceCenter(width / 2, height / 2))
+    simulation
+      .on('tick', () => {
+        simNodes.forEach(n => {
+          if (n.x !== undefined && n.y !== undefined) positionCache.set(n.id, { x: n.x, y: n.y })
+        })
+        links
+          .attr('x1', d => (d.source as GraphNode).x ?? 0)
+          .attr('y1', d => (d.source as GraphNode).y ?? 0)
+          .attr('x2', d => (d.target as GraphNode).x ?? 0)
+          .attr('y2', d => (d.target as GraphNode).y ?? 0)
+        nodes.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`)
       })
-      links
-        .attr('x1', d => (d.source as GraphNode).x ?? 0)
-        .attr('y1', d => (d.source as GraphNode).y ?? 0)
-        .attr('x2', d => (d.target as GraphNode).x ?? 0)
-        .attr('y2', d => (d.target as GraphNode).y ?? 0)
-      nodes.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`)
-    })
+      .alpha(0.3)
+      .restart()
+  }
 }
 
 // ── Reset zoom ─────────────────────────────────────────────────────────────
@@ -548,7 +585,7 @@ function updateGraph() {
 function resetZoom() {
   const svgEl = svgRef.value
   if (!svgEl || !zoomBehavior) return
-  d3.select(svgEl).transition().duration(400).call(zoomBehavior.transform, d3.zoomIdentity)
+  select(svgEl).transition().duration(400).call(zoomBehavior.transform, zoomIdentity)
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -563,7 +600,17 @@ function render() {
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
 
-onMounted(() => render())
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  render()
+  // Fix #6: reflow the graph when the container is resized so the force
+  // layout stays calibrated to the actual container dimensions
+  if (containerRef.value) {
+    resizeObserver = new ResizeObserver(() => render())
+    resizeObserver.observe(containerRef.value)
+  }
+})
 
 watch(svgRef, (el) => { if (el) render() }, { flush: 'post' })
 
@@ -576,6 +623,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
   simulation?.stop()
 })
 </script>
