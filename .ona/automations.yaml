@@ -6,7 +6,9 @@ tasks:
     name: Install Dependencies
     command: |
       echo "📦 Installing dependencies..."
+      rm -f node_modules/.install-complete
       npm install
+      touch node_modules/.install-complete
       echo "✅ Dependencies installed"
     triggeredBy:
       - postDevcontainerStart
@@ -41,7 +43,7 @@ tasks:
     name: Run Database Migrations
     command: |
       echo "⏳ Waiting for dependencies..."
-      while [ ! -d "node_modules" ]; do
+      while [ ! -f "node_modules/.install-complete" ]; do
         sleep 1
       done
 
@@ -132,7 +134,7 @@ services:
     commands:
       start: |
         echo "⏳ Waiting for dependencies..."
-        while [ ! -d "node_modules" ]; do
+        while [ ! -f "node_modules/.install-complete" ]; do
           sleep 1
         done
         
