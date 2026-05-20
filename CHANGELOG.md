@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.18] - 2026-05-20
+
+## What's Changed
+
+- fix: retry Neo4j verifyAuthentication on startup instead of failing immediately @localgod (#533)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.17...v0.5.18
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
