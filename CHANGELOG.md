@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.25] - 2026-05-20
+
+## What's Changed
+
+- Fix watchtower healthcheck causing deploy failure @localgod (#543)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.24...v0.5.25
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
