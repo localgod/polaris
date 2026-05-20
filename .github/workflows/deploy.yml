@@ -56,8 +56,8 @@ jobs:
                   test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/ping"]
                   interval: 15s
                   timeout: 5s
-                  retries: 5
-                  start_period: 60s
+                  retries: 3
+                  start_period: 15s
                 networks:
                   - polaris-net
 
@@ -193,7 +193,23 @@ jobs:
 
             # Pull new image and restart stack
             docker compose pull
-            docker compose up -d --wait || {
+            docker compose up -d
+
+            # Wait for app to be healthy (up to 3 minutes), bypassing
+            # docker compose up --wait which misreads start_period state.
+            echo "Waiting for app to become healthy..."
+            APP_HEALTHY=false
+            for i in $(seq 1 36); do
+              STATUS=$(docker inspect polaris-app-1 --format='{{.State.Health.Status}}' 2>/dev/null || echo "unknown")
+              echo "  [${i}/36] app health: $STATUS"
+              if [ "$STATUS" = "healthy" ]; then
+                APP_HEALTHY=true
+                break
+              fi
+              sleep 5
+            done
+
+            if [ "$APP_HEALTHY" = "false" ]; then
               echo ""
               echo "=== DEPLOY FAILED: app container never became healthy ==="
               echo ""
@@ -206,7 +222,9 @@ jobs:
               echo "--- Container state ---"
               docker inspect polaris-app-1 --format='Status={{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' 2>&1 || true
               exit 1
-            }
+            fi
+
+            echo "App is healthy, proceeding."
 
             # Run database migrations
             docker compose pull migrate
