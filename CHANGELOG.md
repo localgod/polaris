@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.24] - 2026-05-20
+
+## What's Changed
+
+- Add Watchtower for caddy/dozzle auto-updates, fix migration ordering @localgod (#541)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.23...v0.5.24
+
 ## [0.5.9] - 2026-05-19
 
 ## What's Changed
