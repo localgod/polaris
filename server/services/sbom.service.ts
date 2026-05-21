@@ -106,10 +106,14 @@ export class SBOMService {
       timestamp: new Date()
     })
     
-    // 6. Update repository last scan timestamp
+    // 6. Upsert (Team)-[:USES]->(Technology) edges so compliance violation
+    //    queries have current data after every SBOM submission.
+    await this.sbomRepo.upsertTeamUsesTechnology(system.name)
+
+    // 7. Update repository last scan timestamp
     await this.sourceRepoRepo.updateLastScan(normalizedUrl)
     
-    // 7. Audit log for SBOM import
+    // 8. Audit log for SBOM import
     await this.sbomRepo.createAuditLog({
       systemName: system.name,
       userId: input.userId,

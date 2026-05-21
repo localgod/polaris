@@ -89,6 +89,7 @@ describe('SBOMService', () => {
       name: 'test-system'
     })
     vi.mocked(SourceRepositoryRepository.prototype.updateLastScan).mockResolvedValue()
+    vi.mocked(SBOMRepository.prototype.upsertTeamUsesTechnology).mockResolvedValue()
   })
 
   describe('processSBOM', () => {
@@ -552,6 +553,44 @@ describe('SBOMService', () => {
       // metadata.component excluded; component + nested = 2
       expect(persistCall.components).toHaveLength(2)
       expect(persistCall.components.some(c => c.name === 'nested-lib')).toBe(true)
+    })
+
+    it('should upsert Team→USES→Technology edges after persisting components', async () => {
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1,
+        componentsUpdated: 0,
+        relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: {
+          bomFormat: 'CycloneDX',
+          specVersion: '1.4',
+          components: [{ type: 'library', name: 'react', version: '18.0.0', purl: 'pkg:npm/react@18.0.0' }]
+        },
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx'
+      })
+
+      expect(SBOMRepository.prototype.upsertTeamUsesTechnology).toHaveBeenCalledOnce()
+      expect(SBOMRepository.prototype.upsertTeamUsesTechnology).toHaveBeenCalledWith('test-system')
+    })
+
+    it('should upsert Team→USES→Technology edges before updating last scan timestamp', async () => {
+      const callOrder: string[] = []
+      vi.mocked(SBOMRepository.prototype.upsertTeamUsesTechnology).mockImplementation(async () => { callOrder.push('upsert') })
+      vi.mocked(SourceRepositoryRepository.prototype.updateLastScan).mockImplementation(async () => { callOrder.push('scan') })
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 0, componentsUpdated: 0, relationshipsCreated: 0
+      })
+
+      await service.processSBOM({
+        sbom: { bomFormat: 'CycloneDX', specVersion: '1.4', components: [] },
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx'
+      })
+
+      expect(callOrder).toEqual(['upsert', 'scan'])
     })
   })
 })
