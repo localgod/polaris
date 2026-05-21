@@ -21,13 +21,14 @@ CREATE (a)-[:AUDITS]->(u)
 FOREACH (_ IN CASE WHEN performer IS NOT NULL THEN [1] ELSE [] END |
   CREATE (a)-[:PERFORMED_BY]->(performer)
 )
+WITH u
+OPTIONAL MATCH (u)-[:MEMBER_OF]->(t:Team)
+OPTIONAL MATCH (u)-[:CAN_MANAGE]->(mt:Team)
+WITH u,
+     collect(DISTINCT {name: t.name, email: t.email}) AS teams,
+     collect(DISTINCT mt.name) AS canManage
 RETURN u {
-  .id,
-  .email,
-  .name,
-  .role,
-  .provider,
-  .avatarUrl,
-  .lastLogin,
-  .createdAt
+  .*,
+  teams: teams,
+  canManage: canManage
 } AS user
