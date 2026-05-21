@@ -193,4 +193,56 @@ describe('TechnologyService', () => {
       expect(params.vendor).toBe('Meta')
     })
   })
+
+  describe('findForRadar()', () => {
+    const mockRows = [
+      { name: 'React',   type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'invest' }, { team: 'B', time: 'invest' }] },
+      { name: 'Angular', type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'migrate' }, { team: 'B', time: 'invest' }] },
+      { name: 'Vue',     type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'eliminate' }, { team: 'B', time: 'migrate' }, { team: 'C', time: 'migrate' }] },
+      { name: 'Svelte',  type: 'framework', domain: 'developer-tooling', approvals: [] },
+    ]
+
+    beforeEach(() => {
+      vi.mocked(TechnologyRepository.prototype.findForRadar).mockResolvedValue(mockRows)
+    })
+
+    it('returns all technologies with unclassified for no approvals', async () => {
+      const result = await service.findForRadar()
+      const svelte = result.find(r => r.name === 'Svelte')
+      expect(svelte?.timeValue).toBe('unclassified')
+      expect(svelte?.approvalCount).toBe(0)
+    })
+
+    it('uses majority vote when no team filter', async () => {
+      const result = await service.findForRadar()
+      // React: 2x invest → invest
+      expect(result.find(r => r.name === 'React')?.timeValue).toBe('invest')
+    })
+
+    it('breaks ties by severity (eliminate > migrate > tolerate > invest)', async () => {
+      const result = await service.findForRadar()
+      // Angular: 1x migrate, 1x invest → tie → migrate wins (more severe)
+      expect(result.find(r => r.name === 'Angular')?.timeValue).toBe('migrate')
+      // Vue: 1x eliminate, 2x migrate → migrate wins (majority)
+      expect(result.find(r => r.name === 'Vue')?.timeValue).toBe('migrate')
+    })
+
+    it('filters by team when team param provided', async () => {
+      const result = await service.findForRadar('A')
+      expect(result.find(r => r.name === 'React')?.timeValue).toBe('invest')
+      expect(result.find(r => r.name === 'Angular')?.timeValue).toBe('migrate')
+      expect(result.find(r => r.name === 'Vue')?.timeValue).toBe('eliminate')
+    })
+
+    it('marks unclassified when team has no approval for a technology', async () => {
+      const result = await service.findForRadar('Z')
+      expect(result.every(r => r.timeValue === 'unclassified')).toBe(true)
+    })
+
+    it('includes approvalCount', async () => {
+      const result = await service.findForRadar()
+      expect(result.find(r => r.name === 'React')?.approvalCount).toBe(2)
+      expect(result.find(r => r.name === 'Svelte')?.approvalCount).toBe(0)
+    })
+  })
 })

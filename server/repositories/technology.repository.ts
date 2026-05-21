@@ -181,6 +181,29 @@ export class TechnologyRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Find all technologies with their team approvals for the radar view.
+   *
+   * Returns a lightweight projection — no versions, components, or constraints.
+   */
+  async findForRadar(): Promise<Array<{
+    name: string
+    type: string | null
+    domain: string | null
+    approvals: Array<{ team: string; time: string }>
+  }>> {
+    const query = await loadQuery('technologies/find-for-radar.cypher')
+    const { records } = await this.executeQuery(query, {})
+    return records.map(record => ({
+      name: record.get('name') as string,
+      type: record.get('type') as string | null,
+      domain: record.get('domain') as string | null,
+      approvals: (record.get('approvals') as Array<{ team?: string; time?: string }>)
+        .filter(a => a.team && a.time)
+        .map(a => ({ team: a.team!, time: a.time! })),
+    }))
+  }
+
   async update(params: UpdateTechnologyParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<string> {
     const query = await loadQuery('technologies/update.cypher')
     const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })

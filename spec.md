@@ -1,94 +1,132 @@
-# Spec: Collapsible Sidebar
+# Spec: Technology Radar Visualization (Issue #553)
 
 ## Problem Statement
 
-The sidebar is a fixed `w-64` `<aside>` with no responsive behaviour. On small screens it consumes a disproportionate share of the viewport, leaving little room for main content.
+The technologies page is a flat sortable table. There is no way to see the health of the technology portfolio at a glance — which technologies are strategic investments vs. migration candidates vs. scheduled for elimination. Engineering leadership needs a visual representation of the TIME (Tolerate/Invest/Migrate/Eliminate) framework distribution across the portfolio.
 
-## Nuxt UI v4 Capability Summary
+## Solution
 
-All requirements are achievable with standard Nuxt UI v4 components — no custom CSS width toggling or manual tooltip wrappers are needed:
+Add a **D3 ring radar** view to `app/pages/technologies/index.vue`, toggled via a view-mode selector alongside the existing table view. A new API endpoint aggregates technology TIME classifications filtered by team.
 
-| Requirement | Nuxt UI solution |
-|---|---|
-| Collapsible sidebar with icon-only mode | `<USidebar collapsible="icon">` |
-| Rail toggle button on sidebar edge | `<USidebar :rail="true">` |
-| Nav items icon-only + tooltips on hover | `<UNavigationMenu :collapsed="true" :tooltip="true">` |
-| Mobile: full-screen slideover | `<USidebar mode="slideover">` (auto below 1024px) |
-| Persist state across reloads | `useLocalStorage` from `@vueuse/core` (already a dependency) |
+---
 
 ## Requirements
 
-### Collapse Trigger
+### Radar Layout
 
-- A rail (thin clickable strip) on the right edge of the sidebar toggles collapse/expand.
-- The user controls this manually on all screen sizes.
-- On screens narrower than 1024px, `USidebar` automatically switches to a slideover (mobile drawer) — this is built-in behaviour.
+- Five concentric rings, from inner to outer: **Invest → Tolerate → Migrate → Eliminate → Unclassified**
+- Technology blips are plotted as circles within their ring, distributed by **domain** along the angular axis (each domain occupies an equal-angle sector of the circle)
+- Domains are the existing `TechnologyDomain` values: `foundational-runtime`, `framework`, `data-platform`, `integration-platform`, `security-identity`, `infrastructure`, `observability`, `developer-tooling`, `other`
+- Blips show the **technology name in a tooltip on hover** — no always-visible labels
+- Ring boundaries are labelled with the TIME category name; sector boundaries are labelled with the domain name
 
-### Collapsed State (icon-only mode)
+### Team Filter
 
-- Sidebar narrows to icon-only width (`--sidebar-width-icon: 4rem`, built into `USidebar`).
-- Each navigation item shows only its icon; labels are hidden.
-- Hovering an icon shows the item label as a tooltip (right-side, built into `UNavigationMenu :tooltip="true"`).
-- The main content area expands to fill the freed space (handled by `USidebar`'s gap spacer).
-- Width transition is animated (built into `USidebar` — `transition-[width] duration-200 ease-linear`).
+- A **team dropdown** above the radar selects which team's TIME approvals are used to place blips
+- When a team is selected, each technology is placed in the ring matching that team's TIME value for it
+- Technologies with no approval from the selected team appear in the **Unclassified** ring
+- The dropdown includes an **"All teams"** option — when selected, the most common TIME value across all teams is used; ties broken by severity order (Eliminate > Migrate > Tolerate > Invest); technologies with no approvals at all are Unclassified
 
-### Logo / Header Area (collapsed)
+### View Toggle
 
-- Hide "Polaris" text label (`v-show="sidebarOpen"`).
-- Hide `UColorModeButton` (`v-show="sidebarOpen"`).
-- The zap icon remains visible as the only logo element.
+- A toggle control (table icon / radar icon) in the page header switches between the existing table view and the new radar view
+- The selected view mode is persisted in `localStorage` (key: `polaris:technologies:viewMode`)
+- Default is table view
 
-### User Section (collapsed)
+### New API Endpoint
 
-- Hide user name, email, and role badge (`v-show="sidebarOpen"`).
-- Avatar remains visible.
-- Profile and Sign Out items show icon-only with tooltips (handled by `UNavigationMenu :collapsed` + `:tooltip`).
-- "Sign In" button: hide the full button, show an icon-only button when collapsed.
+`GET /api/technologies/radar`
 
-### Documentation Section (collapsed)
+**Query parameters:**
+- `team` (optional string) — team name to filter TIME approvals by
 
-- The "Documentation" label (`type: 'label'`) is hidden automatically by `UNavigationMenu` when `collapsed` is true.
-- All doc nav items show icon-only with tooltips.
+**Response shape:**
+```ts
+{
+  success: true,
+  data: RadarTechnology[]
+}
 
-### Version Footer (collapsed)
+interface RadarTechnology {
+  name: string
+  domain: TechnologyDomain | null
+  type: ComponentType | null
+  timeValue: TimeValue | 'unclassified'
+  approvalCount: number   // total number of team approvals for this technology
+}
+```
 
-- Version string hidden (`v-show="sidebarOpen"`).
+**Logic:**
+- Fetches all technologies with their approvals
+- If `team` param provided: uses that team's TIME value; `unclassified` if no approval exists for that team
+- If no `team` param: computes dominant TIME value across all team approvals using majority vote; ties broken by severity (Eliminate > Migrate > Tolerate > Invest); `unclassified` if no approvals at all
+- No pagination — returns all technologies (radar is a full-portfolio view)
+- Auth: public (same as existing `/api/technologies`)
 
-### State Persistence
-
-- `sidebarOpen` is backed by `useLocalStorage('polaris:sidebar:open', true)`.
-- Restores last state on page reload.
+---
 
 ## Acceptance Criteria
 
-1. The sidebar renders using `<USidebar collapsible="icon" :rail="true">`.
-2. Clicking the rail toggles between expanded (`w-64`) and collapsed (`w-16`) states.
-3. In collapsed mode, all navigation icons are visible and links work.
-4. In collapsed mode, hovering any nav icon shows a tooltip with the item label.
-5. In collapsed mode, the logo area shows only the zap icon.
-6. In collapsed mode, the user section shows only the avatar.
-7. The collapsed/expanded state persists across page reloads via `localStorage`.
-8. The width transition is smooth (no layout jump).
-9. The main content area fills the remaining width in both states.
-10. On screens < 1024px, the sidebar opens as a slideover (mobile behaviour).
-11. Dark mode continues to work correctly in both states.
+1. The technologies page has a view toggle (table / radar icons); default is table
+2. Selecting the radar view renders a D3 SVG with five concentric rings labelled Invest / Tolerate / Migrate / Eliminate / Unclassified (inner to outer)
+3. The radar is divided into equal-angle sectors by domain; each sector is labelled with the domain name
+4. Each technology appears as a blip in the correct ring for the selected team's TIME value
+5. Hovering a blip shows a tooltip with the technology name, domain, and type
+6. The team dropdown filters blips correctly; "All teams" uses dominant TIME logic
+7. Technologies with no TIME approval for the selected team appear in the Unclassified ring
+8. The view mode persists across page reloads via localStorage
+9. `GET /api/technologies/radar?team=<name>` returns correctly shaped data
+10. The radar SVG scales to container width (responsive via viewBox)
+11. Existing table view and all its functionality is unchanged
+12. New endpoint and service method have unit tests
 
-## Implementation Approach
+---
 
-1. **Verify `@vueuse/core` import** — confirm `useLocalStorage` is importable (it is, already used by `@nuxt/ui` internally).
-2. **Replace `<aside>` with `<USidebar>`** in `app/layouts/default.vue`:
-   - `collapsible="icon"` for icon-only collapse mode.
-   - `:rail="true"` for the edge toggle strip.
-   - `v-model:open="sidebarOpen"` bound to a `useLocalStorage` ref.
-   - Move all sidebar content into the default slot (header, nav, footer slots as appropriate).
-3. **Add `sidebarOpen` state** using `useLocalStorage('polaris:sidebar:open', true)`.
-4. **Update all three `UNavigationMenu` instances** to pass `:collapsed="!sidebarOpen"` and `:tooltip="!sidebarOpen"`.
-5. **Guard text-only elements** with `v-show="sidebarOpen"`:
-   - "Polaris" `<span>` in the logo.
-   - `UColorModeButton`.
-   - User name `<div>`, email `<div>`, role `UBadge`.
-   - Version `<span>` in the footer.
-6. **Handle Sign In button** — show full `UButton` when expanded (`v-if="sidebarOpen"`), icon-only button when collapsed (`v-else`).
-7. **Adjust nav padding** — `USidebar`'s body slot uses `p-4`; remove the existing `px-6` from the `<nav>` to avoid double padding.
-8. **Verify layout** — confirm `<main>` fills remaining width correctly with `USidebar`'s gap spacer approach (the `flex min-h-screen` wrapper on the outer div should still work).
-9. **Test** — expanded/collapsed toggle, tooltip display, localStorage persistence, mobile slideover, dark mode.
+## Implementation Steps
+
+1. **New Cypher query** `server/database/queries/technologies/find-for-radar.cypher`
+   - Returns all technologies with domain, type, and all team approvals (team name + time value)
+   - No pagination, no ORDER BY
+
+2. **Repository method** `TechnologyRepository.findForRadar()`
+   - Executes the new query
+   - Returns `Array<{ name, domain, type, approvals: { team, time }[] }>`
+
+3. **Service method** `TechnologyService.findForRadar(team?: string): Promise<RadarTechnology[]>`
+   - If `team` provided: find that team's approval for each technology; assign `unclassified` if absent
+   - If no `team`: compute dominant TIME via majority vote with severity tie-break; assign `unclassified` if no approvals
+   - Returns `RadarTechnology[]` (name, domain, type, timeValue, approvalCount)
+
+4. **Unit tests** `test/server/services/technology.service.spec.ts`
+   - Dominant TIME logic (majority, tie-breaking by severity)
+   - Team filter (found, not found → unclassified)
+   - All-unclassified case
+
+5. **API endpoint** `server/api/technologies/radar.get.ts`
+   - Reads optional `team` query param with `typeof === 'string' + trim()` validation
+   - Calls `technologyService.findForRadar(team)`
+   - Returns `{ success: true, data }` with OpenAPI doc comment
+
+6. **Radar component** `app/components/TechnologyRadar.vue`
+   - Props: `data: RadarTechnology[]`
+   - D3 SVG with five concentric rings (Invest innermost, Unclassified outermost)
+   - Equal-angle sectors per domain (9 domains → 40° each)
+   - Blips as `<circle>` elements, coloured by TIME value:
+     - invest → green (`success`)
+     - tolerate → amber (`warning`)
+     - migrate → amber (`warning`)
+     - eliminate → red (`error`)
+     - unclassified → grey (`neutral`)
+   - Blips jittered within their ring+sector cell to avoid overlap
+   - Tooltip on hover: technology name, domain, type
+   - Ring labels (TIME category) and sector labels (domain name) rendered as SVG text
+   - SVG `viewBox` set to fixed coordinate space; `width="100%"` for responsiveness
+
+7. **Page integration** `app/pages/technologies/index.vue`
+   - Add view-mode toggle buttons (table / radar icons) to page header area
+   - `const viewMode = useLocalStorage('polaris:technologies:viewMode', 'table')`
+   - Team dropdown (fetches `/api/teams`) rendered above radar, hidden in table mode; default "All teams"
+   - `useFetch('/api/technologies/radar', { query: { team: selectedTeam } })` — lazy, only fetches when radar mode is active
+   - Render `<TechnologyRadar :data="radarData" />` when `viewMode === 'radar'`
+
+8. **Lint, build, test** — verify no regressions
