@@ -30,12 +30,17 @@ describeFeature(feature, ({ Scenario }) => {
       return
     }
 
-    // Check if Playwright browsers are installed
+    // Launch Chromium — use --no-sandbox for container/CI environments
     try {
-      browser = await chromium.launch({ headless: true })
+      browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      })
       canRunTests = true
-    } catch {
-      console.warn('\n⚠️  Playwright browsers not installed. Run: npx playwright install chromium')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.split('\n')[0] : String(err)
+      console.warn(`\n⚠️  Could not launch Chromium (${msg})`)
+      console.warn('   Run: npx playwright install chromium')
       console.warn('   UI tests will be skipped.\n')
     }
   })
