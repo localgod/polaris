@@ -1,4 +1,4 @@
-import { UserRepository, type User, type UserSummary, type AssignTeamsParams, type CreateOrUpdateUserParams, type UserAuthData } from '../repositories/user.repository'
+import { UserRepository, type User, type UserSummary, type AssignTeamsParams, type CreateOrUpdateUserParams, type UserAuthData, type UpdateRoleParams } from '../repositories/user.repository'
 import type { SortParams } from '../utils/sorting'
 
 /**
@@ -99,11 +99,26 @@ export class UserService {
 
   /**
    * Get user by ID
-   * 
+   *
    * @param userId - User ID
    * @returns User or null if not found
    */
   async findById(userId: string): Promise<User | null> {
     return await this.userRepo.findById(userId)
+  }
+
+  /**
+   * Update a user's role
+   *
+   * Business rules:
+   * - Only superusers can call this
+   * - A superuser cannot demote themselves
+   * - Role must be 'user' or 'superuser'
+   *
+   * @param params - Role update parameters
+   * @returns Updated user or null if not found
+   */
+  async updateRole(params: UpdateRoleParams): Promise<User | null> {
+    return await this.userRepo.updateRole(params)
   }
 }

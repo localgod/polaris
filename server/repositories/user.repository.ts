@@ -52,6 +52,13 @@ export interface AssignTeamsParams {
   realUserId?: string | null
 }
 
+export interface UpdateRoleParams {
+  userId: string
+  role: 'user' | 'superuser'
+  performedBy: string
+  realUserId?: string | null
+}
+
 export interface CreateOrUpdateUserParams {
   id: string
   email: string
@@ -294,6 +301,31 @@ export class UserRepository extends BaseRepository {
     const query = await loadQuery('users/can-manage-team.cypher')
     const { records } = await this.executeQuery(query, { userId, teamName })
     return records[0]?.get('canManage') || false
+  }
+
+  /**
+   * Update a user's role and write an audit log entry
+   *
+   * @param params - Role update parameters
+   * @returns Updated user, or null if the user was not found
+   */
+  async updateRole(params: UpdateRoleParams): Promise<User | null> {
+    const { userId, role, performedBy, realUserId } = params
+
+    const current = await this.findById(userId)
+    if (!current) return null
+
+    const query = await loadQuery('users/update-role.cypher')
+    const { records } = await this.executeQuery(query, {
+      userId,
+      role,
+      previousRole: current.role,
+      performedBy,
+      realUserId: realUserId ?? null
+    })
+
+    if (records.length === 0) return null
+    return this.mapToUser(records[0]!)
   }
 
   /**

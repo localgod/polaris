@@ -193,6 +193,33 @@
         </div>
       </template>
     </UModal>
+
+    <!-- Grant/Revoke Superuser Modal -->
+    <UModal v-model:open="roleModalOpen">
+      <template #header>
+        <h3 class="text-lg font-semibold">{{ roleModalTarget?.role === 'superuser' ? 'Revoke Superuser Access' : 'Grant Superuser Access' }}</h3>
+      </template>
+      <template #body>
+        <p v-if="roleModalTarget?.role === 'superuser'">
+          Remove superuser access from <strong>{{ roleModalTarget?.name || roleModalTarget?.email }}</strong>? They will become a regular user.
+        </p>
+        <p v-else>
+          Grant superuser access to <strong>{{ roleModalTarget?.name || roleModalTarget?.email }}</strong>? They will gain full administrative access.
+        </p>
+        <UAlert v-if="roleError" class="mt-3" color="error" :title="roleError" icon="i-lucide-circle-x" />
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="roleModalOpen = false" />
+          <UButton
+            :label="roleModalTarget?.role === 'superuser' ? 'Revoke' : 'Grant'"
+            :color="roleModalTarget?.role === 'superuser' ? 'error' : 'warning'"
+            :loading="roleLoading"
+            @click="confirmRoleChange"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -238,6 +265,7 @@ interface TeamsResponse {
 }
 
 const { isSuperuser } = useEffectiveRole()
+const { data: session } = useAuth()
 
 const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')
@@ -401,6 +429,38 @@ function copyToken() {
   navigator.clipboard.writeText(generatedToken.value)
 }
 
+// Grant/revoke superuser modal state
+const roleModalOpen = ref(false)
+const roleModalTarget = ref<User | null>(null)
+const roleLoading = ref(false)
+const roleError = ref('')
+
+function openRoleModal(user: User) {
+  roleModalTarget.value = user
+  roleError.value = ''
+  roleModalOpen.value = true
+}
+
+async function confirmRoleChange() {
+  if (!roleModalTarget.value) return
+  roleLoading.value = true
+  roleError.value = ''
+  const newRole = roleModalTarget.value.role === 'superuser' ? 'user' : 'superuser'
+  try {
+    await $fetch(`/api/admin/users/${roleModalTarget.value.id}/role`, {
+      method: 'PUT',
+      body: { role: newRole }
+    })
+    roleModalOpen.value = false
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    roleError.value = err.data?.message || err.message || 'Failed to update role'
+  } finally {
+    roleLoading.value = false
+  }
+}
+
 // Delete user modal state
 const deleteUserModalOpen = ref(false)
 const deleteUserTarget = ref<User | null>(null)
@@ -500,6 +560,8 @@ const columns: TableColumn<User>[] = [
     cell: ({ row }) => {
       const user = row.original
 
+      const isSelf = session.value?.user?.id === user.id
+
       const items = [
         [
           ...(isSuperuser.value
@@ -514,6 +576,13 @@ const columns: TableColumn<User>[] = [
                 label: 'Generate API Token',
                 icon: 'i-lucide-key',
                 onSelect: () => openTokenModal(user)
+              }]
+            : []),
+          ...(isSuperuser.value && !isSelf
+            ? [{
+                label: user.role === 'superuser' ? 'Revoke Superuser' : 'Grant Superuser',
+                icon: user.role === 'superuser' ? 'i-lucide-shield-off' : 'i-lucide-shield-check',
+                onSelect: () => openRoleModal(user)
               }]
             : [])
         ],
