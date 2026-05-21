@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import neo4j from 'neo4j-driver'
-import { toDateString } from '../../../server/utils/neo4j'
+import { toDateString, getFirstRecordOrThrow } from '../../../server/utils/neo4j'
+import type { Record as Neo4jRecord } from 'neo4j-driver'
 
 describe('toDateString', () => {
   it('returns null for null', () => {
@@ -41,5 +42,22 @@ describe('toDateString', () => {
     const result = toDateString(ldt)
     expect(result).not.toBeNull()
     expect(result).toContain('2024-03-15')
+  })
+})
+
+describe('getFirstRecordOrThrow', () => {
+  it('returns the first record when the array is non-empty', () => {
+    const record = { get: (key: string) => key } as unknown as Neo4jRecord
+    expect(getFirstRecordOrThrow([record], 'not found')).toBe(record)
+  })
+
+  it('throws a 404 error when the array is empty', () => {
+    expect(() => getFirstRecordOrThrow([], 'Thing not found')).toThrow()
+    try {
+      getFirstRecordOrThrow([], 'Thing not found')
+    } catch (err: unknown) {
+      expect((err as { statusCode: number }).statusCode).toBe(404)
+      expect((err as { message: string }).message).toBe('Thing not found')
+    }
   })
 })
