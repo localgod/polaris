@@ -6,12 +6,20 @@
         title="Registered Users"
         description="Manage all users registered in the application"
       />
-      <UButton
-        v-if="isSuperuser"
-        label="Create Technical User"
-        icon="i-lucide-user-plus"
-        @click="createUserModalOpen = true"
-      />
+      <div v-if="isSuperuser" class="flex gap-2">
+        <UButton
+          label="Invite GitHub User"
+          icon="i-simple-icons-github"
+          color="neutral"
+          variant="outline"
+          @click="inviteModalOpen = true"
+        />
+        <UButton
+          label="Create Technical User"
+          icon="i-lucide-user-plus"
+          @click="createUserModalOpen = true"
+        />
+      </div>
     </div>
 
     <!-- Error State -->
@@ -194,6 +202,47 @@
       </template>
     </UModal>
 
+    <!-- Invite GitHub User Modal -->
+    <UModal v-model:open="inviteModalOpen" title="Invite GitHub User" description="Create a shareable invite link for a GitHub user.">
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="GitHub Username" description="The user's GitHub login, e.g. octocat">
+            <UInput
+              v-model="inviteUsername"
+              placeholder="octocat"
+              :disabled="!!inviteUrl"
+              leading-icon="i-simple-icons-github"
+            />
+          </UFormField>
+
+          <!-- Invite link displayed after creation -->
+          <template v-if="inviteUrl">
+            <UAlert color="success" icon="i-lucide-check-circle" title="Invite link created" description="Share this link with the user. It expires in 7 days." />
+            <div class="flex items-center gap-2">
+              <UInput :model-value="inviteUrl" readonly class="flex-1 font-mono text-xs" />
+              <UButton icon="i-lucide-copy" color="neutral" variant="outline" @click="copyInviteUrl" />
+            </div>
+            <p v-if="copied" class="text-xs text-center text-(--ui-color-success-500)">Copied!</p>
+          </template>
+
+          <UAlert v-if="inviteError" color="error" :title="inviteError" icon="i-lucide-circle-x" />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton label="Close" color="neutral" variant="outline" @click="closeInviteModal" />
+          <UButton
+            v-if="!inviteUrl"
+            label="Create Invite"
+            icon="i-lucide-link"
+            :loading="inviteLoading"
+            :disabled="!inviteUsername.trim()"
+            @click="createInvite"
+          />
+        </div>
+      </template>
+    </UModal>
+
     <!-- Grant/Revoke Superuser Modal -->
     <UModal v-model:open="roleModalOpen">
       <template #header>
@@ -245,6 +294,9 @@ interface User {
   teams?: UserTeam[]
   lastLogin: string | null
   createdAt: string
+  status?: string
+  githubUsername?: string
+  inviteToken?: string
 }
 
 interface UsersResponse {
@@ -429,6 +481,46 @@ function copyToken() {
   navigator.clipboard.writeText(generatedToken.value)
 }
 
+// Invite GitHub user modal state
+const inviteModalOpen = ref(false)
+const inviteUsername = ref('')
+const inviteUrl = ref('')
+const inviteLoading = ref(false)
+const inviteError = ref('')
+const copied = ref(false)
+
+function closeInviteModal() {
+  inviteModalOpen.value = false
+  inviteUsername.value = ''
+  inviteUrl.value = ''
+  inviteError.value = ''
+  copied.value = false
+}
+
+async function createInvite() {
+  inviteLoading.value = true
+  inviteError.value = ''
+  try {
+    const result = await $fetch<{ success: boolean; data: { inviteUrl: string } }>(
+      '/api/admin/users/invite',
+      { method: 'POST', body: { githubUsername: inviteUsername.value.trim() } }
+    )
+    inviteUrl.value = result.data.inviteUrl
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    inviteError.value = err.data?.message || err.message || 'Failed to create invite'
+  } finally {
+    inviteLoading.value = false
+  }
+}
+
+async function copyInviteUrl() {
+  await navigator.clipboard.writeText(inviteUrl.value)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
+
 // Grant/revoke superuser modal state
 const roleModalOpen = ref(false)
 const roleModalTarget = ref<User | null>(null)
@@ -523,6 +615,10 @@ const columns: TableColumn<User>[] = [
     accessorKey: 'role',
     header: ({ column }) => getSortableHeader(column, 'Role'),
     cell: ({ row }) => {
+      const user = row.original
+      if ((user as User & { status?: string }).status === 'pending') {
+        return h(UBadge, { color: 'neutral', variant: 'subtle' }, () => 'pending invite')
+      }
       const role = row.getValue('role') as string
       return h(UBadge, {
         color: role === 'superuser' ? 'error' : 'primary',

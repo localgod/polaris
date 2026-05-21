@@ -105,14 +105,30 @@ export default NuxtAuthHandler({
       // Create or update user in Neo4j on sign in
       if (user && account && profile) {
         try {
-          // Check if user email is in superuser list
           const superuserEmails = (process.env.SUPERUSER_EMAILS || '')
             .split(',')
             .map(email => email.trim().toLowerCase())
             .filter(email => email.length > 0)
-          
-          const isSuperuser = user.email && superuserEmails.includes(user.email.toLowerCase())
-          const role = isSuperuser ? 'superuser' : 'user'
+
+          const isSuperuser = Boolean(user.email && superuserEmails.includes(user.email.toLowerCase()))
+
+          // If a pending invite exists for this GitHub username, claim it instead
+          // of creating a fresh user record.
+          const githubLogin = (profile as Record<string, unknown>).login as string | undefined
+          if (githubLogin && account.provider === 'github') {
+            const pending = await userService.findPendingByUsername(githubLogin)
+            if (pending) {
+              await userService.claimInvite({
+                pendingId: pending.id,
+                realId: user.id,
+                email: user.email || '',
+                name: user.name ?? null,
+                avatarUrl: user.image || null,
+                isSuperuser
+              })
+              return true
+            }
+          }
 
           await userService.createOrUpdateUser({
             id: user.id,
@@ -120,8 +136,8 @@ export default NuxtAuthHandler({
             name: user.name ?? null,
             provider: account.provider,
             avatarUrl: user.image || null,
-            isSuperuser: Boolean(isSuperuser),
-            role
+            isSuperuser,
+            role: isSuperuser ? 'superuser' : 'user'
           })
         } catch (error) {
           logger.error({ err: error }, 'Error creating/updating user in Neo4j')

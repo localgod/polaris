@@ -9,5 +9,8 @@ RETURN u.id as id,
        u.avatarUrl as avatarUrl,
        u.lastLogin as lastLogin,
        u.createdAt as createdAt,
+       coalesce(u.status, 'active') as status,
+       u.githubUsername as githubUsername,
+       u.inviteToken as inviteToken,
        teamCount
 ORDER BY u.createdAt DESC

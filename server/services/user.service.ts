@@ -1,4 +1,4 @@
-import { UserRepository, type User, type UserSummary, type AssignTeamsParams, type CreateOrUpdateUserParams, type UserAuthData, type UpdateRoleParams } from '../repositories/user.repository'
+import { UserRepository, type User, type UserSummary, type AssignTeamsParams, type CreateOrUpdateUserParams, type UserAuthData, type UpdateRoleParams, type CreatePendingUserParams, type ClaimInviteParams, type PendingUser } from '../repositories/user.repository'
 import type { SortParams } from '../utils/sorting'
 
 /**
@@ -120,5 +120,44 @@ export class UserService {
    */
   async updateRole(params: UpdateRoleParams): Promise<User | null> {
     return await this.userRepo.updateRole(params)
+  }
+
+  /**
+   * Create a pending user from a GitHub username invite
+   *
+   * @param params - Pending user creation parameters
+   * @returns The created pending user
+   */
+  async createPendingUser(params: CreatePendingUserParams): Promise<PendingUser> {
+    return await this.userRepo.createPendingUser(params)
+  }
+
+  /**
+   * Find a pending user by invite token
+   *
+   * @param token - Invite token
+   * @returns Pending user or null
+   */
+  async findByInviteToken(token: string): Promise<PendingUser | null> {
+    return await this.userRepo.findByInviteToken(token)
+  }
+
+  /**
+   * Find a pending user by GitHub username (used during OAuth sign-in)
+   *
+   * @param githubUsername - GitHub login/username
+   * @returns Pending user or null
+   */
+  async findPendingByUsername(githubUsername: string): Promise<PendingUser | null> {
+    return await this.userRepo.findPendingByUsername(githubUsername)
+  }
+
+  /**
+   * Claim a pending invite during OAuth sign-in
+   *
+   * @param params - Claim parameters
+   */
+  async claimInvite(params: ClaimInviteParams): Promise<void> {
+    return await this.userRepo.claimInvite(params)
   }
 }

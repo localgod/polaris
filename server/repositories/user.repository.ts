@@ -42,6 +42,9 @@ export interface UserSummary {
   lastLogin: string | null
   createdAt: string | null
   teamCount: number
+  status: string
+  githubUsername: string | null
+  inviteToken: string | null
 }
 
 export interface AssignTeamsParams {
@@ -57,6 +60,40 @@ export interface UpdateRoleParams {
   role: 'user' | 'superuser'
   performedBy: string
   realUserId?: string | null
+}
+
+export interface CreatePendingUserParams {
+  id: string
+  email: string
+  name: string | null
+  avatarUrl: string | null
+  githubUsername: string
+  inviteToken: string
+  createdBy: string
+  realUserId?: string | null
+}
+
+export interface ClaimInviteParams {
+  pendingId: string
+  realId: string
+  email: string
+  name: string | null
+  avatarUrl: string | null
+  isSuperuser: boolean
+}
+
+export interface PendingUser {
+  id: string
+  email: string
+  name: string | null
+  provider: string
+  role: string
+  avatarUrl: string | null
+  githubUsername: string
+  status: string
+  inviteToken: string | null
+  inviteExpiresAt: string | null
+  createdAt: string | null
 }
 
 export interface CreateOrUpdateUserParams {
@@ -286,7 +323,10 @@ export class UserRepository extends BaseRepository {
       avatarUrl: record.get('avatarUrl'),
       lastLogin: record.get('lastLogin')?.toString() || null,
       createdAt: record.get('createdAt')?.toString() || null,
-      teamCount: record.get('teamCount').toNumber()
+      teamCount: record.get('teamCount').toNumber(),
+      status: record.get('status') || 'active',
+      githubUsername: record.get('githubUsername') || null,
+      inviteToken: record.get('inviteToken') || null
     }
   }
 
@@ -301,6 +341,47 @@ export class UserRepository extends BaseRepository {
     const query = await loadQuery('users/can-manage-team.cypher')
     const { records } = await this.executeQuery(query, { userId, teamName })
     return records[0]?.get('canManage') || false
+  }
+
+  /**
+   * Create a pending user with an invite token
+   */
+  async createPendingUser(params: CreatePendingUserParams): Promise<PendingUser> {
+    const query = await loadQuery('users/create-pending.cypher')
+    const { records } = await this.executeQuery(query, {
+      ...params,
+      realUserId: params.realUserId ?? null
+    })
+    return records[0]!.get('user') as PendingUser
+  }
+
+  /**
+   * Find a pending user by invite token
+   */
+  async findByInviteToken(token: string): Promise<PendingUser | null> {
+    const query = await loadQuery('users/find-by-invite-token.cypher')
+    const { records } = await this.executeQuery(query, { token })
+    if (records.length === 0) return null
+    return records[0]!.get('user') as PendingUser
+  }
+
+  /**
+   * Find a pending user by GitHub username
+   */
+  async findPendingByUsername(githubUsername: string): Promise<PendingUser | null> {
+    const query = await loadQuery('users/find-pending-by-username.cypher')
+    const { records } = await this.executeQuery(query, { githubUsername })
+    if (records.length === 0) return null
+    return records[0]!.get('user') as PendingUser
+  }
+
+  /**
+   * Claim a pending invite: swap the placeholder id for the real GitHub id
+   * and activate the user
+   */
+  async claimInvite(params: ClaimInviteParams): Promise<void> {
+    const query = await loadQuery('users/claim-invite.cypher')
+    await this.executeQuery(query, params)
   }
 
   /**
