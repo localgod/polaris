@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.30] - 2026-05-21
+
+## What's Changed
+
+- feat: technology radar visualization (TIME framework distribution) @localgod (#568)
+
+## 🔧 Maintenance
+
+- chore: release v0.5.29 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#567)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.29...v0.5.30
+
 ## [0.5.29] - 2026-05-21
 
 ## What's Changed
