@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.31] - 2026-05-21
+
+## What's Changed
+
+- fix: upsert Team→USES→Technology edges after SBOM ingestion @localgod (#570)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.30...v0.5.31
+
 ## [0.5.29] - 2026-05-21
 
 ## What's Changed
