@@ -46,7 +46,7 @@
           @click="signInWithGitHub"
         />
 
-        <p class="text-xs text-(--ui-text-muted)">
+        <p v-if="expiresInDays" class="text-xs text-(--ui-text-muted)">
           This invite expires {{ expiresInDays }}.
         </p>
       </div>

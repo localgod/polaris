@@ -95,6 +95,12 @@ export default defineEventHandler(async (event) => {
     // GitHub profile fetch is best-effort; proceed without it
   }
 
+  const rawExpiry = body.expiryDays
+  const expiryDays: number | null =
+    rawExpiry == null ? 7 : Number.isFinite(Number(rawExpiry)) && Number(rawExpiry) > 0
+      ? Number(rawExpiry)
+      : null
+
   const inviteToken = randomUUID()
   const pendingId = `invite-${randomUUID()}`
 
@@ -105,20 +111,20 @@ export default defineEventHandler(async (event) => {
     avatarUrl,
     githubUsername,
     inviteToken,
+    expiryDays,
     createdBy: currentUser.id,
     realUserId
   })
 
   const baseUrl = process.env.NUXT_PUBLIC_BASE_URL || `https://${getRequestHost(event)}`
   const inviteUrl = `${baseUrl}/invite/${inviteToken}`
+  const expiresAt = expiryDays
+    ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString()
+    : null
 
   setResponseStatus(event, 201)
   return {
     success: true,
-    data: {
-      inviteUrl,
-      githubUsername,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    }
+    data: { inviteUrl, githubUsername, expiresAt }
   }
 })

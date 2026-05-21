@@ -8,7 +8,7 @@ CREATE (u:User {
   githubUsername: $githubUsername,
   status: 'pending',
   inviteToken: $inviteToken,
-  inviteExpiresAt: datetime() + duration({days: 7}),
+  inviteExpiresAt: CASE WHEN $expiryDays IS NOT NULL THEN datetime() + duration({days: $expiryDays}) ELSE null END,
   createdAt: datetime(),
   lastLogin: null
 })

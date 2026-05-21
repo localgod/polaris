@@ -215,9 +215,17 @@
             />
           </UFormField>
 
+          <UFormField label="Expires in">
+            <USelect
+              v-model="inviteExpiryDays"
+              :items="inviteExpiryOptions"
+              :disabled="!!inviteUrl"
+            />
+          </UFormField>
+
           <!-- Invite link displayed after creation -->
           <template v-if="inviteUrl">
-            <UAlert color="success" icon="i-lucide-check-circle" title="Invite link created" description="Share this link with the user. It expires in 7 days." />
+            <UAlert color="success" icon="i-lucide-check-circle" title="Invite link created" :description="inviteSuccessMessage" />
             <div class="flex items-center gap-2">
               <UInput :model-value="inviteUrl" readonly class="flex-1 font-mono text-xs" />
               <UButton icon="i-lucide-copy" color="neutral" variant="outline" @click="copyInviteUrl" />
@@ -488,6 +496,19 @@ const inviteUrl = ref('')
 const inviteLoading = ref(false)
 const inviteError = ref('')
 const copied = ref(false)
+const inviteExpiryDays = ref<number | null>(7)
+
+const inviteExpiryOptions = [
+  { label: '7 days', value: 7 },
+  { label: '30 days', value: 30 },
+  { label: '90 days', value: 90 },
+  { label: 'No expiry', value: null }
+]
+
+const inviteSuccessMessage = computed(() => {
+  if (!inviteExpiryDays.value) return 'Share this link with the user. It does not expire.'
+  return `Share this link with the user. It expires in ${inviteExpiryDays.value} days.`
+})
 
 function closeInviteModal() {
   inviteModalOpen.value = false
@@ -495,6 +516,7 @@ function closeInviteModal() {
   inviteUrl.value = ''
   inviteError.value = ''
   copied.value = false
+  inviteExpiryDays.value = 7
 }
 
 async function createInvite() {
@@ -503,7 +525,7 @@ async function createInvite() {
   try {
     const result = await $fetch<{ success: boolean; data: { inviteUrl: string } }>(
       '/api/admin/users/invite',
-      { method: 'POST', body: { githubUsername: inviteUsername.value.trim() } }
+      { method: 'POST', body: { githubUsername: inviteUsername.value.trim(), expiryDays: inviteExpiryDays.value } }
     )
     inviteUrl.value = result.data.inviteUrl
     await refreshNuxtData()
@@ -683,7 +705,7 @@ const columns: TableColumn<User>[] = [
             : [])
         ],
         [
-          ...(isSuperuser.value && user.provider === 'technical'
+          ...(isSuperuser.value && (user.provider === 'technical' || user.status === 'pending')
             ? [{
                 label: 'Delete User',
                 icon: 'i-lucide-trash-2',

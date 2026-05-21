@@ -69,6 +69,7 @@ export interface CreatePendingUserParams {
   avatarUrl: string | null
   githubUsername: string
   inviteToken: string
+  expiryDays: number | null
   createdBy: string
   realUserId?: string | null
 }
