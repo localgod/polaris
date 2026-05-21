@@ -96,8 +96,8 @@
             <UInput v-model="importState.domain" placeholder="Development" />
           </UFormField>
 
-          <UFormField name="ownerTeam" label="Owner Team">
-            <USelect v-model="importState.ownerTeam" :items="importTeamItems" placeholder="Select a team (optional)" />
+          <UFormField name="ownerTeam" label="Owner Team" required>
+            <USelect v-model="importState.ownerTeam" :items="importTeamItems" placeholder="Select a team" />
           </UFormField>
 
           <UFormField name="businessCriticality" label="Business Criticality">
@@ -322,7 +322,7 @@ interface ImportResult {
 const importSchema = z.object({
   repositoryUrl: z.string().min(1, 'Repository URL is required'),
   domain: z.string().optional(),
-  ownerTeam: z.string().optional(),
+  ownerTeam: z.string().min(1, 'Owner team is required'),
   businessCriticality: z.string().optional(),
   environment: z.string().optional()
 })

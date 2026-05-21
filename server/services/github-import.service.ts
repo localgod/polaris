@@ -18,8 +18,8 @@ export interface GitHubImportInput {
   repositoryUrl: string
   /** Override system domain (defaults to 'Development') */
   domain?: string
-  /** Override owner team */
-  ownerTeam?: string
+  /** Owning team name (must exist) */
+  ownerTeam: string
   /** Override business criticality (defaults to 'medium') */
   businessCriticality?: string
   /** Override environment (defaults to 'dev') */
@@ -114,7 +114,7 @@ export class GitHubImportService {
       await this.systemService.create({
         name: metadata.name,
         domain: input.domain || 'Development',
-        ownerTeam: input.ownerTeam || '',
+        ownerTeam: input.ownerTeam,
         businessCriticality: input.businessCriticality || 'medium',
         environment: input.environment || 'dev',
         repositories: [{

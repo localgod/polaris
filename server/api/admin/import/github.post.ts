@@ -23,6 +23,7 @@ import { AuditLogRepository } from '../../../repositories/audit-log.repository'
  *             type: object
  *             required:
  *               - repositoryUrl
+ *               - ownerTeam
  *             properties:
  *               repositoryUrl:
  *                 type: string
@@ -58,6 +59,10 @@ export default defineEventHandler(async (event) => {
 
   if (!body?.repositoryUrl) {
     throw createError({ statusCode: 400, message: 'repositoryUrl is required' })
+  }
+
+  if (!body?.ownerTeam) {
+    throw createError({ statusCode: 400, message: 'ownerTeam is required' })
   }
 
   try {
