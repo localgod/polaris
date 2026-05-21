@@ -55,21 +55,24 @@ export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
   const realUserId = await getImpersonatorId(event)
 
-  const body = await readBody(event)
+  const body = await readBody(event) || {}
 
-  if (!body?.repositoryUrl) {
+  const repositoryUrl = typeof body.repositoryUrl === 'string' ? body.repositoryUrl.trim() : ''
+  const ownerTeam = typeof body.ownerTeam === 'string' ? body.ownerTeam.trim() : ''
+
+  if (!repositoryUrl) {
     throw createError({ statusCode: 400, message: 'repositoryUrl is required' })
   }
 
-  if (!body?.ownerTeam) {
+  if (!ownerTeam) {
     throw createError({ statusCode: 400, message: 'ownerTeam is required' })
   }
 
   try {
     const result = await gitHubImportService.import({
-      repositoryUrl: body.repositoryUrl,
-      domain: body.domain,
-      ownerTeam: body.ownerTeam,
+      repositoryUrl,
+      domain: typeof body.domain === 'string' ? body.domain.trim() || undefined : undefined,
+      ownerTeam,
       businessCriticality: body.businessCriticality,
       environment: body.environment,
       userId: user.id
