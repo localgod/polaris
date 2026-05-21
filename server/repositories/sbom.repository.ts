@@ -122,6 +122,20 @@ export class SBOMRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Upsert (Team)-[:USES]->(Technology) edges for a system.
+   *
+   * Derives team→technology usage from the ownership chain:
+   *   Team -[:OWNS]-> System -[:USES]-> Component -[:IS_VERSION_OF]-> Technology
+   *
+   * Called after every SBOM ingestion so compliance violation queries
+   * have up-to-date USES edges to match against.
+   */
+  async upsertTeamUsesTechnology(systemName: string): Promise<void> {
+    const query = await loadQuery('sboms/upsert-team-uses-technology.cypher')
+    await this.executeQuery(query, { systemName })
+  }
+
   async createAuditLog(params: {
     systemName: string
     userId: string
