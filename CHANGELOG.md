@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.29] - 2026-05-21
+
+## What's Changed
+
+- fix: make ownerTeam required in GitHub import dialog @localgod (#565)
+
+## 🔧 Maintenance
+
+- chore: release v0.5.28 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#564)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.28...v0.5.29
+
 ## [0.5.28] - 2026-05-20
 
 ## What's Changed
