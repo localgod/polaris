@@ -301,4 +301,62 @@ export class TechnologyService {
 
     return await this.techRepo.upsertApproval({ ...params, changes })
   }
+
+  /**
+   * Get all technologies shaped for the radar visualization.
+   *
+   * When `team` is provided each technology is placed in the ring matching
+   * that team's TIME value; technologies without an approval from that team
+   * are marked 'unclassified'.
+   *
+   * When no `team` is given the dominant TIME value across all approvals is
+   * used (majority vote; ties broken by severity: eliminate > migrate >
+   * tolerate > invest). Technologies with no approvals at all are
+   * 'unclassified'.
+   */
+  async findForRadar(team?: string): Promise<RadarTechnology[]> {
+    const rows = await this.techRepo.findForRadar()
+
+    const severityOrder: TimeValue[] = ['eliminate', 'migrate', 'tolerate', 'invest']
+
+    return rows.map(row => {
+      let timeValue: TimeValue | 'unclassified' = 'unclassified'
+
+      if (team) {
+        const approval = row.approvals.find(a => a.team === team)
+        if (approval && VALID_TIME_VALUES.includes(approval.time as TimeValue)) {
+          timeValue = approval.time as TimeValue
+        }
+      } else if (row.approvals.length > 0) {
+        // Count votes per TIME value
+        const counts: Partial<Record<TimeValue, number>> = {}
+        for (const a of row.approvals) {
+          if (VALID_TIME_VALUES.includes(a.time as TimeValue)) {
+            const t = a.time as TimeValue
+            counts[t] = (counts[t] ?? 0) + 1
+          }
+        }
+        const maxCount = Math.max(...Object.values(counts) as number[])
+        // Among tied values pick the most severe
+        const tied = severityOrder.filter(t => (counts[t] ?? 0) === maxCount)
+        if (tied.length > 0) timeValue = tied[0]!
+      }
+
+      return {
+        name: row.name,
+        type: (row.type as ComponentType | null) ?? null,
+        domain: (row.domain as TechnologyDomain | null) ?? null,
+        timeValue,
+        approvalCount: row.approvals.length,
+      }
+    })
+  }
+}
+
+export interface RadarTechnology {
+  name: string
+  type: ComponentType | null
+  domain: TechnologyDomain | null
+  timeValue: TimeValue | 'unclassified'
+  approvalCount: number
 }

@@ -1,15 +1,36 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-4">
     <div class="flex justify-between items-center">
       <UPageHeader
         title="Technologies"
         description="Governed technology choices across the organization"
+        :ui="{ root: 'py-2' }"
       />
-      <UButton
-        v-if="session?.user"
-        label="+ Create Technology"
-        to="/technologies/new"
-      />
+      <div class="flex items-center gap-2">
+        <!-- View mode toggle -->
+        <UButtonGroup size="sm">
+          <UButton
+            icon="i-lucide-table"
+            :color="viewMode === 'table' ? 'primary' : 'neutral'"
+            :variant="viewMode === 'table' ? 'solid' : 'outline'"
+            aria-label="Table view"
+            @click="viewMode = 'table'"
+          />
+          <UButton
+            icon="i-lucide-radar"
+            :color="viewMode === 'radar' ? 'primary' : 'neutral'"
+            :variant="viewMode === 'radar' ? 'solid' : 'outline'"
+            aria-label="Radar view"
+            @click="viewMode = 'radar'"
+          />
+        </UButtonGroup>
+        <UButton
+          v-if="session?.user"
+          size="sm"
+          label="+ Create Technology"
+          to="/technologies/new"
+        />
+      </div>
     </div>
 
     <UAlert
@@ -22,7 +43,8 @@
     />
 
     <template v-else>
-      <UCard>
+      <!-- Table view -->
+      <UCard v-if="viewMode === 'table'">
         <UTable
           v-model:sorting="sorting"
           :manual-sorting="true"
@@ -48,6 +70,22 @@
           />
         </div>
       </UCard>
+
+      <!-- Radar view -->
+      <template v-if="viewMode === 'radar'">
+        <div class="flex items-center gap-3 mb-4">
+          <label class="text-sm font-medium text-(--ui-text)">Team</label>
+          <USelect
+            v-model="radarTeam"
+            :items="radarTeamItems"
+            class="w-56"
+          />
+          <UBadge v-if="radarPending" color="neutral" variant="subtle">Loading…</UBadge>
+        </div>
+        <UCard>
+          <TechnologyRadar :data="radarData" />
+        </UCard>
+      </template>
     </template>
 
     <!-- Edit Technology Modal -->
@@ -241,10 +279,13 @@ import { h } from 'vue'
 import * as z from 'zod'
 import type { TableColumn, FormSubmitEvent } from '@nuxt/ui'
 import type { ApiResponse, Technology } from '~~/types/api'
+import type { RadarTechnology } from '~~/server/services/technology.service'
 
 const { getSortableHeader } = useSortableTable()
 const { data: session } = useAuth()
 const { isSuperuser } = useEffectiveRole()
+
+
 
 const userTeams = computed(() =>
   (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
@@ -697,6 +738,37 @@ const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/t
 
 const technologies = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.total || data.value?.count || 0)
+
+// ── View mode (declared after await so it's bound to the correct component instance) ──
+const LS_KEY = 'polaris:technologies:viewMode'
+const viewMode = ref<'table' | 'radar'>('table')
+
+onMounted(() => {
+  const stored = localStorage.getItem(LS_KEY)
+  if (stored === 'radar' || stored === 'table') viewMode.value = stored
+  watch(viewMode, v => localStorage.setItem(LS_KEY, v))
+})
+
+// ── Radar data ────────────────────────────────────────────────────────────────
+const ALL_TEAMS_VALUE = '__all__'
+const radarTeam = ref<string>(ALL_TEAMS_VALUE)
+
+const radarTeamItems = computed(() => [
+  { label: 'All teams', value: ALL_TEAMS_VALUE },
+  ...(teamsData.value?.data || []).map(t => ({ label: t.name, value: t.name })).sort((a, b) => a.label.localeCompare(b.label))
+])
+
+const radarQuery = computed(() => radarTeam.value !== ALL_TEAMS_VALUE ? { team: radarTeam.value } : {})
+
+const { data: radarResponse, pending: radarPending } = useLazyFetch<ApiResponse<RadarTechnology>>(
+  '/api/technologies/radar',
+  {
+    query: radarQuery,
+    watch: [radarQuery],
+  }
+)
+
+const radarData = computed(() => radarResponse.value?.data || [])
 
 useHead({ title: 'Technologies - Polaris' })
 </script>
