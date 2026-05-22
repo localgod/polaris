@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.38] - 2026-05-22
+
+## What's Changed
+
+- fix(sbom): reduce memory usage during BOM ingestion @localgod (#584)
+
+## 🔧 Maintenance
+
+- chore: release v0.5.37 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#583)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.37...v0.5.38
+
 ## [0.5.37] - 2026-05-22
 
 ## What's Changed
