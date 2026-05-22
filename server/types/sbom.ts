@@ -66,13 +66,19 @@ export interface ComponentDependency {
   dependsOn: string[]
 }
 
+export interface DirectDep {
+  bomRef: string
+  /** Dependency scope (e.g. 'required', 'optional', 'dev', 'runtime', 'test'). Null when unknown. */
+  scope: string | null
+}
+
 export interface PersistSBOMParams {
   systemName: string
   repositoryUrl: string
   components: ExtractedComponent[]
   dependencies: ComponentDependency[]
-  /** bomRefs of components that are direct dependencies of the system root */
-  directDeps: string[]
+  /** Direct dependencies of the system root, with per-edge scope. */
+  directDeps: DirectDep[]
   format: 'cyclonedx' | 'spdx'
   timestamp: Date
 }

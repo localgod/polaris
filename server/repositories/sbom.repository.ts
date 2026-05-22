@@ -1,5 +1,5 @@
 import { BaseRepository } from './base.repository'
-import type { PersistSBOMParams, PersistSBOMResult, ComponentDependency } from '../types/sbom'
+import type { PersistSBOMParams, PersistSBOMResult, ComponentDependency, DirectDep } from '../types/sbom'
 
 /**
  * Repository for SBOM-related data access
@@ -24,7 +24,8 @@ export class SBOMRepository extends BaseRepository {
     const relationsQuery = await loadQuery('sboms/persist-components-relations.cypher')
     const timestamp = params.timestamp.toISOString()
 
-    // Scalar fields only — sent in phase 1 (large batches, cheap)
+    // Scalar fields only — sent in phase 1 (large batches, cheap).
+    // scope is intentionally excluded: it belongs on the USES edge, not the node.
     const coreComponents = params.components.map((comp) => ({
       name: comp.name,
       version: comp.version,
@@ -34,7 +35,7 @@ export class SBOMRepository extends BaseRepository {
       bomRef: comp.bomRef,
       type: comp.type,
       group: comp.group,
-      scope: comp.scope,
+      scope: comp.scope, // passed through so the USES edge can be set in the same query
       copyright: comp.copyright,
       supplier: comp.supplier,
       author: comp.author,
@@ -91,22 +92,23 @@ export class SBOMRepository extends BaseRepository {
       await this.persistDirectDeps(params.systemName, params.directDeps, params.timestamp)
     }
 
+
     return { componentsAdded, componentsUpdated, relationshipsCreated }
   }
 
   /**
-   * Create DEPENDS_ON edges between Component nodes.
+   * Create (System)-[:DIRECT_DEP]->(Component) edges.
    *
    * Matches components by bomRef. Refs that don't resolve to a known
    * Component node are silently skipped by the Cypher query.
    */
-  private async persistDirectDeps(systemName: string, directBomRefs: string[], timestamp: Date): Promise<void> {
-    if (directBomRefs.length === 0) return
+  private async persistDirectDeps(systemName: string, directDeps: DirectDep[], timestamp: Date): Promise<void> {
+    if (directDeps.length === 0) return
     const query = await loadQuery('sboms/persist-direct-deps.cypher')
     const ts = timestamp.toISOString()
-    for (let i = 0; i < directBomRefs.length; i += SBOMRepository.BATCH_SIZE) {
-      const batch = directBomRefs.slice(i, i + SBOMRepository.BATCH_SIZE)
-      await this.executeQuery(query, { systemName, directBomRefs: batch, timestamp: ts })
+    for (let i = 0; i < directDeps.length; i += SBOMRepository.BATCH_SIZE) {
+      const batch = directDeps.slice(i, i + SBOMRepository.BATCH_SIZE)
+      await this.executeQuery(query, { systemName, directDeps: batch, timestamp: ts })
     }
   }
 

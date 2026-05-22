@@ -32,7 +32,6 @@ FOREACH (_ IN CASE WHEN comp.cpe IS NOT NULL THEN [1] ELSE [] END | SET c.cpe = 
 FOREACH (_ IN CASE WHEN comp.bomRef IS NOT NULL THEN [1] ELSE [] END | SET c.bomRef = comp.bomRef)
 FOREACH (_ IN CASE WHEN comp.type IS NOT NULL THEN [1] ELSE [] END | SET c.type = comp.type)
 FOREACH (_ IN CASE WHEN comp.group IS NOT NULL THEN [1] ELSE [] END | SET c.group = comp.group)
-FOREACH (_ IN CASE WHEN comp.scope IS NOT NULL THEN [1] ELSE [] END | SET c.scope = comp.scope)
 FOREACH (_ IN CASE WHEN comp.copyright IS NOT NULL THEN [1] ELSE [] END | SET c.copyright = comp.copyright)
 FOREACH (_ IN CASE WHEN comp.supplier IS NOT NULL THEN [1] ELSE [] END | SET c.supplier = comp.supplier)
 FOREACH (_ IN CASE WHEN comp.author IS NOT NULL THEN [1] ELSE [] END | SET c.author = comp.author)
@@ -40,9 +39,11 @@ FOREACH (_ IN CASE WHEN comp.publisher IS NOT NULL THEN [1] ELSE [] END | SET c.
 FOREACH (_ IN CASE WHEN comp.homepage IS NOT NULL THEN [1] ELSE [] END | SET c.homepage = comp.homepage)
 FOREACH (_ IN CASE WHEN comp.description IS NOT NULL THEN [1] ELSE [] END | SET c.description = comp.description)
 
+// scope belongs on the edge, not the node — it describes how this system uses
+// the component, not what the component intrinsically is.
 MERGE (s)-[r:USES]->(c)
-ON CREATE SET r.addedAt = $timestamp, r._new = true
-ON MATCH SET r.lastSeenAt = $timestamp, r._new = false
+ON CREATE SET r.addedAt = $timestamp, r.scope = comp.scope, r._new = true
+ON MATCH SET r.lastSeenAt = $timestamp, r.scope = comp.scope, r._new = false
 
 WITH isNew, r, r._new AS relIsNew
 REMOVE r._new

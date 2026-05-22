@@ -93,7 +93,7 @@ describe('SBOMRepository', () => {
           { ref: refA, dependsOn: [refB] },
           { ref: refB, dependsOn: [] },
         ],
-        directDeps: [refA, refB],
+        directDeps: [{ bomRef: refA, scope: 'required' }, { bomRef: refB, scope: null }],
         components: [
           {
             name: `${PREFIX}direct-comp-a`, version: '1.0.0',
