@@ -10,7 +10,8 @@ import type {
   ComponentDependency,
   ComponentHash,
   ComponentLicense,
-  ExternalReference
+  ExternalReference,
+  DirectDep,
 } from '../types/sbom'
 
 // SPDX relationship types that represent a dependency edge.
@@ -23,6 +24,17 @@ const SPDX_DEPENDENCY_TYPES = new Set([
   'RUNTIME_DEPENDENCY_OF',
   'TEST_DEPENDENCY_OF',
 ])
+
+// Maps SPDX relationship types to the scope value stored on the edge.
+// Relationship types not present here (e.g. DYNAMIC_LINK, STATIC_LINK) yield null.
+const SPDX_SCOPE_MAP: Record<string, string> = {
+  DEV_DEPENDENCY_OF: 'dev',
+  OPTIONAL_DEPENDENCY_OF: 'optional',
+  PROVIDED_DEPENDENCY_OF: 'provided',
+  RUNTIME_DEPENDENCY_OF: 'runtime',
+  TEST_DEPENDENCY_OF: 'test',
+  DEPENDS_ON: 'required',
+}
 
 /**
  * Service for SBOM processing and persistence
@@ -90,10 +102,19 @@ export class SBOMService {
     const components = this.extractComponents(sbomData, input.format)
     const dependencies = this.extractDependencies(sbomData, input.format)
     const { bomRef: rootBomRef, name: rootName } = this.extractRootBomRef(sbomData, input.format)
+
+    // Build a bomRef → scope map so resolveDirectDeps can attach scope to each
+    // direct dep without re-scanning the components or relationships arrays.
+    // CycloneDX: scope comes from ExtractedComponent.scope (set per component).
+    // SPDX: scope is derived from the relationship type (e.g. DEV_DEPENDENCY_OF → 'dev').
+    const scopeMap = input.format === 'cyclonedx'
+      ? this.buildCycloneDXScopeMap(components)
+      : this.buildSPDXScopeMap(sbomData)
+
     // Resolve direct deps here so the repository doesn't need to re-scan dependencies.
     // Uses a fallback for SBOMs where the root bom-ref type differs between
     // metadata.component and the dependencies[] entry (e.g. cdxgen without node_modules).
-    const directDeps = this.resolveDirectDeps(rootBomRef, rootName, dependencies)
+    const directDeps = this.resolveDirectDeps(rootBomRef, rootName, dependencies, scopeMap)
 
     // 5. Persist to database
     const result = await this.sbomRepo.persistSBOM({
@@ -174,7 +195,7 @@ export class SBOMService {
   }
 
   /**
-   * Resolve the direct dependency bomRefs for the root component.
+   * Resolve the direct dependency bomRefs for the root component, with scope.
    *
    * cdxgen sometimes uses different purl types for the root component in
    * `metadata.component` vs `dependencies[]`. For example, when run without
@@ -186,15 +207,23 @@ export class SBOMService {
    * 1. Exact match on `rootBomRef` — use it if `dependsOn` is non-empty.
    * 2. Fallback: find the dependency entry whose purl name segment matches
    *    `rootName` and has the most `dependsOn` entries.
+   *
+   * @param scopeMap - bomRef → scope, used to attach scope to each direct dep.
+   *   For CycloneDX this is built from ExtractedComponent.scope.
+   *   For SPDX this is built from relationship types.
    */
   private resolveDirectDeps(
     rootBomRef: string | null,
     rootName: string | null,
-    dependencies: ComponentDependency[]
-  ): string[] {
+    dependencies: ComponentDependency[],
+    scopeMap: Map<string, string | null>,
+  ): DirectDep[] {
+    const toBomRefs = (refs: string[]): DirectDep[] =>
+      refs.map(bomRef => ({ bomRef, scope: scopeMap.get(bomRef) ?? null }))
+
     if (rootBomRef) {
       const exact = dependencies.find(d => d.ref === rootBomRef)
-      if (exact && exact.dependsOn.length > 0) return exact.dependsOn
+      if (exact && exact.dependsOn.length > 0) return toBomRefs(exact.dependsOn)
     }
 
     if (!rootName) return []
@@ -209,7 +238,7 @@ export class SBOMService {
       .filter(d => nameFromRef(d.ref) === rootName && d.dependsOn.length > 0)
       .sort((a, b) => b.dependsOn.length - a.dependsOn.length)
 
-    return candidates[0]?.dependsOn ?? []
+    return toBomRefs(candidates[0]?.dependsOn ?? [])
   }
 
   /**
@@ -310,14 +339,21 @@ export class SBOMService {
   }
 
   /**
-   * Extract components from SPDX SBOM
+   * Extract components from SPDX SBOM.
+   *
+   * Builds a scope map from relationships before mapping packages so that
+   * each package can receive the correct scope derived from its relationship type.
    */
   private extractSPDXComponents(sbom: Record<string, unknown>): ExtractedComponent[] {
     const packages = sbom.packages as unknown[] | undefined
     if (!packages || !Array.isArray(packages)) {
       return []
     }
-    return packages.map((pkg) => this.mapSPDXPackage(pkg as Record<string, unknown>))
+    // Build SPDXID → scope from relationships so mapSPDXPackage can set scope.
+    // A package may appear as the target of multiple relationship types; the
+    // first recognised type wins (relationships are typically ordered root-first).
+    const scopeMap = this.buildSPDXScopeMap(sbom)
+    return packages.map((pkg) => this.mapSPDXPackage(pkg as Record<string, unknown>, scopeMap))
   }
 
   /**
@@ -349,21 +385,25 @@ export class SBOMService {
   }
 
   /**
-   * Map SPDX package to ExtractedComponent
+   * Map SPDX package to ExtractedComponent.
+   *
+   * @param scopeMap - SPDXID → scope derived from relationship types. Packages
+   *   not present in the map (e.g. the document root) receive scope: null.
    */
-  private mapSPDXPackage(pkg: Record<string, unknown>): ExtractedComponent {
+  private mapSPDXPackage(pkg: Record<string, unknown>, scopeMap: Map<string, string | null>): ExtractedComponent {
     const purl = this.normalizePurl(this.extractPurlFromExternalRefs((pkg.externalRefs as unknown[]) || []))
-    
+    const spdxId = pkg.SPDXID as string
+
     return {
       name: pkg.name as string,
       version: (pkg.versionInfo as string)?.trim() || null,
       packageManager: this.extractPackageManager(purl),
       purl: purl,
       cpe: this.extractCpeFromExternalRefs((pkg.externalRefs as unknown[]) || []),
-      bomRef: pkg.SPDXID as string,
+      bomRef: spdxId,
       type: this.mapSPDXPurpose(pkg.primaryPackagePurpose as string | undefined),
       group: this.extractGroupFromPurl(purl),
-      scope: null,
+      scope: scopeMap.get(spdxId) ?? null,
       hashes: this.extractSPDXHashes((pkg.checksums as unknown[]) || []),
       licenses: this.extractSPDXLicenses(pkg),
       copyright: (pkg.copyrightText as string)?.trim() || null,
@@ -374,6 +414,49 @@ export class SBOMService {
       description: (pkg.description as string)?.trim() || null,
       externalReferences: this.extractSPDXReferences((pkg.externalRefs as unknown[]) || [])
     }
+  }
+
+  /**
+   * Build a bomRef → scope map from CycloneDX ExtractedComponents.
+   *
+   * CycloneDX encodes scope directly on the component object, so we just
+   * index by bomRef. Components without a bomRef are skipped.
+   */
+  private buildCycloneDXScopeMap(components: ExtractedComponent[]): Map<string, string | null> {
+    const map = new Map<string, string | null>()
+    for (const comp of components) {
+      if (comp.bomRef) {
+        map.set(comp.bomRef, comp.scope)
+      }
+    }
+    return map
+  }
+
+  /**
+   * Build a SPDXID → scope map from SPDX relationships.
+   *
+   * SPDX encodes scope in the relationship type rather than on the package.
+   * This method scans `relationships[]` and maps each target SPDXID to the
+   * scope derived from the first recognised relationship type that points to it.
+   * Relationship types not in SPDX_SCOPE_MAP yield null.
+   */
+  private buildSPDXScopeMap(sbom: Record<string, unknown>): Map<string, string | null> {
+    const map = new Map<string, string | null>()
+    const relationships = sbom.relationships as unknown[] | undefined
+    if (!Array.isArray(relationships)) return map
+
+    for (const rel of relationships) {
+      const r = rel as Record<string, unknown>
+      const type = r.relationshipType as string | undefined
+      if (!type || !SPDX_DEPENDENCY_TYPES.has(type)) continue
+      const tgt = (r.relatedSpdxElement as string)?.trim()
+      if (!tgt) continue
+      // First relationship type wins; don't overwrite an already-resolved scope.
+      if (!map.has(tgt)) {
+        map.set(tgt, SPDX_SCOPE_MAP[type] ?? null)
+      }
+    }
+    return map
   }
 
   /**

@@ -121,7 +121,8 @@ const keyRelationships = [
   { label: 'MAINTAINS', description: 'Team maintains Repository', detail: 'Repository maintenance responsibility' },
   { label: 'HAS_VERSION', description: 'Technology has Version', detail: 'Version tracking per technology' },
   { label: 'IS_VERSION_OF', description: 'Component is version of Technology', detail: 'Component to technology mapping' },
-  { label: 'USES', description: 'System uses Component', detail: 'System dependency on a component' },
+  { label: 'USES', description: 'System uses Component', detail: 'System dependency on a component. Carries a scope property (e.g. required, optional, dev, runtime, test) describing how this system uses the component.' },
+  { label: 'DIRECT_DEP', description: 'System directly depends on Component', detail: 'Marks components that are direct (non-transitive) dependencies of the system root. Carries the same scope property as USES.' },
   { label: 'HAS_SOURCE_IN', description: 'System has source in Repository', detail: 'Source code location' },
   { label: 'GOVERNS', description: 'VersionConstraint governs Technology', detail: 'Constraint scope' },
   { label: 'PERFORMED_BY', description: 'AuditLog performed by User', detail: 'Who made the change' },
@@ -135,6 +136,7 @@ const queryExamples = [
   { title: 'Trace component dependencies across systems' },
   { title: 'Identify compliance violations' },
   { title: 'Track all changes made by a specific user' },
+  { title: 'Find all systems that use a component at runtime vs. dev-only' },
 ]
 
 useHead({ title: 'Graph Model - Polaris' })
@@ -169,6 +171,7 @@ const diagram = `graph TB
 
     System -->|USES| Technology
     System -->|USES| Component
+
     System -->|HAS_SOURCE_IN| Repository
 
     VersionConstraint -->|GOVERNS| Technology

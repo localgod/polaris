@@ -358,8 +358,9 @@ describe('SBOMService', () => {
         ref: 'pkg:npm/test-app@1.0.0',
         dependsOn: ['pkg:npm/lodash@4.17.21'],
       })
-      // directDeps is resolved from the root's dependsOn list in the service layer
-      expect(persistCall.directDeps).toEqual(['pkg:npm/lodash@4.17.21'])
+      // directDeps is resolved from the root's dependsOn list in the service layer.
+      // CycloneDX: scope comes from the component's scope field (null here since not set).
+      expect(persistCall.directDeps).toEqual([{ bomRef: 'pkg:npm/lodash@4.17.21', scope: null }])
     })
 
     it('should extract SPDX dependency relationships and pass them to persistSBOM', async () => {
@@ -452,7 +453,10 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.directDeps).toEqual(['pkg:npm/lodash@4.17.21', 'pkg:npm/express@4.18.2'])
+      expect(persistCall.directDeps).toEqual([
+        { bomRef: 'pkg:npm/lodash@4.17.21', scope: null },
+        { bomRef: 'pkg:npm/express@4.18.2', scope: null },
+      ])
     })
 
     it('should use exact match directDeps when root bom-ref matches a non-empty dependsOn entry', async () => {
@@ -484,7 +488,7 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.directDeps).toEqual(['pkg:npm/lodash@4.17.21'])
+      expect(persistCall.directDeps).toEqual([{ bomRef: 'pkg:npm/lodash@4.17.21', scope: null }])
     })
 
     it('should return empty directDeps when no dependency entry matches the root name', async () => {
