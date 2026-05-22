@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.40] - 2026-05-22
+
+## What's Changed
+
+- feat: expose direct/scope filters on component list and violation queries @localgod (#589)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.39...v0.5.40
+
 ## [0.5.37] - 2026-05-22
 
 ## What's Changed
