@@ -22,10 +22,10 @@ ON CREATE SET
   c.createdAt = $timestamp,
   c._new = true
 ON MATCH SET
-  c.updatedAt = $timestamp,
-  c._new = false
-
-WITH s, c, comp, c._new AS isNew
+  c.updatedAt = $timestamp
+// Use IS NOT NULL to detect new nodes without writing _new = false on every
+// existing component (which would trigger a property write + delete on each).
+WITH s, c, comp, (c._new IS NOT NULL) AS isNew
 REMOVE c._new
 
 FOREACH (_ IN CASE WHEN comp.cpe IS NOT NULL THEN [1] ELSE [] END | SET c.cpe = comp.cpe)
@@ -43,9 +43,9 @@ FOREACH (_ IN CASE WHEN comp.description IS NOT NULL THEN [1] ELSE [] END | SET 
 // the component, not what the component intrinsically is.
 MERGE (s)-[r:USES]->(c)
 ON CREATE SET r.addedAt = $timestamp, r.scope = comp.scope, r._new = true
-ON MATCH SET r.lastSeenAt = $timestamp, r.scope = comp.scope, r._new = false
+ON MATCH SET r.lastSeenAt = $timestamp, r.scope = comp.scope
 
-WITH isNew, r, r._new AS relIsNew
+WITH isNew, r, (r._new IS NOT NULL) AS relIsNew
 REMOVE r._new
 
 RETURN sum(CASE WHEN isNew THEN 1 ELSE 0 END) AS componentsAdded,
