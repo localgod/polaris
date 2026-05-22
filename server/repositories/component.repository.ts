@@ -11,6 +11,10 @@ export interface ComponentFilters {
   license?: string
   hasLicense?: boolean
   system?: string
+  /** When true, restrict to direct dependencies of the system (requires system to be set) */
+  directOnly?: boolean
+  /** Filter by dependency scope on the USES edge (e.g. 'runtime', 'dev', 'optional') */
+  depScope?: string
   limit?: number
   offset?: number
   sortBy?: string
@@ -67,8 +71,31 @@ export class ComponentRepository extends BaseRepository {
     }
 
     if (filters.system) {
-      componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES]->(c) }')
+      if (filters.directOnly) {
+        componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES {isDirect: true}]->(c) }')
+      } else if (filters.depScope) {
+        componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES {scope: $depScope}]->(c) }')
+      } else {
+        componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES]->(c) }')
+      }
       params.system = filters.system
+    }
+
+    if (filters.depScope && !filters.system) {
+      // scope filter without a system is not meaningful — ignore silently
+    }
+
+    if (filters.directOnly && filters.depScope && filters.system) {
+      // both directOnly and depScope: require isDirect=true AND scope matches
+      // replace the condition added above with a combined one
+      const idx = componentConditions.findLastIndex(c => c.includes('isDirect'))
+      if (idx >= 0) {
+        componentConditions[idx] = 'EXISTS { MATCH (sys:System {name: $system})-[:USES {isDirect: true, scope: $depScope}]->(c) }'
+      }
+    }
+
+    if (filters.depScope) {
+      params.depScope = filters.depScope
     }
 
     if (filters.technology) {
@@ -122,6 +149,13 @@ export class ComponentRepository extends BaseRepository {
   async findAll(filters: ComponentFilters = {}): Promise<{ data: Component[]; total: number }> {
     const baseQuery = await loadQuery('components/find-all.cypher')
     const { componentConditions, params } = this.buildFilterConditions(filters)
+
+    // $system must always be defined — the Phase 2 query uses it to look up
+    // scope/isDirect from the USES edge for the filtered system context.
+    // When no system filter is active, it resolves to null and the head() returns null.
+    if (!params.system) {
+      params.system = null
+    }
 
     const componentWhere = componentConditions.length > 0
       ? `WHERE ${componentConditions.join(' AND ')}`
@@ -185,7 +219,8 @@ export class ComponentRepository extends BaseRepository {
       bomRef: record.get('bomRef'),
       type: record.get('type'),
       group: record.get('group'),
-      scope: record.get('scope'),
+      scope: record.get('scope') ?? null,
+      isDirect: record.get('isDirect') ?? null,
       hashes: (record.get('hashes') ?? []).filter((h: { algorithm?: string; value?: string }) => h.algorithm),
       licenses: (record.get('licenses') ?? []).filter((l: { id?: string; name?: string }) => l.id || l.name),
       copyright: record.get('copyright'),

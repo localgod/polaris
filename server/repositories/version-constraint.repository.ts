@@ -7,6 +7,10 @@ export interface ViolationFilters {
   team?: string
   technology?: string
   system?: string
+  /** Restrict to direct dependencies only (USES {isDirect: true}) */
+  directOnly?: boolean
+  /** Restrict to a specific dependency scope on the USES edge */
+  depScope?: string
   limit?: number
   offset?: number
   sortBy?: string
@@ -163,7 +167,10 @@ export class VersionConstraintRepository extends BaseRepository {
   async findViolations(filters: ViolationFilters): Promise<Violation[]> {
     const query = await loadQuery('version-constraints/find-violations.cypher')
 
-    const params: Record<string, string> = {}
+    const params: Record<string, unknown> = {
+      directOnly: filters.directOnly ?? null,
+      depScope: filters.depScope ?? null,
+    }
     const conditions: string[] = []
 
     if (filters.severity) {

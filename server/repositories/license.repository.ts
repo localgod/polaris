@@ -54,6 +54,10 @@ export interface LicenseFilters {
 
 export interface LicenseViolationFilters {
   search?: string
+  /** Restrict to direct dependencies only (USES {isDirect: true}) */
+  directOnly?: boolean
+  /** Restrict to a specific dependency scope on the USES edge */
+  depScope?: string
   limit?: number
   offset?: number
   sortBy?: string
@@ -488,25 +492,32 @@ export class LicenseRepository extends BaseRepository {
    * Find components using disallowed licenses
    */
   async findViolations(filters: LicenseViolationFilters = {}): Promise<{ data: LicenseViolation[], total: number }> {
-    const conditions: string[] = ['license.allowed = false']
-    const params: Record<string, unknown> = {}
+    const conditions: string[] = []
+    const params: Record<string, unknown> = {
+      directOnly: filters.directOnly ?? null,
+      depScope: filters.depScope ?? null,
+    }
 
     if (filters.search) {
       conditions.push('(toLower(comp.name) CONTAINS toLower($search) OR toLower(license.id) CONTAINS toLower($search) OR toLower(sys.name) CONTAINS toLower($search) OR toLower(team.name) CONTAINS toLower($search))')
       params.search = filters.search
     }
 
-    const whereClause = `WHERE ${conditions.join(' AND ')}`
-    const matchClause = `MATCH (team:Team)-[:OWNS]->(sys:System)-[:USES]->(comp:Component)-[:HAS_LICENSE]->(license:License)`
+    const extraWhere = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : ''
+    const matchClause = `MATCH (team:Team)-[:OWNS]->(sys:System)-[u:USES]->(comp:Component)-[:HAS_LICENSE]->(license:License)`
+    const baseWhere = `WHERE license.allowed = false
+      AND ($directOnly IS NULL OR $directOnly = false OR u.isDirect = true)
+      AND ($depScope IS NULL OR u.scope = $depScope)
+      ${extraWhere}`
 
     // Count query
-    const countCypher = `${matchClause} ${whereClause} RETURN count(*) as total`
+    const countCypher = `${matchClause} ${baseWhere} RETURN count(*) as total`
     const { records: countRecords } = await this.executeQuery(countCypher, params)
     const total = countRecords[0]?.get('total').toNumber() || 0
 
     // Data query
     let dataCypher = `${matchClause}
-      ${whereClause}
+      ${baseWhere}
       RETURN team.name as teamName,
              sys.name as systemName,
              sys.businessCriticality as systemBusinessCriticality,

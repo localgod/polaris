@@ -43,6 +43,17 @@ import type { ApiResponse, LicenseViolation } from '~~/types/api'
  *           enum: [asc, desc]
  *           default: asc
  *         description: Sort direction
+ *       - in: query
+ *         name: direct
+ *         schema:
+ *           type: boolean
+ *         description: When true, restrict to direct dependencies only
+ *       - in: query
+ *         name: depScope
+ *         schema:
+ *           type: string
+ *           enum: [runtime, required, dev, optional, excluded]
+ *         description: Filter by dependency scope on the USES edge
  *     responses:
  *       200:
  *         description: License violations
@@ -69,6 +80,8 @@ export default defineEventHandler(async (event): Promise<ApiResponse<LicenseViol
 
     const filters = {
       search: query.search as string | undefined,
+      directOnly: query.direct === 'true' ? true : undefined,
+      depScope: query.depScope as string | undefined,
       limit,
       offset,
       sortBy: query.sortBy as string | undefined,

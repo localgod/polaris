@@ -4,10 +4,16 @@
 // For each (team, technology) pair, collect the systems that use the technology
 // and determine the most specific approval for each system's environment.
 // A violation exists when every system's resolved approval is absent or 'eliminate'.
+// Optional filters:
+//   $directOnly (boolean) — restrict to systems that use the technology via a direct dep
+//   $depScope   (string)  — restrict to systems that use the technology via a dep with this scope
 MATCH (team:Team)-[u:USES]->(tech:Technology)
-// Collect systems with their environments
+// Collect systems with their environments, optionally filtered by isDirect/scope on the USES edge
 WITH team, tech, u,
-     [(team)-[:OWNS]->(sys:System)-[:USES]->(:Component)-[:IS_VERSION_OF]->(tech) | {name: sys.name, environment: sys.environment}] as systemInfos
+     [(team)-[:OWNS]->(sys:System)-[cu:USES]->(comp:Component)-[:IS_VERSION_OF]->(tech)
+      WHERE ($directOnly IS NULL OR $directOnly = false OR cu.isDirect = true)
+        AND ($depScope IS NULL OR cu.scope = $depScope)
+      | {name: sys.name, environment: sys.environment}] as systemInfos
 // For each system, resolve the most specific approval:
 //   environment-specific approval takes precedence over blanket (environment IS NULL)
 WITH team, tech, u, systemInfos,
