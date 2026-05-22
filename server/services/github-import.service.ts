@@ -142,6 +142,36 @@ export class GitHubImportService {
   }
 
   /**
+   * Derive cdxgen project type(s) from the set of manifest files present.
+   * Returning a non-empty array restricts cdxgen to the matching language
+   * scanners, preventing unrelated scanners (e.g. createJarBom) from running.
+   */
+  private inferProjectTypes(manifests: GitHubFileContent[]): string[] {
+    const NODE_MANIFESTS = new Set(['package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'])
+    const JAVA_MANIFESTS = new Set(['pom.xml', 'build.gradle', 'build.gradle.kts', 'gradle.lockfile'])
+    const PYTHON_MANIFESTS = new Set(['requirements.txt', 'pyproject.toml', 'Pipfile', 'Pipfile.lock', 'poetry.lock', 'setup.py', 'setup.cfg'])
+    const GO_MANIFESTS = new Set(['go.mod', 'go.sum'])
+    const RUBY_MANIFESTS = new Set(['Gemfile', 'Gemfile.lock'])
+    const RUST_MANIFESTS = new Set(['Cargo.toml', 'Cargo.lock'])
+    const PHP_MANIFESTS = new Set(['composer.json', 'composer.lock'])
+    const DOTNET_MANIFESTS = new Set(['packages.config', 'packages.lock.json'])
+
+    const types = new Set<string>()
+    for (const { path } of manifests) {
+      const filename = path.split('/').pop()!
+      if (NODE_MANIFESTS.has(filename)) types.add('js')
+      if (JAVA_MANIFESTS.has(filename)) types.add('java')
+      if (PYTHON_MANIFESTS.has(filename)) types.add('py')
+      if (GO_MANIFESTS.has(filename)) types.add('go')
+      if (RUBY_MANIFESTS.has(filename)) types.add('ruby')
+      if (RUST_MANIFESTS.has(filename)) types.add('rust')
+      if (PHP_MANIFESTS.has(filename)) types.add('php')
+      if (DOTNET_MANIFESTS.has(filename) || filename.endsWith('.csproj')) types.add('dotnet')
+    }
+    return [...types]
+  }
+
+  /**
    * Write manifest files to a temp directory and run cdxgen to generate an SBOM.
    */
   private async generateSBOM(
@@ -158,14 +188,17 @@ export class GitHubImportService {
         writeFileSync(filePath, file.content, 'utf-8')
       }
 
-      logger.info({ projectName, manifestCount: manifests.length }, 'Running cdxgen for GitHub import')
+      const projectTypes = this.inferProjectTypes(manifests)
+      logger.info({ projectName, manifestCount: manifests.length, projectTypes }, 'Running cdxgen for GitHub import')
 
-      // Run cdxgen
+      // Run cdxgen — restrict to detected project types to prevent unrelated
+      // language scanners (e.g. createJarBom) from producing spurious components.
       const bom = await createBom(tempDir, {
         installDeps: false,
         projectName,
         projectVersion: '1.0.0',
-        multiProject: true
+        multiProject: true,
+        ...(projectTypes.length > 0 && { projectType: projectTypes }),
       })
 
       if (!bom) {

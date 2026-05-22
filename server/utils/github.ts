@@ -204,7 +204,11 @@ export async function fetchManifestFiles(
   const tree = await fetchFileTree(owner, repo, branch)
 
   const manifestPaths = tree
-    .filter(entry => entry.type === 'blob' && isManifestFile(entry.path))
+    .filter(entry =>
+      entry.type === 'blob' &&
+      isManifestFile(entry.path) &&
+      !entry.path.includes('node_modules/')
+    )
     .map(entry => entry.path)
 
   if (manifestPaths.length === 0) {
