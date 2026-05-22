@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.36] - 2026-05-22
+
+## What's Changed
+
+## 🐛 Bug Fixes
+
+- fix: prevent spurious pkg:maven components in SBOM generation @localgod (#578)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.35...v0.5.36
+
 ## [0.5.29] - 2026-05-21
 
 ## What's Changed
