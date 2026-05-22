@@ -1,9 +1,14 @@
 // Find version-constraint violations: Team→System→Component→Technology
-// Semver range check is applied in the service layer after fetching candidates
-MATCH (team:Team)-[:OWNS]->(sys:System)-[:USES]->(comp:Component)-[:IS_VERSION_OF]->(tech:Technology)
+// Semver range check is applied in the service layer after fetching candidates.
+// Optional filters:
+//   $directOnly (boolean) — restrict to direct dependencies (USES {isDirect: true})
+//   $depScope   (string)  — restrict to a specific scope on the USES edge
+MATCH (team:Team)-[:OWNS]->(sys:System)-[u:USES]->(comp:Component)-[:IS_VERSION_OF]->(tech:Technology)
 MATCH (vc:VersionConstraint {status: 'active'})-[:GOVERNS]->(tech)
 MATCH (team)-[:SUBJECT_TO]->(vc)
-{{WHERE_CONDITIONS}}
+WHERE ($directOnly IS NULL OR $directOnly = false OR u.isDirect = true)
+  AND ($depScope IS NULL OR u.scope = $depScope)
+  {{AND_CONDITIONS}}
 RETURN team.name as teamName,
        sys.name as systemName,
        sys.businessCriticality as systemBusinessCriticality,

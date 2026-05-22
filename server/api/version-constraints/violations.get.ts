@@ -9,7 +9,9 @@ export default defineEventHandler(async (event) => {
     const result = await versionConstraintService.getViolations({
       severity: query.severity as string | undefined,
       team: query.team as string | undefined,
-      technology: query.technology as string | undefined
+      technology: query.technology as string | undefined,
+      directOnly: query.direct === 'true' ? true : undefined,
+      depScope: query.depScope as string | undefined,
     })
 
     return { success: true, ...result }

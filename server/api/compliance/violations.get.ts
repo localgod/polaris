@@ -98,8 +98,12 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event)
 
   try {
-    const result = await complianceService.findViolations()
-    
+    const query = getQuery(event)
+    const result = await complianceService.findViolations({
+      directOnly: query.direct === 'true' ? true : undefined,
+      depScope: query.depScope as string | undefined,
+    })
+
     return {
       success: true,
       data: result

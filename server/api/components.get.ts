@@ -46,6 +46,17 @@ import { componentService } from '../services/singletons'
  *           type: string
  *         description: Filter by system name (only components used by this system)
  *       - in: query
+ *         name: direct
+ *         schema:
+ *           type: boolean
+ *         description: When true, restrict to direct dependencies of the system (requires system)
+ *       - in: query
+ *         name: depScope
+ *         schema:
+ *           type: string
+ *           enum: [runtime, required, dev, optional, excluded]
+ *         description: Filter by dependency scope on the USES edge (requires system)
+ *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
@@ -114,6 +125,8 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Component>>
       license: query.license as string | undefined,
       hasLicense: query.hasLicense === 'true' ? true : query.hasLicense === 'false' ? false : undefined,
       system: query.system as string | undefined,
+      directOnly: query.direct === 'true' ? true : undefined,
+      depScope: query.depScope as string | undefined,
       limit,
       offset,
       sortBy: query.sortBy as string | undefined,

@@ -59,7 +59,8 @@ export interface Component {
   // === CLASSIFICATION ===
   type: ComponentType | null     // library, framework, application, etc.
   group: string | null           // Maven groupId, npm scope, etc.
-  scope: DependencyScope | null  // required, optional, dev, test, etc.
+  scope: DependencyScope | null  // runtime, required, optional, dev, excluded — from USES edge (null when no system context)
+  isDirect: boolean | null       // true = direct dep of the queried system; null when no system context
   
   // === HASHES ===
   hashes: Hash[]                 // Multiple hashes with algorithms

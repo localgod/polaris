@@ -1,4 +1,4 @@
-import { ComplianceRepository, type ComplianceViolation } from '../repositories/compliance.repository'
+import { ComplianceRepository, type ComplianceViolation, type ComplianceViolationFilters } from '../repositories/compliance.repository'
 
 interface TeamSummary {
   team: string
@@ -40,10 +40,10 @@ export class ComplianceService {
    * 
    * @returns Violations with summary statistics
    */
-  async findViolations(): Promise<ViolationResult> {
-    const violations = await this.complianceRepo.findViolations()
+  async findViolations(filters: ComplianceViolationFilters = {}): Promise<ViolationResult> {
+    const violations = await this.complianceRepo.findViolations(filters)
     const summary = this.calculateSummary(violations)
-    
+
     return {
       violations,
       summary
