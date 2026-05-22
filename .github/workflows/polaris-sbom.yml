@@ -90,6 +90,13 @@ jobs:
           # Domain used when POLARIS_AUTO_REGISTER creates the system entry.
           # POLARIS_DOMAIN: 'Development'
 
+          # Restrict cdxgen to specific language scanner(s). Without this, cdxgen runs all
+          # scanners including the JAR scanner, which picks up .jar files bundled inside
+          # node_modules (e.g. from @appthreat/atom) and produces spurious pkg:maven components.
+          # Set to a comma-separated list matching your project: js, java, py, ruby, rust, go, php, dotnet.
+          # Omit to let cdxgen auto-detect (safe when node_modules is not present during the scan).
+          # POLARIS_PROJECT_TYPE: 'js'
+
           # Populated automatically by GitHub Actions — used as the SBOM version.
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REPOSITORY: ${{ github.repository }}

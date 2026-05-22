@@ -16,6 +16,11 @@
  * Optional environment variables:
  *   POLARIS_REPO_URL       - Full repository URL. Defaults to https://github.com/$GITHUB_REPOSITORY
  *   POLARIS_AUTO_REGISTER  - Set to "true" to register the repo with the system before pushing
+ *   POLARIS_PROJECT_TYPE   - Comma-separated cdxgen project type(s) to scan (e.g. "js", "java", "py").
+ *                            When set, only the matching language scanner(s) run, preventing cdxgen
+ *                            from scanning unrelated artifacts such as JAR files bundled inside
+ *                            node_modules. Valid values: js, java, py, ruby, rust, go, php, dotnet.
+ *                            Omit to let cdxgen auto-detect all project types.
  */
 
 import { createBom } from '@cyclonedx/cdxgen'
@@ -55,6 +60,10 @@ const POLARIS_REPO_URL =
     ? `https://github.com/${process.env.GITHUB_REPOSITORY}`
     : null)
 const AUTO_REGISTER = process.env.POLARIS_AUTO_REGISTER === 'true'
+const POLARIS_PROJECT_TYPE = (process.env.POLARIS_PROJECT_TYPE || '')
+  .split(',')
+  .map((type) => type.trim())
+  .filter(Boolean)
 // POLARIS_DOMAIN is reserved for future use when system creation is supported via this script.
 
 // ---------------------------------------------------------------------------
@@ -86,6 +95,7 @@ async function generateSbom() {
       projectName: POLARIS_SYSTEM,
       projectVersion: process.env.GITHUB_SHA?.slice(0, 7) || '0.0.0',
       multiProject: true,
+      ...(POLARIS_PROJECT_TYPE.length > 0 && { projectType: POLARIS_PROJECT_TYPE }),
     })
 
     if (!bom) return null
