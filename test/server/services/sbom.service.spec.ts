@@ -358,9 +358,10 @@ describe('SBOMService', () => {
         ref: 'pkg:npm/test-app@1.0.0',
         dependsOn: ['pkg:npm/lodash@4.17.21'],
       })
-      // directDeps is resolved from the root's dependsOn list in the service layer.
-      // CycloneDX: scope comes from the component's scope field (null here since not set).
-      expect(persistCall.directDeps).toEqual([{ bomRef: 'pkg:npm/lodash@4.17.21', scope: null }])
+      // componentUsage is computed by BFS propagation in the service layer.
+      // lodash is a direct dep with no scope set on the component → scope: null, isDirect: true.
+      const lodashUsage = persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')
+      expect(lodashUsage).toEqual({ bomRef: 'pkg:npm/lodash@4.17.21', scope: null, isDirect: true })
     })
 
     it('should extract SPDX dependency relationships and pass them to persistSBOM', async () => {
@@ -453,10 +454,9 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.directDeps).toEqual([
-        { bomRef: 'pkg:npm/lodash@4.17.21', scope: null },
-        { bomRef: 'pkg:npm/express@4.18.2', scope: null },
-      ])
+      // Both lodash and express are direct deps resolved via the name-fallback path.
+      expect(persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/express@4.18.2')).toMatchObject({ isDirect: true })
     })
 
     it('should use exact match directDeps when root bom-ref matches a non-empty dependsOn entry', async () => {
@@ -488,7 +488,7 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.directDeps).toEqual([{ bomRef: 'pkg:npm/lodash@4.17.21', scope: null }])
+      expect(persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')).toMatchObject({ isDirect: true })
     })
 
     it('should return empty directDeps when no dependency entry matches the root name', async () => {
@@ -520,7 +520,9 @@ describe('SBOMService', () => {
       })
 
       const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
-      expect(persistCall.directDeps).toEqual([])
+      // No direct deps resolved — no component should have isDirect: true
+      const anyDirect = [...persistCall.componentUsage.values()].some(u => u.isDirect)
+      expect(anyDirect).toBe(false)
     })
 
     it('should handle nested CycloneDX components', async () => {

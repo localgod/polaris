@@ -1,5 +1,5 @@
 import { BaseRepository } from './base.repository'
-import type { PersistSBOMParams, PersistSBOMResult, ComponentDependency, DirectDep } from '../types/sbom'
+import type { PersistSBOMParams, PersistSBOMResult, ComponentDependency } from '../types/sbom'
 
 /**
  * Repository for SBOM-related data access
@@ -27,24 +27,30 @@ export class SBOMRepository extends BaseRepository {
     const timestamp = params.timestamp.toISOString()
 
     // Scalar fields only — sent in phase 1 (large batches, cheap).
-    // scope is passed through so the USES edge can be set in the same query.
-    const coreComponents = params.components.map((comp) => ({
-      name: comp.name,
-      version: comp.version,
-      packageManager: comp.packageManager,
-      purl: comp.purl,
-      cpe: comp.cpe,
-      bomRef: comp.bomRef,
-      type: comp.type,
-      group: comp.group,
-      scope: comp.scope,
-      copyright: comp.copyright,
-      supplier: comp.supplier,
-      author: comp.author,
-      publisher: comp.publisher,
-      homepage: comp.homepage,
-      description: comp.description,
-    }))
+    // scope and isDirect come from the BFS-computed componentUsage map rather
+    // than directly from the component object — they are edge properties that
+    // describe how this system uses the component, not intrinsic component data.
+    const coreComponents = params.components.map((comp) => {
+      const usage = comp.bomRef ? params.componentUsage.get(comp.bomRef) : undefined
+      return {
+        name: comp.name,
+        version: comp.version,
+        packageManager: comp.packageManager,
+        purl: comp.purl,
+        cpe: comp.cpe,
+        bomRef: comp.bomRef,
+        type: comp.type,
+        group: comp.group,
+        scope: usage?.scope ?? null,
+        isDirect: usage?.isDirect ?? false,
+        copyright: comp.copyright,
+        supplier: comp.supplier,
+        author: comp.author,
+        publisher: comp.publisher,
+        homepage: comp.homepage,
+        description: comp.description,
+      }
+    })
 
     // Relation fields — sent in phase 2 (small batches, three separate transactions).
     // license text is intentionally omitted: it is only stored on first creation
@@ -92,30 +98,12 @@ export class SBOMRepository extends BaseRepository {
       await this.persistDependencies(params.dependencies, params.timestamp)
     }
 
-    // Persist (System)-[:DIRECT_DEP]->(Component) edges
-    if (params.directDeps.length > 0) {
-      await this.persistDirectDeps(params.systemName, params.directDeps, params.timestamp)
-    }
 
 
     return { componentsAdded, componentsUpdated, relationshipsCreated }
   }
 
-  /**
-   * Create (System)-[:DIRECT_DEP]->(Component) edges.
-   *
-   * Matches components by bomRef. Refs that don't resolve to a known
-   * Component node are silently skipped by the Cypher query.
-   */
-  private async persistDirectDeps(systemName: string, directDeps: DirectDep[], timestamp: Date): Promise<void> {
-    if (directDeps.length === 0) return
-    const query = await loadQuery('sboms/persist-direct-deps.cypher')
-    const ts = timestamp.toISOString()
-    for (let i = 0; i < directDeps.length; i += SBOMRepository.BATCH_SIZE) {
-      const batch = directDeps.slice(i, i + SBOMRepository.BATCH_SIZE)
-      await this.executeQuery(query, { systemName, directDeps: batch, timestamp: ts })
-    }
-  }
+
 
   private async persistDependencies(dependencies: ComponentDependency[], timestamp: Date): Promise<void> {
     if (dependencies.length === 0) return

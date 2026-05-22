@@ -39,11 +39,13 @@ FOREACH (_ IN CASE WHEN comp.publisher IS NOT NULL THEN [1] ELSE [] END | SET c.
 FOREACH (_ IN CASE WHEN comp.homepage IS NOT NULL THEN [1] ELSE [] END | SET c.homepage = comp.homepage)
 FOREACH (_ IN CASE WHEN comp.description IS NOT NULL THEN [1] ELSE [] END | SET c.description = comp.description)
 
-// scope belongs on the edge, not the node — it describes how this system uses
-// the component, not what the component intrinsically is.
+// scope and isDirect belong on the edge, not the node — they describe how this
+// system uses the component, not what the component intrinsically is.
+// comp.scope and comp.isDirect are pre-computed by the BFS propagation pass
+// in the service layer and passed in alongside the component scalar fields.
 MERGE (s)-[r:USES]->(c)
-ON CREATE SET r.addedAt = $timestamp, r.scope = comp.scope, r._new = true
-ON MATCH SET r.lastSeenAt = $timestamp, r.scope = comp.scope
+ON CREATE SET r.addedAt = $timestamp, r.scope = comp.scope, r.isDirect = comp.isDirect, r._new = true
+ON MATCH SET r.lastSeenAt = $timestamp, r.scope = comp.scope, r.isDirect = comp.isDirect
 
 WITH isNew, r, (r._new IS NOT NULL) AS relIsNew
 REMOVE r._new

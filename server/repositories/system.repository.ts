@@ -39,7 +39,7 @@ export interface GraphComponentRow {
   description: string | null
   licenses: Array<{ id?: string; name?: string; allowed?: boolean }>
   technologyName: string | null
-  /** True when this component is a direct dependency (has a DEPENDS_ON edge from another system component) */
+  /** True when this component is a direct dependency of the system root (USES {isDirect: true}) */
   direct: boolean
   /** PURLs of components this component directly depends on (within the same system) */
   dependsOnPurls: string[]

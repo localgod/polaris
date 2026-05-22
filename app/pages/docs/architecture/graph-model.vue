@@ -121,8 +121,7 @@ const keyRelationships = [
   { label: 'MAINTAINS', description: 'Team maintains Repository', detail: 'Repository maintenance responsibility' },
   { label: 'HAS_VERSION', description: 'Technology has Version', detail: 'Version tracking per technology' },
   { label: 'IS_VERSION_OF', description: 'Component is version of Technology', detail: 'Component to technology mapping' },
-  { label: 'USES', description: 'System uses Component', detail: 'System dependency on a component. Carries a scope property (e.g. required, optional, dev, runtime, test) describing how this system uses the component.' },
-  { label: 'DIRECT_DEP', description: 'System directly depends on Component', detail: 'Marks components that are direct (non-transitive) dependencies of the system root. Carries the same scope property as USES.' },
+  { label: 'USES', description: 'System uses Component', detail: 'System dependency on a component. Carries scope (runtime, required, dev, optional, excluded, or null) and isDirect (true for root-level deps, false for transitive). Scope and isDirect are computed by BFS propagation at ingest time.' },
   { label: 'HAS_SOURCE_IN', description: 'System has source in Repository', detail: 'Source code location' },
   { label: 'GOVERNS', description: 'VersionConstraint governs Technology', detail: 'Constraint scope' },
   { label: 'PERFORMED_BY', description: 'AuditLog performed by User', detail: 'Who made the change' },
@@ -136,6 +135,7 @@ const queryExamples = [
   { title: 'Trace component dependencies across systems' },
   { title: 'Identify compliance violations' },
   { title: 'Track all changes made by a specific user' },
+  { title: 'Find all direct runtime dependencies of a system' },
   { title: 'Find all systems that use a component at runtime vs. dev-only' },
 ]
 

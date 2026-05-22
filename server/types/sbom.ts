@@ -66,10 +66,38 @@ export interface ComponentDependency {
   dependsOn: string[]
 }
 
-export interface DirectDep {
-  bomRef: string
-  /** Dependency scope (e.g. 'required', 'optional', 'dev', 'runtime', 'test'). Null when unknown. */
+/**
+ * A single directed dependency edge with an associated scope.
+ * Used internally during SPDX ingestion to carry per-edge scope
+ * through the BFS propagation pass.
+ */
+export interface ScopedEdge {
+  /** bom-ref of the source component */
+  from: string
+  /** bom-ref of the target component */
+  to: string
+  /** Scope derived from the SPDX relationship type, or null for CycloneDX */
   scope: string | null
+}
+
+/**
+ * Computed classification for a single component relative to a system.
+ *
+ * Produced by the BFS scope propagation pass in the service layer and
+ * consumed by the repository to set properties on the USES edge.
+ *
+ * scope values:
+ *   'runtime'  — reachable from a runtime/required direct dep (or IS a runtime direct dep)
+ *   'required' — synonym for 'runtime'; used by CycloneDX 'required' and SPDX DEPENDS_ON
+ *   'dev'      — reachable only from dev/test direct deps
+ *   'optional' — reachable only from optional/provided direct deps
+ *   'excluded' — CycloneDX excluded scope; persisted but excluded from runtime queries
+ *   null       — not reachable by BFS (orphaned / missing bomRef)
+ */
+export interface ComponentUsage {
+  bomRef: string
+  scope: string | null
+  isDirect: boolean
 }
 
 export interface PersistSBOMParams {
@@ -77,8 +105,11 @@ export interface PersistSBOMParams {
   repositoryUrl: string
   components: ExtractedComponent[]
   dependencies: ComponentDependency[]
-  /** Direct dependencies of the system root, with per-edge scope. */
-  directDeps: DirectDep[]
+  /**
+   * Per-component usage classification (scope + isDirect) computed by BFS
+   * in the service layer. Keyed by bomRef.
+   */
+  componentUsage: Map<string, ComponentUsage>
   format: 'cyclonedx' | 'spdx'
   timestamp: Date
 }

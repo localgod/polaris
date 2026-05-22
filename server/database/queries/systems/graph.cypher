@@ -3,20 +3,20 @@
 // allowing the caller to distinguish not-found from empty without a separate
 // exists() query.
 MATCH (sys:System {name: $name})
-OPTIONAL MATCH (sys)-[:USES]->(c:Component)
+OPTIONAL MATCH (sys)-[u:USES]->(c:Component)
 OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(tech:Technology)
 OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
-WITH sys, c, tech,
+WITH sys, c, u, tech,
      collect(DISTINCT {id: l.id, name: l.name, allowed: l.allowed}) AS licenses
-// direct=true when the system has a DIRECT_DEP edge to this component
-// (set at ingest time from the root component's dependsOn list)
-WITH sys, c, tech, licenses,
-     EXISTS { (sys)-[:DIRECT_DEP]->(c) } AS direct
+// isDirect and scope come from the USES edge, set at ingest time by BFS propagation.
+WITH sys, c, u, tech, licenses,
+     coalesce(u.isDirect, false) AS direct,
+     u.scope AS scope
 // Collect purls of c's direct dependencies that are also used by this system.
 // Filter null purls at match time to avoid collecting them into the list.
 OPTIONAL MATCH (c)-[:DEPENDS_ON]->(dep:Component)<-[:USES]-(sys)
 WHERE dep.purl IS NOT NULL
-WITH sys, c, tech, licenses, direct,
+WITH sys, c, tech, licenses, direct, scope,
      collect(DISTINCT dep.purl) AS dependsOnPurls
 RETURN sys.name AS systemName,
        c.name AS name,
@@ -26,7 +26,7 @@ RETURN sys.name AS systemName,
        c.cpe AS cpe,
        c.type AS type,
        c.group AS `group`,
-       c.scope AS scope,
+       scope,
        c.description AS description,
        [lic IN licenses WHERE lic.id IS NOT NULL OR lic.name IS NOT NULL | lic] AS licenses,
        tech.name AS technologyName,
