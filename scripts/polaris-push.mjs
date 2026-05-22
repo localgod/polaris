@@ -60,7 +60,10 @@ const POLARIS_REPO_URL =
     ? `https://github.com/${process.env.GITHUB_REPOSITORY}`
     : null)
 const AUTO_REGISTER = process.env.POLARIS_AUTO_REGISTER === 'true'
-const POLARIS_PROJECT_TYPE = (process.env.POLARIS_PROJECT_TYPE || '').split(',').filter(Boolean)
+const POLARIS_PROJECT_TYPE = (process.env.POLARIS_PROJECT_TYPE || '')
+  .split(',')
+  .map((type) => type.trim())
+  .filter(Boolean)
 // POLARIS_DOMAIN is reserved for future use when system creation is supported via this script.
 
 // ---------------------------------------------------------------------------
