@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.39] - 2026-05-22
+
+## What's Changed
+
+- feat(sbom): model runtime/dev/transitive dependency classification on USES edge @localgod (#587)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.38...v0.5.39
+
 ## [0.5.37] - 2026-05-22
 
 ## What's Changed
