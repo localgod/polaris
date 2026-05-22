@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.37] - 2026-05-22
+
+## What's Changed
+
+- fix: move dependency scope from Component node to USES/DIRECT\_DEP edges @localgod (#582)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.36...v0.5.37
+
 ## [0.5.29] - 2026-05-21
 
 ## What's Changed
