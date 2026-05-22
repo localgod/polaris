@@ -35,7 +35,7 @@ describe('SBOMRepository', () => {
         format: 'cyclonedx',
         timestamp: new Date(),
         dependencies: [],
-        directDeps: [],
+        componentUsage: new Map(),
         components: [
           {
             name: `${PREFIX}lodash`, version: '4.17.21',
@@ -68,8 +68,8 @@ describe('SBOMRepository', () => {
     })
   })
 
-  describe('DIRECT_DEP edges via persistSBOM()', () => {
-    it('should create DIRECT_DEP edges for components listed in directDeps', async () => {
+  describe('isDirect on USES edges via persistSBOM()', () => {
+    it('should set isDirect=true on USES edges for direct dependencies', async () => {
       if (!ctx.neo4jAvailable) return
 
       await seed(ctx.driver, `
@@ -93,7 +93,10 @@ describe('SBOMRepository', () => {
           { ref: refA, dependsOn: [refB] },
           { ref: refB, dependsOn: [] },
         ],
-        directDeps: [{ bomRef: refA, scope: 'required' }, { bomRef: refB, scope: null }],
+        componentUsage: new Map([
+          [refA, { bomRef: refA, scope: 'required', isDirect: true }],
+          [refB, { bomRef: refB, scope: 'runtime', isDirect: false }],
+        ]),
         components: [
           {
             name: `${PREFIX}direct-comp-a`, version: '1.0.0',
@@ -115,12 +118,16 @@ describe('SBOMRepository', () => {
       })
 
       const check = await session.run(`
-        MATCH (s:System { name: $sys })-[r:DIRECT_DEP]->(c:Component)
+        MATCH (s:System { name: $sys })-[r:USES]->(c:Component)
         WHERE c.purl STARTS WITH $prefix
-        RETURN count(r) AS count
+        RETURN r.isDirect AS isDirect, r.scope AS scope, c.purl AS purl
+        ORDER BY c.purl
       `, { sys: `${PREFIX}direct-system`, prefix: `pkg:npm/${PREFIX}` })
 
-      expect(check.records[0].get('count').toNumber()).toBe(2)
+      expect(check.records).toHaveLength(2)
+      const byPurl = Object.fromEntries(check.records.map(r => [r.get('purl'), { isDirect: r.get('isDirect'), scope: r.get('scope') }]))
+      expect(byPurl[refA]).toEqual({ isDirect: true, scope: 'required' })
+      expect(byPurl[refB]).toEqual({ isDirect: false, scope: 'runtime' })
     })
   })
 
@@ -146,7 +153,7 @@ describe('SBOMRepository', () => {
         format: 'cyclonedx',
         timestamp: new Date(),
         dependencies: [{ ref: purlA, dependsOn: [purlB] }],
-        directDeps: [],
+        componentUsage: new Map(),
         components: [
           {
             name: `${PREFIX}comp-a`, version: '1.0.0',
@@ -195,7 +202,7 @@ describe('SBOMRepository', () => {
           format: 'cyclonedx',
           timestamp: new Date(),
           dependencies: [{ ref: `${PREFIX}nonexistent`, dependsOn: [`${PREFIX}also-nonexistent`] }],
-          directDeps: [],
+          componentUsage: new Map(),
           components: [],
         })
       ).resolves.not.toThrow()
@@ -220,7 +227,7 @@ describe('SBOMRepository', () => {
           format: 'cyclonedx',
           timestamp: new Date(),
           dependencies: [],
-          directDeps: [],
+          componentUsage: new Map(),
           components: [],
         })
       ).resolves.not.toThrow()

@@ -11,7 +11,8 @@ import type {
   ComponentHash,
   ComponentLicense,
   ExternalReference,
-  DirectDep,
+  ScopedEdge,
+  ComponentUsage,
 } from '../types/sbom'
 
 // SPDX relationship types that represent a dependency edge.
@@ -25,15 +26,25 @@ const SPDX_DEPENDENCY_TYPES = new Set([
   'TEST_DEPENDENCY_OF',
 ])
 
-// Maps SPDX relationship types to the scope value stored on the edge.
+// Maps SPDX relationship types to the scope value stored on the USES edge.
 // Relationship types not present here (e.g. DYNAMIC_LINK, STATIC_LINK) yield null.
 const SPDX_SCOPE_MAP: Record<string, string> = {
   DEV_DEPENDENCY_OF: 'dev',
   OPTIONAL_DEPENDENCY_OF: 'optional',
   PROVIDED_DEPENDENCY_OF: 'provided',
   RUNTIME_DEPENDENCY_OF: 'runtime',
-  TEST_DEPENDENCY_OF: 'test',
+  TEST_DEPENDENCY_OF: 'dev',   // test deps are treated as dev for scope propagation
   DEPENDS_ON: 'required',
+}
+
+// Scope priority for BFS propagation: when a component is reachable via
+// multiple paths with different scopes, the highest-priority scope wins.
+// runtime/required > optional > dev > null
+const SCOPE_PRIORITY: Record<string, number> = {
+  runtime: 3,
+  required: 3,
+  optional: 2,
+  dev: 1,
 }
 
 /**
@@ -100,21 +111,27 @@ export class SBOMService {
     // 4. Extract components and dependency relationships from SBOM
     const sbomData = input.sbom as Record<string, unknown>
     const components = this.extractComponents(sbomData, input.format)
-    const dependencies = this.extractDependencies(sbomData, input.format)
     const { bomRef: rootBomRef, name: rootName } = this.extractRootBomRef(sbomData, input.format)
 
-    // Build a bomRef → scope map so resolveDirectDeps can attach scope to each
-    // direct dep without re-scanning the components or relationships arrays.
-    // CycloneDX: scope comes from ExtractedComponent.scope (set per component).
-    // SPDX: scope is derived from the relationship type (e.g. DEV_DEPENDENCY_OF → 'dev').
-    const scopeMap = input.format === 'cyclonedx'
-      ? this.buildCycloneDXScopeMap(components)
-      : this.buildSPDXScopeMap(sbomData)
+    // For SPDX, extract scoped edges (carry per-edge scope from relationship type).
+    // For CycloneDX, extract plain dependency edges (scope comes from component field).
+    const scopedEdges = input.format === 'spdx'
+      ? this.extractSPDXScopedEdges(sbomData)
+      : null
 
-    // Resolve direct deps here so the repository doesn't need to re-scan dependencies.
-    // Uses a fallback for SBOMs where the root bom-ref type differs between
-    // metadata.component and the dependencies[] entry (e.g. cdxgen without node_modules).
-    const directDeps = this.resolveDirectDeps(rootBomRef, rootName, dependencies, scopeMap)
+    // Build plain ComponentDependency[] for DEPENDS_ON edge persistence (unchanged).
+    const dependencies = input.format === 'cyclonedx'
+      ? this.extractCycloneDXDependencies(sbomData)
+      : this.scopedEdgesToDependencies(scopedEdges!)
+
+    // BFS scope propagation: compute {scope, isDirect} for every component.
+    const componentUsage = this.propagateScope(
+      rootBomRef,
+      rootName,
+      components,
+      dependencies,
+      input.format === 'spdx' ? scopedEdges! : null,
+    )
 
     // 5. Persist to database
     const result = await this.sbomRepo.persistSBOM({
@@ -122,7 +139,7 @@ export class SBOMService {
       repositoryUrl: normalizedUrl,
       components,
       dependencies,
-      directDeps,
+      componentUsage,
       format: input.format,
       timestamp: new Date()
     })
@@ -195,7 +212,7 @@ export class SBOMService {
   }
 
   /**
-   * Resolve the direct dependency bomRefs for the root component, with scope.
+   * Resolve the bomRefs of the root component's direct dependencies.
    *
    * cdxgen sometimes uses different purl types for the root component in
    * `metadata.component` vs `dependencies[]`. For example, when run without
@@ -207,23 +224,15 @@ export class SBOMService {
    * 1. Exact match on `rootBomRef` — use it if `dependsOn` is non-empty.
    * 2. Fallback: find the dependency entry whose purl name segment matches
    *    `rootName` and has the most `dependsOn` entries.
-   *
-   * @param scopeMap - bomRef → scope, used to attach scope to each direct dep.
-   *   For CycloneDX this is built from ExtractedComponent.scope.
-   *   For SPDX this is built from relationship types.
    */
-  private resolveDirectDeps(
+  private resolveRootDirectDeps(
     rootBomRef: string | null,
     rootName: string | null,
     dependencies: ComponentDependency[],
-    scopeMap: Map<string, string | null>,
-  ): DirectDep[] {
-    const toBomRefs = (refs: string[]): DirectDep[] =>
-      refs.map(bomRef => ({ bomRef, scope: scopeMap.get(bomRef) ?? null }))
-
+  ): string[] {
     if (rootBomRef) {
       const exact = dependencies.find(d => d.ref === rootBomRef)
-      if (exact && exact.dependsOn.length > 0) return toBomRefs(exact.dependsOn)
+      if (exact && exact.dependsOn.length > 0) return exact.dependsOn
     }
 
     if (!rootName) return []
@@ -238,24 +247,132 @@ export class SBOMService {
       .filter(d => nameFromRef(d.ref) === rootName && d.dependsOn.length > 0)
       .sort((a, b) => b.dependsOn.length - a.dependsOn.length)
 
-    return toBomRefs(candidates[0]?.dependsOn ?? [])
+    return candidates[0]?.dependsOn ?? []
   }
 
   /**
-   * Extract component dependency relationships from a CycloneDX or SPDX SBOM.
+   * BFS scope propagation: compute {scope, isDirect} for every component.
    *
-   * CycloneDX: reads the top-level `dependencies` array.
-   * SPDX: reads the top-level `relationships` array, filtered to dependency types.
+   * Algorithm:
+   * 1. Identify direct deps of the root (via resolveRootDirectDeps).
+   * 2. Assign each direct dep isDirect=true and its own scope.
+   * 3. BFS from runtime/required directs → all reachable: isDirect=false, scope='runtime'
+   * 4. BFS from optional directs → remaining: isDirect=false, scope='optional'
+   * 5. BFS from dev directs → remaining: isDirect=false, scope='dev'
+   * 6. Any component not reached: isDirect=false, scope=null
    *
-   * Returns an empty array if the SBOM has no dependency section.
+   * When a component is reachable via multiple paths, the highest-priority
+   * scope wins (runtime/required > optional > dev > null).
+   *
+   * For SPDX, scopedEdges carries per-edge scope so the BFS uses the edge
+   * scope rather than the target component's own scope field.
+   * For CycloneDX, scope comes from ExtractedComponent.scope.
    */
-  private extractDependencies(sbom: Record<string, unknown>, format: 'cyclonedx' | 'spdx'): ComponentDependency[] {
-    if (format === 'cyclonedx') {
-      return this.extractCycloneDXDependencies(sbom)
-    } else {
-      return this.extractSPDXDependencies(sbom)
+  private propagateScope(
+    rootBomRef: string | null,
+    rootName: string | null,
+    components: ExtractedComponent[],
+    dependencies: ComponentDependency[],
+    scopedEdges: ScopedEdge[] | null,
+  ): Map<string, ComponentUsage> {
+    const usage = new Map<string, ComponentUsage>()
+
+    // Index component scope by bomRef (CycloneDX path)
+    const componentScopeByBomRef = new Map<string, string | null>()
+    for (const comp of components) {
+      if (comp.bomRef) {
+        componentScopeByBomRef.set(comp.bomRef, comp.scope)
+      }
     }
+
+    // Build adjacency: bomRef → [{ to, scope }]
+    // For SPDX: use per-edge scope from scopedEdges
+    // For CycloneDX: use target component's scope field
+    const adjacency = new Map<string, Array<{ to: string; scope: string | null }>>()
+
+    if (scopedEdges) {
+      for (const edge of scopedEdges) {
+        if (!adjacency.has(edge.from)) adjacency.set(edge.from, [])
+        adjacency.get(edge.from)!.push({ to: edge.to, scope: edge.scope })
+      }
+    } else {
+      for (const dep of dependencies) {
+        const edges = dep.dependsOn.map(to => ({
+          to,
+          scope: componentScopeByBomRef.get(to) ?? null,
+        }))
+        adjacency.set(dep.ref, edges)
+      }
+    }
+
+    // Resolve direct deps of the root
+    const directBomRefs = this.resolveRootDirectDeps(rootBomRef, rootName, dependencies)
+
+    // Determine scope for each direct dep
+    const directScopes = new Map<string, string | null>()
+    for (const bomRef of directBomRefs) {
+      let scope: string | null = null
+      if (scopedEdges) {
+        // For SPDX: find the edge from root to this bomRef and use its scope
+        const edge = scopedEdges.find(e =>
+          (e.from === rootBomRef || (rootName && e.from.includes(rootName))) && e.to === bomRef
+        )
+        scope = edge?.scope ?? null
+      } else {
+        scope = componentScopeByBomRef.get(bomRef) ?? null
+      }
+      directScopes.set(bomRef, scope)
+    }
+
+    // Assign direct deps
+    for (const [bomRef, scope] of directScopes) {
+      usage.set(bomRef, { bomRef, scope, isDirect: true })
+    }
+
+    // BFS helper: propagate a given scope from a set of seed bomRefs
+    const bfs = (seeds: string[], propagatedScope: string) => {
+      const queue = [...seeds]
+      while (queue.length > 0) {
+        const current = queue.shift()!
+        const edges = adjacency.get(current) ?? []
+        for (const { to } of edges) {
+          const existing = usage.get(to)
+          const existingPriority = existing?.scope ? (SCOPE_PRIORITY[existing.scope] ?? 0) : -1
+          const newPriority = SCOPE_PRIORITY[propagatedScope] ?? 0
+          if (!existing || newPriority > existingPriority) {
+            usage.set(to, { bomRef: to, scope: propagatedScope, isDirect: false })
+            queue.push(to)
+          }
+        }
+      }
+    }
+
+    // BFS in priority order: runtime/required first, then optional, then dev
+    const runtimeSeeds = directBomRefs.filter(r => {
+      const s = directScopes.get(r)
+      return s === 'runtime' || s === 'required'
+    })
+    const optionalSeeds = directBomRefs.filter(r => directScopes.get(r) === 'optional')
+    const devSeeds = directBomRefs.filter(r => {
+      const s = directScopes.get(r)
+      return s === 'dev' || s === 'test'
+    })
+
+    bfs(runtimeSeeds, 'runtime')
+    bfs(optionalSeeds, 'optional')
+    bfs(devSeeds, 'dev')
+
+    // Any component with a bomRef not yet classified: scope=null, isDirect=false
+    for (const comp of components) {
+      if (comp.bomRef && !usage.has(comp.bomRef)) {
+        usage.set(comp.bomRef, { bomRef: comp.bomRef, scope: null, isDirect: false })
+      }
+    }
+
+    return usage
   }
+
+
 
   private extractCycloneDXDependencies(sbom: Record<string, unknown>): ComponentDependency[] {
     const depsArray = sbom.dependencies as unknown[] | undefined
@@ -274,22 +391,41 @@ export class SBOMService {
     })
   }
 
-  private extractSPDXDependencies(sbom: Record<string, unknown>): ComponentDependency[] {
+  /**
+   * Extract SPDX relationships as ScopedEdge[], preserving per-edge scope.
+   *
+   * Unlike the CycloneDX path, SPDX encodes scope in the relationship type
+   * (DEV_DEPENDENCY_OF, RUNTIME_DEPENDENCY_OF, etc.) rather than on the
+   * package object. Preserving the type here allows the BFS propagation pass
+   * to use the correct scope for each edge.
+   */
+  private extractSPDXScopedEdges(sbom: Record<string, unknown>): ScopedEdge[] {
     const relationships = sbom.relationships as unknown[] | undefined
     if (!Array.isArray(relationships)) return []
 
-    // Group by spdxElementId → list of relatedSpdxElement
-    const map = new Map<string, string[]>()
+    const edges: ScopedEdge[] = []
     for (const rel of relationships) {
       const r = rel as Record<string, unknown>
-      if (!SPDX_DEPENDENCY_TYPES.has(r.relationshipType as string)) continue
-      const src = (r.spdxElementId as string)?.trim()
-      const tgt = (r.relatedSpdxElement as string)?.trim()
-      if (!src || !tgt) continue
-      if (!map.has(src)) map.set(src, [])
-      map.get(src)!.push(tgt)
+      const type = r.relationshipType as string | undefined
+      if (!type || !SPDX_DEPENDENCY_TYPES.has(type)) continue
+      const from = (r.spdxElementId as string)?.trim()
+      const to = (r.relatedSpdxElement as string)?.trim()
+      if (!from || !to) continue
+      edges.push({ from, to, scope: SPDX_SCOPE_MAP[type] ?? null })
     }
+    return edges
+  }
 
+  /**
+   * Convert ScopedEdge[] to ComponentDependency[] for DEPENDS_ON edge persistence.
+   * Scope is discarded here — it lives on the USES edge, not DEPENDS_ON.
+   */
+  private scopedEdgesToDependencies(edges: ScopedEdge[]): ComponentDependency[] {
+    const map = new Map<string, string[]>()
+    for (const { from, to } of edges) {
+      if (!map.has(from)) map.set(from, [])
+      map.get(from)!.push(to)
+    }
     return Array.from(map.entries()).map(([ref, dependsOn]) => ({ ref, dependsOn }))
   }
 
@@ -343,6 +479,8 @@ export class SBOMService {
    *
    * Builds a scope map from relationships before mapping packages so that
    * each package can receive the correct scope derived from its relationship type.
+   * This scope is stored on ExtractedComponent.scope and later used by the
+   * BFS propagation pass to set scope on the USES edge.
    */
   private extractSPDXComponents(sbom: Record<string, unknown>): ExtractedComponent[] {
     const packages = sbom.packages as unknown[] | undefined
@@ -352,7 +490,7 @@ export class SBOMService {
     // Build SPDXID → scope from relationships so mapSPDXPackage can set scope.
     // A package may appear as the target of multiple relationship types; the
     // first recognised type wins (relationships are typically ordered root-first).
-    const scopeMap = this.buildSPDXScopeMap(sbom)
+    const scopeMap = this.buildSPDXComponentScopeMap(sbom)
     return packages.map((pkg) => this.mapSPDXPackage(pkg as Record<string, unknown>, scopeMap))
   }
 
@@ -417,30 +555,14 @@ export class SBOMService {
   }
 
   /**
-   * Build a bomRef → scope map from CycloneDX ExtractedComponents.
-   *
-   * CycloneDX encodes scope directly on the component object, so we just
-   * index by bomRef. Components without a bomRef are skipped.
-   */
-  private buildCycloneDXScopeMap(components: ExtractedComponent[]): Map<string, string | null> {
-    const map = new Map<string, string | null>()
-    for (const comp of components) {
-      if (comp.bomRef) {
-        map.set(comp.bomRef, comp.scope)
-      }
-    }
-    return map
-  }
-
-  /**
-   * Build a SPDXID → scope map from SPDX relationships.
+   * Build a SPDXID → scope map from SPDX relationships for use in mapSPDXPackage.
    *
    * SPDX encodes scope in the relationship type rather than on the package.
    * This method scans `relationships[]` and maps each target SPDXID to the
    * scope derived from the first recognised relationship type that points to it.
    * Relationship types not in SPDX_SCOPE_MAP yield null.
    */
-  private buildSPDXScopeMap(sbom: Record<string, unknown>): Map<string, string | null> {
+  private buildSPDXComponentScopeMap(sbom: Record<string, unknown>): Map<string, string | null> {
     const map = new Map<string, string | null>()
     const relationships = sbom.relationships as unknown[] | undefined
     if (!Array.isArray(relationships)) return map
