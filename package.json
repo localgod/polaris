@@ -65,12 +65,12 @@
     "docs:api": "tsx server/scripts/generate-openapi.ts"
   },
   "dependencies": {
-    "@cyclonedx/cdxgen": "^12.4.1",
+    "@cyclonedx/cdxgen": "^12.4.3",
     "@iconify-json/simple-icons": "^1.2.83",
     "@nuxt/eslint": "^1.13.0",
     "@nuxt/image": "^2.0.0",
     "@nuxt/test-utils": "^4.0.3",
-    "@nuxt/ui": "4.7.1",
+    "@nuxt/ui": "4.8.0",
     "@sidebase/nuxt-auth": "1.2.0",
     "ajv": "^8.20.0",
     "d3": "^7.9.0",
@@ -80,7 +80,7 @@
     "nuxt": "4.4.6",
     "nuxt-neo4j": "^0.0.4",
     "pino": "^10.3.1",
-    "semver": "^7.8.0",
+    "semver": "^7.8.1",
     "spdx-expression-parse": "^4.0.0",
     "spdx-license-list": "^6.11.0",
     "tailwindcss": "^4.3.0",
