@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.44] - 2026-05-29
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps-dev): bump tmp from 0.2.5 to 0.2.7 @[dependabot[bot]](https://github.com/apps/dependabot) (#597)
+- chore: release v0.5.42 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#595)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.43...v0.5.44
+
 ## [0.5.42] - 2026-05-25
 
 ## What's Changed
