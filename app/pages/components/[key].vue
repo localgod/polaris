@@ -163,6 +163,122 @@
             />
           </div>
         </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-lg font-semibold">Package Information</h2>
+              <UBadge :color="getPackageMetadataColor(component.packageMetadata?.status)" variant="subtle">
+                {{ getPackageMetadataLabel(component.packageMetadata?.status) }}
+              </UBadge>
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <p class="text-sm text-(--ui-text-muted)">
+              Package data is provided by deps.dev. Polaris displays this third-party information for visibility and does not store package registry metadata.
+            </p>
+
+            <UAlert
+              v-if="!component.packageMetadata || component.packageMetadata.status === 'unavailable'"
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-circle-help"
+              title="No package metadata available"
+              :description="getPackageMetadataUnavailableDescription(component.packageMetadata?.reason)"
+            />
+
+            <template v-else>
+              <UAlert
+                v-if="component.packageMetadata.isDeprecated"
+                color="warning"
+                variant="subtle"
+                icon="i-lucide-triangle-alert"
+                title="Package version is deprecated"
+                :description="component.packageMetadata.deprecatedReason || 'deps.dev reports this package version as deprecated.'"
+              />
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Package</span>
+                  <p class="font-medium break-all">{{ component.packageMetadata.packageName || '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Ecosystem</span>
+                  <p class="font-medium">{{ component.packageMetadata.system || '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Current Version</span>
+                  <p class="font-medium break-all">{{ component.packageMetadata.currentVersion || '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
+                  <p class="font-medium break-all">{{ component.packageMetadata.latestVersion || '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Default Version</span>
+                  <p class="font-medium break-all">{{ component.packageMetadata.defaultVersion || '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Published</span>
+                  <p class="font-medium">{{ component.packageMetadata.publishedAt ? formatDate(component.packageMetadata.publishedAt) : '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Recent Releases</span>
+                  <p class="font-medium">{{ component.packageMetadata.recentReleases ?? '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Advisories</span>
+                  <p class="font-medium">{{ component.packageMetadata.advisoryCount ?? '—' }}</p>
+                </div>
+              </div>
+
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Licenses</span>
+                <div v-if="component.packageMetadata.licenses.length > 0" class="mt-2 flex flex-wrap gap-2">
+                  <UBadge
+                    v-for="license in component.packageMetadata.licenses"
+                    :key="license"
+                    color="neutral"
+                    variant="subtle"
+                  >
+                    {{ license }}
+                  </UBadge>
+                </div>
+                <p v-else class="font-medium">—</p>
+              </div>
+
+              <div v-if="component.packageMetadata.advisories.length > 0">
+                <span class="text-sm text-(--ui-text-muted)">Advisory Links</span>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <UButton
+                    v-for="advisory in component.packageMetadata.advisories"
+                    :key="advisory.id"
+                    :to="advisory.url || undefined"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    :label="advisory.id"
+                    icon="i-lucide-shield-alert"
+                    variant="outline"
+                    color="warning"
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </template>
+
+            <UButton
+              v-if="component.packageMetadata?.source.url"
+              :to="component.packageMetadata.source.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              label="View Source"
+              icon="i-lucide-external-link"
+              variant="outline"
+              size="sm"
+            />
+          </div>
+        </UCard>
       </div>
 
       <UCard v-if="component.purl || component.cpe || component.bomRef">
@@ -265,7 +381,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage } from '~~/types/api'
+import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataStatus } from '~~/types/api'
 
 const route = useRoute()
 
@@ -314,6 +430,26 @@ function getEolUnknownDescription(reason?: string): string {
     fetch_failed: 'The third-party lifecycle source could not be reached.'
   }
   return descriptions[reason || ''] || 'No lifecycle data is available from the configured third-party source.'
+}
+
+function getPackageMetadataColor(status?: PackageMetadataStatus): 'success' | 'neutral' {
+  return status === 'available' ? 'success' : 'neutral'
+}
+
+function getPackageMetadataLabel(status?: PackageMetadataStatus): string {
+  return status === 'available' ? 'Available' : 'Unavailable'
+}
+
+function getPackageMetadataUnavailableDescription(reason?: string): string {
+  const descriptions: Record<string, string> = {
+    missing_purl: 'This component does not have a package URL to look up in deps.dev.',
+    malformed_purl: 'The package URL could not be parsed for deps.dev lookup.',
+    unsupported_ecosystem: 'deps.dev package metadata is not available for this package ecosystem.',
+    package_not_found: 'deps.dev did not find this package.',
+    version_not_found: 'deps.dev found the package, but not this component version.',
+    fetch_failed: 'The third-party package metadata source could not be reached.'
+  }
+  return descriptions[reason || ''] || 'No package metadata is available from the configured third-party source.'
 }
 
 function formatDate(dateString: string): string {

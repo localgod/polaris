@@ -3,11 +3,12 @@ import { mockEvent } from '../../fixtures/h3-event'
 import { encodeComponentKey } from '../../../utils/component-identity'
 import handler from '../../../server/api/components/[key].get'
 import eolHandler from '../../../server/api/components/eol.get'
-import { componentService, eolService } from '../../../server/services/singletons'
+import { componentService, eolService, packageMetadataService } from '../../../server/services/singletons'
 
 vi.mock('../../../server/services/singletons', () => ({
   componentService: { findByIdentity: vi.fn() },
-  eolService: { getEOLStatus: vi.fn() }
+  eolService: { getEOLStatus: vi.fn() },
+  packageMetadataService: { getMetadata: vi.fn() }
 }))
 
 const mockComponent = {
@@ -36,7 +37,8 @@ const mockComponent = {
   technologyName: 'Node.js',
   systemCount: 1,
   systems: [{ name: 'catalog', scope: 'runtime', isDirect: true }],
-  eol: null
+  eol: null,
+  packageMetadata: null
 }
 
 const mockEol = {
@@ -52,25 +54,45 @@ const mockEol = {
   source: { name: 'endoflife.date' as const, url: 'https://endoflife.date/nodejs' }
 }
 
+const mockPackageMetadata = {
+  status: 'available' as const,
+  system: 'npm',
+  packageName: 'node',
+  currentVersion: '24.16.0',
+  latestVersion: '24.17.0',
+  defaultVersion: '24.17.0',
+  publishedAt: '2026-05-21T00:00:00Z',
+  isDeprecated: false,
+  deprecatedReason: null,
+  licenses: ['MIT'],
+  advisoryCount: 0,
+  advisories: [],
+  recentReleases: 3,
+  source: { name: 'deps.dev' as const, url: 'https://deps.dev/npm/node/24.16.0' }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
 
 describe('GET /api/components/{key}', () => {
-  it('returns component details with read-only EOL visibility', async () => {
+  it('returns component details with read-only enrichment', async () => {
     vi.mocked(componentService.findByIdentity).mockResolvedValue(mockComponent)
     vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
+    vi.mocked(packageMetadataService.getMetadata).mockResolvedValue(mockPackageMetadata)
 
     const key = encodeComponentKey(mockComponent)
     const result = await handler(mockEvent({ params: { key } }))
 
     expect(componentService.findByIdentity).toHaveBeenCalledWith({ purl: 'pkg:npm/node@24.16.0' })
     expect(eolService.getEOLStatus).toHaveBeenCalledWith(mockComponent)
+    expect(packageMetadataService.getMetadata).toHaveBeenCalledWith(mockComponent)
     expect(result).toMatchObject({
       success: true,
       data: {
         name: 'node',
-        eol: mockEol
+        eol: mockEol,
+        packageMetadata: mockPackageMetadata
       }
     })
   })
@@ -78,6 +100,28 @@ describe('GET /api/components/{key}', () => {
   it('rejects malformed component keys', async () => {
     await expect(handler(mockEvent({ params: { key: 'invalid' } }))).rejects.toMatchObject({
       statusCode: 400
+    })
+  })
+
+  it('does not fail component details when package metadata enrichment throws', async () => {
+    vi.mocked(componentService.findByIdentity).mockResolvedValue(mockComponent)
+    vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
+    vi.mocked(packageMetadataService.getMetadata).mockRejectedValue(new Error('deps.dev unavailable'))
+
+    const key = encodeComponentKey(mockComponent)
+    const result = await handler(mockEvent({ params: { key } }))
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        name: 'node',
+        eol: mockEol,
+        packageMetadata: {
+          status: 'unavailable',
+          reason: 'fetch_failed',
+          currentVersion: '24.16.0'
+        }
+      }
     })
   })
 })

@@ -1,5 +1,6 @@
 import { decodeComponentKey } from '../../../utils/component-identity'
-import { componentService, eolService } from '../../services/singletons'
+import type { PackageMetadata } from '~~/types/api'
+import { componentService, eolService, packageMetadataService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -49,13 +50,36 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const eol = await eolService.getEOLStatus(component)
+  const [eol, packageMetadata] = await Promise.all([
+    eolService.getEOLStatus(component),
+    packageMetadataService.getMetadata(component).catch((): PackageMetadata => ({
+      status: 'unavailable',
+      reason: 'fetch_failed',
+      system: null,
+      packageName: null,
+      currentVersion: component.version,
+      latestVersion: null,
+      defaultVersion: null,
+      publishedAt: null,
+      isDeprecated: null,
+      deprecatedReason: null,
+      licenses: [],
+      advisoryCount: null,
+      advisories: [],
+      recentReleases: null,
+      source: {
+        name: 'deps.dev',
+        url: null
+      }
+    }))
+  ])
 
   return {
     success: true,
     data: {
       ...component,
-      eol
+      eol,
+      packageMetadata
     }
   }
 })
