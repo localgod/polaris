@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.48] - 2026-06-02
+
+## What's Changed
+
+- Add component detail and auth proxy fixes @localgod (#611)
+
+## 🔧 Maintenance
+
+- chore: release v0.5.46 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#609)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.47...v0.5.48
+
 ## [0.5.46] - 2026-06-02
 
 ## What's Changed
