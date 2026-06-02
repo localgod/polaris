@@ -317,7 +317,8 @@ function getEolUnknownDescription(reason?: string): string {
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString()
+  const iso = dateString.includes('T') ? dateString : `${dateString}T00:00:00Z`
+  return new Date(iso).toLocaleDateString(undefined, { timeZone: 'UTC' })
 }
 
 function formatSystemUsage(system: ComponentSystemUsage): string {
