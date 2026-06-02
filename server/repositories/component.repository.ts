@@ -264,7 +264,8 @@ export class ComponentRepository extends BaseRepository {
           scope: system.scope ?? null,
           isDirect: system.isDirect ?? null
         })),
-      eol: null
+      eol: null,
+      packageMetadata: null
     }
   }
 

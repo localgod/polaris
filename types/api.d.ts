@@ -114,9 +114,46 @@ export interface EOLStatus {
   reason?: 'no_mapping' | 'no_data' | 'no_matching_cycle' | 'fetch_failed'
 }
 
+export type PackageMetadataStatus = 'available' | 'unavailable'
+
+export type PackageMetadataUnavailableReason =
+  | 'missing_purl'
+  | 'malformed_purl'
+  | 'unsupported_ecosystem'
+  | 'package_not_found'
+  | 'version_not_found'
+  | 'fetch_failed'
+
+export interface PackageAdvisory {
+  id: string
+  url: string | null
+}
+
+export interface PackageMetadata {
+  status: PackageMetadataStatus
+  reason?: PackageMetadataUnavailableReason
+  system: string | null
+  packageName: string | null
+  currentVersion: string | null
+  latestVersion: string | null
+  defaultVersion: string | null
+  publishedAt: string | null
+  isDeprecated: boolean | null
+  deprecatedReason: string | null
+  licenses: string[]
+  advisoryCount: number | null
+  advisories: PackageAdvisory[]
+  recentReleases: number | null
+  source: {
+    name: 'deps.dev'
+    url: string | null
+  }
+}
+
 export interface ComponentDetail extends Component {
   systems: ComponentSystemUsage[]
   eol: EOLStatus | null
+  packageMetadata: PackageMetadata | null
 }
 
 export type TechnologyDomain =
