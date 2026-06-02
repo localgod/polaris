@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.45] - 2026-06-02
+
+## What's Changed
+
+- Fix Watchtower socket proxy permissions @localgod (#607)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.44...v0.5.45
+
 ## [0.5.42] - 2026-05-25
 
 ## What's Changed
