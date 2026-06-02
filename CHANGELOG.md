@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.49] - 2026-06-02
+
+## What's Changed
+
+- Add deps.dev package metadata overlay @localgod (#613)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.48...v0.5.49
+
 ## [0.5.46] - 2026-06-02
 
 ## What's Changed
