@@ -1,6 +1,7 @@
 import { ComponentRepository } from '../repositories/component.repository'
 import type { ComponentFilters } from '../repositories/component.repository'
-import type { Component } from '~~/types/api'
+import type { Component, ComponentDetail } from '~~/types/api'
+import type { ComponentIdentity } from '~~/utils/component-identity'
 
 export type { ComponentFilters }
 
@@ -40,6 +41,10 @@ export class ComponentService {
       count: data.length,
       total
     }
+  }
+
+  async findByIdentity(identity: ComponentIdentity): Promise<ComponentDetail | null> {
+    return await this.componentRepo.findByIdentity(identity)
   }
 
 }

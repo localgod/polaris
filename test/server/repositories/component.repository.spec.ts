@@ -164,6 +164,161 @@ describe('ComponentRepository', () => {
 
       expect(total).toBeGreaterThanOrEqual(1)
     })
+
+    it('should combine direct dependency and scope filters for a system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (direct:Component { name: $directName, version: '1.0.0', purl: $directPurl })
+        CREATE (transitive:Component { name: $transitiveName, version: '1.0.0', purl: $transitivePurl })
+        CREATE (devDirect:Component { name: $devDirectName, version: '1.0.0', purl: $devDirectPurl })
+        CREATE (system:System { name: $systemName })
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(direct)
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: false }]->(transitive)
+        CREATE (system)-[:USES { scope: 'dev', isDirect: true }]->(devDirect)
+      `, {
+        directName: `${PREFIX}runtime-direct`,
+        directPurl: `pkg:npm/${PREFIX}runtime-direct@1.0.0`,
+        transitiveName: `${PREFIX}runtime-transitive`,
+        transitivePurl: `pkg:npm/${PREFIX}runtime-transitive@1.0.0`,
+        devDirectName: `${PREFIX}dev-direct`,
+        devDirectPurl: `pkg:npm/${PREFIX}dev-direct@1.0.0`,
+        systemName: `${PREFIX}filter-system`
+      })
+
+      const { data } = await repo.findAll({
+        system: `${PREFIX}filter-system`,
+        directOnly: true,
+        depScope: 'runtime'
+      })
+
+      expect(data.map(component => component.name)).toContain(`${PREFIX}runtime-direct`)
+      expect(data.map(component => component.name)).not.toContain(`${PREFIX}runtime-transitive`)
+      expect(data.map(component => component.name)).not.toContain(`${PREFIX}dev-direct`)
+    })
+  })
+
+  describe('findByIdentity()', () => {
+    it('should find component details by purl', async () => {
+      if (!ctx.neo4jAvailable) return
+      const purl = `pkg:npm/${PREFIX}detail-purl@1.2.3`
+      await seed(ctx.driver, `
+        CREATE (:Component {
+          name: $name,
+          version: '1.2.3',
+          packageManager: 'npm',
+          purl: $purl,
+          type: 'library',
+          description: 'Component fetched by purl'
+        })
+      `, { name: `${PREFIX}detail-purl`, purl })
+
+      const component = await repo.findByIdentity({ purl })
+
+      expect(component).toMatchObject({
+        name: `${PREFIX}detail-purl`,
+        version: '1.2.3',
+        packageManager: 'npm',
+        purl,
+        type: 'library',
+        description: 'Component fetched by purl',
+        systems: [],
+        eol: null
+      })
+    })
+
+    it('should find component details by fallback identity when purl is unavailable', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Component {
+          name: $name,
+          version: '4.5.6',
+          packageManager: 'maven',
+          group: 'org.example',
+          purl: null,
+          type: 'framework'
+        })
+      `, { name: `${PREFIX}detail-fallback` })
+
+      const component = await repo.findByIdentity({
+        name: `${PREFIX}detail-fallback`,
+        version: '4.5.6',
+        packageManager: 'maven',
+        group: 'org.example'
+      })
+
+      expect(component).toMatchObject({
+        name: `${PREFIX}detail-fallback`,
+        version: '4.5.6',
+        packageManager: 'maven',
+        group: 'org.example',
+        purl: null,
+        type: 'framework'
+      })
+    })
+
+    it('should include related systems, technology, licenses, hashes, and references', async () => {
+      if (!ctx.neo4jAvailable) return
+      const purl = `pkg:npm/${PREFIX}detail-rich@2.0.0`
+      await seed(ctx.driver, `
+        CREATE (c:Component {
+          name: $name,
+          version: '2.0.0',
+          packageManager: 'npm',
+          purl: $purl,
+          homepage: 'https://example.com/detail-rich'
+        })
+        CREATE (sys:System { name: $system })
+        CREATE (sys)-[:USES { scope: 'runtime', isDirect: true }]->(c)
+        CREATE (tech:Technology { name: $technology })
+        CREATE (c)-[:IS_VERSION_OF]->(tech)
+        CREATE (hash:Hash { algorithm: 'SHA-256', value: 'abc123' })
+        CREATE (c)-[:HAS_HASH]->(hash)
+        MERGE (license:License { id: 'MIT' })
+        ON CREATE SET license.name = 'MIT License', license.url = 'https://opensource.org/license/mit'
+        CREATE (c)-[:HAS_LICENSE]->(license)
+        CREATE (reference:ExternalReference { type: 'vcs', url: 'https://example.com/repo.git' })
+        CREATE (c)-[:HAS_REFERENCE]->(reference)
+      `, {
+        name: `${PREFIX}detail-rich`,
+        purl,
+        system: `${PREFIX}system-rich`,
+        technology: `${PREFIX}Technology`
+      })
+
+      const component = await repo.findByIdentity({ purl })
+
+      expect(component).toBeDefined()
+      expect(component!.technologyName).toBe(`${PREFIX}Technology`)
+      expect(component!.systemCount).toBe(1)
+      expect(component!.systems).toEqual([
+        { name: `${PREFIX}system-rich`, scope: 'runtime', isDirect: true }
+      ])
+      expect(component!.hashes).toEqual([
+        { algorithm: 'SHA-256', value: 'abc123' }
+      ])
+      expect(component!.licenses).toMatchObject([
+        {
+          id: 'MIT',
+          name: 'MIT License'
+        }
+      ])
+      expect(component!.externalReferences).toEqual([
+        { type: 'vcs', url: 'https://example.com/repo.git' }
+      ])
+    })
+
+    it('should return null when no component matches the identity', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const component = await repo.findByIdentity({
+        name: `${PREFIX}missing`,
+        version: '0.0.1',
+        packageManager: 'npm',
+        group: null
+      })
+
+      expect(component).toBeNull()
+    })
   })
 
 })

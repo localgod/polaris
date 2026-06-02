@@ -82,8 +82,8 @@ onMounted(async () => {
   callbackUrl.value = `${baseUrl}/api/auth/callback/github`
 
   try {
-    await $fetch('/api/auth/providers')
-    isConfigured.value = true
+    const config = await $fetch<{ github: { configured: boolean } }>('/api/auth/config')
+    isConfigured.value = config.github.configured
   } catch {
     isConfigured.value = false
   }

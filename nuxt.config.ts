@@ -1,5 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
+const isEnabled = (value: string | undefined) => value === 'true' || value === '1'
+const shouldTrustAuthHost = process.env.NODE_ENV !== 'production' || isEnabled(process.env.AUTH_TRUST_HOST)
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
@@ -41,7 +44,8 @@ export default defineNuxtConfig({
     baseURL: process.env.AUTH_ORIGIN
       || (process.env.NODE_ENV === 'test' ? 'http://localhost:3000/api/auth' : undefined),
     provider: {
-      type: 'authjs'
+      type: 'authjs',
+      trustHost: shouldTrustAuthHost
     },
     globalAppMiddleware: false // We'll protect specific routes/actions, not the whole app
   },

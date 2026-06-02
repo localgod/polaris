@@ -74,6 +74,7 @@ import { h, resolveComponent, defineComponent, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Component } from '~~/types/api'
+import { encodeComponentKey } from '~~/utils/component-identity'
 
 const PM_COLORS: Record<string, string> = {
   npm: '#cb3837', yarn: '#2c8ebb', maven: '#c71a36', gradle: '#02303a',
@@ -109,6 +110,7 @@ const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UTooltip = resolveComponent('UTooltip')
+const NuxtLink = resolveComponent('NuxtLink')
 
 // Inline component so each row gets its own reactive description state.
 const ComponentNameCell = defineComponent({
@@ -139,7 +141,10 @@ const ComponentNameCell = defineComponent({
           ui: { content: 'max-w-xs h-auto whitespace-normal bg-inverted text-inverted rounded px-3 py-2 text-xs shadow-md' }
         },
         {
-          default: () => h('strong', {}, displayName),
+          default: () => h(NuxtLink, {
+            to: `/components/${encodeComponentKey(props.component)}`,
+            class: 'font-semibold hover:underline'
+          }, () => displayName),
           content: () => tooltipContent()
         }
       )
@@ -213,7 +218,11 @@ const columns: TableColumn<Component>[] = [
     cell: ({ row }) => {
       const component = row.original
       const items: { label: string, icon: string, onSelect: () => void }[][] = []
-      const group: { label: string, icon: string, onSelect: () => void }[] = []
+      const group: { label: string, icon: string, onSelect: () => void }[] = [{
+        label: 'View Details',
+        icon: 'i-lucide-eye',
+        onSelect: () => navigateTo(`/components/${encodeComponentKey(component)}`)
+      }]
 
       if (component.purl) {
         group.push({
