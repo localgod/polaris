@@ -1,6 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { Component } from '~~/types/api'
+import type { Component, ComponentDetail } from '~~/types/api'
+import type { ComponentIdentity } from '~~/utils/component-identity'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
 
 export interface ComponentFilters {
@@ -206,6 +207,21 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
+  async findByIdentity(identity: ComponentIdentity): Promise<ComponentDetail | null> {
+    const query = await loadQuery('components/find-by-identity.cypher')
+    const params = {
+      purl: identity.purl || null,
+      name: identity.name || null,
+      version: identity.version || null,
+      packageManager: identity.packageManager || null,
+      group: identity.group || null
+    }
+
+    const { records } = await this.executeQuery(query, params)
+    if (records.length === 0) return null
+    return this.mapToComponentDetail(records[0])
+  }
+
   /**
    * Map Neo4j record to Component domain object
    */
@@ -235,6 +251,20 @@ export class ComponentRepository extends BaseRepository {
       modifiedDate: record.get('modifiedDate')?.toString(),
       technologyName: record.get('technologyName'),
       systemCount: record.get('systemCount').toNumber()
+    }
+  }
+
+  private mapToComponentDetail(record: Neo4jRecord): ComponentDetail {
+    return {
+      ...this.mapToComponent(record),
+      systems: (record.get('systems') ?? [])
+        .filter((system: { name?: string }) => system.name)
+        .map((system: { name: string; scope?: string | null; isDirect?: boolean | null }) => ({
+          name: system.name,
+          scope: system.scope ?? null,
+          isDirect: system.isDirect ?? null
+        })),
+      eol: null
     }
   }
 

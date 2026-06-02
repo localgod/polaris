@@ -89,6 +89,36 @@ export interface Component {
   systemCount: number            // Number of systems using this
 }
 
+export interface ComponentSystemUsage {
+  name: string
+  scope: DependencyScope | null
+  isDirect: boolean | null
+}
+
+export type EOLStatusValue = 'active' | 'approaching_eol' | 'unsupported' | 'unknown'
+
+export interface EOLStatus {
+  status: EOLStatusValue
+  productName: string | null
+  productLabel: string | null
+  matchedCycle: string | null
+  eolDate: string | null
+  supportEndDate: string | null
+  lts: boolean | null
+  latestVersion: string | null
+  latestReleaseDate: string | null
+  source: {
+    name: 'endoflife.date'
+    url: string | null
+  }
+  reason?: 'no_mapping' | 'no_data' | 'no_matching_cycle' | 'fetch_failed'
+}
+
+export interface ComponentDetail extends Component {
+  systems: ComponentSystemUsage[]
+  eol: EOLStatus | null
+}
+
 export type TechnologyDomain =
   | 'foundational-runtime'
   | 'framework'

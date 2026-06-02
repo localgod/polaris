@@ -40,6 +40,14 @@ import GithubProvider from 'next-auth/providers/github'
 import { userService } from '../../services/singletons'
 import { logger } from '../../utils/logger'
 
+if (process.env.AUTH_ORIGIN && !process.env.NEXTAUTH_URL) {
+  process.env.NEXTAUTH_URL = process.env.AUTH_ORIGIN
+}
+
+if (process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+  process.env.NEXTAUTH_SECRET = process.env.AUTH_SECRET
+}
+
 export default NuxtAuthHandler({
   secret: process.env.AUTH_SECRET || 'replace-me-in-production',
   

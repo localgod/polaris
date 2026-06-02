@@ -11,6 +11,7 @@ export { TokenService } from './token.service'
 export { UserService } from './user.service'
 export { AuditLogService } from './audit-log.service'
 export { GitHubImportService } from './github-import.service'
+export { EOLService } from './eol.service'
 export {
   complianceService,
   componentService,
@@ -24,7 +25,8 @@ export {
   tokenService,
   userService,
   auditLogService,
-  gitHubImportService
+  gitHubImportService,
+  eolService
 } from './singletons'
 export type { ViolationResult as VersionConstraintViolationResult } from './version-constraint.service'
 export type { ViolationResult as ComplianceViolationResult } from './compliance.service'

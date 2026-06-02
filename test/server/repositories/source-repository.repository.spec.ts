@@ -53,6 +53,23 @@ describe('SourceRepositoryRepository', () => {
     })
   })
 
+  describe('updateLastScan()', () => {
+    it('should update scan timestamps for an existing repository', async () => {
+      if (!ctx.neo4jAvailable) return
+      const url = `https://github.com/${PREFIX}org/scanned-repo`
+      await seed(ctx.driver, `
+        CREATE (:Repository { url: $url, name: $name })
+      `, { url, name: `${PREFIX}scanned-repo` })
+
+      await repo.updateLastScan(url)
+      const result = await repo.findByUrl(url)
+
+      expect(result).not.toBeNull()
+      expect(result!.lastSbomScanAt).not.toBeNull()
+      expect(result!.updatedAt).not.toBeNull()
+    })
+  })
+
   describe('createWithSystem()', () => {
     it('should create repository linked to a system', async () => {
       if (!ctx.neo4jAvailable) return
