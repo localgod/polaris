@@ -6,7 +6,7 @@
         class="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-(--ui-bg-elevated) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-primary)"
         :aria-expanded="hasChildren ? String(isExpanded) : undefined"
         :aria-label="`${isExpanded ? 'Collapse' : 'Expand'} ${displayName}`"
-        :disabled="!hasChildren && !canLoadChildren"
+:disabled="!isExpanded && !hasChildren && !canLoadChildren"
         @click="emit('toggle', node, parentKey)"
       >
         <UIcon
