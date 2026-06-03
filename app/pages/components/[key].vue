@@ -324,6 +324,39 @@
         </div>
       </UCard>
 
+      <UCard>
+        <template #header>
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 class="text-lg font-semibold">Dependency Tree</h2>
+              <p class="text-sm text-(--ui-text-muted)">Explore direct and transitive dependencies.</p>
+            </div>
+            <label v-if="component.systems.length > 0" class="flex items-center gap-2 text-sm">
+              <span class="text-(--ui-text-muted)">System context</span>
+              <select
+                v-model="selectedDependencySystem"
+                class="rounded-md border border-(--ui-border) bg-(--ui-bg) px-2 py-1 text-(--ui-text)"
+                aria-label="Dependency tree system context"
+              >
+                <option value="">Global</option>
+                <option
+                  v-for="system in component.systems"
+                  :key="system.name"
+                  :value="system.name"
+                >
+                  {{ system.name }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </template>
+
+        <ComponentDependencyTree
+          :component-key="route.params.key as string"
+          :system-name="selectedDependencySystem || undefined"
+        />
+      </UCard>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <UCard>
           <template #header>
@@ -384,6 +417,7 @@
 import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataStatus } from '~~/types/api'
 
 const route = useRoute()
+const selectedDependencySystem = ref('')
 
 interface ComponentDetailResponse {
   success: boolean
