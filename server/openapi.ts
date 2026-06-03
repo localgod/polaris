@@ -212,6 +212,46 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             }
           }
         },
+        ComponentDirectDependency: {
+          type: 'object',
+          required: ['name', 'version', 'isDirect'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'Direct dependency component name'
+            },
+            group: {
+              type: 'string',
+              nullable: true,
+              description: 'Package group or scope'
+            },
+            version: {
+              type: 'string',
+              description: 'Direct dependency component version'
+            },
+            packageManager: {
+              type: 'string',
+              nullable: true,
+              description: 'Package manager'
+            },
+            purl: {
+              type: 'string',
+              nullable: true,
+              description: 'Package URL'
+            },
+            scope: {
+              type: 'string',
+              nullable: true,
+              enum: ['required', 'optional', 'excluded', 'dev', 'test', 'runtime', 'provided'],
+              description: 'Dependency scope when unambiguous across known system usage'
+            },
+            isDirect: {
+              type: 'boolean',
+              enum: [true],
+              description: 'Always true for direct dependencies returned by component detail'
+            }
+          }
+        },
         Component: {
           type: 'object',
           required: ['name', 'version'],

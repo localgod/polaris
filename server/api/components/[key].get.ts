@@ -20,6 +20,42 @@ import { componentService, eolService, packageMetadataService } from '../../serv
  *     responses:
  *       200:
  *         description: Component details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSingleResourceResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       allOf:
+ *                         - $ref: '#/components/schemas/Component'
+ *                         - type: object
+ *                           properties:
+ *                             systems:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   name:
+ *                                     type: string
+ *                                   scope:
+ *                                     type: string
+ *                                     nullable: true
+ *                                     enum: [required, optional, excluded, dev, test, runtime, provided]
+ *                                   isDirect:
+ *                                     type: boolean
+ *                                     nullable: true
+ *                             directDependencies:
+ *                               type: array
+ *                               items:
+ *                                 $ref: '#/components/schemas/ComponentDirectDependency'
+ *                             eol:
+ *                               type: object
+ *                               nullable: true
+ *                             packageMetadata:
+ *                               type: object
+ *                               nullable: true
  *       400:
  *         description: Component key is missing or invalid
  *       404:

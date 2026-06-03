@@ -37,6 +37,17 @@ const mockComponent = {
   technologyName: 'Node.js',
   systemCount: 1,
   systems: [{ name: 'catalog', scope: 'runtime', isDirect: true }],
+  directDependencies: [
+    {
+      name: 'semver',
+      group: null,
+      version: '7.6.3',
+      packageManager: 'npm',
+      purl: 'pkg:npm/semver@7.6.3',
+      scope: 'runtime',
+      isDirect: true
+    }
+  ],
   eol: null,
   packageMetadata: null
 }
@@ -91,6 +102,7 @@ describe('GET /api/components/{key}', () => {
       success: true,
       data: {
         name: 'node',
+        directDependencies: mockComponent.directDependencies,
         eol: mockEol,
         packageMetadata: mockPackageMetadata
       }
