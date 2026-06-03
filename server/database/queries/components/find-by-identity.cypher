@@ -20,7 +20,7 @@ WITH c, tech,
      collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses,
      collect(DISTINCT {type: ref.type, url: ref.url}) as externalReferences
 OPTIONAL MATCH (c)-[:DEPENDS_ON]->(dep:Component)
-OPTIONAL MATCH (dep)<-[depUse:USES]-(:System)
+OPTIONAL MATCH (dep)<-[depUse:USES {isDirect: true}]-(:System)
 WITH c, tech, systems, hashes, licenses, externalReferences, dep,
      [scope IN collect(DISTINCT depUse.scope) WHERE scope IS NOT NULL] as dependencyScopes
 WITH c, tech, systems, hashes, licenses, externalReferences,
