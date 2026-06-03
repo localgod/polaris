@@ -282,12 +282,16 @@ export class ComponentRepository extends BaseRepository {
     const root = record.get('root') as DependencyPathNode
     const paths = (record.get('paths') ?? []) as DependencyPath[]
 
+    const tree = this.buildDependencyTree(root, paths, filters.limit)
+    const pathCount = record.get('pathCount').toNumber()
+    const reachedPathLimit = pathCount >= params.pathLimit
+
     return {
-      ...this.buildDependencyTree(root, paths, filters.limit),
+      ...tree,
+      truncated: tree.truncated || reachedPathLimit,
       maxDepth: filters.maxDepth,
       systemExists: record.get('systemExists') as boolean
     }
-  }
 
   private buildDependencyTree(
     root: DependencyPathNode,
