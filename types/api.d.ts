@@ -105,6 +105,28 @@ export interface ComponentDirectDependency {
   isDirect: boolean
 }
 
+export interface DependencyNode {
+  name: string
+  group: string | null
+  version: string
+  packageManager: string | null
+  purl: string | null
+  scope: DependencyScope | null
+  isDirect: boolean
+  depth: number
+  children?: DependencyNode[]
+  isCircular?: boolean
+}
+
+export interface DependencyTreeResponse {
+  componentKey: string
+  dependencies: DependencyNode[]
+  totalCount: number
+  hasCircularDependencies: boolean
+  truncated: boolean
+  maxDepth: number
+}
+
 export type EOLStatusValue = 'active' | 'approaching_eol' | 'unsupported' | 'unknown'
 
 export interface EOLStatus {

@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { Component, ComponentDetail } from '~~/types/api'
+import type { Component, ComponentDetail, DependencyNode, DependencyScope } from '~~/types/api'
 import type { ComponentIdentity } from '~~/utils/component-identity'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
 
@@ -20,6 +20,40 @@ export interface ComponentFilters {
   offset?: number
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+}
+
+export interface ComponentDependencyFilters {
+  system?: string
+  scopes?: DependencyScope[]
+  maxDepth: number
+  limit: number
+}
+
+export interface ComponentDependencyTree {
+  dependencies: DependencyNode[]
+  totalCount: number
+  hasCircularDependencies: boolean
+  truncated: boolean
+  maxDepth: number
+  systemExists: boolean
+}
+
+interface DependencyPathNode {
+  elementId: string
+  name: string
+  group?: string | null
+  version: string
+  packageManager?: string | null
+  purl?: string | null
+  scope?: DependencyScope | null
+}
+
+interface DependencyPath {
+  nodes: DependencyPathNode[]
+}
+
+type MutableDependencyNode = DependencyNode & {
+  children: MutableDependencyNode[]
 }
 
 const componentSortConfig: SortConfig = {
@@ -221,6 +255,118 @@ export class ComponentRepository extends BaseRepository {
     if (records.length === 0) return null
     return this.mapToComponentDetail(records[0])
   }
+
+  async findDependencies(
+    identity: ComponentIdentity,
+    filters: ComponentDependencyFilters
+  ): Promise<ComponentDependencyTree | null> {
+    const baseQuery = await loadQuery('components/find-dependencies-recursive.cypher')
+    const query = this.injectPlaceholders(baseQuery, {
+      '{{MAX_DEPTH}}': String(filters.maxDepth)
+    })
+    const params = {
+      purl: identity.purl || null,
+      name: identity.name || null,
+      version: identity.version || null,
+      packageManager: identity.packageManager || null,
+      group: identity.group || null,
+      system: filters.system || null,
+      scopes: filters.scopes ?? [],
+      pathLimit: Math.max(filters.limit * filters.maxDepth * 2, filters.limit)
+    }
+
+    const { records } = await this.executeQuery(query, params)
+    if (records.length === 0) return null
+
+    const record = records[0]
+    const root = record.get('root') as DependencyPathNode
+    const paths = (record.get('paths') ?? []) as DependencyPath[]
+
+    const tree = this.buildDependencyTree(root, paths, filters.limit)
+    const pathCount = record.get('pathCount').toNumber()
+    const reachedPathLimit = pathCount >= params.pathLimit
+
+    return {
+      ...tree,
+      truncated: tree.truncated || reachedPathLimit,
+      maxDepth: filters.maxDepth,
+      systemExists: record.get('systemExists') as boolean
+    }
+
+  private buildDependencyTree(
+    root: DependencyPathNode,
+    paths: DependencyPath[],
+    limit: number
+  ): Omit<ComponentDependencyTree, 'maxDepth' | 'systemExists'> {
+    const dependencies: MutableDependencyNode[] = []
+    const uniqueNodeKeys = new Set<string>()
+    const rootKey = this.getDependencyNodeKey(root)
+    let hasCircularDependencies = false
+    let truncated = false
+
+    for (const path of paths) {
+      let siblings = dependencies
+      const ancestors = new Set<string>([rootKey])
+
+      for (let index = 0; index < path.nodes.length; index += 1) {
+        const pathNode = path.nodes[index]
+        if (!pathNode.name || !pathNode.version) break
+
+        const nodeKey = this.getDependencyNodeKey(pathNode)
+        const isCircular = ancestors.has(nodeKey)
+        let treeNode = siblings.find(node => this.getDependencyNodeKey(node) === nodeKey)
+
+        if (!treeNode) {
+          if (!uniqueNodeKeys.has(nodeKey) && uniqueNodeKeys.size >= limit) {
+            truncated = true
+            break
+          }
+
+          treeNode = {
+            name: pathNode.name,
+            group: pathNode.group ?? null,
+            version: pathNode.version,
+            packageManager: pathNode.packageManager ?? null,
+            purl: pathNode.purl ?? null,
+            scope: pathNode.scope ?? null,
+            isDirect: index === 0,
+            depth: index + 1,
+            children: []
+          }
+          siblings.push(treeNode)
+        }
+
+        uniqueNodeKeys.add(nodeKey)
+
+        if (isCircular) {
+          treeNode.isCircular = true
+          hasCircularDependencies = true
+          break
+        }
+
+        ancestors.add(nodeKey)
+        siblings = treeNode.children
+      }
+    }
+
+    return {
+      dependencies,
+      totalCount: uniqueNodeKeys.size,
+      hasCircularDependencies,
+      truncated
+    }
+  }
+
+  private getDependencyNodeKey(node: {
+    elementId?: string
+    purl?: string | null
+    packageManager?: string | null
+    group?: string | null
+    name: string
+    version: string
+  }): string {
+    return node.purl
+      ?? `${node.packageManager ?? ''}:${node.group ?? ''}:${node.name}@${node.version}`
 
   /**
    * Map Neo4j record to Component domain object
