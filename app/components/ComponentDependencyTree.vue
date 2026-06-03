@@ -167,7 +167,7 @@ async function toggleNode(node: DependencyNode, parentKey: string) {
     }
     markLoaded(nodeKey)
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Dependency children could not be loaded.'
+    console.error('Failed to load dependency children:', error)
   } finally {
     markLoading(nodeKey, false)
   }
