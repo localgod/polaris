@@ -102,7 +102,11 @@ watch(
   { immediate: true }
 )
 
+let loadRootRequestId = 0
+
 async function loadRoot() {
+  const requestId = ++loadRootRequestId
+
   pending.value = true
   errorMessage.value = null
   dependencies.value = []
@@ -114,6 +118,8 @@ async function loadRoot() {
 
   try {
     const response = await fetchDependencies(props.componentKey)
+    if (requestId !== loadRootRequestId) return
+
     dependencies.value = response.dependencies
     treeMeta.value = {
       truncated: response.truncated,
@@ -121,9 +127,10 @@ async function loadRoot() {
       totalCount: response.totalCount
     }
   } catch (error) {
+    if (requestId !== loadRootRequestId) return
     errorMessage.value = error instanceof Error ? error.message : 'Dependency tree could not be loaded.'
   } finally {
-    pending.value = false
+    if (requestId === loadRootRequestId) pending.value = false
   }
 }
 
