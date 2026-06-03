@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.50] - 2026-06-03
+
+## What's Changed
+
+- Add direct dependencies to component detail API @localgod (#619)
+
+## 🔧 Maintenance
+
+- chore: release v0.5.49 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#614)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.49...v0.5.50
+
 ## [0.5.49] - 2026-06-02
 
 ## What's Changed
