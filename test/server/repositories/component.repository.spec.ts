@@ -222,6 +222,7 @@ describe('ComponentRepository', () => {
         type: 'library',
         description: 'Component fetched by purl',
         systems: [],
+        directDependencies: [],
         eol: null
       })
     })
@@ -304,6 +305,76 @@ describe('ComponentRepository', () => {
       ])
       expect(component!.externalReferences).toEqual([
         { type: 'vcs', url: 'https://example.com/repo.git' }
+      ])
+    })
+
+    it('should include direct component dependencies without duplicates', async () => {
+      if (!ctx.neo4jAvailable) return
+      const purl = `pkg:npm/${PREFIX}detail-root@1.0.0`
+      await seed(ctx.driver, `
+        CREATE (root:Component {
+          name: $name,
+          version: '1.0.0',
+          packageManager: 'npm',
+          purl: $purl
+        })
+        CREATE (runtimeDep:Component {
+          name: $runtimeDep,
+          version: '2.0.0',
+          packageManager: 'npm',
+          purl: $runtimePurl
+        })
+        CREATE (ambiguousDep:Component {
+          name: $ambiguousDep,
+          version: '3.0.0',
+          packageManager: 'npm',
+          purl: $ambiguousPurl
+        })
+        CREATE (root)-[:DEPENDS_ON]->(runtimeDep)
+        CREATE (root)-[:DEPENDS_ON]->(ambiguousDep)
+        CREATE (runtimeSystemA:System { name: $runtimeSystemA })
+        CREATE (runtimeSystemB:System { name: $runtimeSystemB })
+        CREATE (ambiguousSystemA:System { name: $ambiguousSystemA })
+        CREATE (ambiguousSystemB:System { name: $ambiguousSystemB })
+        CREATE (runtimeSystemA)-[:USES { scope: 'runtime', isDirect: true }]->(runtimeDep)
+        CREATE (runtimeSystemB)-[:USES { scope: 'runtime', isDirect: true }]->(runtimeDep)
+        CREATE (ambiguousSystemA)-[:USES { scope: 'runtime', isDirect: true }]->(ambiguousDep)
+        CREATE (ambiguousSystemB)-[:USES { scope: 'dev', isDirect: true }]->(ambiguousDep)
+      `, {
+        name: `${PREFIX}detail-root`,
+        purl,
+        runtimeDep: `${PREFIX}runtime-dep`,
+        runtimePurl: `pkg:npm/${PREFIX}runtime-dep@2.0.0`,
+        ambiguousDep: `${PREFIX}ambiguous-dep`,
+        ambiguousPurl: `pkg:npm/${PREFIX}ambiguous-dep@3.0.0`,
+        runtimeSystemA: `${PREFIX}runtime-system-a`,
+        runtimeSystemB: `${PREFIX}runtime-system-b`,
+        ambiguousSystemA: `${PREFIX}ambiguous-system-a`,
+        ambiguousSystemB: `${PREFIX}ambiguous-system-b`
+      })
+
+      const component = await repo.findByIdentity({ purl })
+
+      expect(component).toBeDefined()
+      expect(component!.directDependencies.toSorted((a, b) => a.name.localeCompare(b.name))).toEqual([
+        {
+          name: `${PREFIX}ambiguous-dep`,
+          group: null,
+          version: '3.0.0',
+          packageManager: 'npm',
+          purl: `pkg:npm/${PREFIX}ambiguous-dep@3.0.0`,
+          scope: null,
+          isDirect: true
+        },
+        {
+          name: `${PREFIX}runtime-dep`,
+          group: null,
+          version: '2.0.0',
+          packageManager: 'npm',
+          purl: `pkg:npm/${PREFIX}runtime-dep@2.0.0`,
+          scope: 'runtime',
+          isDirect: true
+        }
       ])
     })
 

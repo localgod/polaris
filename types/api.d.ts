@@ -95,6 +95,16 @@ export interface ComponentSystemUsage {
   isDirect: boolean | null
 }
 
+export interface ComponentDirectDependency {
+  name: string
+  group: string | null
+  version: string
+  packageManager: string | null
+  purl: string | null
+  scope: DependencyScope | null
+  isDirect: boolean
+}
+
 export type EOLStatusValue = 'active' | 'approaching_eol' | 'unsupported' | 'unknown'
 
 export interface EOLStatus {
@@ -152,6 +162,7 @@ export interface PackageMetadata {
 
 export interface ComponentDetail extends Component {
   systems: ComponentSystemUsage[]
+  directDependencies: ComponentDirectDependency[]
   eol: EOLStatus | null
   packageMetadata: PackageMetadata | null
 }

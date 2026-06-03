@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "0.5.46",
+    "version": "0.5.49",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",
@@ -214,6 +214,60 @@
             "type": "string",
             "description": "Reference URL",
             "example": "https://github.com/facebook/react"
+          }
+        }
+      },
+      "ComponentDirectDependency": {
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "isDirect"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Direct dependency component name"
+          },
+          "group": {
+            "type": "string",
+            "nullable": true,
+            "description": "Package group or scope"
+          },
+          "version": {
+            "type": "string",
+            "description": "Direct dependency component version"
+          },
+          "packageManager": {
+            "type": "string",
+            "nullable": true,
+            "description": "Package manager"
+          },
+          "purl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Package URL"
+          },
+          "scope": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "required",
+              "optional",
+              "excluded",
+              "dev",
+              "test",
+              "runtime",
+              "provided"
+            ],
+            "description": "Dependency scope when unambiguous across known system usage"
+          },
+          "isDirect": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Always true for direct dependencies returned by component detail"
           }
         }
       },
@@ -4163,7 +4217,77 @@
         ],
         "responses": {
           "200": {
-            "description": "Component details retrieved successfully"
+            "description": "Component details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/Component"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "systems": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "scope": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                          "required",
+                                          "optional",
+                                          "excluded",
+                                          "dev",
+                                          "test",
+                                          "runtime",
+                                          "provided"
+                                        ]
+                                      },
+                                      "isDirect": {
+                                        "type": "boolean",
+                                        "nullable": true
+                                      }
+                                    }
+                                  }
+                                },
+                                "directDependencies": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/ComponentDirectDependency"
+                                  }
+                                },
+                                "eol": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "packageMetadata": {
+                                  "type": "object",
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           },
           "400": {
             "description": "Component key is missing or invalid"

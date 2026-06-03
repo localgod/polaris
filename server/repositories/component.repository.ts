@@ -264,6 +264,25 @@ export class ComponentRepository extends BaseRepository {
           scope: system.scope ?? null,
           isDirect: system.isDirect ?? null
         })),
+      directDependencies: (record.get('directDependencies') ?? [])
+        .filter((dependency: { name?: string; version?: string | null }) => dependency.name && dependency.version)
+        .map((dependency: {
+          name: string
+          group?: string | null
+          version: string
+          packageManager?: string | null
+          purl?: string | null
+          scope?: string | null
+          isDirect?: boolean
+        }) => ({
+          name: dependency.name,
+          group: dependency.group ?? null,
+          version: dependency.version,
+          packageManager: dependency.packageManager ?? null,
+          purl: dependency.purl ?? null,
+          scope: dependency.scope ?? null,
+          isDirect: true
+        })),
       eol: null,
       packageMetadata: null
     }

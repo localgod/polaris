@@ -19,6 +19,23 @@ WITH c, tech,
      collect(DISTINCT {algorithm: h.algorithm, value: h.value}) as hashes,
      collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses,
      collect(DISTINCT {type: ref.type, url: ref.url}) as externalReferences
+OPTIONAL MATCH (c)-[:DEPENDS_ON]->(dep:Component)
+OPTIONAL MATCH (dep)<-[depUse:USES {isDirect: true}]-(:System)
+WITH c, tech, systems, hashes, licenses, externalReferences, dep,
+     [scope IN collect(DISTINCT depUse.scope) WHERE scope IS NOT NULL] as dependencyScopes
+WITH c, tech, systems, hashes, licenses, externalReferences,
+     collect(DISTINCT CASE
+       WHEN dep.name IS NULL THEN null
+       ELSE {
+         name: dep.name,
+         group: dep.`group`,
+         version: dep.version,
+         packageManager: dep.packageManager,
+         purl: dep.purl,
+         scope: CASE WHEN size(dependencyScopes) = 1 THEN head(dependencyScopes) ELSE null END,
+         isDirect: true
+       }
+     END) as directDependencies
 RETURN c.name as name,
        c.version as version,
        c.packageManager as packageManager,
@@ -43,5 +60,6 @@ RETURN c.name as name,
        c.modifiedDate as modifiedDate,
        tech.name as technologyName,
        size([system IN systems WHERE system.name IS NOT NULL | system]) as systemCount,
-       [system IN systems WHERE system.name IS NOT NULL | system] as systems
+       [system IN systems WHERE system.name IS NOT NULL | system] as systems,
+       [dep IN directDependencies WHERE dep IS NOT NULL | dep] as directDependencies
 LIMIT 1
