@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.52] - 2026-06-03
+
+## What's Changed
+
+- Add dependency tree UI @localgod (#623)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.5.51...v0.5.52
+
 ## [0.5.49] - 2026-06-02
 
 ## What's Changed
