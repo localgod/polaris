@@ -265,7 +265,7 @@ export class ComponentRepository extends BaseRepository {
           isDirect: system.isDirect ?? null
         })),
       directDependencies: (record.get('directDependencies') ?? [])
-        .filter((dependency: { name?: string }) => dependency.name)
+        .filter((dependency: { name?: string; version?: string | null }) => dependency.name && dependency.version)
         .map((dependency: {
           name: string
           group?: string | null
