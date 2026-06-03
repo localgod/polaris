@@ -281,7 +281,7 @@ export class ComponentRepository extends BaseRepository {
           packageManager: dependency.packageManager ?? null,
           purl: dependency.purl ?? null,
           scope: dependency.scope ?? null,
-          isDirect: dependency.isDirect ?? true
+          isDirect: true
         })),
       eol: null,
       packageMetadata: null
