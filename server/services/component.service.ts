@@ -1,5 +1,5 @@
 import { ComponentRepository } from '../repositories/component.repository'
-import type { ComponentFilters } from '../repositories/component.repository'
+import type { ComponentDependencyFilters, ComponentDependencyTree, ComponentFilters } from '../repositories/component.repository'
 import type { Component, ComponentDetail } from '~~/types/api'
 import type { ComponentIdentity } from '~~/utils/component-identity'
 
@@ -45,6 +45,13 @@ export class ComponentService {
 
   async findByIdentity(identity: ComponentIdentity): Promise<ComponentDetail | null> {
     return await this.componentRepo.findByIdentity(identity)
+  }
+
+  async findDependencies(
+    identity: ComponentIdentity,
+    filters: ComponentDependencyFilters
+  ): Promise<ComponentDependencyTree | null> {
+    return await this.componentRepo.findDependencies(identity, filters)
   }
 
 }

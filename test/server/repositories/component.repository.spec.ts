@@ -392,4 +392,176 @@ describe('ComponentRepository', () => {
     })
   })
 
+  describe('findDependencies()', () => {
+    it('should return an empty dependency tree when a component has no dependencies', async () => {
+      if (!ctx.neo4jAvailable) return
+      const purl = `pkg:npm/${PREFIX}deps-empty@1.0.0`
+      await seed(ctx.driver, `
+        CREATE (:Component {
+          name: $name,
+          version: '1.0.0',
+          packageManager: 'npm',
+          purl: $purl
+        })
+      `, { name: `${PREFIX}deps-empty`, purl })
+
+      const result = await repo.findDependencies({ purl }, {
+        maxDepth: 10,
+        limit: 500
+      })
+
+      expect(result).toMatchObject({
+        dependencies: [],
+        totalCount: 0,
+        hasCircularDependencies: false,
+        truncated: false,
+        maxDepth: 10,
+        systemExists: true
+      })
+    })
+
+    it('should return nested transitive dependencies and flag circular branches', async () => {
+      if (!ctx.neo4jAvailable) return
+      const rootPurl = `pkg:npm/${PREFIX}deps-root@1.0.0`
+      await seed(ctx.driver, `
+        CREATE (root:Component { name: $root, version: '1.0.0', packageManager: 'npm', purl: $rootPurl })
+        CREATE (a:Component { name: $a, version: '1.0.0', packageManager: 'npm', purl: $aPurl })
+        CREATE (b:Component { name: $b, version: '1.0.0', packageManager: 'npm', purl: $bPurl })
+        CREATE (c:Component { name: $c, version: '1.0.0', packageManager: 'npm', purl: $cPurl })
+        CREATE (root)-[:DEPENDS_ON]->(a)
+        CREATE (a)-[:DEPENDS_ON]->(b)
+        CREATE (b)-[:DEPENDS_ON]->(c)
+        CREATE (c)-[:DEPENDS_ON]->(a)
+      `, {
+        root: `${PREFIX}deps-root`,
+        rootPurl,
+        a: `${PREFIX}deps-a`,
+        aPurl: `pkg:npm/${PREFIX}deps-a@1.0.0`,
+        b: `${PREFIX}deps-b`,
+        bPurl: `pkg:npm/${PREFIX}deps-b@1.0.0`,
+        c: `${PREFIX}deps-c`,
+        cPurl: `pkg:npm/${PREFIX}deps-c@1.0.0`
+      })
+
+      const result = await repo.findDependencies({ purl: rootPurl }, {
+        maxDepth: 5,
+        limit: 500
+      })
+
+      expect(result).toBeDefined()
+      expect(result!.hasCircularDependencies).toBe(true)
+      expect(result!.totalCount).toBe(3)
+      expect(result!.dependencies).toMatchObject([
+        {
+          name: `${PREFIX}deps-a`,
+          isDirect: true,
+          depth: 1,
+          children: [
+            {
+              name: `${PREFIX}deps-b`,
+              isDirect: false,
+              depth: 2,
+              children: [
+                {
+                  name: `${PREFIX}deps-c`,
+                  isDirect: false,
+                  depth: 3,
+                  children: [
+                    {
+                      name: `${PREFIX}deps-a`,
+                      isCircular: true,
+                      depth: 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ])
+    })
+
+    it('should apply system boundaries and scope filtering', async () => {
+      if (!ctx.neo4jAvailable) return
+      const rootPurl = `pkg:npm/${PREFIX}scoped-root@1.0.0`
+      await seed(ctx.driver, `
+        CREATE (root:Component { name: $root, version: '1.0.0', packageManager: 'npm', purl: $rootPurl })
+        CREATE (runtimeDep:Component { name: $runtimeDep, version: '1.0.0', packageManager: 'npm', purl: $runtimeDepPurl })
+        CREATE (runtimeTransitive:Component { name: $runtimeTransitive, version: '1.0.0', packageManager: 'npm', purl: $runtimeTransitivePurl })
+        CREATE (devDep:Component { name: $devDep, version: '1.0.0', packageManager: 'npm', purl: $devDepPurl })
+        CREATE (outsideDep:Component { name: $outsideDep, version: '1.0.0', packageManager: 'npm', purl: $outsideDepPurl })
+        CREATE (system:System { name: $system })
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(root)
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(runtimeDep)
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: false }]->(runtimeTransitive)
+        CREATE (system)-[:USES { scope: 'dev', isDirect: true }]->(devDep)
+        CREATE (root)-[:DEPENDS_ON]->(runtimeDep)
+        CREATE (runtimeDep)-[:DEPENDS_ON]->(runtimeTransitive)
+        CREATE (root)-[:DEPENDS_ON]->(devDep)
+        CREATE (root)-[:DEPENDS_ON]->(outsideDep)
+      `, {
+        root: `${PREFIX}scoped-root`,
+        rootPurl,
+        runtimeDep: `${PREFIX}runtime-dep`,
+        runtimeDepPurl: `pkg:npm/${PREFIX}runtime-dep@1.0.0`,
+        runtimeTransitive: `${PREFIX}runtime-transitive`,
+        runtimeTransitivePurl: `pkg:npm/${PREFIX}runtime-transitive@1.0.0`,
+        devDep: `${PREFIX}dev-dep`,
+        devDepPurl: `pkg:npm/${PREFIX}dev-dep@1.0.0`,
+        outsideDep: `${PREFIX}outside-dep`,
+        outsideDepPurl: `pkg:npm/${PREFIX}outside-dep@1.0.0`,
+        system: `${PREFIX}scope-system`
+      })
+
+      const result = await repo.findDependencies({ purl: rootPurl }, {
+        system: `${PREFIX}scope-system`,
+        scopes: ['runtime'],
+        maxDepth: 10,
+        limit: 500
+      })
+
+      expect(result).toBeDefined()
+      expect(result!.systemExists).toBe(true)
+      expect(result!.dependencies).toMatchObject([
+        {
+          name: `${PREFIX}runtime-dep`,
+          scope: 'runtime',
+          isDirect: true,
+          depth: 1,
+          children: [
+            {
+              name: `${PREFIX}runtime-transitive`,
+              scope: 'runtime',
+              isDirect: false,
+              depth: 2
+            }
+          ]
+        }
+      ])
+    })
+
+    it('should report a missing system separately from a missing component', async () => {
+      if (!ctx.neo4jAvailable) return
+      const purl = `pkg:npm/${PREFIX}deps-system-missing@1.0.0`
+      await seed(ctx.driver, `
+        CREATE (:Component {
+          name: $name,
+          version: '1.0.0',
+          packageManager: 'npm',
+          purl: $purl
+        })
+      `, { name: `${PREFIX}deps-system-missing`, purl })
+
+      const result = await repo.findDependencies({ purl }, {
+        system: `${PREFIX}missing-system`,
+        maxDepth: 10,
+        limit: 500
+      })
+
+      expect(result).toBeDefined()
+      expect(result!.systemExists).toBe(false)
+      expect(result!.dependencies).toEqual([])
+    })
+  })
+
 })

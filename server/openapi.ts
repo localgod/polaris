@@ -252,6 +252,95 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             }
           }
         },
+        DependencyNode: {
+          type: 'object',
+          required: ['name', 'version', 'isDirect', 'depth'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'Dependency component name'
+            },
+            group: {
+              type: 'string',
+              nullable: true,
+              description: 'Package group or scope'
+            },
+            version: {
+              type: 'string',
+              description: 'Dependency component version'
+            },
+            packageManager: {
+              type: 'string',
+              nullable: true,
+              description: 'Package manager'
+            },
+            purl: {
+              type: 'string',
+              nullable: true,
+              description: 'Package URL'
+            },
+            scope: {
+              type: 'string',
+              nullable: true,
+              enum: ['required', 'optional', 'excluded', 'dev', 'test', 'runtime', 'provided'],
+              description: 'Dependency scope from the system USES edge when a system filter is active'
+            },
+            isDirect: {
+              type: 'boolean',
+              description: 'True when this dependency is a direct child of the queried component'
+            },
+            depth: {
+              type: 'integer',
+              minimum: 1,
+              description: 'Depth from the queried component'
+            },
+            children: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/DependencyNode'
+              }
+            },
+            isCircular: {
+              type: 'boolean',
+              description: 'True when this node repeats an ancestor in the dependency path'
+            }
+          }
+        },
+        DependencyTreeResponse: {
+          type: 'object',
+          required: ['componentKey', 'dependencies', 'totalCount', 'hasCircularDependencies', 'truncated', 'maxDepth'],
+          properties: {
+            componentKey: {
+              type: 'string',
+              description: 'Encoded component identity key'
+            },
+            dependencies: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/DependencyNode'
+              }
+            },
+            totalCount: {
+              type: 'integer',
+              minimum: 0,
+              description: 'Unique dependency nodes returned'
+            },
+            hasCircularDependencies: {
+              type: 'boolean',
+              description: 'Whether any returned path contains a circular dependency'
+            },
+            truncated: {
+              type: 'boolean',
+              description: 'Whether the result was truncated by the node limit'
+            },
+            maxDepth: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 10,
+              description: 'Maximum traversal depth used'
+            }
+          }
+        },
         Component: {
           type: 'object',
           required: ['name', 'version'],
