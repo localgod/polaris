@@ -362,9 +362,7 @@ export class ComponentRepository extends BaseRepository {
     version: string
   }): string {
     return node.purl
-      ?? node.elementId
       ?? `${node.packageManager ?? ''}:${node.group ?? ''}:${node.name}@${node.version}`
-  }
 
   /**
    * Map Neo4j record to Component domain object
