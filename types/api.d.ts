@@ -89,6 +89,43 @@ export interface Component {
   systemCount: number            // Number of systems using this
 }
 
+export interface GroupedComponentVersion {
+  name: string
+  version: string
+  packageManager: string | null
+  purl: string | null
+  cpe: string | null
+  bomRef: string | null
+  type: ComponentType | null
+  group: string | null
+  scope: DependencyScope | null
+  isDirect: boolean | null
+  licenses: License[]
+  homepage: string | null
+  externalReferences: ExternalReference[]
+  description: string | null
+  releaseDate: string | null
+  publishedDate: string | null
+  modifiedDate: string | null
+  technologyName: string | null
+  systemCount: number
+}
+
+export interface GroupedComponent {
+  name: string
+  group: string | null
+  packageManager: string | null
+  versions: string[]
+  versionDetails: GroupedComponentVersion[]
+  versionRange: string | null
+  systemCount: number
+  licenses: License[]
+  types: ComponentType[]
+  primaryType: ComponentType | null
+  purl: string | null
+  description: string | null
+}
+
 export interface ComponentSystemUsage {
   name: string
   scope: DependencyScope | null

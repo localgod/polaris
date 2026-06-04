@@ -1,6 +1,6 @@
 import { ComponentRepository } from '../repositories/component.repository'
 import type { ComponentDependencyFilters, ComponentDependencyTree, ComponentFilters } from '../repositories/component.repository'
-import type { Component, ComponentDetail } from '~~/types/api'
+import type { Component, ComponentDetail, GroupedComponent } from '~~/types/api'
 import type { ComponentIdentity } from '~~/utils/component-identity'
 
 export type { ComponentFilters }
@@ -36,6 +36,29 @@ export class ComponentService {
     
     const { data, total } = await this.componentRepo.findAll(filtersWithPagination)
     
+    return {
+      data,
+      count: data.length,
+      total
+    }
+  }
+
+  async findAllGrouped(filters: ComponentFilters = {}): Promise<{
+    data: GroupedComponent[]
+    count: number
+    total: number
+  }> {
+    const limit = filters.limit !== undefined ? filters.limit : 50
+    const offset = filters.offset || 0
+
+    const filtersWithPagination = {
+      ...filters,
+      limit,
+      offset
+    }
+
+    const { data, total } = await this.componentRepo.findAllGrouped(filtersWithPagination)
+
     return {
       data,
       count: data.length,

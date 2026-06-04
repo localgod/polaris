@@ -1,8 +1,9 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { Component, ComponentDetail, DependencyNode, DependencyScope } from '~~/types/api'
+import type { Component, ComponentDetail, DependencyNode, DependencyScope, GroupedComponent, GroupedComponentVersion, License } from '~~/types/api'
 import type { ComponentIdentity } from '~~/utils/component-identity'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
+import semver from 'semver'
 
 export interface ComponentFilters {
   search?: string
@@ -66,6 +67,16 @@ const componentSortConfig: SortConfig = {
     technologyName: 'tech.name'
   },
   defaultOrderBy: 'c.packageManager ASC, c.name ASC, c.version ASC'
+}
+
+const groupedComponentSortConfig: SortConfig = {
+  allowedFields: {
+    name: 'group.name',
+    packageManager: 'group.packageManagerKey',
+    type: 'group.primaryType',
+    systemCount: 'group.systemCount'
+  },
+  defaultOrderBy: 'group.packageManagerKey ASC, group.name ASC'
 }
 
 // Fields computed after aggregation (Phase 2) — cannot be used in Phase 1 ORDER BY
@@ -241,6 +252,48 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
+  async findAllGrouped(filters: ComponentFilters = {}): Promise<{ data: GroupedComponent[]; total: number }> {
+    const baseQuery = await loadQuery('components/find-all-grouped.cypher')
+    const { componentConditions, params } = this.buildFilterConditions(filters)
+
+    if (!params.system) {
+      params.system = null
+    }
+
+    const groupedComponentConditions = componentConditions.map(condition =>
+      condition.replace(/\bc\b/g, 'candidate')
+    )
+
+    const componentWhere = groupedComponentConditions.length > 0
+      ? `WHERE ${groupedComponentConditions.join(' AND ')}`
+      : ''
+
+    let pagination = ''
+    if (filters.limit !== undefined) {
+      pagination = 'SKIP toInteger($offset) LIMIT toInteger($limit)'
+      params.offset = filters.offset || 0
+      params.limit = filters.limit
+    }
+
+    const orderBy = buildOrderByClause(
+      { sortBy: filters.sortBy, sortOrder: filters.sortOrder },
+      groupedComponentSortConfig
+    )
+
+    const cypher = this.injectPlaceholders(baseQuery, {
+      '{{COMPONENT_WHERE}}': componentWhere,
+      '{{ORDER_BY}}': orderBy,
+      '{{PAGINATION}}': pagination
+    })
+
+    const { records } = await this.executeQuery(cypher, params)
+    const total = records.length > 0 ? records[0].get('total').toNumber() : 0
+    return {
+      data: records.map(record => this.mapToGroupedComponent(record)),
+      total
+    }
+  }
+
   async findByIdentity(identity: ComponentIdentity): Promise<ComponentDetail | null> {
     const query = await loadQuery('components/find-by-identity.cypher')
     const params = {
@@ -403,6 +456,56 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
+  private mapToGroupedComponent(record: Neo4jRecord): GroupedComponent {
+    const versionDetails = ((record.get('versionDetails') ?? []) as Record<string, unknown>[])
+      .map(version => this.mapToGroupedComponentVersion(version))
+      .sort(compareGroupedVersions)
+
+    const versions = versionDetails.map(version => version.version)
+    const licenses = dedupeLicenses(versionDetails.flatMap(version => version.licenses))
+    const description = versionDetails.find(version => version.description)?.description ?? null
+    const purl = stripPurlVersion(versionDetails.find(version => version.purl)?.purl ?? null)
+
+    return {
+      name: record.get('name'),
+      group: record.get('group'),
+      packageManager: record.get('packageManager'),
+      versions,
+      versionDetails,
+      versionRange: formatVersionRange(versions),
+      systemCount: record.get('systemCount').toNumber(),
+      licenses,
+      types: (record.get('types') ?? []).filter(Boolean),
+      primaryType: record.get('primaryType'),
+      purl,
+      description
+    }
+  }
+
+  private mapToGroupedComponentVersion(version: Record<string, unknown>): GroupedComponentVersion {
+    return {
+      name: version.name as string,
+      version: version.version as string,
+      packageManager: version.packageManager as string | null,
+      purl: version.purl as string | null,
+      cpe: version.cpe as string | null,
+      bomRef: version.bomRef as string | null,
+      type: version.type as GroupedComponentVersion['type'],
+      group: version.group as string | null,
+      scope: (version.scope ?? null) as DependencyScope | null,
+      isDirect: (version.isDirect ?? null) as boolean | null,
+      licenses: ((version.licenses ?? []) as License[]).filter(license => license.id || license.name),
+      homepage: version.homepage as string | null,
+      externalReferences: ((version.externalReferences ?? []) as GroupedComponentVersion['externalReferences']).filter(ref => ref.type),
+      description: version.description as string | null,
+      releaseDate: version.releaseDate?.toString() ?? null,
+      publishedDate: version.publishedDate?.toString() ?? null,
+      modifiedDate: version.modifiedDate?.toString() ?? null,
+      technologyName: version.technologyName as string | null,
+      systemCount: toNumber(version.systemCount)
+    }
+  }
+
   private mapToComponentDetail(record: Neo4jRecord): ComponentDetail {
     return {
       ...this.mapToComponent(record),
@@ -437,4 +540,53 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
+}
+
+function compareGroupedVersions(a: GroupedComponentVersion, b: GroupedComponentVersion): number {
+  const semverA = semver.valid(a.version)
+  const semverB = semver.valid(b.version)
+
+  if (semverA && semverB) {
+    return semver.compare(semverA, semverB)
+  }
+
+  const dateA = Date.parse(a.publishedDate ?? a.releaseDate ?? '')
+  const dateB = Date.parse(b.publishedDate ?? b.releaseDate ?? '')
+  if (!Number.isNaN(dateA) && !Number.isNaN(dateB) && dateA !== dateB) {
+    return dateA - dateB
+  }
+
+  return a.version.localeCompare(b.version, undefined, { numeric: true, sensitivity: 'base' })
+}
+
+function formatVersionRange(versions: string[]): string | null {
+  if (versions.length === 0) return null
+  if (versions.length === 1) return versions[0]!
+  if (versions.length <= 3) return versions.join(', ')
+  return `${versions[0]} - ${versions[versions.length - 1]}`
+}
+
+function dedupeLicenses(licenses: License[]): License[] {
+  const deduped = new Map<string, License>()
+  for (const license of licenses) {
+    const key = license.id || license.name
+    if (!key || deduped.has(key)) continue
+    deduped.set(key, license)
+  }
+  return [...deduped.values()]
+}
+
+function stripPurlVersion(purl: string | null): string | null {
+  if (!purl) return null
+  const lastSlash = purl.lastIndexOf('/')
+  const lastAt = purl.lastIndexOf('@')
+  return lastAt > lastSlash ? purl.slice(0, lastAt) : purl
+}
+
+function toNumber(value: unknown): number {
+  if (typeof value === 'number') return value
+  if (value && typeof value === 'object' && 'toNumber' in value && typeof value.toNumber === 'function') {
+    return value.toNumber()
+  }
+  return 0
 }

@@ -15,7 +15,9 @@ const clientCache = new Map<string, string | null>()
 // reuse the existing request instead of firing duplicate network requests.
 const inFlightRequests = new Map<string, Promise<void>>()
 
-function cacheKey(component: Component): string {
+type ComponentDescriptionIdentity = Pick<Component, 'packageManager' | 'name' | 'group' | 'description'>
+
+function cacheKey(component: ComponentDescriptionIdentity): string {
   const { packageManager, name, group } = component
   const pm = packageManager ?? 'unknown'
   return group ? `${pm}:${group}/${name}` : `${pm}:${name}`
@@ -28,7 +30,7 @@ function cacheKey(component: Component): string {
  * immediately. Otherwise, `fetch()` triggers a server-side registry lookup on
  * first call and caches the result for the lifetime of the page session.
  */
-export function useComponentDescription(component: Component) {
+export function useComponentDescription(component: ComponentDescriptionIdentity) {
   const key = cacheKey(component)
 
   const state = ref<DescriptionState>({

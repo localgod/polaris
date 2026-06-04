@@ -467,6 +467,82 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             }
           }
         },
+        GroupedComponentVersion: {
+          type: 'object',
+          required: ['name', 'version'],
+          properties: {
+            name: { type: 'string' },
+            version: { type: 'string' },
+            packageManager: { type: 'string', nullable: true },
+            purl: { type: 'string', nullable: true },
+            cpe: { type: 'string', nullable: true },
+            bomRef: { type: 'string', nullable: true },
+            type: {
+              type: 'string',
+              nullable: true,
+              enum: ['application', 'framework', 'library', 'container', 'platform', 'operating-system', 'device', 'device-driver', 'firmware', 'file', 'machine-learning-model', 'data']
+            },
+            group: { type: 'string', nullable: true },
+            scope: {
+              type: 'string',
+              nullable: true,
+              enum: ['required', 'optional', 'excluded', 'dev', 'test', 'runtime', 'provided']
+            },
+            isDirect: { type: 'boolean', nullable: true },
+            licenses: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/License' }
+            },
+            homepage: { type: 'string', nullable: true },
+            externalReferences: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/ExternalReference' }
+            },
+            description: { type: 'string', nullable: true },
+            releaseDate: { type: 'string', nullable: true, format: 'date-time' },
+            publishedDate: { type: 'string', nullable: true, format: 'date-time' },
+            modifiedDate: { type: 'string', nullable: true, format: 'date-time' },
+            technologyName: { type: 'string', nullable: true },
+            systemCount: { type: 'integer' }
+          }
+        },
+        GroupedComponent: {
+          type: 'object',
+          required: ['name', 'versions', 'versionDetails'],
+          properties: {
+            name: { type: 'string' },
+            group: { type: 'string', nullable: true },
+            packageManager: { type: 'string', nullable: true },
+            versions: {
+              type: 'array',
+              items: { type: 'string' }
+            },
+            versionDetails: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/GroupedComponentVersion' }
+            },
+            versionRange: { type: 'string', nullable: true },
+            systemCount: { type: 'integer' },
+            licenses: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/License' }
+            },
+            types: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['application', 'framework', 'library', 'container', 'platform', 'operating-system', 'device', 'device-driver', 'firmware', 'file', 'machine-learning-model', 'data']
+              }
+            },
+            primaryType: {
+              type: 'string',
+              nullable: true,
+              enum: ['application', 'framework', 'library', 'container', 'platform', 'operating-system', 'device', 'device-driver', 'firmware', 'file', 'machine-learning-model', 'data']
+            },
+            purl: { type: 'string', nullable: true },
+            description: { type: 'string', nullable: true }
+          }
+        },
         Technology: {
           type: 'object',
           properties: {
