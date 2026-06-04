@@ -89,7 +89,12 @@ let loadRootRequestId = 0
 
 watch(
   () => [props.componentKey, props.systemName ?? '', filterSignature.value],
-  async () => {
+  async ([, systemName]) => {
+    if (!systemName && selectedScopes.value.length > 0) {
+      selectedScopes.value = []
+      return
+    }
+
     await loadRoot()
   },
   { immediate: true }

@@ -154,6 +154,25 @@ describe('ComponentDependencyTree', () => {
     expect(fetchMock.mock.calls[1][0]).toContain('scope=runtime')
   })
 
+  it('clears selected scopes before loading global dependencies', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(treeResponse({ dependencies: [rootA], totalCount: 1 }))
+      .mockResolvedValueOnce(treeResponse({ dependencies: [rootA], totalCount: 1 }))
+      .mockResolvedValueOnce(treeResponse({ dependencies: [rootB], totalCount: 1 }))
+
+    const wrapper = await mountTree(fetchMock, { systemName: 'catalog' })
+    await wrapper.get('input[value="runtime"]').setValue(true)
+    await flushPromises()
+    await wrapper.setProps({ systemName: undefined })
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock.mock.calls[2][0]).not.toContain('system=')
+    expect(fetchMock.mock.calls[2][0]).not.toContain('scope=')
+    expect(wrapper.text()).toContain('beta')
+    expect(wrapper.text()).not.toContain('No dependencies match the selected filters.')
+  })
+
   it('renders empty and circular states', async () => {
     const circularNode: DependencyNode = {
       ...rootA,
