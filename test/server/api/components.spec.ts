@@ -78,6 +78,14 @@ describe('GET /api/components', () => {
     expect(componentService.findAll).toHaveBeenCalledWith(expect.objectContaining({ hasLicense: true }))
   })
 
+  it('should pass includeDev=false to the service', async () => {
+    vi.mocked(componentService.findAll).mockResolvedValue({ data: [], count: 0, total: 0 })
+
+    await handler(mockEvent({ query: { includeDev: 'false' } }))
+
+    expect(componentService.findAll).toHaveBeenCalledWith(expect.objectContaining({ includeDev: false }))
+  })
+
   it('should return error response on service failure', async () => {
     vi.mocked(componentService.findAll).mockRejectedValue(new Error('Database connection failed'))
 
