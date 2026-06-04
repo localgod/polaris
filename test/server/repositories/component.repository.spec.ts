@@ -197,6 +197,93 @@ describe('ComponentRepository', () => {
     })
   })
 
+  describe('findAllGrouped()', () => {
+    it('should group components by package manager, group, and name', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Component { name: $name, version: '1.0.0', packageManager: 'npm', purl: $p1, type: 'library' })
+        CREATE (:Component { name: $name, version: '1.1.0', packageManager: 'npm', purl: $p2, type: 'library' })
+      `, {
+        name: `${PREFIX}grouped-lib`,
+        p1: `pkg:npm/${PREFIX}grouped-lib@1.0.0`,
+        p2: `pkg:npm/${PREFIX}grouped-lib@1.1.0`
+      })
+
+      const { data } = await repo.findAllGrouped({ search: `${PREFIX}grouped-lib` })
+      const group = data.find(component => component.name === `${PREFIX}grouped-lib`)
+
+      expect(group).toBeDefined()
+      expect(group!.versions).toEqual(['1.0.0', '1.1.0'])
+      expect(group!.versionDetails).toHaveLength(2)
+    })
+
+    it('should count distinct systems across all versions', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (v1:Component { name: $name, version: '1.0.0', packageManager: 'npm', purl: $p1 })
+        CREATE (v2:Component { name: $name, version: '2.0.0', packageManager: 'npm', purl: $p2 })
+        CREATE (s:System { name: $systemName })
+        CREATE (s)-[:USES]->(v1)
+        CREATE (s)-[:USES]->(v2)
+      `, {
+        name: `${PREFIX}distinct-systems`,
+        p1: `pkg:npm/${PREFIX}distinct-systems@1.0.0`,
+        p2: `pkg:npm/${PREFIX}distinct-systems@2.0.0`,
+        systemName: `${PREFIX}shared-system`
+      })
+
+      const { data } = await repo.findAllGrouped({ search: `${PREFIX}distinct-systems` })
+      const group = data.find(component => component.name === `${PREFIX}distinct-systems`)
+
+      expect(group).toBeDefined()
+      expect(group!.systemCount).toBe(1)
+      expect(group!.versionDetails.map(version => version.systemCount)).toEqual([1, 1])
+    })
+
+    it('should sort semantic versions numerically for display', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Component { name: $name, version: '10.0.0', packageManager: 'npm', purl: $p10 })
+        CREATE (:Component { name: $name, version: '2.0.0', packageManager: 'npm', purl: $p2 })
+        CREATE (:Component { name: $name, version: '1.0.0', packageManager: 'npm', purl: $p1 })
+        CREATE (:Component { name: $name, version: '3.0.0', packageManager: 'npm', purl: $p3 })
+      `, {
+        name: `${PREFIX}semver-order`,
+        p10: `pkg:npm/${PREFIX}semver-order@10.0.0`,
+        p2: `pkg:npm/${PREFIX}semver-order@2.0.0`,
+        p1: `pkg:npm/${PREFIX}semver-order@1.0.0`,
+        p3: `pkg:npm/${PREFIX}semver-order@3.0.0`
+      })
+
+      const { data } = await repo.findAllGrouped({ search: `${PREFIX}semver-order` })
+      const group = data.find(component => component.name === `${PREFIX}semver-order`)
+
+      expect(group).toBeDefined()
+      expect(group!.versions).toEqual(['1.0.0', '2.0.0', '3.0.0', '10.0.0'])
+      expect(group!.versionRange).toBe('1.0.0 - 10.0.0')
+    })
+
+    it('should paginate by unique groups', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Component { name: $nameA, version: '1.0.0', packageManager: 'npm', purl: $pA1 })
+        CREATE (:Component { name: $nameA, version: '2.0.0', packageManager: 'npm', purl: $pA2 })
+        CREATE (:Component { name: $nameB, version: '1.0.0', packageManager: 'npm', purl: $pB1 })
+      `, {
+        nameA: `${PREFIX}page-a`,
+        nameB: `${PREFIX}page-b`,
+        pA1: `pkg:npm/${PREFIX}page-a@1.0.0`,
+        pA2: `pkg:npm/${PREFIX}page-a@2.0.0`,
+        pB1: `pkg:npm/${PREFIX}page-b@1.0.0`
+      })
+
+      const { data, total } = await repo.findAllGrouped({ search: `${PREFIX}page-`, limit: 1, offset: 0 })
+
+      expect(data).toHaveLength(1)
+      expect(total).toBe(2)
+    })
+  })
+
   describe('findByIdentity()', () => {
     it('should find component details by purl', async () => {
       if (!ctx.neo4jAvailable) return

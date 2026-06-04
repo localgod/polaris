@@ -46,6 +46,7 @@
           :columns="columns"
           :loading="pending"
           :manual-sorting="true"
+          :on-select="openGroupedComponent"
           class="flex-1"
         >
           <template #empty>
@@ -65,6 +66,12 @@
           />
         </div>
       </UCard>
+
+      <ComponentVersionsModal
+        v-model:open="versionsModalOpen"
+        :grouped-component="selectedComponent"
+        :system-filter="systemFilter"
+      />
     </template>
   </div>
 </template>
@@ -72,9 +79,8 @@
 <script setup lang="ts">
 import { h, resolveComponent, defineComponent, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
-import type { TableColumn } from '@nuxt/ui'
-import type { ApiResponse, Component } from '~~/types/api'
-import { encodeComponentKey } from '~~/utils/component-identity'
+import type { TableColumn, TableRow } from '@nuxt/ui'
+import type { ApiResponse, GroupedComponent } from '~~/types/api'
 
 const PM_COLORS: Record<string, string> = {
   npm: '#cb3837', yarn: '#2c8ebb', maven: '#c71a36', gradle: '#02303a',
@@ -103,19 +109,16 @@ function pmColor(pm: string | null | undefined): string {
   return PM_COLORS[(pm ?? 'unknown').toLowerCase()] ?? PM_COLORS.unknown
 }
 
-const { status } = useAuth()
 const { getSortableHeader } = useSortableTable()
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
-const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UTooltip = resolveComponent('UTooltip')
-const NuxtLink = resolveComponent('NuxtLink')
 
 // Inline component so each row gets its own reactive description state.
 const ComponentNameCell = defineComponent({
   props: {
-    component: { type: Object as () => Component, required: true }
+    component: { type: Object as () => GroupedComponent, required: true }
   },
   setup(props) {
     const { state, fetch } = useComponentDescription(props.component)
@@ -141,10 +144,11 @@ const ComponentNameCell = defineComponent({
           ui: { content: 'max-w-xs h-auto whitespace-normal bg-inverted text-inverted rounded px-3 py-2 text-xs shadow-md' }
         },
         {
-          default: () => h(NuxtLink, {
-            to: componentDetailTarget(props.component),
-            class: 'font-semibold hover:underline'
-          }, () => displayName),
+          default: () => h('button', {
+            type: 'button',
+            class: 'font-semibold hover:underline text-left',
+            onClick: () => openGroupedComponent(null, { original: props.component } as TableRow<GroupedComponent>)
+          }, displayName),
           content: () => tooltipContent()
         }
       )
@@ -152,16 +156,25 @@ const ComponentNameCell = defineComponent({
   }
 })
 
-const columns: TableColumn<Component>[] = [
+const columns: TableColumn<GroupedComponent>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => getSortableHeader(column, 'Name'),
     cell: ({ row }) => h(ComponentNameCell, { component: row.original })
   },
   {
-    accessorKey: 'version',
-    header: ({ column }) => getSortableHeader(column, 'Version'),
-    cell: ({ row }) => h('code', {}, row.getValue('version') as string)
+    accessorKey: 'versionRange',
+    header: 'Versions',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const versionCount = row.original.versions.length
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('code', {}, row.original.versionRange ?? '-'),
+        versionCount > 1
+          ? h(UBadge, { color: 'neutral', variant: 'subtle' }, () => `${versionCount}`)
+          : null
+      ])
+    }
   },
   {
     accessorKey: 'packageManager',
@@ -198,12 +211,18 @@ const columns: TableColumn<Component>[] = [
     }
   },
   {
-    accessorKey: 'type',
+    accessorKey: 'primaryType',
     header: ({ column }) => getSortableHeader(column, 'Type'),
     cell: ({ row }) => {
-      const type = row.getValue('type') as string | undefined
+      const type = row.original.primaryType
       if (!type) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(UBadge, { color: 'primary', variant: 'subtle' }, () => type)
+      const extraCount = Math.max(0, row.original.types.length - 1)
+      return h('div', { class: 'flex items-center gap-1' }, [
+        h(UBadge, { color: 'primary', variant: 'subtle' }, () => type),
+        extraCount > 0
+          ? h('span', { class: 'text-(--ui-text-muted) text-sm' }, `+${extraCount}`)
+          : null
+      ])
     }
   },
   {
@@ -212,67 +231,17 @@ const columns: TableColumn<Component>[] = [
     cell: ({ row }) => row.original.systemCount || 0
   },
   {
-    id: 'actions',
+    id: 'open',
     header: '',
     meta: { class: { th: 'w-10', td: 'text-right' } },
-    cell: ({ row }) => {
-      const component = row.original
-      const items: { label: string, icon: string, onSelect: () => void }[][] = []
-      const group: { label: string, icon: string, onSelect: () => void }[] = [{
-        label: 'View Details',
-        icon: 'i-lucide-eye',
-        onSelect: () => navigateTo(componentDetailTarget(component))
-      }]
-
-      if (component.purl) {
-        group.push({
-          label: 'Copy PURL',
-          icon: 'i-lucide-copy',
-          onSelect: () => navigator.clipboard.writeText(component.purl!)
-        })
-      }
-
-      if (component.homepage) {
-        group.push({
-          label: 'Visit Homepage',
-          icon: 'i-lucide-external-link',
-          onSelect: () => window.open(component.homepage!, '_blank')
-        })
-      }
-
-      if (component.technologyName) {
-        group.push({
-          label: 'View Technology',
-          icon: 'i-lucide-cpu',
-          onSelect: () => navigateTo(`/technologies/${encodeURIComponent(component.technologyName!)}`)
-        })
-      }
-
-      if (group.length > 0) {
-        items.push(group)
-      }
-
-      if (!component.technologyName && status.value === 'authenticated') {
-        const query: Record<string, string> = {
-          name: component.name,
-          componentName: component.name
-        }
-        if (component.group) query.componentGroup = component.group
-        if (component.packageManager) query.componentPackageManager = component.packageManager
-        if (component.type) query.componentType = component.type
-        items.push([{
-          label: 'Create Technology',
-          icon: 'i-lucide-plus',
-          onSelect: () => navigateTo({ path: '/technologies/new', query })
-        }])
-      }
-
-      if (items.length === 0) return null
-
-      return h(UDropdownMenu, { items, content: { align: 'end' as const } }, {
-        default: () => h(UButton, { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
-      })
-    }
+    cell: ({ row }) => h(UButton, {
+      icon: 'i-lucide-list',
+      color: 'neutral',
+      variant: 'ghost',
+      size: 'sm',
+      'aria-label': 'View versions',
+      onClick: () => openGroupedComponent(null, row)
+    })
   }
 ]
 
@@ -282,11 +251,12 @@ const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 const systemFilter = computed(() => route.query.system as string | undefined)
 
-function componentDetailTarget(component: Component) {
-  const path = `/components/${encodeComponentKey(component)}`
-  return systemFilter.value
-    ? { path, query: { fromSystem: systemFilter.value } }
-    : path
+const selectedComponent = ref<GroupedComponent | null>(null)
+const versionsModalOpen = ref(false)
+
+function openGroupedComponent(_event: Event | null, row: TableRow<GroupedComponent>) {
+  selectedComponent.value = row.original
+  versionsModalOpen.value = true
 }
 
 const page = ref(1)
@@ -308,7 +278,7 @@ const offset = computed(() => (page.value - 1) * pageSize)
 // Pass individual refs/computeds as query values so Nuxt tracks each one
 // as a reactive dependency for the fetch key — passing a computed object
 // does not work because reactive() unwraps it at setup time.
-const { data, pending, error } = await useFetch<ApiResponse<Component>>('/api/components', {
+const { data, pending, error } = await useFetch<ApiResponse<GroupedComponent>>('/api/components/grouped', {
   query: {
     limit: pageSize,
     offset,

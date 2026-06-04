@@ -536,6 +536,210 @@
           }
         }
       },
+      "GroupedComponentVersion": {
+        "type": "object",
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "packageManager": {
+            "type": "string",
+            "nullable": true
+          },
+          "purl": {
+            "type": "string",
+            "nullable": true
+          },
+          "cpe": {
+            "type": "string",
+            "nullable": true
+          },
+          "bomRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "application",
+              "framework",
+              "library",
+              "container",
+              "platform",
+              "operating-system",
+              "device",
+              "device-driver",
+              "firmware",
+              "file",
+              "machine-learning-model",
+              "data"
+            ]
+          },
+          "group": {
+            "type": "string",
+            "nullable": true
+          },
+          "scope": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "required",
+              "optional",
+              "excluded",
+              "dev",
+              "test",
+              "runtime",
+              "provided"
+            ]
+          },
+          "isDirect": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "licenses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/License"
+            }
+          },
+          "homepage": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalReference"
+            }
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "publishedDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "modifiedDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "technologyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "systemCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "GroupedComponent": {
+        "type": "object",
+        "required": [
+          "name",
+          "versions",
+          "versionDetails"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string",
+            "nullable": true
+          },
+          "packageManager": {
+            "type": "string",
+            "nullable": true
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "versionDetails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupedComponentVersion"
+            }
+          },
+          "versionRange": {
+            "type": "string",
+            "nullable": true
+          },
+          "systemCount": {
+            "type": "integer"
+          },
+          "licenses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/License"
+            }
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "application",
+                "framework",
+                "library",
+                "container",
+                "platform",
+                "operating-system",
+                "device",
+                "device-driver",
+                "firmware",
+                "file",
+                "machine-learning-model",
+                "data"
+              ]
+            }
+          },
+          "primaryType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "application",
+              "framework",
+              "library",
+              "container",
+              "platform",
+              "operating-system",
+              "device",
+              "device-driver",
+              "firmware",
+              "file",
+              "machine-learning-model",
+              "data"
+            ]
+          },
+          "purl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "Technology": {
         "type": "object",
         "properties": {
@@ -4181,6 +4385,192 @@
         "responses": {
           "200": {
             "description": "Components retrieved successfully"
+          }
+        }
+      }
+    },
+    "/components/grouped": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "List grouped components",
+        "description": "Retrieves components grouped by package manager, group, and name. Each group includes ordered version details for version-specific actions.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by component name, group, or package URL (case-insensitive)"
+          },
+          {
+            "in": "query",
+            "name": "packageManager",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by package manager"
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by component type"
+          },
+          {
+            "in": "query",
+            "name": "technology",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by mapped technology name"
+          },
+          {
+            "in": "query",
+            "name": "license",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by license SPDX ID"
+          },
+          {
+            "in": "query",
+            "name": "hasLicense",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by license presence (ignored when license is also specified)"
+          },
+          {
+            "in": "query",
+            "name": "system",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter to groups where any version is used by this system"
+          },
+          {
+            "in": "query",
+            "name": "direct",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "When true, restrict matching to direct dependencies of the system (requires system)"
+          },
+          {
+            "in": "query",
+            "name": "depScope",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "runtime",
+                "required",
+                "dev",
+                "optional",
+                "excluded"
+              ]
+            },
+            "description": "Filter matching by dependency scope on the USES edge (requires system)"
+          },
+          {
+            "in": "query",
+            "name": "sortBy",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "packageManager",
+                "type",
+                "systemCount"
+              ]
+            },
+            "description": "Field to sort grouped components by"
+          },
+          {
+            "in": "query",
+            "name": "sortOrder",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "Sort direction"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved grouped components",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/GroupedComponent"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total count of unique component groups matching filters"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch grouped components",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
