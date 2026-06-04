@@ -328,32 +328,42 @@
         <template #header>
           <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 class="text-lg font-semibold">Dependency Tree</h2>
-              <p class="text-sm text-(--ui-text-muted)">Explore direct and transitive dependencies.</p>
+              <h2 class="text-lg font-semibold">Dependencies</h2>
+              <p class="text-sm text-(--ui-text-muted)">
+                {{ directDependencyCount }} {{ directDependencyCount === 1 ? 'direct dependency' : 'direct dependencies' }}
+              </p>
             </div>
-            <label v-if="component.systems.length > 0" class="flex items-center gap-2 text-sm">
-              <span class="text-(--ui-text-muted)">System context</span>
-              <select
-                v-model="selectedDependencySystem"
-                class="rounded-md border border-(--ui-border) bg-(--ui-bg) px-2 py-1 text-(--ui-text)"
-                aria-label="Dependency tree system context"
-              >
-                <option value="">Global</option>
-                <option
-                  v-for="system in component.systems"
-                  :key="system.name"
-                  :value="system.name"
-                >
-                  {{ system.name }}
-                </option>
-              </select>
-            </label>
+            <div v-if="dependencySystemContext" class="flex flex-wrap items-center gap-2">
+              <UButton
+                label="All Dependencies"
+                icon="i-lucide-globe"
+                size="sm"
+                :variant="dependencyView === 'global' ? 'solid' : 'outline'"
+                :color="dependencyView === 'global' ? 'primary' : 'neutral'"
+                @click="setDependencyView('global')"
+              />
+              <UButton
+                :label="`Dependencies in ${dependencySystemContext}`"
+                icon="i-lucide-boxes"
+                size="sm"
+                :variant="dependencyView === 'system' ? 'solid' : 'outline'"
+                :color="dependencyView === 'system' ? 'primary' : 'neutral'"
+                @click="setDependencyView('system')"
+              />
+            </div>
+            <UBadge
+              v-else
+              color="neutral"
+              variant="subtle"
+            >
+              Global view
+            </UBadge>
           </div>
         </template>
 
         <ComponentDependencyTree
           :component-key="route.params.key as string"
-          :system-name="selectedDependencySystem || undefined"
+          :system-name="activeDependencySystem"
         />
       </UCard>
 
@@ -417,7 +427,9 @@
 import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataStatus } from '~~/types/api'
 
 const route = useRoute()
-const selectedDependencySystem = ref('')
+const router = useRouter()
+
+type DependencyView = 'global' | 'system'
 
 interface ComponentDetailResponse {
   success: boolean
@@ -435,6 +447,19 @@ const displayName = computed(() => {
     ? `${component.value.group}/${component.value.name}`
     : component.value.name
 })
+const directDependencyCount = computed(() => {
+  const directDependencies = component.value?.directDependencies
+  return Array.isArray(directDependencies) ? directDependencies.length : 0
+})
+const dependencySystemContext = computed(() => firstQueryValue(route.query.fromSystem))
+const dependencyView = computed<DependencyView>(() => {
+  const requestedView = firstQueryValue(route.query.dependencyView)
+  if (requestedView === 'global' || requestedView === 'system') return requestedView
+  return dependencySystemContext.value ? 'system' : 'global'
+})
+const activeDependencySystem = computed(() => (
+  dependencyView.value === 'system' ? dependencySystemContext.value : undefined
+))
 
 function getEolColor(status?: EOLStatusValue): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<EOLStatusValue, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -497,6 +522,24 @@ function formatSystemUsage(system: ComponentSystemUsage): string {
   if (system.isDirect === true) labels.push('direct')
   if (system.isDirect === false) labels.push('transitive')
   return labels.join(', ')
+}
+
+function firstQueryValue(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim()) return value
+  if (Array.isArray(value)) {
+    const first = value.find(item => typeof item === 'string' && item.trim())
+    return typeof first === 'string' ? first : undefined
+  }
+  return undefined
+}
+
+async function setDependencyView(view: DependencyView) {
+  await router.replace({
+    query: {
+      ...route.query,
+      dependencyView: view
+    }
+  })
 }
 
 useHead({

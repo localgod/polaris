@@ -177,6 +177,6 @@ describe('ComponentDependencyTree', () => {
 
     const wrapper = await mountTree(fetchMock)
 
-    expect(wrapper.text()).toContain('No dependencies found.')
+    expect(wrapper.text()).toContain('This component has no dependencies.')
   })
 })

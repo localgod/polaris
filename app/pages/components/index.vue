@@ -142,7 +142,7 @@ const ComponentNameCell = defineComponent({
         },
         {
           default: () => h(NuxtLink, {
-            to: `/components/${encodeComponentKey(props.component)}`,
+            to: componentDetailTarget(props.component),
             class: 'font-semibold hover:underline'
           }, () => displayName),
           content: () => tooltipContent()
@@ -221,7 +221,7 @@ const columns: TableColumn<Component>[] = [
       const group: { label: string, icon: string, onSelect: () => void }[] = [{
         label: 'View Details',
         icon: 'i-lucide-eye',
-        onSelect: () => navigateTo(`/components/${encodeComponentKey(component)}`)
+        onSelect: () => navigateTo(componentDetailTarget(component))
       }]
 
       if (component.purl) {
@@ -281,6 +281,13 @@ const sorting = ref([])
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 const systemFilter = computed(() => route.query.system as string | undefined)
+
+function componentDetailTarget(component: Component) {
+  const path = `/components/${encodeComponentKey(component)}`
+  return systemFilter.value
+    ? { path, query: { fromSystem: systemFilter.value } }
+    : path
+}
 
 const page = ref(1)
 const pageSize = 20
