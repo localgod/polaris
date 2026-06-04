@@ -9,6 +9,7 @@ WITH DISTINCT
 MATCH (groupComponent:Component { name: name })
 WHERE coalesce(groupComponent.packageManager, 'unknown') = packageManagerKey
   AND coalesce(groupComponent.group, '') = groupKey
+{{GROUP_COMPONENT_WHERE}}
 OPTIONAL MATCH (groupSystem:System)-[:USES]->(groupComponent)
 WITH packageManagerKey,
      groupKey,
