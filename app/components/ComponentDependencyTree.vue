@@ -1,14 +1,6 @@
 <template>
   <div class="space-y-4">
     <DependencyFilters v-if="systemName" v-model="selectedScopes" />
-    <UAlert
-      v-else
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-info"
-      title="Global dependency view"
-      description="Scope filters require a system context because dependency scope is system-specific."
-    />
 
     <USkeleton v-if="pending" class="h-32 w-full" />
 
@@ -42,7 +34,7 @@
 
       <div v-if="dependencies.length === 0" class="rounded-md border border-dashed border-(--ui-border) p-6 text-center">
         <UIcon name="i-lucide-package-open" class="mx-auto mb-2 size-8 text-(--ui-text-muted)" />
-        <p class="font-medium">{{ selectedScopes.length > 0 ? 'No dependencies match the selected filters.' : 'No dependencies found.' }}</p>
+        <p class="font-medium">{{ selectedScopes.length > 0 ? 'No dependencies match the selected filters.' : 'This component has no dependencies.' }}</p>
       </div>
 
       <ul v-else class="space-y-1" role="tree" aria-label="Component dependencies">
@@ -93,16 +85,20 @@ const dependencyCache = new Map<string, DependencyNode[]>()
 const loadedKeys = computed(() => [...loadedNodeKeys.value])
 const loadingKeys = computed(() => [...loadingNodeKeys.value])
 const filterSignature = computed(() => selectedScopes.value.toSorted().join(','))
+let loadRootRequestId = 0
 
 watch(
   () => [props.componentKey, props.systemName ?? '', filterSignature.value],
-  async () => {
+  async ([, systemName]) => {
+    if (!systemName && selectedScopes.value.length > 0) {
+      selectedScopes.value = []
+      return
+    }
+
     await loadRoot()
   },
   { immediate: true }
 )
-
-let loadRootRequestId = 0
 
 async function loadRoot() {
   const requestId = ++loadRootRequestId
