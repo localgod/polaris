@@ -311,16 +311,15 @@ export class SBOMService {
     // Determine scope for each direct dep
     const directScopes = new Map<string, string | null>()
     for (const bomRef of directBomRefs) {
-      let scope: string | null = null
-      if (scopedEdges) {
+      const scope = scopedEdges
+        ? (() => {
         // For SPDX: find the edge from root to this bomRef and use its scope
-        const edge = scopedEdges.find(e =>
-          (e.from === rootBomRef || (rootName && e.from.includes(rootName))) && e.to === bomRef
-        )
-        scope = edge?.scope ?? null
-      } else {
-        scope = componentScopeByBomRef.get(bomRef) ?? null
-      }
+          const edge = scopedEdges.find(e =>
+            (e.from === rootBomRef || (rootName && e.from.includes(rootName))) && e.to === bomRef
+          )
+          return edge?.scope ?? null
+        })()
+        : componentScopeByBomRef.get(bomRef) ?? null
       directScopes.set(bomRef, scope)
     }
 

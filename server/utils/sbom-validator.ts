@@ -86,7 +86,7 @@ export class SbomValidator {
       logger.info('SBOM validators initialized successfully')
     } catch (error) {
       logger.error({ err: error }, 'Failed to initialize SBOM validators')
-      throw new Error(`Failed to initialize SBOM validators: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(`Failed to initialize SBOM validators: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error })
     }
   }
 
