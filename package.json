@@ -93,7 +93,7 @@
     "@amiceli/vitest-cucumber": "^6.5.0",
     "@cucumber/cucumber": "^13.0.0",
     "@cucumber/gherkin": "^39.1.0",
-    "@cucumber/messages": "^32.3.1",
+    "@cucumber/messages": "^33.0.2",
     "@iconify-json/lucide": "^1.2.111",
     "@playwright/test": "^1.60.0",
     "@types/d3": "^7.4.3",
