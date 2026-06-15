@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.1] - 2026-06-15
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps-dev): bump the development-dependencies group with 3 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#638)
+- chore(deps)(deps-dev): bump @cucumber/cucumber from 12.9.0 to 13.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#639)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.0...v0.6.1
+
 ## [0.5.49] - 2026-06-02
 
 ## What's Changed
