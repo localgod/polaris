@@ -123,10 +123,8 @@ export class ComponentRepository extends BaseRepository {
       usagePredicates.push('u.isDirect = true')
     }
     if (filters.system && filters.depScope) {
-      usagePredicates.push('u.scope = $depScope')
-    }
     if (filters.includeDev === false) {
-      usagePredicates.push('(u.scope IS NULL OR u.scope <> "dev")')
+      usagePredicates.push('(u.scope IS NULL OR (u.scope <> "dev" AND u.scope <> "test"))')
     }
 
     if (filters.system || filters.directOnly || filters.includeDev === false) {
