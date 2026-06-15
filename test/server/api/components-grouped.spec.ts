@@ -63,6 +63,7 @@ describe('GET /api/components/grouped', () => {
         hasLicense: 'true',
         system: 'frontend',
         direct: 'true',
+        includeDev: 'false',
         depScope: 'runtime',
         sortBy: 'systemCount',
         sortOrder: 'desc'
@@ -78,6 +79,7 @@ describe('GET /api/components/grouped', () => {
       hasLicense: true,
       system: 'frontend',
       directOnly: true,
+      includeDev: false,
       depScope: 'runtime',
       sortBy: 'systemCount',
       sortOrder: 'desc'

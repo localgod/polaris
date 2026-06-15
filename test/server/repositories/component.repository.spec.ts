@@ -195,6 +195,76 @@ describe('ComponentRepository', () => {
       expect(data.map(component => component.name)).not.toContain(`${PREFIX}runtime-transitive`)
       expect(data.map(component => component.name)).not.toContain(`${PREFIX}dev-direct`)
     })
+
+    it('should filter to direct dependencies across all systems without a system filter', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (direct:Component { name: $directName, version: '1.0.0', purl: $directPurl })
+        CREATE (transitive:Component { name: $transitiveName, version: '1.0.0', purl: $transitivePurl })
+        CREATE (unused:Component { name: $unusedName, version: '1.0.0', purl: $unusedPurl })
+        CREATE (system:System { name: $systemName })
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(direct)
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: false }]->(transitive)
+      `, {
+        directName: `${PREFIX}global-direct`,
+        directPurl: `pkg:npm/${PREFIX}global-direct@1.0.0`,
+        transitiveName: `${PREFIX}global-transitive`,
+        transitivePurl: `pkg:npm/${PREFIX}global-transitive@1.0.0`,
+        unusedName: `${PREFIX}global-unused`,
+        unusedPurl: `pkg:npm/${PREFIX}global-unused@1.0.0`,
+        systemName: `${PREFIX}global-filter-system`
+      })
+
+      const { data } = await repo.findAll({
+        search: `${PREFIX}global-`,
+        directOnly: true
+      })
+
+      expect(data.map(component => component.name)).toContain(`${PREFIX}global-direct`)
+      expect(data.map(component => component.name)).not.toContain(`${PREFIX}global-transitive`)
+      expect(data.map(component => component.name)).not.toContain(`${PREFIX}global-unused`)
+    })
+
+    it('should hide only dev-only direct dependencies across all systems', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (normal:Component { name: $normalName, version: '1.0.0', purl: $normalPurl })
+        CREATE (devOnly:Component { name: $devOnlyName, version: '1.0.0', purl: $devOnlyPurl })
+        CREATE (mixed:Component { name: $mixedName, version: '1.0.0', purl: $mixedPurl })
+        CREATE (devDirectTransitiveNormal:Component { name: $devDirectTransitiveNormalName, version: '1.0.0', purl: $devDirectTransitiveNormalPurl })
+        CREATE (runtimeSystem:System { name: $runtimeSystemName })
+        CREATE (devSystem:System { name: $devSystemName })
+        CREATE (runtimeSystem)-[:USES { scope: 'runtime', isDirect: true }]->(normal)
+        CREATE (devSystem)-[:USES { scope: 'dev', isDirect: true }]->(devOnly)
+        CREATE (devSystem)-[:USES { scope: 'dev', isDirect: true }]->(mixed)
+        CREATE (runtimeSystem)-[:USES { scope: 'runtime', isDirect: true }]->(mixed)
+        CREATE (devSystem)-[:USES { scope: 'dev', isDirect: true }]->(devDirectTransitiveNormal)
+        CREATE (runtimeSystem)-[:USES { scope: 'runtime', isDirect: false }]->(devDirectTransitiveNormal)
+      `, {
+        normalName: `${PREFIX}hide-dev-normal`,
+        normalPurl: `pkg:npm/${PREFIX}hide-dev-normal@1.0.0`,
+        devOnlyName: `${PREFIX}hide-dev-only`,
+        devOnlyPurl: `pkg:npm/${PREFIX}hide-dev-only@1.0.0`,
+        mixedName: `${PREFIX}hide-dev-mixed`,
+        mixedPurl: `pkg:npm/${PREFIX}hide-dev-mixed@1.0.0`,
+        devDirectTransitiveNormalName: `${PREFIX}hide-dev-transitive-normal`,
+        devDirectTransitiveNormalPurl: `pkg:npm/${PREFIX}hide-dev-transitive-normal@1.0.0`,
+        runtimeSystemName: `${PREFIX}hide-dev-runtime-system`,
+        devSystemName: `${PREFIX}hide-dev-dev-system`
+      })
+
+      const { data } = await repo.findAll({
+        search: `${PREFIX}hide-dev-`,
+        directOnly: true,
+        includeDev: false
+      })
+      const names = data.map(component => component.name)
+
+      expect(names).toContain(`${PREFIX}hide-dev-normal`)
+      expect(names).toContain(`${PREFIX}hide-dev-mixed`)
+      expect(names).not.toContain(`${PREFIX}hide-dev-only`)
+      expect(names).not.toContain(`${PREFIX}hide-dev-transitive-normal`)
+    })
   })
 
   describe('findAllGrouped()', () => {
@@ -281,6 +351,90 @@ describe('ComponentRepository', () => {
 
       expect(data).toHaveLength(1)
       expect(total).toBe(2)
+    })
+
+    it('should filter grouped results to direct dependencies across all systems', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (direct:Component { name: $directName, version: '1.0.0', packageManager: 'npm', purl: $directPurl })
+        CREATE (transitive:Component { name: $transitiveName, version: '1.0.0', packageManager: 'npm', purl: $transitivePurl })
+        CREATE (system:System { name: $systemName })
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(direct)
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: false }]->(transitive)
+      `, {
+        directName: `${PREFIX}grouped-global-direct`,
+        directPurl: `pkg:npm/${PREFIX}grouped-global-direct@1.0.0`,
+        transitiveName: `${PREFIX}grouped-global-transitive`,
+        transitivePurl: `pkg:npm/${PREFIX}grouped-global-transitive@1.0.0`,
+        systemName: `${PREFIX}grouped-global-filter-system`
+      })
+
+      const { data } = await repo.findAllGrouped({
+        search: `${PREFIX}grouped-global-`,
+        directOnly: true
+      })
+
+      expect(data.map(component => component.name)).toContain(`${PREFIX}grouped-global-direct`)
+      expect(data.map(component => component.name)).not.toContain(`${PREFIX}grouped-global-transitive`)
+    })
+
+    it('should keep grouped components with normal usage when hiding dev dependencies', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (devOnly:Component { name: $devOnlyName, version: '1.0.0', packageManager: 'npm', purl: $devOnlyPurl })
+        CREATE (mixed:Component { name: $mixedName, version: '1.0.0', packageManager: 'npm', purl: $mixedPurl })
+        CREATE (runtimeSystem:System { name: $runtimeSystemName })
+        CREATE (devSystem:System { name: $devSystemName })
+        CREATE (devSystem)-[:USES { scope: 'dev', isDirect: true }]->(devOnly)
+        CREATE (devSystem)-[:USES { scope: 'dev', isDirect: true }]->(mixed)
+        CREATE (runtimeSystem)-[:USES { scope: 'runtime', isDirect: true }]->(mixed)
+      `, {
+        devOnlyName: `${PREFIX}grouped-hide-dev-only`,
+        devOnlyPurl: `pkg:npm/${PREFIX}grouped-hide-dev-only@1.0.0`,
+        mixedName: `${PREFIX}grouped-hide-dev-mixed`,
+        mixedPurl: `pkg:npm/${PREFIX}grouped-hide-dev-mixed@1.0.0`,
+        runtimeSystemName: `${PREFIX}grouped-hide-dev-runtime-system`,
+        devSystemName: `${PREFIX}grouped-hide-dev-dev-system`
+      })
+
+      const { data } = await repo.findAllGrouped({
+        search: `${PREFIX}grouped-hide-dev-`,
+        directOnly: true,
+        includeDev: false
+      })
+      const names = data.map(component => component.name)
+
+      expect(names).toContain(`${PREFIX}grouped-hide-dev-mixed`)
+      expect(names).not.toContain(`${PREFIX}grouped-hide-dev-only`)
+    })
+
+    it('should hide dev-only versions inside a grouped component', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (runtimeVersion:Component { name: $name, version: '1.0.0', packageManager: 'npm', purl: $runtimePurl })
+        CREATE (devVersion:Component { name: $name, version: '2.0.0', packageManager: 'npm', purl: $devPurl })
+        CREATE (runtimeSystem:System { name: $runtimeSystemName })
+        CREATE (devSystem:System { name: $devSystemName })
+        CREATE (runtimeSystem)-[:USES { scope: 'runtime', isDirect: true }]->(runtimeVersion)
+        CREATE (devSystem)-[:USES { scope: 'dev', isDirect: true }]->(devVersion)
+      `, {
+        name: `${PREFIX}grouped-hide-dev-version`,
+        runtimePurl: `pkg:npm/${PREFIX}grouped-hide-dev-version@1.0.0`,
+        devPurl: `pkg:npm/${PREFIX}grouped-hide-dev-version@2.0.0`,
+        runtimeSystemName: `${PREFIX}grouped-hide-dev-version-runtime-system`,
+        devSystemName: `${PREFIX}grouped-hide-dev-version-dev-system`
+      })
+
+      const { data } = await repo.findAllGrouped({
+        search: `${PREFIX}grouped-hide-dev-version`,
+        directOnly: true,
+        includeDev: false
+      })
+      const group = data.find(component => component.name === `${PREFIX}grouped-hide-dev-version`)
+
+      expect(group).toBeDefined()
+      expect(group!.versions).toEqual(['1.0.0'])
+      expect(group!.versionDetails.map(version => version.version)).not.toContain('2.0.0')
     })
   })
 

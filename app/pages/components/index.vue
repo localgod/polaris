@@ -6,7 +6,7 @@
       >
         <template #description>
           <template v-if="systemFilter">
-            Components in system: <strong>{{ systemFilter }}</strong>
+            Direct components in system: <strong>{{ systemFilter }}</strong>
             <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
           </template>
           <template v-else-if="licenseFilter">
@@ -14,7 +14,7 @@
             <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
           </template>
           <template v-else>
-            SBOM entries across all systems
+            Direct SBOM entries across all systems
           </template>
         </template>
       </UPageHeader>
@@ -31,12 +31,17 @@
 
     <template v-else>
       <UCard>
-        <div class="flex items-center gap-2 pb-4 border-b border-(--ui-border) mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-(--ui-border) mb-4">
           <UInput
             v-model="searchInput"
             placeholder="Filter by name..."
             icon="i-lucide-search"
             class="max-w-sm"
+          />
+          <USwitch
+            v-model="showDevDependencies"
+            label="Show dev dependencies"
+            size="sm"
           />
         </div>
 
@@ -250,6 +255,14 @@ const sorting = ref([])
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 const systemFilter = computed(() => route.query.system as string | undefined)
+const showDevDependenciesCookie = useCookie<'true' | 'false'>('polaris-components-show-dev-dependencies', {
+  default: () => 'true',
+  sameSite: 'lax'
+})
+const showDevDependencies = computed({
+  get: () => showDevDependenciesCookie.value !== 'false',
+  set: value => { showDevDependenciesCookie.value = value ? 'true' : 'false' }
+})
 
 const selectedComponent = ref<GroupedComponent | null>(null)
 const versionsModalOpen = ref(false)
@@ -266,13 +279,14 @@ const searchInput = ref('')
 const debouncedSearch = ref('')
 
 // Reset page when any filter changes
-watch([debouncedSearch, licenseFilter, systemFilter, sorting], () => { page.value = 1 })
+watch([debouncedSearch, licenseFilter, systemFilter, showDevDependencies, sorting], () => { page.value = 1 })
 
 const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
 watch(searchInput, updateSearch)
 
 const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
 const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
+const includeDev = computed(() => showDevDependencies.value ? undefined : 'false')
 const offset = computed(() => (page.value - 1) * pageSize)
 
 // Pass individual refs/computeds as query values so Nuxt tracks each one
@@ -285,6 +299,8 @@ const { data, pending, error } = await useFetch<ApiResponse<GroupedComponent>>('
     search: debouncedSearch,
     license: licenseFilter,
     system: systemFilter,
+    direct: 'true',
+    includeDev,
     sortBy,
     sortOrder,
   },

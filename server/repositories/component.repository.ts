@@ -13,8 +13,10 @@ export interface ComponentFilters {
   license?: string
   hasLicense?: boolean
   system?: string
-  /** When true, restrict to direct dependencies of the system (requires system to be set) */
+  /** When true, restrict to direct dependencies. With system, applies to that system; otherwise across all systems. */
   directOnly?: boolean
+  /** When false, exclude dependencies whose matching USES edge is dev-scoped */
+  includeDev?: boolean
   /** Filter by dependency scope on the USES edge (e.g. 'runtime', 'dev', 'optional') */
   depScope?: string
   limit?: number
@@ -116,28 +118,27 @@ export class ComponentRepository extends BaseRepository {
       params.type = filters.type
     }
 
+    const usagePredicates: string[] = []
+    if (filters.directOnly) {
+      usagePredicates.push('u.isDirect = true')
+    }
+    if (filters.system && filters.depScope) {
+    if (filters.includeDev === false) {
+      usagePredicates.push('(u.scope IS NULL OR (u.scope <> "dev" AND u.scope <> "test"))')
+    }
+
+    if (filters.system || filters.directOnly || filters.includeDev === false) {
+      const usageWhere = usagePredicates.length > 0 ? ` WHERE ${usagePredicates.join(' AND ')}` : ''
+      const systemPattern = filters.system ? '(sys:System {name: $system})' : '(:System)'
+      componentConditions.push(`EXISTS { MATCH ${systemPattern}-[u:USES]->(c)${usageWhere} }`)
+    }
+
     if (filters.system) {
-      if (filters.directOnly) {
-        componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES {isDirect: true}]->(c) }')
-      } else if (filters.depScope) {
-        componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES {scope: $depScope}]->(c) }')
-      } else {
-        componentConditions.push('EXISTS { MATCH (sys:System {name: $system})-[:USES]->(c) }')
-      }
       params.system = filters.system
     }
 
     if (filters.depScope && !filters.system) {
       // scope filter without a system is not meaningful — ignore silently
-    }
-
-    if (filters.directOnly && filters.depScope && filters.system) {
-      // both directOnly and depScope: require isDirect=true AND scope matches
-      // replace the condition added above with a combined one
-      const idx = componentConditions.findLastIndex(c => c.includes('isDirect'))
-      if (idx >= 0) {
-        componentConditions[idx] = 'EXISTS { MATCH (sys:System {name: $system})-[:USES {isDirect: true, scope: $depScope}]->(c) }'
-      }
     }
 
     if (filters.depScope) {
@@ -263,9 +264,15 @@ export class ComponentRepository extends BaseRepository {
     const groupedComponentConditions = componentConditions.map(condition =>
       condition.replace(/\bc\b/g, 'candidate')
     )
+    const expandedGroupComponentConditions = componentConditions.map(condition =>
+      condition.replace(/\bc\b/g, 'groupComponent')
+    )
 
     const componentWhere = groupedComponentConditions.length > 0
       ? `WHERE ${groupedComponentConditions.join(' AND ')}`
+      : ''
+    const groupComponentWhere = expandedGroupComponentConditions.length > 0
+      ? `  AND ${expandedGroupComponentConditions.join('\n  AND ')}`
       : ''
 
     let pagination = ''
@@ -282,6 +289,7 @@ export class ComponentRepository extends BaseRepository {
 
     const cypher = this.injectPlaceholders(baseQuery, {
       '{{COMPONENT_WHERE}}': componentWhere,
+      '{{GROUP_COMPONENT_WHERE}}': groupComponentWhere,
       '{{ORDER_BY}}': orderBy,
       '{{PAGINATION}}': pagination
     })

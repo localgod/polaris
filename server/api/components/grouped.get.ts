@@ -49,7 +49,12 @@ import { componentService } from '../../services/singletons'
  *         name: direct
  *         schema:
  *           type: boolean
- *         description: When true, restrict matching to direct dependencies of the system (requires system)
+ *         description: When true, restrict matching to direct dependencies. With system, applies to that system; otherwise applies across all systems.
+ *       - in: query
+ *         name: includeDev
+ *         schema:
+ *           type: boolean
+ *         description: When false, hide dependencies whose matching USES edge is dev-scoped.
  *       - in: query
  *         name: depScope
  *         schema:
@@ -138,6 +143,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<GroupedComp
       hasLicense: query.hasLicense === 'true' ? true : query.hasLicense === 'false' ? false : undefined,
       system: query.system as string | undefined,
       directOnly: query.direct === 'true' ? true : undefined,
+      includeDev: query.includeDev === 'false' ? false : undefined,
       depScope: query.depScope as string | undefined,
       limit,
       offset,
