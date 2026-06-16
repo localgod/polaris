@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { Technology } from '~~/types/api'
+import type { Technology, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
 import { buildCreateChanges } from '../utils/audit-diff'
 import { toDateString } from '../utils/neo4j'
@@ -48,8 +48,19 @@ export interface CreateTechnologyParams {
   realUserId?: string | null
 }
 
-export interface TechnologyDetail extends Technology {
+export interface TechnologyVersionDetail {
+  version: string
+  releaseDate: string | null
+  eolDate: string | null
+  approved: boolean | null
+  notes: string | null
+}
+
+export interface TechnologyDetail extends Omit<Technology, 'versions'> {
+  versions: TechnologyVersionDetail[]
   ownerTeamEmail?: string | null
+  lifecycleSummary?: TechnologyLifecycleSummary
+  versionLifecycles?: TechnologyVersionLifecycle[]
   components?: Array<{
     name: string
     version: string
@@ -324,7 +335,9 @@ export class TechnologyRepository extends BaseRepository {
       systems: record.get('systems').filter((s: string) => s),
       constraints: record.get('constraints').filter((c: { name?: string }) => c.name),
       technologyApprovals,
-      versionApprovals
+      versionApprovals,
+      lifecycleSummary: undefined,
+      versionLifecycles: undefined
     }
   }
 }

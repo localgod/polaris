@@ -19,6 +19,7 @@ export interface ComponentFilters {
   includeDev?: boolean
   /** Filter by dependency scope on the USES edge (e.g. 'runtime', 'dev', 'optional') */
   depScope?: string
+  componentPurls?: string[]
   limit?: number
   offset?: number
   sortBy?: string
@@ -39,6 +40,16 @@ export interface ComponentDependencyTree {
   truncated: boolean
   maxDepth: number
   systemExists: boolean
+}
+
+export interface ComponentEOLCandidate {
+  name: string
+  version: string
+  packageManager: string | null
+  purl: string | null
+  group: string | null
+  technologyName: string | null
+  systems: Array<{ name: string }>
 }
 
 interface DependencyPathNode {
@@ -113,6 +124,11 @@ export class ComponentRepository extends BaseRepository {
       params.packageManager = filters.packageManager
     }
 
+    if (filters.componentPurls) {
+      componentConditions.push('c.purl IN $componentPurls')
+      params.componentPurls = filters.componentPurls
+    }
+
     if (filters.type) {
       componentConditions.push('c.type = $type')
       params.type = filters.type
@@ -126,7 +142,7 @@ export class ComponentRepository extends BaseRepository {
       usagePredicates.push('u.scope = $depScope')
     }
     if (filters.includeDev === false) {
-      usagePredicates.push('(u.scope IS NULL OR (u.scope <> "dev" AND u.scope <> "test"))')
+      usagePredicates.push('(u.scope IS NULL OR NOT u.scope IN ["dev", "test", "optional"])')
     }
 
     if (filters.system || filters.directOnly || filters.includeDev === false) {
@@ -347,6 +363,22 @@ export class ComponentRepository extends BaseRepository {
       maxDepth: filters.maxDepth,
       systemExists: record.get('systemExists') as boolean
     }
+  }
+
+  async findEOLCandidates(): Promise<ComponentEOLCandidate[]> {
+    const query = await loadQuery('components/find-eol-candidates.cypher')
+    const { records } = await this.executeQuery(query, {})
+    return records.map(record => ({
+      name: record.get('name'),
+      version: record.get('version'),
+      packageManager: record.get('packageManager'),
+      purl: record.get('purl'),
+      group: record.get('group'),
+      technologyName: record.get('technologyName'),
+      systems: ((record.get('systems') ?? []) as string[])
+        .filter(Boolean)
+        .map(name => ({ name }))
+    }))
   }
 
   private buildDependencyTree(

@@ -8,6 +8,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   runtimeConfig: {
+    eolApproachingDays: Number(process.env.EOL_APPROACHING_DAYS || 90),
     public: {
       // Baked in at build time from APP_VERSION build arg; falls back to 'dev'
       appVersion: process.env.APP_VERSION ?? 'dev'

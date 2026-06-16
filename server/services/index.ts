@@ -12,6 +12,7 @@ export { UserService } from './user.service'
 export { AuditLogService } from './audit-log.service'
 export { GitHubImportService } from './github-import.service'
 export { EOLService } from './eol.service'
+export { EOLRollupService } from './eol-rollup.service'
 export { PackageMetadataService } from './package-metadata.service'
 export {
   complianceService,
@@ -28,6 +29,7 @@ export {
   auditLogService,
   gitHubImportService,
   eolService,
+  eolRollupService,
   packageMetadataService
 } from './singletons'
 export type { ViolationResult as VersionConstraintViolationResult } from './version-constraint.service'

@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockEvent } from '../../fixtures/h3-event'
 import handler from '../../../server/api/components/grouped.get'
-import { componentService } from '../../../server/services/singletons'
+import { componentService, eolRollupService } from '../../../server/services/singletons'
 
 vi.mock('../../../server/services/singletons', () => ({
-  componentService: { findAllGrouped: vi.fn() }
+  componentService: { findAllGrouped: vi.fn() },
+  eolRollupService: {
+    getApproaching: vi.fn(),
+    getExpired: vi.fn()
+  }
 }))
 
 const mockGroupedComponent = {
@@ -92,5 +96,75 @@ describe('GET /api/components/grouped', () => {
     await handler(mockEvent({ query: { sortBy: 'version' } }))
 
     expect(componentService.findAllGrouped).toHaveBeenCalledWith(expect.objectContaining({ sortBy: undefined }))
+  })
+
+  it('should filter to component purls from lifecycle risk rollups', async () => {
+    vi.mocked(eolRollupService.getApproaching).mockResolvedValue({
+      windowDays: 90,
+      summary: { components: 1, technologies: 0, systems: 1 },
+      items: [{
+        kind: 'component',
+        key: 'risk-key',
+        name: 'node',
+        group: null,
+        version: '16.20.2',
+        packageManager: 'npm',
+        purl: 'pkg:npm/node@16.20.2',
+        technologyName: 'Node.js',
+        systems: [{ name: 'legacy' }],
+        systemCount: 1,
+        lifecycle: {
+          status: 'approaching_eol',
+          productName: 'nodejs',
+          productLabel: 'Node.js',
+          matchedCycle: '16',
+          eolDate: '2026-08-01',
+          supportEndDate: null,
+          daysUntilEOL: 45,
+          daysSinceEOL: null,
+          lts: true,
+          latestVersion: null,
+          latestReleaseDate: null,
+          source: { name: 'endoflife.date', url: 'https://endoflife.date/nodejs' }
+        }
+      }]
+    })
+    vi.mocked(eolRollupService.getExpired).mockResolvedValue({
+      windowDays: 90,
+      summary: { components: 1, technologies: 0, systems: 1 },
+      items: [{
+        kind: 'component',
+        key: 'expired-key',
+        name: 'python',
+        group: null,
+        version: '3.8.0',
+        packageManager: 'pypi',
+        purl: 'pkg:pypi/python@3.8.0',
+        technologyName: 'Python',
+        systems: [{ name: 'legacy' }],
+        systemCount: 1,
+        lifecycle: {
+          status: 'unsupported',
+          productName: 'python',
+          productLabel: 'Python',
+          matchedCycle: '3.8',
+          eolDate: '2024-10-07',
+          supportEndDate: null,
+          daysUntilEOL: null,
+          daysSinceEOL: 100,
+          lts: null,
+          latestVersion: null,
+          latestReleaseDate: null,
+          source: { name: 'endoflife.date', url: 'https://endoflife.date/python' }
+        }
+      }]
+    })
+    vi.mocked(componentService.findAllGrouped).mockResolvedValue({ data: [], count: 0, total: 0 })
+
+    await handler(mockEvent({ query: { lifecycleRisk: 'true' } }))
+
+    expect(componentService.findAllGrouped).toHaveBeenCalledWith(expect.objectContaining({
+      componentPurls: ['pkg:npm/node@16.20.2', 'pkg:pypi/python@3.8.0']
+    }))
   })
 })

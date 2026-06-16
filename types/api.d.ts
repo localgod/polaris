@@ -173,6 +173,8 @@ export interface EOLStatus {
   matchedCycle: string | null
   eolDate: string | null
   supportEndDate: string | null
+  daysUntilEOL: number | null
+  daysSinceEOL: number | null
   lts: boolean | null
   latestVersion: string | null
   latestReleaseDate: string | null
@@ -224,6 +226,60 @@ export interface ComponentDetail extends Component {
   directDependencies: ComponentDirectDependency[]
   eol: EOLStatus | null
   packageMetadata: PackageMetadata | null
+}
+
+export interface TechnologyVersionLifecycle {
+  version: string
+  storedEolDate: string | null
+  lifecycle: EOLStatus
+}
+
+export interface TechnologyLifecycleSummary {
+  status: EOLStatusValue
+  unsupportedCount: number
+  approachingCount: number
+  activeCount: number
+  unknownCount: number
+}
+
+export interface EOLRollupSystem {
+  name: string
+}
+
+export interface EOLRollupComponentItem {
+  kind: 'component'
+  key: string
+  name: string
+  group: string | null
+  version: string
+  packageManager: string | null
+  purl: string | null
+  technologyName: string | null
+  systems: EOLRollupSystem[]
+  systemCount: number
+  lifecycle: EOLStatus
+}
+
+export interface EOLRollupTechnologyItem {
+  kind: 'technology'
+  name: string
+  version: string
+  componentCount: number
+  systems: EOLRollupSystem[]
+  systemCount: number
+  lifecycle: EOLStatus
+}
+
+export type EOLRollupItem = EOLRollupComponentItem | EOLRollupTechnologyItem
+
+export interface EOLRollupResponse {
+  windowDays: number
+  items: EOLRollupItem[]
+  summary: {
+    components: number
+    technologies: number
+    systems: number
+  }
 }
 
 export type TechnologyDomain =

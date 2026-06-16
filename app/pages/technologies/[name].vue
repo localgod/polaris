@@ -55,16 +55,11 @@
         </UCard>
         <UCard>
           <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Owner</p>
-            <p class="text-2xl font-bold mt-1">
-              <NuxtLink
-                v-if="tech.ownerTeamName"
-                :to="`/teams/${encodeURIComponent(tech.ownerTeamName)}`"
-                class="hover:underline"
-              >
-                {{ tech.ownerTeamName }}
-              </NuxtLink>
-              <span v-else class="text-(--ui-text-muted)">—</span>
+            <p class="text-sm text-(--ui-text-muted)">Lifecycle</p>
+            <p class="mt-2">
+              <UBadge :color="getEolColor(tech.lifecycleSummary?.status)" variant="subtle">
+                {{ getEolLabel(tech.lifecycleSummary?.status) }}
+              </UBadge>
             </p>
           </div>
         </UCard>
@@ -91,6 +86,40 @@
             <div>
               <span class="text-sm text-(--ui-text-muted)">Last Reviewed</span>
               <p class="font-medium">{{ tech.lastReviewed ? formatDate(tech.lastReviewed) : '—' }}</p>
+            </div>
+          </div>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-lg font-semibold">Lifecycle Visibility</h2>
+              <UBadge :color="getEolColor(tech.lifecycleSummary?.status)" variant="subtle">
+                {{ getEolLabel(tech.lifecycleSummary?.status) }}
+              </UBadge>
+            </div>
+          </template>
+          <div class="space-y-4">
+            <p class="text-sm text-(--ui-text-muted)">
+              Third-party lifecycle data is read from endoflife.date. Stored governance EOL dates remain separate in the versions table.
+            </p>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Unsupported</span>
+                <p class="text-xl font-semibold text-(--ui-color-error-500)">{{ tech.lifecycleSummary?.unsupportedCount || 0 }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Approaching</span>
+                <p class="text-xl font-semibold text-(--ui-color-warning-500)">{{ tech.lifecycleSummary?.approachingCount || 0 }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Active</span>
+                <p class="text-xl font-semibold text-(--ui-color-success-500)">{{ tech.lifecycleSummary?.activeCount || 0 }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Unknown</span>
+                <p class="text-xl font-semibold">{{ tech.lifecycleSummary?.unknownCount || 0 }}</p>
+              </div>
             </div>
           </div>
         </UCard>
@@ -201,7 +230,7 @@
         <template #header>
           <h2 class="text-lg font-semibold">Versions ({{ tech.versions.length }})</h2>
         </template>
-        <UTable v-model:sorting="versionSorting" :data="tech.versions" :columns="versionColumns" class="flex-1" />
+        <UTable v-model:sorting="versionSorting" :data="versionRows" :columns="versionColumns" class="flex-1" />
       </UCard>
 
       <!-- Components -->
@@ -260,7 +289,7 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
-import type { TechnologyApproval } from '~~/types/api'
+import type { EOLStatus, EOLStatusValue, TechnologyApproval, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
 import semver from 'semver'
 
 const PM_COLORS: Record<string, string> = {
@@ -306,6 +335,7 @@ interface VersionDetail {
   version: string
   releaseDate: string | null
   eolDate: string | null
+  lifecycle: EOLStatus | null
   approved: boolean
   notes: string | null
 }
@@ -337,6 +367,8 @@ interface TechnologyDetailData {
   constraints: ConstraintRef[]
   technologyApprovals: TechnologyApproval[]
   versionApprovals: TechnologyApproval[]
+  lifecycleSummary: TechnologyLifecycleSummary
+  versionLifecycles: TechnologyVersionLifecycle[]
 }
 
 interface TechnologyResponse {
@@ -362,6 +394,26 @@ function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | '
     info: 'neutral'
   }
   return colors[severity?.toLowerCase()] || 'neutral'
+}
+
+function getEolColor(status?: EOLStatusValue): 'success' | 'warning' | 'error' | 'neutral' {
+  const colors: Record<EOLStatusValue, 'success' | 'warning' | 'error' | 'neutral'> = {
+    active: 'success',
+    approaching_eol: 'warning',
+    unsupported: 'error',
+    unknown: 'neutral'
+  }
+  return colors[status || 'unknown']
+}
+
+function getEolLabel(status?: EOLStatusValue): string {
+  const labels: Record<EOLStatusValue, string> = {
+    active: 'Active',
+    approaching_eol: 'Approaching EOL',
+    unsupported: 'Unsupported',
+    unknown: 'Unknown'
+  }
+  return labels[status || 'unknown']
 }
 
 function formatDate(dateString: string): string {
@@ -395,10 +447,33 @@ const versionColumns: TableColumn<VersionDetail>[] = [
   },
   {
     accessorKey: 'eolDate',
-    header: ({ column }) => getSortableHeader(column, 'End of Life'),
+    header: ({ column }) => getSortableHeader(column, 'Governance EOL'),
     cell: ({ row }) => {
       const date = row.getValue('eolDate') as string | null
       return date ? formatDate(date) : '—'
+    }
+  },
+  {
+    id: 'lifecycle',
+    header: 'Lifecycle',
+    cell: ({ row }) => {
+      const status = row.original.lifecycle?.status
+      return h(resolveComponent('UBadge'), { color: getEolColor(status), variant: 'subtle' }, () => getEolLabel(status))
+    }
+  },
+  {
+    id: 'sourceEol',
+    header: 'Source EOL',
+    cell: ({ row }) => {
+      const lifecycle = row.original.lifecycle
+      if (!lifecycle || lifecycle.status === 'unknown') return '—'
+      const date = lifecycle.eolDate ? formatDate(lifecycle.eolDate) : '—'
+      const suffix = lifecycle.daysUntilEOL !== null
+        ? ` (${lifecycle.daysUntilEOL}d left)`
+        : lifecycle.daysSinceEOL !== null
+          ? ` (${lifecycle.daysSinceEOL}d past)`
+          : ''
+      return `${date}${suffix}`
     }
   },
   {
@@ -525,6 +600,14 @@ const componentColumns: TableColumn<ComponentRef>[] = [
 const { data, pending, error, refresh } = await useFetch<TechnologyResponse>(() => `/api/technologies/${encodeURIComponent(route.params.name as string)}`)
 
 const tech = computed(() => data.value?.data || null)
+
+const versionRows = computed<VersionDetail[]>(() => {
+  const lifecycles = new Map((tech.value?.versionLifecycles || []).map(item => [item.version, item.lifecycle]))
+  return (tech.value?.versions || []).map(version => ({
+    ...version,
+    lifecycle: lifecycles.get(version.version) || null
+  }))
+})
 
 const distinctVersionCount = computed(() => tech.value?.versions?.length ?? 0)
 

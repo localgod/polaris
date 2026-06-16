@@ -64,6 +64,49 @@ describe('TechnologyService', () => {
 
       await expect(service.findByName('React')).rejects.toThrow('DB error')
     })
+
+    it('should enrich technology versions with read-through lifecycle data', async () => {
+      const eol = {
+        status: 'unsupported' as const,
+        productName: 'nodejs',
+        productLabel: 'Node.js',
+        matchedCycle: '16',
+        eolDate: '2023-09-11',
+        supportEndDate: null,
+        daysUntilEOL: null,
+        daysSinceEOL: 1000,
+        lts: true,
+        latestVersion: '24.16.0',
+        latestReleaseDate: null,
+        source: { name: 'endoflife.date' as const, url: 'https://endoflife.date/nodejs' }
+      }
+      const repo = {
+        findByName: vi.fn(async () => ({
+          ...mockTech,
+          name: 'Node.js',
+          versions: [
+            { version: '16.20.2', releaseDate: null, eolDate: '2024-01-01', approved: true, notes: null }
+          ]
+        }))
+      }
+      const eolService = { getEOLStatus: vi.fn(async () => eol) }
+      const enrichedService = new TechnologyService(repo as never, eolService as never)
+
+      const result = await enrichedService.findByName('Node.js')
+
+      expect(eolService.getEOLStatus).toHaveBeenCalledWith({
+        name: 'Node.js',
+        version: '16.20.2',
+        technologyName: 'Node.js'
+      })
+      expect(result?.versionLifecycles).toEqual([
+        { version: '16.20.2', storedEolDate: '2024-01-01', lifecycle: eol }
+      ])
+      expect(result?.lifecycleSummary).toMatchObject({
+        status: 'unsupported',
+        unsupportedCount: 1
+      })
+    })
   })
 
   describe('create() — optional field coercion', () => {
