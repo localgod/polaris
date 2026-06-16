@@ -77,7 +77,7 @@ async function testConnection(driver: neo4j.Driver): Promise<void> {
       helpMessage += '  • Port conflicts: Ensure ports 7474 and 7687 are available\n'
     }
     
-    throw new Error(`Cannot connect to Neo4j database.\n${helpMessage}`)
+    throw new Error(`Cannot connect to Neo4j database.\n${helpMessage}`, { cause: error })
   } finally {
     await session.close()
   }

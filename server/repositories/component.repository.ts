@@ -123,6 +123,8 @@ export class ComponentRepository extends BaseRepository {
       usagePredicates.push('u.isDirect = true')
     }
     if (filters.system && filters.depScope) {
+      usagePredicates.push('u.scope = $depScope')
+    }
     if (filters.includeDev === false) {
       usagePredicates.push('(u.scope IS NULL OR (u.scope <> "dev" AND u.scope <> "test"))')
     }
@@ -164,14 +166,6 @@ export class ComponentRepository extends BaseRepository {
     return { componentConditions, params }
   }
 
-  /**
-   * Return the license MATCH clause for the filter phase.
-   *
-   * Only included when the WHERE clause references `l`:
-   * - Required MATCH when filtering by a specific license ID
-   * - OPTIONAL MATCH when filtering by license presence (hasLicense)
-   * - Empty when no license filtering is needed (avoids row multiplication)
-   */
   /**
    * Inject dynamic placeholders into a loaded query template.
    */

@@ -34,7 +34,11 @@ export default defineNuxtConfig({
     '@sidebase/nuxt-auth',
   ],
 
-
+  fonts: {
+    providers: {
+      bunny: false
+    }
+  },
 
   auth: {
     // AUTH_ORIGIN overrides auto-detection. Required when the app is behind a proxy

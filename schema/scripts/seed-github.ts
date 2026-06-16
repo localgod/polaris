@@ -180,7 +180,7 @@ async function cloneRepository(repoUrl: string, branch: string, targetDir: strin
     })
     console.log(`  ✅ Cloned successfully`)
   } catch (error) {
-    throw new Error(`Failed to clone repository: ${error instanceof Error ? error.message : error}`)
+    throw new Error(`Failed to clone repository: ${error instanceof Error ? error.message : error}`, { cause: error })
   }
 }
 
@@ -215,7 +215,7 @@ async function generateSBOM(repoPath: string, repoName: string): Promise<object>
       return bom as object
     }
   } catch (error) {
-    throw new Error(`Failed to generate SBOM: ${error instanceof Error ? error.message : error}`)
+    throw new Error(`Failed to generate SBOM: ${error instanceof Error ? error.message : error}`, { cause: error })
   }
 }
 
@@ -279,7 +279,7 @@ async function ensureSystemExists(config: RepositoryConfig, apiToken: string): P
       console.log(`  ✅ System already exists`)
     } else {
       const msg = error instanceof Error ? error.message : String(error)
-      throw new Error(`Failed to create system via API at ${baseUrl}/api/systems: ${msg}. Is the Nuxt dev server running? Start it with 'npm run dev' and ensure ${baseUrl} is reachable.`)
+      throw new Error(`Failed to create system via API at ${baseUrl}/api/systems: ${msg}. Is the Nuxt dev server running? Start it with 'npm run dev' and ensure ${baseUrl} is reachable.`, { cause: error })
     }
   }
   
@@ -319,7 +319,7 @@ async function ensureRepositoryExists(config: RepositoryConfig, apiToken: string
     if (error instanceof Error && error.message.includes('409')) {
       console.log(`  ✅ Repository already linked to system`)
     } else {
-      throw new Error(`Failed to register repository: ${error instanceof Error ? error.message : error}`)
+      throw new Error(`Failed to register repository: ${error instanceof Error ? error.message : error}`, { cause: error })
     }
   }
 }
@@ -401,7 +401,7 @@ async function postSBOM(repoUrl: string, sbom: object, apiToken: string): Promis
     console.log(`     Components updated: ${result.componentsUpdated}`)
     console.log(`     Relationships created: ${result.relationshipsCreated}`)
   } catch (error) {
-    throw new Error(`Failed to post SBOM: ${error instanceof Error ? error.message : error}`)
+    throw new Error(`Failed to post SBOM: ${error instanceof Error ? error.message : error}`, { cause: error })
   }
 }
 
@@ -461,7 +461,7 @@ async function seedFixtures(clear: boolean): Promise<void> {
     })
     console.log('\n✅ Governance data seeded\n')
   } catch (error) {
-    throw new Error(`Failed to seed fixtures: ${error instanceof Error ? error.message : error}`)
+    throw new Error(`Failed to seed fixtures: ${error instanceof Error ? error.message : error}`, { cause: error })
   }
 }
 
@@ -527,7 +527,7 @@ async function ensureTechnicalUserExists(): Promise<string> {
     
     return email
   } catch (error) {
-    throw new Error(`Failed to ensure technical user exists: ${error instanceof Error ? error.message : error}`)
+    throw new Error(`Failed to ensure technical user exists: ${error instanceof Error ? error.message : error}`, { cause: error })
   } finally {
     await session.close()
     await driver.close()
