@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.8] - 2026-06-16
+
+## What's Changed
+
+- Fix Nuxt dev server startup @localgod (#652)
+
+## 🔧 Maintenance
+
+- chore: release v0.6.7 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#651)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.7...v0.6.8
+
 ## [0.6.7] - 2026-06-15
 
 ## What's Changed
