@@ -279,6 +279,85 @@
             />
           </div>
         </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-lg font-semibold">Security Scorecard</h2>
+              <UBadge :color="getSecurityScorecardColor(component.securityScorecard?.score, component.securityScorecard?.status)" variant="subtle">
+                {{ getSecurityScorecardLabel(component.securityScorecard?.score, component.securityScorecard?.status) }}
+              </UBadge>
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <p class="text-sm text-(--ui-text-muted)">
+              Security score data is provided by OpenSSF Scorecard. Polaris displays this third-party information for visibility and does not store security scorecard data.
+            </p>
+
+            <UAlert
+              v-if="!component.securityScorecard || component.securityScorecard.status === 'unavailable'"
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-circle-help"
+              title="No security scorecard available"
+              :description="getSecurityScorecardUnavailableDescription(component.securityScorecard?.reason)"
+            />
+
+            <template v-else>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Repository</span>
+                  <p class="font-medium break-all">
+                    {{ component.securityScorecard.repository ? `${component.securityScorecard.repository.owner}/${component.securityScorecard.repository.name}` : '—' }}
+                  </p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Overall Score</span>
+                  <p class="font-medium">{{ formatScore(component.securityScorecard.score) }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Scanned</span>
+                  <p class="font-medium">{{ component.securityScorecard.scannedAt ? formatDate(component.securityScorecard.scannedAt) : '—' }}</p>
+                </div>
+                <div>
+                  <span class="text-sm text-(--ui-text-muted)">Source</span>
+                  <p class="font-medium">{{ component.securityScorecard.source.name }}</p>
+                </div>
+              </div>
+
+              <div v-if="component.securityScorecard.checks.length > 0">
+                <span class="text-sm text-(--ui-text-muted)">Selected Checks</span>
+                <div class="mt-2 space-y-2">
+                  <div
+                    v-for="check in component.securityScorecard.checks"
+                    :key="check.name"
+                    class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div>
+                      <p class="font-medium">{{ check.name }}</p>
+                      <p v-if="check.reason" class="text-sm text-(--ui-text-muted)">{{ check.reason }}</p>
+                    </div>
+                    <UBadge :color="getSecurityCheckColor(check.score)" variant="subtle">
+                      {{ formatScore(check.score) }}
+                    </UBadge>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <UButton
+              v-if="component.securityScorecard?.source.url"
+              :to="component.securityScorecard.source.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              label="View Source"
+              icon="i-lucide-external-link"
+              variant="outline"
+              size="sm"
+            />
+          </div>
+        </UCard>
       </div>
 
       <UCard v-if="component.purl || component.cpe || component.bomRef">
@@ -424,7 +503,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataStatus } from '~~/types/api'
+import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataStatus, SecurityScorecardStatus } from '~~/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -509,6 +588,36 @@ function getPackageMetadataUnavailableDescription(reason?: string): string {
     fetch_failed: 'The third-party package metadata source could not be reached.'
   }
   return descriptions[reason || ''] || 'No package metadata is available from the configured third-party source.'
+}
+
+function getSecurityScorecardColor(score?: number | null, status?: SecurityScorecardStatus): 'success' | 'warning' | 'error' | 'neutral' {
+  if (status !== 'available' || score === null || score === undefined) return 'neutral'
+  if (score >= 8) return 'success'
+  if (score >= 5) return 'warning'
+  return 'error'
+}
+
+function getSecurityCheckColor(score?: number | null): 'success' | 'warning' | 'error' | 'neutral' {
+  return getSecurityScorecardColor(score, 'available')
+}
+
+function getSecurityScorecardLabel(score?: number | null, status?: SecurityScorecardStatus): string {
+  if (status !== 'available') return 'Unavailable'
+  return formatScore(score)
+}
+
+function getSecurityScorecardUnavailableDescription(reason?: string): string {
+  const descriptions: Record<string, string> = {
+    missing_repository: 'This component does not have a repository reference for OpenSSF Scorecard lookup.',
+    unsupported_repository: 'OpenSSF Scorecard is only available for public GitHub repositories.',
+    repository_not_found: 'OpenSSF Scorecard did not find a score for this GitHub repository.',
+    fetch_failed: 'The third-party security score source could not be reached.'
+  }
+  return descriptions[reason || ''] || 'No security scorecard data is available from the configured third-party source.'
+}
+
+function formatScore(score?: number | null): string {
+  return typeof score === 'number' ? `${score.toFixed(1)} / 10` : '—'
 }
 
 function formatDate(dateString: string): string {

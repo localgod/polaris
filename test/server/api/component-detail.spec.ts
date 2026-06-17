@@ -3,12 +3,13 @@ import { mockEvent } from '../../fixtures/h3-event'
 import { encodeComponentKey } from '../../../utils/component-identity'
 import handler from '../../../server/api/components/[key].get'
 import eolHandler from '../../../server/api/components/eol.get'
-import { componentService, eolService, packageMetadataService } from '../../../server/services/singletons'
+import { componentService, eolService, packageMetadataService, securityScoreService } from '../../../server/services/singletons'
 
 vi.mock('../../../server/services/singletons', () => ({
   componentService: { findByIdentity: vi.fn() },
   eolService: { getEOLStatus: vi.fn() },
-  packageMetadataService: { getMetadata: vi.fn() }
+  packageMetadataService: { getMetadata: vi.fn() },
+  securityScoreService: { getScore: vi.fn() }
 }))
 
 const mockComponent = {
@@ -29,7 +30,7 @@ const mockComponent = {
   author: null,
   publisher: null,
   homepage: null,
-  externalReferences: [],
+  externalReferences: [{ type: 'vcs', url: 'https://github.com/nodejs/node' }],
   description: null,
   releaseDate: null,
   publishedDate: null,
@@ -49,7 +50,8 @@ const mockComponent = {
     }
   ],
   eol: null,
-  packageMetadata: null
+  packageMetadata: null,
+  securityScorecard: null
 }
 
 const mockEol = {
@@ -82,6 +84,22 @@ const mockPackageMetadata = {
   source: { name: 'deps.dev' as const, url: 'https://deps.dev/npm/node/24.16.0' }
 }
 
+const mockSecurityScorecard = {
+  status: 'available' as const,
+  repository: {
+    host: 'github.com' as const,
+    owner: 'nodejs',
+    name: 'node',
+    url: 'https://github.com/nodejs/node'
+  },
+  score: 8.5,
+  checks: [
+    { name: 'Code-Review', score: 9, reason: 'Found pull request reviews.' }
+  ],
+  scannedAt: '2026-05-30',
+  source: { name: 'OpenSSF Scorecard' as const, url: 'https://scorecard.dev/viewer/?uri=github.com/nodejs/node' }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -91,6 +109,7 @@ describe('GET /api/components/{key}', () => {
     vi.mocked(componentService.findByIdentity).mockResolvedValue(mockComponent)
     vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
     vi.mocked(packageMetadataService.getMetadata).mockResolvedValue(mockPackageMetadata)
+    vi.mocked(securityScoreService.getScore).mockResolvedValue(mockSecurityScorecard)
 
     const key = encodeComponentKey(mockComponent)
     const result = await handler(mockEvent({ params: { key } }))
@@ -98,13 +117,15 @@ describe('GET /api/components/{key}', () => {
     expect(componentService.findByIdentity).toHaveBeenCalledWith({ purl: 'pkg:npm/node@24.16.0' })
     expect(eolService.getEOLStatus).toHaveBeenCalledWith(mockComponent)
     expect(packageMetadataService.getMetadata).toHaveBeenCalledWith(mockComponent)
+    expect(securityScoreService.getScore).toHaveBeenCalledWith(mockComponent)
     expect(result).toMatchObject({
       success: true,
       data: {
         name: 'node',
         directDependencies: mockComponent.directDependencies,
         eol: mockEol,
-        packageMetadata: mockPackageMetadata
+        packageMetadata: mockPackageMetadata,
+        securityScorecard: mockSecurityScorecard
       }
     })
   })
@@ -119,6 +140,7 @@ describe('GET /api/components/{key}', () => {
     vi.mocked(componentService.findByIdentity).mockResolvedValue(mockComponent)
     vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
     vi.mocked(packageMetadataService.getMetadata).mockRejectedValue(new Error('deps.dev unavailable'))
+    vi.mocked(securityScoreService.getScore).mockResolvedValue(mockSecurityScorecard)
 
     const key = encodeComponentKey(mockComponent)
     const result = await handler(mockEvent({ params: { key } }))
@@ -132,6 +154,32 @@ describe('GET /api/components/{key}', () => {
           status: 'unavailable',
           reason: 'fetch_failed',
           currentVersion: '24.16.0'
+        },
+        securityScorecard: mockSecurityScorecard
+      }
+    })
+  })
+
+  it('does not fail component details when security scorecard enrichment throws', async () => {
+    vi.mocked(componentService.findByIdentity).mockResolvedValue(mockComponent)
+    vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
+    vi.mocked(packageMetadataService.getMetadata).mockResolvedValue(mockPackageMetadata)
+    vi.mocked(securityScoreService.getScore).mockRejectedValue(new Error('scorecard unavailable'))
+
+    const key = encodeComponentKey(mockComponent)
+    const result = await handler(mockEvent({ params: { key } }))
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        name: 'node',
+        eol: mockEol,
+        packageMetadata: mockPackageMetadata,
+        securityScorecard: {
+          status: 'unavailable',
+          reason: 'fetch_failed',
+          score: null,
+          checks: []
         }
       }
     })

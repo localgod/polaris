@@ -4828,6 +4828,10 @@
                                 "packageMetadata": {
                                   "type": "object",
                                   "nullable": true
+                                },
+                                "securityScorecard": {
+                                  "type": "object",
+                                  "nullable": true
                                 }
                               }
                             }

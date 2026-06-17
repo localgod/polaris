@@ -26,6 +26,7 @@ import { GitHubImportService } from './github-import.service'
 import { EOLService } from './eol.service'
 import { EOLRollupService } from './eol-rollup.service'
 import { PackageMetadataService } from './package-metadata.service'
+import { SecurityScoreService } from './security-score.service'
 
 export const technologyService = new TechnologyService()
 export const teamService = new TeamService()
@@ -43,3 +44,4 @@ export const gitHubImportService = new GitHubImportService()
 export const eolService = new EOLService()
 export const eolRollupService = new EOLRollupService()
 export const packageMetadataService = new PackageMetadataService()
+export const securityScoreService = new SecurityScoreService()

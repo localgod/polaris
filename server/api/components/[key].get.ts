@@ -1,6 +1,6 @@
 import { decodeComponentKey } from '../../../utils/component-identity'
-import type { PackageMetadata } from '~~/types/api'
-import { componentService, eolService, packageMetadataService } from '../../services/singletons'
+import type { PackageMetadata, SecurityScorecard } from '~~/types/api'
+import { componentService, eolService, packageMetadataService, securityScoreService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -56,6 +56,9 @@ import { componentService, eolService, packageMetadataService } from '../../serv
  *                             packageMetadata:
  *                               type: object
  *                               nullable: true
+ *                             securityScorecard:
+ *                               type: object
+ *                               nullable: true
  *       400:
  *         description: Component key is missing or invalid
  *       404:
@@ -86,7 +89,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const [eol, packageMetadata] = await Promise.all([
+  const [eol, packageMetadata, securityScorecard] = await Promise.all([
     eolService.getEOLStatus(component),
     packageMetadataService.getMetadata(component).catch((): PackageMetadata => ({
       status: 'unavailable',
@@ -107,6 +110,18 @@ export default defineEventHandler(async (event) => {
         name: 'deps.dev',
         url: null
       }
+    })),
+    securityScoreService.getScore(component).catch((): SecurityScorecard => ({
+      status: 'unavailable',
+      reason: 'fetch_failed',
+      repository: null,
+      score: null,
+      checks: [],
+      scannedAt: null,
+      source: {
+        name: 'OpenSSF Scorecard',
+        url: null
+      }
     }))
   ])
 
@@ -115,7 +130,8 @@ export default defineEventHandler(async (event) => {
     data: {
       ...component,
       eol,
-      packageMetadata
+      packageMetadata,
+      securityScorecard
     }
   }
 })
