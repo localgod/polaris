@@ -14,6 +14,7 @@ export { GitHubImportService } from './github-import.service'
 export { EOLService } from './eol.service'
 export { EOLRollupService } from './eol-rollup.service'
 export { PackageMetadataService } from './package-metadata.service'
+export { SecurityScoreService } from './security-score.service'
 export {
   complianceService,
   componentService,
@@ -30,7 +31,8 @@ export {
   gitHubImportService,
   eolService,
   eolRollupService,
-  packageMetadataService
+  packageMetadataService,
+  securityScoreService
 } from './singletons'
 export type { ViolationResult as VersionConstraintViolationResult } from './version-constraint.service'
 export type { ViolationResult as ComplianceViolationResult } from './compliance.service'

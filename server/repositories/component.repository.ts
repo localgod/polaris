@@ -568,9 +568,10 @@ export class ComponentRepository extends BaseRepository {
           purl: dependency.purl ?? null,
           scope: dependency.scope ?? null,
           isDirect: true
-        })),
+      })),
       eol: null,
-      packageMetadata: null
+      packageMetadata: null,
+      securityScorecard: null
     }
   }
 

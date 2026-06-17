@@ -221,11 +221,44 @@ export interface PackageMetadata {
   }
 }
 
+export type SecurityScorecardStatus = 'available' | 'unavailable'
+
+export type SecurityScorecardUnavailableReason =
+  | 'missing_repository'
+  | 'unsupported_repository'
+  | 'repository_not_found'
+  | 'fetch_failed'
+
+export interface SecurityScorecardCheck {
+  name: string
+  score: number | null
+  reason: string | null
+}
+
+export interface SecurityScorecard {
+  status: SecurityScorecardStatus
+  reason?: SecurityScorecardUnavailableReason
+  repository: {
+    host: 'github.com'
+    owner: string
+    name: string
+    url: string
+  } | null
+  score: number | null
+  checks: SecurityScorecardCheck[]
+  scannedAt: string | null
+  source: {
+    name: 'OpenSSF Scorecard'
+    url: string | null
+  }
+}
+
 export interface ComponentDetail extends Component {
   systems: ComponentSystemUsage[]
   directDependencies: ComponentDirectDependency[]
   eol: EOLStatus | null
   packageMetadata: PackageMetadata | null
+  securityScorecard: SecurityScorecard | null
 }
 
 export interface TechnologyVersionLifecycle {

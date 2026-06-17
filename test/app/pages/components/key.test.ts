@@ -44,7 +44,8 @@ const baseComponent: ComponentDetail = {
     }
   ],
   eol: null,
-  packageMetadata: null
+  packageMetadata: null,
+  securityScorecard: null
 }
 
 function mountPage(options: {
@@ -156,5 +157,38 @@ describe('component detail dependencies section', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('0 direct dependencies')
+  })
+
+  it('renders security scorecard enrichment when available', async () => {
+    const { wrapper } = mountPage({
+      component: {
+        securityScorecard: {
+          status: 'available',
+          repository: {
+            host: 'github.com',
+            owner: 'nodejs',
+            name: 'node',
+            url: 'https://github.com/nodejs/node'
+          },
+          score: 8.5,
+          checks: [
+            { name: 'Code-Review', score: 9, reason: 'Found pull request reviews.' },
+            { name: 'Vulnerabilities', score: 7, reason: 'No known vulnerabilities detected.' }
+          ],
+          scannedAt: '2026-05-30',
+          source: {
+            name: 'OpenSSF Scorecard',
+            url: 'https://scorecard.dev/viewer/?uri=github.com/nodejs/node'
+          }
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Security Scorecard')
+    expect(wrapper.text()).toContain('nodejs/node')
+    expect(wrapper.text()).toContain('8.5 / 10')
+    expect(wrapper.text()).toContain('Code-Review')
+    expect(wrapper.text()).toContain('Vulnerabilities')
   })
 })
