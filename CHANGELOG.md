@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.14] - 2026-06-17
+
+## What's Changed
+
+- Improve component detail dependency layout @localgod (#664)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.13...v0.6.14
+
 ## [0.6.7] - 2026-06-15
 
 ## What's Changed
