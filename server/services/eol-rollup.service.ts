@@ -77,7 +77,8 @@ export class EOLRollupService {
 
     for (const item of componentItems) {
       if (!item.technologyName) continue
-      const key = `${item.technologyName}\u0000${item.version}\u0000${item.lifecycle.matchedCycle || ''}`
+      const cycle = item.lifecycle.matchedCycle || item.version
+      const key = `${item.technologyName}\u0000${cycle}`
       const group = groups.get(key) || []
       group.push(item)
       groups.set(key, group)
@@ -89,7 +90,7 @@ export class EOLRollupService {
       return {
         kind: 'technology',
         name: first.technologyName!,
-        version: first.version,
+        version: first.lifecycle.matchedCycle || first.version,
         componentCount: group.length,
         systems,
         systemCount: systems.length,
