@@ -114,8 +114,8 @@ describe('component detail dependencies section', () => {
 
     expect(wrapper.text()).toContain('Dependencies')
     expect(wrapper.text()).toContain('1 direct dependency')
-    expect(wrapper.text()).toContain('All Dependencies')
-    expect(wrapper.text()).toContain('Dependencies in catalog')
+    expect(wrapper.text()).toContain('All')
+    expect(wrapper.text()).toContain('catalog')
     expect(wrapper.get('[data-test="dependency-tree"]').attributes('data-system-name')).toBe('catalog')
   })
 
@@ -123,7 +123,7 @@ describe('component detail dependencies section', () => {
     const { wrapper, route, replace } = mountPage({ query: { fromSystem: 'catalog' } })
     await flushPromises()
 
-    const globalToggle = wrapper.findAll('button').find(button => button.text() === 'All Dependencies')
+    const globalToggle = wrapper.findAll('button').find(button => button.text() === 'All')
     expect(globalToggle).toBeTruthy()
 
     await globalToggle!.trigger('click')
@@ -144,7 +144,7 @@ describe('component detail dependencies section', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Global view')
-    expect(wrapper.text()).not.toContain('All Dependencies')
+    expect(wrapper.text()).not.toContain('All')
     expect(wrapper.get('[data-test="dependency-tree"]').attributes('data-system-name')).toBe('')
   })
 
@@ -185,10 +185,43 @@ describe('component detail dependencies section', () => {
     })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Security Scorecard')
+    expect(wrapper.text()).toContain('Security')
     expect(wrapper.text()).toContain('nodejs/node')
     expect(wrapper.text()).toContain('8.5 / 10')
     expect(wrapper.text()).toContain('Code-Review')
     expect(wrapper.text()).toContain('Vulnerabilities')
+  })
+
+  it('does not repeat canonical package identity in registry enrichment', async () => {
+    const { wrapper } = mountPage({
+      component: {
+        packageMetadata: {
+          status: 'available',
+          system: 'npm',
+          packageName: 'node',
+          currentVersion: '24.16.0',
+          latestVersion: '24.16.0',
+          defaultVersion: '24.16.0',
+          publishedAt: '2026-06-01T00:00:00Z',
+          isDeprecated: false,
+          deprecatedReason: null,
+          licenses: [],
+          advisoryCount: 0,
+          advisories: [],
+          recentReleases: 0,
+          source: {
+            name: 'deps.dev',
+            url: 'https://deps.dev/npm/node/24.16.0'
+          }
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Registry')
+    expect(wrapper.text()).toContain('Source: deps.dev')
+    expect(wrapper.text()).not.toContain('Current Version')
+    expect(wrapper.text()).not.toContain('Default Version')
+    expect(wrapper.text()).not.toContain('Latest Version')
   })
 })

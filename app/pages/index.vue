@@ -161,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse, EOLRollupResponse, Technology, System, Component, VersionConstraint } from '~~/types/api'
+import type { ApiResponse, EOLRollupResponse, Technology, System, GroupedComponent, VersionConstraint } from '~~/types/api'
 
 interface LicenseStatsResponse {
   success: boolean
@@ -197,7 +197,9 @@ interface EOLRollupApiResponse {
 
 const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
 const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
-const { data: compData } = await useFetch<ApiResponse<Component>>('/api/components')
+const { data: compData } = await useFetch<ApiResponse<GroupedComponent>>('/api/components/grouped', {
+  query: { direct: 'true' }
+})
 const { data: vcData } = await useFetch<ApiResponse<VersionConstraint>>('/api/version-constraints')
 const { data: licenseStatsData } = await useFetch<LicenseStatsResponse>('/api/licenses/statistics')
 const { data: licenseViolationsData } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')

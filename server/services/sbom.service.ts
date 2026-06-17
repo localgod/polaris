@@ -198,8 +198,10 @@ export class SBOMService {
     if (format === 'cyclonedx') {
       const metadata = sbom.metadata as Record<string, unknown> | undefined
       const root = metadata?.component as Record<string, unknown> | undefined
+      const rootBomRef = (root?.['bom-ref'] as string)?.trim()
+      const rootPurl = this.normalizePurl((root?.purl as string)?.trim() || null)
       return {
-        bomRef: (root?.['bom-ref'] as string)?.trim() || null,
+        bomRef: rootBomRef || rootPurl,
         name: (root?.name as string)?.trim() || null,
       }
     } else {
@@ -505,7 +507,7 @@ export class SBOMService {
       packageManager: this.extractPackageManager(purl),
       purl,
       cpe: (comp.cpe as string)?.trim() || null,
-      bomRef: (comp['bom-ref'] as string)?.trim() || null,
+      bomRef: (comp['bom-ref'] as string)?.trim() || purl,
       type: (comp.type as string)?.trim() || null,
       group: (comp.group as string)?.trim() || null,
       scope: (comp.scope as string)?.trim() || null,

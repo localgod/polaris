@@ -32,23 +32,85 @@
         description="Circular branches are marked and are not expanded further."
       />
 
-      <div v-if="dependencies.length === 0" class="rounded-md border border-dashed border-(--ui-border) p-6 text-center">
+      <div v-if="treeItems.length === 0" class="rounded-md border border-dashed border-(--ui-border) p-6 text-center">
         <UIcon name="i-lucide-package-open" class="mx-auto mb-2 size-8 text-(--ui-text-muted)" />
         <p class="font-medium">{{ selectedScopes.length > 0 ? 'No dependencies match the selected filters.' : 'This component has no dependencies.' }}</p>
       </div>
 
-      <ul v-else class="space-y-1" role="tree" aria-label="Component dependencies">
-        <ComponentDependencyTreeNode
-          v-for="node in dependencies"
-          :key="dependencyNodeKey(node)"
-          :node="node"
-          parent-key="root"
-          :expanded-child-by-parent="expandedChildByParent"
-          :loading-keys="loadingKeys"
-          :loaded-keys="loadedKeys"
-          @toggle="toggleNode"
-        />
-      </ul>
+      <UTree
+        v-else
+        v-model:expanded="expandedKeys"
+        :items="treeItems"
+        :get-key="item => item.key"
+        :virtualize="virtualizeConfig"
+        aria-label="Component dependencies"
+        :ui="{
+          root: 'space-y-1',
+          item: 'w-full',
+          itemWithChildren: 'ps-1.5 -ms-px',
+          listWithChildren: 'ml-4 border-l border-(--ui-border) pl-3'
+        }"
+      >
+        <template #item-wrapper="{ item, expanded, handleToggle }">
+          <div
+            v-if="item.placeholder"
+            class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-(--ui-text-muted)"
+          >
+            <UIcon
+              :name="item.loading ? 'i-lucide-loader-circle' : 'i-lucide-minus'"
+              class="size-4 flex-shrink-0"
+              :class="{ 'animate-spin': item.loading }"
+            />
+            <span>{{ item.label }}</span>
+          </div>
+
+          <button
+            v-else
+            type="button"
+            :data-node-key="item.key"
+            class="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-(--ui-bg-elevated) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-primary)"
+            :aria-expanded="item.children?.length ? String(expanded) : undefined"
+            :aria-label="`${expanded ? 'Collapse' : 'Expand'} ${item.displayName}`"
+            :disabled="item.loading"
+            @click="toggleTreeItem(item, expanded, handleToggle)"
+          >
+            <UIcon
+              :name="item.children?.length ? 'i-lucide-chevron-right' : 'i-lucide-minus'"
+              class="mt-0.5 size-4 flex-shrink-0 transition-transform"
+              :class="{ 'rotate-90': expanded }"
+            />
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium break-all" :class="{ 'text-(--ui-text-muted)': !item.node.isDirect }">
+                  {{ item.displayName }}
+                </span>
+                <UBadge v-if="item.node.scope" :color="scopeColor(item.node.scope)" variant="subtle" size="xs">
+                  {{ item.node.scope }}
+                </UBadge>
+                <UBadge :color="item.node.isDirect ? 'primary' : 'neutral'" variant="subtle" size="xs">
+                  {{ item.node.isDirect ? 'direct' : 'transitive' }}
+                </UBadge>
+                <UBadge v-if="item.node.isCircular" color="warning" variant="subtle" size="xs">
+                  circular
+                </UBadge>
+              </div>
+              <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-(--ui-text-muted)">
+                <span v-if="item.node.version">v{{ item.node.version }}</span>
+                <span v-if="item.node.packageManager">{{ item.node.packageManager }}</span>
+                <span>depth {{ item.node.depth }}</span>
+              </div>
+              <code v-if="item.node.purl" class="mt-1 block truncate text-xs text-(--ui-text-muted)">
+                {{ item.node.purl }}
+              </code>
+            </div>
+            <UIcon
+              v-if="item.loading"
+              name="i-lucide-loader-circle"
+              class="mt-0.5 size-4 animate-spin text-(--ui-text-muted)"
+            />
+          </button>
+        </template>
+      </UTree>
     </template>
   </div>
 </template>
@@ -59,12 +121,33 @@ import { encodeComponentKey } from '~~/utils/component-identity'
 import { dependencyNodeKey } from '~~/utils/dependency-node-key'
 import type { Component, DependencyNode, DependencyScope, DependencyTreeResponse } from '~~/types/api'
 import DependencyFilters from './DependencyFilters.vue'
-import ComponentDependencyTreeNode from './ComponentDependencyTreeNode.vue'
 
 interface DependencyTreeApiResponse {
   success: boolean
   data: DependencyTreeResponse
 }
+
+interface DependencyTreeItem {
+  key: string
+  label: string
+  displayName: string
+  node: DependencyNode
+  loading?: boolean
+  placeholder?: false
+  children?: DependencyTreeItem[]
+}
+
+interface DependencyPlaceholderItem {
+  key: string
+  label: string
+  displayName: string
+  node?: never
+  loading: boolean
+  placeholder: true
+  disabled: true
+}
+
+type DependencyItem = DependencyTreeItem | DependencyPlaceholderItem
 
 const props = defineProps<{
   componentKey: string
@@ -73,18 +156,22 @@ const props = defineProps<{
 }>()
 
 const selectedScopes = ref<DependencyScope[]>(props.initialFilters ? [...props.initialFilters] : [])
-const dependencies = ref<DependencyNode[]>([])
+const treeItems = ref<DependencyItem[]>([])
 const pending = ref(false)
 const errorMessage = ref<string | null>(null)
 const treeMeta = ref<Pick<DependencyTreeResponse, 'truncated' | 'hasCircularDependencies' | 'totalCount'> | null>(null)
-const expandedChildByParent = ref<Record<string, string | undefined>>({})
+const expandedKeys = ref<string[]>([])
 const loadedNodeKeys = ref(new Set<string>())
 const loadingNodeKeys = ref(new Set<string>())
 const dependencyCache = new Map<string, DependencyNode[]>()
 
-const loadedKeys = computed(() => [...loadedNodeKeys.value])
-const loadingKeys = computed(() => [...loadingNodeKeys.value])
 const filterSignature = computed(() => selectedScopes.value.toSorted().join(','))
+const virtualizeConfig = computed(() => {
+  const totalCount = treeMeta.value?.totalCount ?? 0
+  return totalCount > 100
+    ? { estimateSize: 72, overscan: 12 }
+    : false
+})
 let loadRootRequestId = 0
 
 watch(
@@ -105,9 +192,9 @@ async function loadRoot() {
 
   pending.value = true
   errorMessage.value = null
-  dependencies.value = []
+  treeItems.value = []
   treeMeta.value = null
-  expandedChildByParent.value = {}
+  expandedKeys.value = []
   loadedNodeKeys.value = new Set()
   loadingNodeKeys.value = new Set()
   dependencyCache.clear()
@@ -116,7 +203,7 @@ async function loadRoot() {
     const response = await fetchDependencies(props.componentKey)
     if (requestId !== loadRootRequestId) return
 
-    dependencies.value = response.dependencies
+    treeItems.value = response.dependencies.map(toTreeItem)
     treeMeta.value = {
       truncated: response.truncated,
       hasCircularDependencies: response.hasCircularDependencies,
@@ -130,49 +217,47 @@ async function loadRoot() {
   }
 }
 
-async function toggleNode(node: DependencyNode, parentKey: string) {
-  const nodeKey = dependencyNodeKey(node)
-  if (expandedChildByParent.value[parentKey] === nodeKey) {
-    expandedChildByParent.value = {
-      ...expandedChildByParent.value,
-      [parentKey]: undefined
-    }
+async function toggleTreeItem(
+  item: DependencyTreeItem,
+  expanded: boolean,
+  handleToggle: () => void
+) {
+  if (item.loading) return
+
+  handleToggle()
+
+  if (expanded || item.node.isCircular || loadedNodeKeys.value.has(item.key)) {
     return
   }
 
-  expandedChildByParent.value = {
-    ...expandedChildByParent.value,
-    [parentKey]: nodeKey
-  }
-
-  if (node.isCircular || loadedNodeKeys.value.has(nodeKey)) return
-
-  const cachedChildren = dependencyCache.get(cacheKey(nodeKey))
+  const cachedChildren = dependencyCache.get(cacheKey(item.key))
   if (cachedChildren) {
-    node.children = cachedChildren
-    markLoaded(nodeKey)
+    item.children = cachedChildren.map(toTreeItem)
+    markLoaded(item.key)
+    refreshTreeItems()
     return
   }
 
-  markLoading(nodeKey, true)
+  setItemLoading(item, true)
   try {
-    const response = await fetchDependencies(componentKeyForNode(node))
-    node.children = response.dependencies.map(child => ({
+    const response = await fetchDependencies(componentKeyForNode(item.node))
+    const children = response.dependencies.map(child => ({
       ...child,
-      depth: node.depth + child.depth,
+      depth: item.node.depth + child.depth,
       isDirect: false
     }))
-    dependencyCache.set(cacheKey(nodeKey), node.children)
+    dependencyCache.set(cacheKey(item.key), children)
+    item.children = children.map(toTreeItem)
     treeMeta.value = {
       truncated: Boolean(treeMeta.value?.truncated || response.truncated),
       hasCircularDependencies: Boolean(treeMeta.value?.hasCircularDependencies || response.hasCircularDependencies),
       totalCount: treeMeta.value?.totalCount ?? response.totalCount
     }
-    markLoaded(nodeKey)
+    markLoaded(item.key)
   } catch (error) {
     console.error('Failed to load dependency children:', error)
   } finally {
-    markLoading(nodeKey, false)
+    clearItemLoading(item)
   }
 }
 
@@ -211,6 +296,59 @@ function cacheKey(nodeKey: string): string {
   ].join('|')
 }
 
+function toTreeItem(node: DependencyNode): DependencyTreeItem {
+  const nodeKey = dependencyNodeKey(node)
+  const children = node.children?.length
+    ? node.children.map(toTreeItem)
+    : shouldAllowExpansion(node, nodeKey)
+      ? [loadingPlaceholder(nodeKey, false)]
+      : undefined
+
+  return {
+    key: nodeKey,
+    label: displayName(node),
+    displayName: displayName(node),
+    node,
+    children
+  }
+}
+
+function shouldAllowExpansion(node: DependencyNode, nodeKey: string): boolean {
+  return !node.isCircular && !loadedNodeKeys.value.has(nodeKey)
+}
+
+function loadingPlaceholder(parentKey: string, loading: boolean): DependencyPlaceholderItem {
+  return {
+    key: `${parentKey}:placeholder`,
+    label: loading ? 'Loading dependencies…' : 'Expand to load dependencies',
+    displayName: loading ? 'Loading dependencies…' : 'Expand to load dependencies',
+    loading,
+    placeholder: true,
+    disabled: true
+  }
+}
+
+function displayName(node: DependencyNode): string {
+  return node.group ? `${node.group}/${node.name}` : node.name
+}
+
+function setItemLoading(item: DependencyTreeItem, loading: boolean) {
+  item.loading = loading
+  item.children = [loadingPlaceholder(item.key, loading)]
+  markLoading(item.key, loading)
+  refreshTreeItems()
+}
+
+function clearItemLoading(item: DependencyTreeItem) {
+  item.loading = false
+  markLoading(item.key, false)
+  refreshTreeItems()
+}
+
+function refreshTreeItems() {
+  treeItems.value = [...treeItems.value]
+}
+
 function markLoaded(nodeKey: string) {
   const next = new Set(loadedNodeKeys.value)
   next.add(nodeKey)
@@ -222,5 +360,18 @@ function markLoading(nodeKey: string, loading: boolean) {
   if (loading) next.add(nodeKey)
   else next.delete(nodeKey)
   loadingNodeKeys.value = next
+}
+
+function scopeColor(scope: DependencyScope): 'primary' | 'info' | 'warning' | 'neutral' | 'error' {
+  const colors: Record<DependencyScope, 'primary' | 'info' | 'warning' | 'neutral' | 'error'> = {
+    runtime: 'primary',
+    required: 'primary',
+    dev: 'warning',
+    test: 'info',
+    optional: 'neutral',
+    provided: 'neutral',
+    excluded: 'error'
+  }
+  return colors[scope]
 }
 </script>

@@ -2,6 +2,7 @@
 
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent, h, type PropType } from 'vue'
 import ComponentDependencyTree from '../../../app/components/ComponentDependencyTree.vue'
 import type { DependencyNode, DependencyTreeResponse } from '../../../types/api'
 
@@ -38,6 +39,53 @@ const child: DependencyNode = {
   depth: 1
 }
 
+interface TreeStubItem {
+  key: string
+  label: string
+  children?: TreeStubItem[]
+}
+
+const UTreeStub = defineComponent({
+  props: {
+    items: { type: Array as PropType<TreeStubItem[]>, default: () => [] },
+    expanded: { type: Array as PropType<string[]>, default: () => [] },
+    getKey: { type: Function as PropType<(item: TreeStubItem) => string>, required: true }
+  },
+  emits: ['update:expanded'],
+  setup(props, { slots, emit }) {
+    const renderItems = (items: TreeStubItem[], level: number) =>
+      items.map((item, index) => {
+        const key = props.getKey(item)
+        const expanded = props.expanded.includes(key)
+        const handleToggle = () => {
+          const next = expanded
+            ? props.expanded.filter(value => value !== key)
+            : [...props.expanded, key]
+          emit('update:expanded', next)
+        }
+
+        return h('li', { key }, [
+          slots['item-wrapper']?.({
+            item,
+            index,
+            level,
+            expanded,
+            selected: false,
+            indeterminate: undefined,
+            handleSelect: () => {},
+            handleToggle,
+            ui: {}
+          }),
+          expanded && item.children?.length
+            ? h('ul', renderItems(item.children, level + 1))
+            : null
+        ])
+      })
+
+    return () => h('ul', renderItems(props.items, 1))
+  }
+})
+
 const global = {
   stubs: {
     UAlert: {
@@ -52,10 +100,7 @@ const global = {
     },
     UIcon: { template: '<span />' },
     USkeleton: { template: '<div data-test="skeleton" />' },
-    UCollapsible: {
-      props: ['open'],
-      template: '<div><slot :open="open" /><div v-if="open"><slot name="content" /></div></div>'
-    }
+    UTree: UTreeStub
   }
 }
 
@@ -110,34 +155,34 @@ describe('ComponentDependencyTree', () => {
       .mockResolvedValueOnce(treeResponse({ dependencies: [child], totalCount: 1 }))
 
     const wrapper = await mountTree(fetchMock)
-    await wrapper.get('[data-node-key="pkg:npm/alpha@1.0.0"] button').trigger('click')
+    await wrapper.get('button[data-node-key="pkg:npm/alpha@1.0.0"]').trigger('click')
     await flushPromises()
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('child')
 
-    await wrapper.get('[data-node-key="pkg:npm/alpha@1.0.0"] button').trigger('click')
-    await wrapper.get('[data-node-key="pkg:npm/alpha@1.0.0"] button').trigger('click')
+    await wrapper.get('button[data-node-key="pkg:npm/alpha@1.0.0"]').trigger('click')
+    await wrapper.get('button[data-node-key="pkg:npm/alpha@1.0.0"]').trigger('click')
     await flushPromises()
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
-  it('collapses siblings at the same level when another node expands', async () => {
+  it('keeps previously expanded branches open when another node expands', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(treeResponse({ dependencies: [rootA, rootB], totalCount: 2 }))
       .mockResolvedValueOnce(treeResponse({ dependencies: [child], totalCount: 1 }))
       .mockResolvedValueOnce(treeResponse({ dependencies: [], totalCount: 0 }))
 
     const wrapper = await mountTree(fetchMock)
-    await wrapper.get('[data-node-key="pkg:npm/alpha@1.0.0"] button').trigger('click')
+    await wrapper.get('button[data-node-key="pkg:npm/alpha@1.0.0"]').trigger('click')
     await flushPromises()
     expect(wrapper.text()).toContain('child')
 
-    await wrapper.get('[data-node-key="pkg:npm/beta@1.0.0"] button').trigger('click')
+    await wrapper.get('button[data-node-key="pkg:npm/beta@1.0.0"]').trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).not.toContain('child')
+    expect(wrapper.text()).toContain('child')
   })
 
   it('updates request context when filters change', async () => {
