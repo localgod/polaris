@@ -1,7 +1,8 @@
 import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
-import type { Technology, ComponentType, TechnologyDomain, TimeValue } from '~~/types/api'
+import type { EOLStatus, EOLStatusValue, Technology, ComponentType, TechnologyDomain, TimeValue, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
+import { EOLService } from './eol.service'
 
 const VALID_TYPES = [
   'application', 'framework', 'library', 'container', 'platform',
@@ -56,10 +57,10 @@ export interface UpdateTechnologyInput {
  * Service for technology-related business logic
  */
 export class TechnologyService {
-  private techRepo: TechnologyRepository
-
-  constructor() {
-    this.techRepo = new TechnologyRepository()
+  constructor(
+    private readonly techRepo = new TechnologyRepository(),
+    private readonly eolService = new EOLService()
+  ) {
   }
 
   /**
@@ -81,7 +82,59 @@ export class TechnologyService {
    * @returns Technology detail or null if not found
    */
   async findByName(name: string): Promise<TechnologyDetail | null> {
-    return await this.techRepo.findByName(name)
+    const technology = await this.techRepo.findByName(name)
+    if (!technology) return null
+
+    const versionRows = Array.isArray(technology.versions) ? technology.versions : []
+    const versionLifecycles = await Promise.all(versionRows.map(async (versionRow) => {
+      const version = typeof versionRow === 'string' ? versionRow : versionRow.version
+      const storedEolDate = typeof versionRow === 'string' ? null : versionRow.eolDate ?? null
+      const lifecycle = await this.eolService.getEOLStatus({
+        name,
+        version,
+        technologyName: name
+      })
+
+      return {
+        version,
+        storedEolDate,
+        lifecycle
+      }
+    }))
+
+    return {
+      ...technology,
+      versionLifecycles,
+      lifecycleSummary: this.summarizeLifecycle(versionLifecycles)
+    }
+  }
+
+  private summarizeLifecycle(versionLifecycles: TechnologyVersionLifecycle[]): TechnologyLifecycleSummary {
+    const counts: Record<EOLStatusValue, number> = {
+      active: 0,
+      approaching_eol: 0,
+      unsupported: 0,
+      unknown: 0
+    }
+
+    for (const item of versionLifecycles) {
+      counts[item.lifecycle.status] += 1
+    }
+
+    return {
+      status: this.worstStatus(versionLifecycles.map(item => item.lifecycle)),
+      unsupportedCount: counts.unsupported,
+      approachingCount: counts.approaching_eol,
+      activeCount: counts.active,
+      unknownCount: counts.unknown
+    }
+  }
+
+  private worstStatus(statuses: EOLStatus[]): EOLStatusValue {
+    if (statuses.some(status => status.status === 'unsupported')) return 'unsupported'
+    if (statuses.some(status => status.status === 'approaching_eol')) return 'approaching_eol'
+    if (statuses.some(status => status.status === 'active')) return 'active'
+    return 'unknown'
   }
 
   /**

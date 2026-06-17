@@ -53,7 +53,7 @@ interface EOLRelease {
 }
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
-const APPROACHING_EOL_DAYS = 180
+const DEFAULT_APPROACHING_EOL_DAYS = 90
 
 const PRODUCT_ALIASES: Record<string, string> = {
   '@types/node': 'nodejs',
@@ -218,6 +218,7 @@ export class EOLService {
   private toStatus(product: EOLProduct, release: EOLRelease): EOLStatus {
     const eolDate = release.eolFrom || null
     const status = this.determineStatus(release)
+    const days = this.calculateEOLDays(eolDate)
     return {
       status,
       productName: product.name,
@@ -225,6 +226,8 @@ export class EOLService {
       matchedCycle: release.name,
       eolDate,
       supportEndDate: release.eoasFrom || null,
+      daysUntilEOL: days.daysUntilEOL,
+      daysSinceEOL: days.daysSinceEOL,
       lts: release.isLts ?? null,
       latestVersion: release.latest?.name || null,
       latestReleaseDate: release.latest?.date || null,
@@ -251,7 +254,35 @@ export class EOLService {
     const time = Date.parse(date)
     if (Number.isNaN(time)) return false
     const days = (time - Date.now()) / (24 * 60 * 60 * 1000)
-    return days >= 0 && days <= APPROACHING_EOL_DAYS
+    return days >= 0 && days <= this.getApproachingDays()
+  }
+
+  getApproachingDays(): number {
+    try {
+      const configured = Number(useRuntimeConfig().eolApproachingDays)
+      if (Number.isFinite(configured) && configured > 0) return configured
+    } catch {
+      // Unit tests instantiate the service outside Nuxt runtime context.
+    }
+
+    const envValue = Number(process.env.EOL_APPROACHING_DAYS)
+    return Number.isFinite(envValue) && envValue > 0 ? envValue : DEFAULT_APPROACHING_EOL_DAYS
+  }
+
+  private calculateEOLDays(date?: string | null): Pick<EOLStatus, 'daysUntilEOL' | 'daysSinceEOL'> {
+    if (!date) {
+      return { daysUntilEOL: null, daysSinceEOL: null }
+    }
+
+    const time = Date.parse(`${date}T00:00:00Z`)
+    if (Number.isNaN(time)) {
+      return { daysUntilEOL: null, daysSinceEOL: null }
+    }
+
+    const diffDays = Math.ceil((time - Date.now()) / (24 * 60 * 60 * 1000))
+    return diffDays >= 0
+      ? { daysUntilEOL: diffDays, daysSinceEOL: null }
+      : { daysUntilEOL: null, daysSinceEOL: Math.abs(diffDays) }
   }
 
   private unknown(reason: EOLStatus['reason'], productName: string | null, product: EOLProduct | null): EOLStatus {
@@ -262,6 +293,8 @@ export class EOLService {
       matchedCycle: null,
       eolDate: null,
       supportEndDate: null,
+      daysUntilEOL: null,
+      daysSinceEOL: null,
       lts: null,
       latestVersion: null,
       latestReleaseDate: null,

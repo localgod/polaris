@@ -436,6 +436,59 @@ describe('ComponentRepository', () => {
       expect(group!.versions).toEqual(['1.0.0'])
       expect(group!.versionDetails.map(version => version.version)).not.toContain('2.0.0')
     })
+
+    it('should hide optional-scoped npm development dependencies when hiding dev dependencies', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (optionalOnly:Component { name: $optionalOnlyName, version: '1.0.0', packageManager: 'npm', purl: $optionalOnlyPurl })
+        CREATE (runtimeOnly:Component { name: $runtimeOnlyName, version: '1.0.0', packageManager: 'npm', purl: $runtimeOnlyPurl })
+        CREATE (system:System { name: $systemName })
+        CREATE (system)-[:USES { scope: 'optional', isDirect: true }]->(optionalOnly)
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(runtimeOnly)
+      `, {
+        optionalOnlyName: `${PREFIX}grouped-hide-optional-only`,
+        optionalOnlyPurl: `pkg:npm/${PREFIX}grouped-hide-optional-only@1.0.0`,
+        runtimeOnlyName: `${PREFIX}grouped-hide-optional-runtime`,
+        runtimeOnlyPurl: `pkg:npm/${PREFIX}grouped-hide-optional-runtime@1.0.0`,
+        systemName: `${PREFIX}grouped-hide-optional-system`
+      })
+
+      const { data } = await repo.findAllGrouped({
+        search: `${PREFIX}grouped-hide-optional-`,
+        directOnly: true,
+        includeDev: false
+      })
+      const names = data.map(component => component.name)
+
+      expect(names).toContain(`${PREFIX}grouped-hide-optional-runtime`)
+      expect(names).not.toContain(`${PREFIX}grouped-hide-optional-only`)
+    })
+
+    it('should restrict grouped components to a supplied purl list', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (risky:Component { name: $riskyName, version: '1.0.0', packageManager: 'npm', purl: $riskyPurl })
+        CREATE (normal:Component { name: $normalName, version: '1.0.0', packageManager: 'npm', purl: $normalPurl })
+        CREATE (system:System { name: $systemName })
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(risky)
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(normal)
+      `, {
+        riskyName: `${PREFIX}grouped-risk-filter-risky`,
+        riskyPurl: `pkg:npm/${PREFIX}grouped-risk-filter-risky@1.0.0`,
+        normalName: `${PREFIX}grouped-risk-filter-normal`,
+        normalPurl: `pkg:npm/${PREFIX}grouped-risk-filter-normal@1.0.0`,
+        systemName: `${PREFIX}grouped-risk-filter-system`
+      })
+
+      const { data } = await repo.findAllGrouped({
+        search: `${PREFIX}grouped-risk-filter-`,
+        componentPurls: [`pkg:npm/${PREFIX}grouped-risk-filter-risky@1.0.0`]
+      })
+      const names = data.map(component => component.name)
+
+      expect(names).toContain(`${PREFIX}grouped-risk-filter-risky`)
+      expect(names).not.toContain(`${PREFIX}grouped-risk-filter-normal`)
+    })
   })
 
   describe('findByIdentity()', () => {

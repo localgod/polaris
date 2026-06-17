@@ -24,6 +24,7 @@ import { SourceRepositoryService } from './source-repository.service'
 import { AuditLogService } from './audit-log.service'
 import { GitHubImportService } from './github-import.service'
 import { EOLService } from './eol.service'
+import { EOLRollupService } from './eol-rollup.service'
 import { PackageMetadataService } from './package-metadata.service'
 
 export const technologyService = new TechnologyService()
@@ -40,4 +41,5 @@ export const sourceRepositoryService = new SourceRepositoryService()
 export const auditLogService = new AuditLogService()
 export const gitHubImportService = new GitHubImportService()
 export const eolService = new EOLService()
+export const eolRollupService = new EOLRollupService()
 export const packageMetadataService = new PackageMetadataService()

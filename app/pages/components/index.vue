@@ -9,6 +9,10 @@
             Direct components in system: <strong>{{ systemFilter }}</strong>
             <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
           </template>
+          <template v-else-if="lifecycleRiskFilter">
+            Components with lifecycle risk
+            <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
+          </template>
           <template v-else-if="licenseFilter">
             Components with license: <strong>{{ licenseFilter }}</strong>
             <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
@@ -255,6 +259,7 @@ const sorting = ref([])
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 const systemFilter = computed(() => route.query.system as string | undefined)
+const lifecycleRiskFilter = computed(() => route.query.lifecycleRisk === 'true')
 const showDevDependenciesCookie = useCookie<'true' | 'false'>('polaris-components-show-dev-dependencies', {
   default: () => 'true',
   sameSite: 'lax'
@@ -279,7 +284,7 @@ const searchInput = ref('')
 const debouncedSearch = ref('')
 
 // Reset page when any filter changes
-watch([debouncedSearch, licenseFilter, systemFilter, showDevDependencies, sorting], () => { page.value = 1 })
+watch([debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, sorting], () => { page.value = 1 })
 
 const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
 watch(searchInput, updateSearch)
@@ -299,6 +304,7 @@ const { data, pending, error } = await useFetch<ApiResponse<GroupedComponent>>('
     search: debouncedSearch,
     license: licenseFilter,
     system: systemFilter,
+    lifecycleRisk: computed(() => lifecycleRiskFilter.value ? 'true' : undefined),
     direct: 'true',
     includeDev,
     sortBy,

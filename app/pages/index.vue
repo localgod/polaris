@@ -20,7 +20,7 @@
     </div>
 
     <!-- Statistics Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <UCard>
         <template #header>
           <div class="flex justify-between items-center">
@@ -101,6 +101,29 @@
           </div>
         </div>
       </UCard>
+
+      <UCard>
+        <template #header>
+          <div class="flex justify-between items-center">
+            <h3 class="font-semibold">Lifecycle Risk</h3>
+            <NuxtLink :to="{ path: '/components', query: { lifecycleRisk: 'true' } }" class="text-sm text-(--ui-color-primary-500)">View components →</NuxtLink>
+          </div>
+        </template>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p class="text-sm text-(--ui-text-muted)">Unsupported</p>
+            <p class="text-xl font-bold text-(--ui-color-error-500)">{{ lifecycleStats.unsupported }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-(--ui-text-muted)">Approaching</p>
+            <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ lifecycleStats.approaching }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-(--ui-text-muted)">Systems</p>
+            <p class="text-xl font-bold">{{ lifecycleStats.systems }}</p>
+          </div>
+        </div>
+      </UCard>
     </div>
 
     <!-- Quick Links -->
@@ -138,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse, Technology, System, Component, VersionConstraint } from '~~/types/api'
+import type { ApiResponse, EOLRollupResponse, Technology, System, Component, VersionConstraint } from '~~/types/api'
 
 interface LicenseStatsResponse {
   success: boolean
@@ -166,6 +189,12 @@ interface ViolationsResponse {
   }
 }
 
+interface EOLRollupApiResponse {
+  success: boolean
+  data: EOLRollupResponse
+  count: number
+}
+
 const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
 const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
 const { data: compData } = await useFetch<ApiResponse<Component>>('/api/components')
@@ -173,6 +202,8 @@ const { data: vcData } = await useFetch<ApiResponse<VersionConstraint>>('/api/ve
 const { data: licenseStatsData } = await useFetch<LicenseStatsResponse>('/api/licenses/statistics')
 const { data: licenseViolationsData } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')
 const { data: vcViolationsData } = await useFetch<ViolationsResponse>('/api/version-constraints/violations')
+const { data: eolApproachingData } = await useFetch<EOLRollupApiResponse>('/api/eol/approaching')
+const { data: eolExpiredData } = await useFetch<EOLRollupApiResponse>('/api/eol/expired')
 
 const techCount = useApiCount(techData)
 const sysCount = useApiCount(sysData)
@@ -220,6 +251,19 @@ const violationStats = computed(() => {
     critical: data?.summary?.critical || 0,
     error: data?.summary?.error || 0,
     warning: data?.summary?.warning || 0
+  }
+})
+
+const lifecycleStats = computed(() => {
+  const approaching = eolApproachingData.value?.data
+  const expired = eolExpiredData.value?.data
+  return {
+    unsupported: expired?.summary.components || 0,
+    approaching: approaching?.summary.components || 0,
+    systems: new Set([
+      ...(approaching?.items || []).flatMap(item => item.systems.map(system => system.name)),
+      ...(expired?.items || []).flatMap(item => item.systems.map(system => system.name))
+    ]).size
   }
 })
 

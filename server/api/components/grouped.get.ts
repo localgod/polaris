@@ -1,5 +1,5 @@
 import type { ApiResponse, GroupedComponent } from '~~/types/api'
-import { componentService } from '../../services/singletons'
+import { componentService, eolRollupService } from '../../services/singletons'
 
 /**
  * @openapi
@@ -61,6 +61,11 @@ import { componentService } from '../../services/singletons'
  *           type: string
  *           enum: [runtime, required, dev, optional, excluded]
  *         description: Filter matching by dependency scope on the USES edge (requires system)
+ *       - in: query
+ *         name: lifecycleRisk
+ *         schema:
+ *           type: boolean
+ *         description: When true, restrict to components returned by approaching or expired EOL rollups.
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -133,6 +138,10 @@ export default defineEventHandler(async (event): Promise<ApiResponse<GroupedComp
     const sortBy = ['name', 'packageManager', 'type', 'systemCount'].includes(query.sortBy as string)
       ? query.sortBy as string
       : undefined
+    const lifecycleRisk = query.lifecycleRisk === 'true'
+    const componentPurls = lifecycleRisk
+      ? await getLifecycleRiskPurls()
+      : undefined
 
     const result = await componentService.findAllGrouped({
       search: query.search as string | undefined,
@@ -145,6 +154,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<GroupedComp
       directOnly: query.direct === 'true' ? true : undefined,
       includeDev: query.includeDev === 'false' ? false : undefined,
       depScope: query.depScope as string | undefined,
+      componentPurls,
       limit,
       offset,
       sortBy,
@@ -167,3 +177,16 @@ export default defineEventHandler(async (event): Promise<ApiResponse<GroupedComp
     }
   }
 })
+
+async function getLifecycleRiskPurls(): Promise<string[]> {
+  const [approaching, expired] = await Promise.all([
+    eolRollupService.getApproaching(),
+    eolRollupService.getExpired()
+  ])
+  const purls = [...approaching.items, ...expired.items]
+    .filter(item => item.kind === 'component' && item.purl)
+    .map(item => item.kind === 'component' ? item.purl! : '')
+    .filter(Boolean)
+
+  return [...new Set(purls)]
+}
