@@ -491,6 +491,79 @@ describe('SBOMService', () => {
       expect(persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')).toMatchObject({ isDirect: true })
     })
 
+    it('should resolve directDeps from root purl when CycloneDX metadata has no bom-ref', async () => {
+      const sbomWithRootPurlOnly = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'my-app',
+            version: '1.0.0',
+            purl: 'pkg:npm/my-app@1.0.0',
+          }
+        },
+        dependencies: [
+          { ref: 'pkg:npm/my-app@1.0.0', dependsOn: ['pkg:npm/lodash@4.17.21'] },
+          { ref: 'pkg:npm/lodash@4.17.21', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithRootPurlOnly,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')).toMatchObject({ isDirect: true })
+    })
+
+    it('should use component purl as bomRef fallback for CycloneDX components without bom-ref', async () => {
+      const sbomWithComponentPurlOnly = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'my-app',
+            version: '1.0.0',
+            purl: 'pkg:npm/my-app@1.0.0',
+          }
+        },
+        components: [
+          {
+            type: 'library',
+            name: 'lodash',
+            version: '4.17.21',
+            purl: 'pkg:npm/lodash@4.17.21',
+          }
+        ],
+        dependencies: [
+          { ref: 'pkg:npm/my-app@1.0.0', dependsOn: ['pkg:npm/lodash@4.17.21'] },
+          { ref: 'pkg:npm/lodash@4.17.21', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithComponentPurlOnly,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.components[0].bomRef).toBe('pkg:npm/lodash@4.17.21')
+      expect(persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')).toMatchObject({ isDirect: true })
+    })
+
     it('should return empty directDeps when no dependency entry matches the root name', async () => {
       const sbomNoMatch = {
         ...validCycloneDxSbom,

@@ -19,7 +19,7 @@
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <UPageHeader
           :title="displayName"
-          :description="component.description || component.purl || undefined"
+          :description="component.description || undefined"
           :links="[{ label: 'Back to Components', to: '/components', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
         />
         <div class="flex flex-wrap gap-2">
@@ -35,139 +35,171 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Version</p>
-            <p class="text-2xl font-bold mt-1 break-all">{{ component.version }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Systems</p>
-            <p class="text-2xl font-bold mt-1">{{ component.systemCount }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Licenses</p>
-            <p class="text-2xl font-bold mt-1">{{ component.licenses.length }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Lifecycle</p>
-            <p class="mt-2">
-              <UBadge :color="getEolColor(component.eol?.status)" variant="subtle">
-                {{ getEolLabel(component.eol?.status) }}
-              </UBadge>
-            </p>
-          </div>
-        </UCard>
-      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-3 xl:items-start">
+        <div class="space-y-6 xl:col-span-2">
+          <UCard>
+            <template #header>
+              <div>
+                <div>
+                  <h2 class="text-lg font-semibold">Overview</h2>
+                  <p class="text-sm text-(--ui-text-muted)">Canonical component data stored by Polaris.</p>
+                </div>
+              </div>
+            </template>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Basic Information</h2>
-          </template>
-          <div class="space-y-3">
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Name</span>
-              <p class="font-medium break-all">{{ component.name }}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Version</span>
+                <p class="font-medium break-all">{{ component.version }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Package Manager</span>
+                <p class="font-medium">{{ component.packageManager || '—' }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Type</span>
+                <p class="font-medium">{{ component.type || '—' }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Systems</span>
+                <p class="font-medium">{{ component.systemCount }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Licenses</span>
+                <div v-if="component.licenses.length > 0" class="mt-1 flex flex-wrap gap-2">
+                  <UBadge
+                    v-for="license in component.licenses"
+                    :key="license.id || license.name"
+                    color="neutral"
+                    variant="subtle"
+                  >
+                    {{ license.id || license.name }}
+                  </UBadge>
+                </div>
+                <p v-else class="font-medium text-(--ui-text-muted)">No license information</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Direct Dependencies</span>
+                <p class="font-medium">{{ directDependencyCount }}</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">Technology</span>
+                <p v-if="component.technologyName" class="font-medium">
+                  <NuxtLink :to="`/technologies/${encodeURIComponent(component.technologyName)}`" class="hover:underline">
+                    {{ component.technologyName }}
+                  </NuxtLink>
+                </p>
+                <p v-else class="text-(--ui-text-muted)">Not linked</p>
+              </div>
+              <div>
+                <span class="text-sm text-(--ui-text-muted)">External Signals</span>
+                <div class="mt-1 flex flex-wrap gap-2">
+                  <UBadge v-if="component.packageMetadata?.status === 'available'" color="success" variant="subtle">
+                    deps.dev
+                  </UBadge>
+                  <UBadge v-if="component.eol?.source.url" color="neutral" variant="subtle">
+                    endoflife.date
+                  </UBadge>
+                  <UBadge v-if="component.securityScorecard?.status === 'available'" color="success" variant="subtle">
+                    Scorecard
+                  </UBadge>
+                  <span v-if="!hasExternalSignals" class="font-medium text-(--ui-text-muted)">None</span>
+                </div>
+              </div>
             </div>
-            <div v-if="component.group">
-              <span class="text-sm text-(--ui-text-muted)">Group</span>
-              <p class="font-medium break-all">{{ component.group }}</p>
+          </UCard>
+
+          <UCard v-if="component.purl || component.cpe || component.bomRef">
+            <template #header>
+              <h2 class="text-lg font-semibold">Identifiers</h2>
+            </template>
+            <div class="space-y-3">
+              <div v-if="component.purl">
+                <span class="text-sm text-(--ui-text-muted)">Package URL</span>
+                <p><code class="break-all">{{ component.purl }}</code></p>
+              </div>
+              <div v-if="component.cpe">
+                <span class="text-sm text-(--ui-text-muted)">CPE</span>
+                <p><code class="break-all">{{ component.cpe }}</code></p>
+              </div>
+              <div v-if="component.bomRef && component.bomRef !== component.purl">
+                <span class="text-sm text-(--ui-text-muted)">BOM Reference</span>
+                <p><code class="break-all">{{ component.bomRef }}</code></p>
+              </div>
             </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Package Manager</span>
-              <p class="font-medium">{{ component.packageManager || '—' }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Type</span>
-              <p class="font-medium">{{ component.type || '—' }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Technology</span>
-              <p v-if="component.technologyName" class="font-medium">
-                <NuxtLink :to="`/technologies/${encodeURIComponent(component.technologyName)}`" class="hover:underline">
-                  {{ component.technologyName }}
-                </NuxtLink>
-              </p>
-              <p v-else class="text-(--ui-text-muted)">Not linked</p>
-            </div>
-          </div>
-        </UCard>
+          </UCard>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <UCard>
+              <template #header>
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-lg font-semibold">Lifecycle</h2>
+                    <p class="text-xs text-(--ui-text-muted)">Source: endoflife.date</p>
+                  </div>
+                  <UBadge :color="getEolColor(component.eol?.status)" variant="subtle">
+                    {{ getEolLabel(component.eol?.status) }}
+                  </UBadge>
+                </div>
+              </template>
+
+              <div class="space-y-4">
+                <UAlert
+                  v-if="!component.eol || component.eol.status === 'unknown'"
+                  color="neutral"
+                  variant="subtle"
+                  icon="i-lucide-circle-help"
+                  title="No lifecycle match available"
+                  :description="getEolUnknownDescription(component.eol?.reason)"
+                />
+
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                  <div v-if="showLifecycleProduct">
+                    <span class="text-sm text-(--ui-text-muted)">Matched Product</span>
+                    <p class="font-medium">{{ lifecycleProductLabel }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">Matched Cycle</span>
+                    <p class="font-medium">{{ component.eol.matchedCycle || '—' }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">End of Life</span>
+                    <p class="font-medium">{{ component.eol.eolDate ? formatDate(component.eol.eolDate) : '—' }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">Active Support Ends</span>
+                    <p class="font-medium">{{ component.eol.supportEndDate ? formatDate(component.eol.supportEndDate) : '—' }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">LTS</span>
+                    <p class="font-medium">{{ component.eol.lts === null ? '—' : component.eol.lts ? 'Yes' : 'No' }}</p>
+                  </div>
+                  <div v-if="showEolLatestVersion">
+                    <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
+                    <p class="font-medium">{{ component.eol.latestVersion || '—' }}</p>
+                  </div>
+                </div>
+
+                <UButton
+                  v-if="component.eol?.source.url"
+                  :to="component.eol.source.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  label="Open endoflife.date"
+                  icon="i-lucide-external-link"
+                  variant="outline"
+                  size="sm"
+                />
+              </div>
+            </UCard>
 
         <UCard>
           <template #header>
             <div class="flex items-center justify-between gap-3">
-              <h2 class="text-lg font-semibold">End-of-Life Visibility</h2>
-              <UBadge :color="getEolColor(component.eol?.status)" variant="subtle">
-                {{ getEolLabel(component.eol?.status) }}
-              </UBadge>
-            </div>
-          </template>
-
-          <div class="space-y-4">
-            <p class="text-sm text-(--ui-text-muted)">
-              Lifecycle data is provided by endoflife.date. Polaris displays this third-party information for visibility and does not manage or verify lifecycle policy data.
-            </p>
-
-            <UAlert
-              v-if="!component.eol || component.eol.status === 'unknown'"
-              color="neutral"
-              variant="subtle"
-              icon="i-lucide-circle-help"
-              title="No lifecycle match available"
-              :description="getEolUnknownDescription(component.eol?.reason)"
-            />
-
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <span class="text-sm text-(--ui-text-muted)">Product</span>
-                <p class="font-medium">{{ component.eol.productLabel || component.eol.productName || '—' }}</p>
+                <h2 class="text-lg font-semibold">Registry</h2>
+                <p class="text-xs text-(--ui-text-muted)">Source: deps.dev</p>
               </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Matched Cycle</span>
-                <p class="font-medium">{{ component.eol.matchedCycle || '—' }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">End of Life</span>
-                <p class="font-medium">{{ component.eol.eolDate ? formatDate(component.eol.eolDate) : '—' }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Active Support Ends</span>
-                <p class="font-medium">{{ component.eol.supportEndDate ? formatDate(component.eol.supportEndDate) : '—' }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">LTS</span>
-                <p class="font-medium">{{ component.eol.lts === null ? '—' : component.eol.lts ? 'Yes' : 'No' }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
-                <p class="font-medium">{{ component.eol.latestVersion || '—' }}</p>
-              </div>
-            </div>
-
-            <UButton
-              v-if="component.eol?.source.url"
-              :to="component.eol.source.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              label="View Source"
-              icon="i-lucide-external-link"
-              variant="outline"
-              size="sm"
-            />
-          </div>
-        </UCard>
-
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-3">
-              <h2 class="text-lg font-semibold">Package Information</h2>
               <UBadge :color="getPackageMetadataColor(component.packageMetadata?.status)" variant="subtle">
                 {{ getPackageMetadataLabel(component.packageMetadata?.status) }}
               </UBadge>
@@ -175,10 +207,6 @@
           </template>
 
           <div class="space-y-4">
-            <p class="text-sm text-(--ui-text-muted)">
-              Package data is provided by deps.dev. Polaris displays this third-party information for visibility and does not store package registry metadata.
-            </p>
-
             <UAlert
               v-if="!component.packageMetadata || component.packageMetadata.status === 'unavailable'"
               color="neutral"
@@ -198,26 +226,14 @@
                 :description="component.packageMetadata.deprecatedReason || 'deps.dev reports this package version as deprecated.'"
               />
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span class="text-sm text-(--ui-text-muted)">Package</span>
-                  <p class="font-medium break-all">{{ component.packageMetadata.packageName || '—' }}</p>
-                </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                 <div>
                   <span class="text-sm text-(--ui-text-muted)">Ecosystem</span>
                   <p class="font-medium">{{ component.packageMetadata.system || '—' }}</p>
                 </div>
-                <div>
-                  <span class="text-sm text-(--ui-text-muted)">Current Version</span>
-                  <p class="font-medium break-all">{{ component.packageMetadata.currentVersion || '—' }}</p>
-                </div>
-                <div>
+                <div v-if="showPackageLatestVersion">
                   <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
                   <p class="font-medium break-all">{{ component.packageMetadata.latestVersion || '—' }}</p>
-                </div>
-                <div>
-                  <span class="text-sm text-(--ui-text-muted)">Default Version</span>
-                  <p class="font-medium break-all">{{ component.packageMetadata.defaultVersion || '—' }}</p>
                 </div>
                 <div>
                   <span class="text-sm text-(--ui-text-muted)">Published</span>
@@ -233,7 +249,7 @@
                 </div>
               </div>
 
-              <div>
+              <div v-if="showRegistryLicenses">
                 <span class="text-sm text-(--ui-text-muted)">Licenses</span>
                 <div v-if="component.packageMetadata.licenses.length > 0" class="mt-2 flex flex-wrap gap-2">
                   <UBadge
@@ -272,7 +288,7 @@
               :to="component.packageMetadata.source.url"
               target="_blank"
               rel="noopener noreferrer"
-              label="View Source"
+              label="Open deps.dev"
               icon="i-lucide-external-link"
               variant="outline"
               size="sm"
@@ -283,7 +299,10 @@
         <UCard>
           <template #header>
             <div class="flex items-center justify-between gap-3">
-              <h2 class="text-lg font-semibold">Security Scorecard</h2>
+              <div>
+                <h2 class="text-lg font-semibold">Security</h2>
+                <p class="text-xs text-(--ui-text-muted)">Source: OpenSSF Scorecard</p>
+              </div>
               <UBadge :color="getSecurityScorecardColor(component.securityScorecard?.score, component.securityScorecard?.status)" variant="subtle">
                 {{ getSecurityScorecardLabel(component.securityScorecard?.score, component.securityScorecard?.status) }}
               </UBadge>
@@ -291,10 +310,6 @@
           </template>
 
           <div class="space-y-4">
-            <p class="text-sm text-(--ui-text-muted)">
-              Security score data is provided by OpenSSF Scorecard. Polaris displays this third-party information for visibility and does not store security scorecard data.
-            </p>
-
             <UAlert
               v-if="!component.securityScorecard || component.securityScorecard.status === 'unavailable'"
               color="neutral"
@@ -305,7 +320,7 @@
             />
 
             <template v-else>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                 <div>
                   <span class="text-sm text-(--ui-text-muted)">Repository</span>
                   <p class="font-medium break-all">
@@ -319,10 +334,6 @@
                 <div>
                   <span class="text-sm text-(--ui-text-muted)">Scanned</span>
                   <p class="font-medium">{{ component.securityScorecard.scannedAt ? formatDate(component.securityScorecard.scannedAt) : '—' }}</p>
-                </div>
-                <div>
-                  <span class="text-sm text-(--ui-text-muted)">Source</span>
-                  <p class="font-medium">{{ component.securityScorecard.source.name }}</p>
                 </div>
               </div>
 
@@ -351,7 +362,7 @@
               :to="component.securityScorecard.source.url"
               target="_blank"
               rel="noopener noreferrer"
-              label="View Source"
+              label="Open Scorecard"
               icon="i-lucide-external-link"
               variant="outline"
               size="sm"
@@ -359,26 +370,6 @@
           </div>
         </UCard>
       </div>
-
-      <UCard v-if="component.purl || component.cpe || component.bomRef">
-        <template #header>
-          <h2 class="text-lg font-semibold">Identifiers</h2>
-        </template>
-        <div class="space-y-3">
-          <div v-if="component.purl">
-            <span class="text-sm text-(--ui-text-muted)">Package URL</span>
-            <p><code class="break-all">{{ component.purl }}</code></p>
-          </div>
-          <div v-if="component.cpe">
-            <span class="text-sm text-(--ui-text-muted)">CPE</span>
-            <p><code class="break-all">{{ component.cpe }}</code></p>
-          </div>
-          <div v-if="component.bomRef">
-            <span class="text-sm text-(--ui-text-muted)">BOM Reference</span>
-            <p><code class="break-all">{{ component.bomRef }}</code></p>
-          </div>
-        </div>
-      </UCard>
 
       <UCard v-if="component.systems.length > 0">
         <template #header>
@@ -403,67 +394,7 @@
         </div>
       </UCard>
 
-      <UCard>
-        <template #header>
-          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 class="text-lg font-semibold">Dependencies</h2>
-              <p class="text-sm text-(--ui-text-muted)">
-                {{ directDependencyCount }} {{ directDependencyCount === 1 ? 'direct dependency' : 'direct dependencies' }}
-              </p>
-            </div>
-            <div v-if="dependencySystemContext" class="flex flex-wrap items-center gap-2">
-              <UButton
-                label="All Dependencies"
-                icon="i-lucide-globe"
-                size="sm"
-                :variant="dependencyView === 'global' ? 'solid' : 'outline'"
-                :color="dependencyView === 'global' ? 'primary' : 'neutral'"
-                @click="setDependencyView('global')"
-              />
-              <UButton
-                :label="`Dependencies in ${dependencySystemContext}`"
-                icon="i-lucide-boxes"
-                size="sm"
-                :variant="dependencyView === 'system' ? 'solid' : 'outline'"
-                :color="dependencyView === 'system' ? 'primary' : 'neutral'"
-                @click="setDependencyView('system')"
-              />
-            </div>
-            <UBadge
-              v-else
-              color="neutral"
-              variant="subtle"
-            >
-              Global view
-            </UBadge>
-          </div>
-        </template>
-
-        <ComponentDependencyTree
-          :component-key="route.params.key as string"
-          :system-name="activeDependencySystem"
-        />
-      </UCard>
-
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Licenses</h2>
-          </template>
-          <div v-if="component.licenses.length > 0" class="flex flex-wrap gap-2">
-            <UBadge
-              v-for="license in component.licenses"
-              :key="license.id || license.name"
-              color="neutral"
-              variant="subtle"
-            >
-              {{ license.id || license.name }}
-            </UBadge>
-          </div>
-          <p v-else class="text-(--ui-text-muted)">No license information available.</p>
-        </UCard>
-
         <UCard>
           <template #header>
             <h2 class="text-lg font-semibold">References</h2>
@@ -497,6 +428,54 @@
             </p>
           </div>
         </UCard>
+      </div>
+        </div>
+
+        <div class="xl:col-span-1">
+          <UCard class="xl:sticky xl:top-6">
+            <template #header>
+              <div class="flex flex-col gap-3">
+                <div>
+                  <h2 class="text-lg font-semibold">Dependencies</h2>
+                  <p class="text-sm text-(--ui-text-muted)">
+                    {{ directDependencyCount }} {{ directDependencyCount === 1 ? 'direct dependency' : 'direct dependencies' }}
+                  </p>
+                </div>
+                <div v-if="dependencySystemContext" class="flex flex-wrap items-center gap-2">
+                  <UButton
+                    label="All"
+                    icon="i-lucide-globe"
+                    size="sm"
+                    :variant="dependencyView === 'global' ? 'solid' : 'outline'"
+                    :color="dependencyView === 'global' ? 'primary' : 'neutral'"
+                    @click="setDependencyView('global')"
+                  />
+                  <UButton
+                    :label="dependencySystemContext"
+                    icon="i-lucide-boxes"
+                    size="sm"
+                    :variant="dependencyView === 'system' ? 'solid' : 'outline'"
+                    :color="dependencyView === 'system' ? 'primary' : 'neutral'"
+                    @click="setDependencyView('system')"
+                  />
+                </div>
+                <UBadge
+                  v-else
+                  color="neutral"
+                  variant="subtle"
+                  class="w-fit"
+                >
+                  Global view
+                </UBadge>
+              </div>
+            </template>
+
+            <ComponentDependencyTree
+              :component-key="route.params.key as string"
+              :system-name="activeDependencySystem"
+            />
+          </UCard>
+        </div>
       </div>
     </template>
   </div>
@@ -538,6 +517,36 @@ const dependencyView = computed<DependencyView>(() => {
 })
 const activeDependencySystem = computed(() => (
   dependencyView.value === 'system' ? dependencySystemContext.value : undefined
+))
+const lifecycleProductLabel = computed(() => (
+  component.value?.eol?.productLabel || component.value?.eol?.productName || ''
+))
+const showLifecycleProduct = computed(() => {
+  if (!component.value || !lifecycleProductLabel.value) return false
+  return lifecycleProductLabel.value.toLowerCase() !== displayName.value.toLowerCase()
+})
+const showEolLatestVersion = computed(() => {
+  const latestVersion = component.value?.eol?.latestVersion
+  return Boolean(latestVersion && latestVersion !== component.value?.version)
+})
+const showPackageLatestVersion = computed(() => {
+  const latestVersion = component.value?.packageMetadata?.latestVersion
+  return Boolean(latestVersion && latestVersion !== component.value?.version)
+})
+const showRegistryLicenses = computed(() => {
+  const registryLicenses = component.value?.packageMetadata?.licenses ?? []
+  if (registryLicenses.length === 0) return false
+  const componentLicenses = new Set(
+    (component.value?.licenses ?? [])
+      .map(license => license.id || license.name)
+      .filter(Boolean)
+  )
+  return registryLicenses.some(license => !componentLicenses.has(license))
+})
+const hasExternalSignals = computed(() => Boolean(
+  component.value?.packageMetadata?.status === 'available'
+  || component.value?.eol?.source.url
+  || component.value?.securityScorecard?.status === 'available'
 ))
 
 function getEolColor(status?: EOLStatusValue): 'success' | 'warning' | 'error' | 'neutral' {
