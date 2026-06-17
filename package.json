@@ -79,6 +79,7 @@
     "semver": "^7.8.4",
     "spdx-expression-parse": "^4.0.0",
     "spdx-license-list": "^6.11.0",
+    "tsx": "^4.22.4",
     "vue": "^3.5.38",
     "zod": "^4.4.3"
   },
@@ -106,7 +107,6 @@
     "patch-package": "^8.0.1",
     "swagger-jsdoc": "^6.3.0",
     "tailwindcss": "^4.3.1",
-    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }
