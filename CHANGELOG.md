@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.11] - 2026-06-17
+
+## What's Changed
+
+- Add OpenSSF Scorecard enrichment @localgod (#658)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.10...v0.6.11
+
 ## [0.6.7] - 2026-06-15
 
 ## What's Changed
