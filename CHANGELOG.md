@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.10] - 2026-06-17
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump dompurify from 3.4.7 to 3.4.11 @[dependabot[bot]](https://github.com/apps/dependabot) (#655)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.9...v0.6.10
+
 ## [0.6.7] - 2026-06-15
 
 ## What's Changed
