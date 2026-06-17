@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.12] - 2026-06-17
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump markdown-it and markdownlint-cli @[dependabot[bot]](https://github.com/apps/dependabot) (#661)
+- chore(deps)(deps): bump js-yaml and markdownlint-cli @[dependabot[bot]](https://github.com/apps/dependabot) (#660)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.11...v0.6.12
+
 ## [0.6.7] - 2026-06-15
 
 ## What's Changed
