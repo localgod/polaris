@@ -2,6 +2,8 @@
 
 const isEnabled = (value: string | undefined) => value === 'true' || value === '1'
 const shouldTrustAuthHost = process.env.NODE_ENV !== 'production' || isEnabled(process.env.AUTH_TRUST_HOST)
+const apiCacheDriver = process.env.API_CACHE_DRIVER || 'memory'
+const apiCacheBase = process.env.API_CACHE_BASE || './.cache/api'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -80,6 +82,12 @@ export default defineNuxtConfig({
     // runtime — bundling strips those files and causes ENOENT errors in production.
     externals: {
       external: ['@cyclonedx/cdxgen']
+    },
+    storage: {
+      'cache:api': {
+        driver: apiCacheDriver,
+        ...(apiCacheDriver === 'fs' && { base: apiCacheBase })
+      }
     }
   }
 

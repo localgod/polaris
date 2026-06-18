@@ -103,6 +103,9 @@
                   <UBadge v-if="component.securityScorecard?.status === 'available'" color="success" variant="subtle">
                     Scorecard
                   </UBadge>
+                  <UBadge v-if="component.vulnerabilities?.status === 'available'" :color="vulnerabilityCount > 0 ? 'warning' : 'success'" variant="subtle">
+                    OSV.dev
+                  </UBadge>
                   <span v-if="!hasExternalSignals" class="font-medium text-(--ui-text-muted)">None</span>
                 </div>
               </div>
@@ -358,6 +361,97 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <div>
+                <h2 class="text-lg font-semibold">Known Vulnerabilities</h2>
+                <p class="text-xs text-(--ui-text-muted)">Source: OSV.dev</p>
+              </div>
+              <UBadge :color="getVulnerabilityColor(component.vulnerabilities?.status, vulnerabilityCount)" variant="subtle">
+                {{ getVulnerabilityLabel(component.vulnerabilities?.status, vulnerabilityCount) }}
+              </UBadge>
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <UAlert
+              v-if="!component.vulnerabilities || component.vulnerabilities.status === 'unavailable'"
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-circle-help"
+              title="No vulnerability lookup available"
+              :description="getVulnerabilityUnavailableDescription(component.vulnerabilities?.reason)"
+            />
+
+            <UAlert
+              v-else-if="component.vulnerabilities.vulnerabilities.length === 0"
+              color="success"
+              variant="subtle"
+              icon="i-lucide-shield-check"
+              title="No known vulnerabilities found"
+              description="OSV.dev did not report vulnerabilities for this package URL."
+            />
+
+            <div v-else class="space-y-4">
+              <div
+                v-for="vulnerability in component.vulnerabilities.vulnerabilities"
+                :key="vulnerability.id"
+                class="space-y-2 border-b border-(--ui-border) pb-4 last:border-b-0 last:pb-0"
+              >
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p class="font-medium">{{ vulnerability.id }}</p>
+                    <p v-if="vulnerability.summary" class="text-sm text-(--ui-text-muted)">{{ vulnerability.summary }}</p>
+                  </div>
+                  <UBadge color="warning" variant="subtle">
+                    {{ getVulnerabilitySeverityLabel(vulnerability) }}
+                  </UBadge>
+                </div>
+
+                <div v-if="vulnerability.affectedRanges.length > 0">
+                  <span class="text-sm text-(--ui-text-muted)">Affected Versions</span>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <UBadge
+                      v-for="range in vulnerability.affectedRanges.slice(0, 3)"
+                      :key="range"
+                      color="neutral"
+                      variant="subtle"
+                    >
+                      {{ range }}
+                    </UBadge>
+                    <UBadge v-if="vulnerability.affectedRanges.length > 3" color="neutral" variant="subtle">
+                      +{{ vulnerability.affectedRanges.length - 3 }} more
+                    </UBadge>
+                  </div>
+                </div>
+
+                <UButton
+                  :to="vulnerability.advisoryUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  label="Open advisory"
+                  icon="i-lucide-external-link"
+                  variant="outline"
+                  color="warning"
+                  size="sm"
+                />
+              </div>
+            </div>
+
+            <UButton
+              v-if="component.vulnerabilities?.source.url"
+              :to="component.vulnerabilities.source.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              label="Open OSV.dev"
+              icon="i-lucide-external-link"
+              variant="outline"
+              size="sm"
+            />
+          </div>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <div>
                 <h2 class="text-lg font-semibold">Security</h2>
                 <p class="text-xs text-(--ui-text-muted)">Source: OpenSSF Scorecard</p>
               </div>
@@ -540,7 +634,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, MaintenanceHealthConfidence, MaintenanceHealthReasonCode, MaintenanceHealthStatus, PackageMetadataSource, PackageMetadataStatus, SecurityScorecardStatus } from '~~/types/api'
+import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, KnownVulnerability, MaintenanceHealthConfidence, MaintenanceHealthReasonCode, MaintenanceHealthStatus, PackageMetadataSource, PackageMetadataStatus, SecurityScorecardStatus, VulnerabilityStatus } from '~~/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -605,7 +699,9 @@ const hasExternalSignals = computed(() => Boolean(
   component.value?.packageMetadata?.status === 'available'
   || component.value?.eol?.source.url
   || component.value?.securityScorecard?.status === 'available'
+  || component.value?.vulnerabilities?.status === 'available'
 ))
+const vulnerabilityCount = computed(() => component.value?.vulnerabilities?.vulnerabilities.length ?? 0)
 
 function getEolColor(status?: EOLStatusValue): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<EOLStatusValue, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -771,6 +867,35 @@ function getSecurityScorecardUnavailableDescription(reason?: string): string {
     fetch_failed: 'The third-party security score source could not be reached.'
   }
   return descriptions[reason || ''] || 'No security scorecard data is available from the configured third-party source.'
+}
+
+function getVulnerabilityColor(status?: VulnerabilityStatus, count = 0): 'success' | 'warning' | 'neutral' {
+  if (status !== 'available') return 'neutral'
+  return count > 0 ? 'warning' : 'success'
+}
+
+function getVulnerabilityLabel(status?: VulnerabilityStatus, count = 0): string {
+  if (status !== 'available') return 'Unavailable'
+  if (count === 0) return 'None found'
+  if (count === 1) return '1 found'
+  return `${count} found`
+}
+
+function getVulnerabilityUnavailableDescription(reason?: string): string {
+  const descriptions: Record<string, string> = {
+    missing_purl: 'This component does not have a package URL for OSV.dev lookup.',
+    fetch_failed: 'The third-party vulnerability source could not be reached.'
+  }
+  return descriptions[reason || ''] || 'No vulnerability data is available from the configured third-party source.'
+}
+
+function getVulnerabilitySeverityLabel(vulnerability: KnownVulnerability): string {
+  if (typeof vulnerability.severity?.cvssScore === 'number') {
+    return `CVSS ${vulnerability.severity.cvssScore.toFixed(1)}`
+  }
+  if (vulnerability.severity?.score) return vulnerability.severity.score
+  if (vulnerability.severity?.type) return vulnerability.severity.type
+  return 'Severity unknown'
 }
 
 function formatScore(score?: number | null): string {

@@ -308,6 +308,39 @@ export interface SecurityScorecard {
   }
 }
 
+export type VulnerabilityStatus = 'available' | 'unavailable'
+
+export type VulnerabilityUnavailableReason =
+  | 'missing_purl'
+  | 'fetch_failed'
+
+export interface KnownVulnerabilitySeverity {
+  type: string | null
+  score: string | null
+  cvssScore: number | null
+}
+
+export interface KnownVulnerability {
+  id: string
+  aliases: string[]
+  summary: string | null
+  severity: KnownVulnerabilitySeverity | null
+  affectedRanges: string[]
+  advisoryUrl: string
+  publishedAt: string | null
+  modifiedAt: string | null
+}
+
+export interface VulnerabilityReport {
+  status: VulnerabilityStatus
+  reason?: VulnerabilityUnavailableReason
+  vulnerabilities: KnownVulnerability[]
+  source: {
+    name: 'OSV.dev'
+    url: string | null
+  }
+}
+
 export interface ComponentDetail extends Component {
   systems: ComponentSystemUsage[]
   directDependencies: ComponentDirectDependency[]
@@ -315,6 +348,7 @@ export interface ComponentDetail extends Component {
   packageMetadata: PackageMetadata | null
   maintenanceHealth: MaintenanceHealth | null
   securityScorecard: SecurityScorecard | null
+  vulnerabilities: VulnerabilityReport | null
 }
 
 export interface TechnologyVersionLifecycle {

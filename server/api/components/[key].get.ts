@@ -1,6 +1,6 @@
 import { decodeComponentKey } from '../../../utils/component-identity'
-import type { PackageMetadata, SecurityScorecard } from '~~/types/api'
-import { componentService, eolService, packageMetadataService, securityScoreService } from '../../services/singletons'
+import type { PackageMetadata, SecurityScorecard, VulnerabilityReport } from '~~/types/api'
+import { componentService, eolService, packageMetadataService, securityScoreService, vulnerabilityService } from '../../services/singletons'
 import { calculateMaintenanceHealth } from '../../utils/component-health'
 
 /**
@@ -63,6 +63,9 @@ import { calculateMaintenanceHealth } from '../../utils/component-health'
  *                             securityScorecard:
  *                               type: object
  *                               nullable: true
+ *                             vulnerabilities:
+ *                               type: object
+ *                               nullable: true
  *       400:
  *         description: Component key is missing or invalid
  *       404:
@@ -93,7 +96,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const [eol, packageMetadata, securityScorecard] = await Promise.all([
+  const [eol, packageMetadata, securityScorecard, vulnerabilities] = await Promise.all([
     eolService.getEOLStatus(component),
     packageMetadataService.getMetadata(component).catch((): PackageMetadata => ({
       status: 'unavailable',
@@ -126,6 +129,15 @@ export default defineEventHandler(async (event) => {
         name: 'OpenSSF Scorecard',
         url: null
       }
+    })),
+    vulnerabilityService.getVulnerabilities(component).catch((): VulnerabilityReport => ({
+      status: 'unavailable',
+      reason: 'fetch_failed',
+      vulnerabilities: [],
+      source: {
+        name: 'OSV.dev',
+        url: null
+      }
     }))
   ])
   const maintenanceHealth = calculateMaintenanceHealth(component, packageMetadata)
@@ -137,7 +149,8 @@ export default defineEventHandler(async (event) => {
       eol,
       packageMetadata,
       maintenanceHealth,
-      securityScorecard
+      securityScorecard,
+      vulnerabilities
     }
   }
 })
