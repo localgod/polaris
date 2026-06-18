@@ -1,6 +1,7 @@
 import { decodeComponentKey } from '../../../utils/component-identity'
 import type { PackageMetadata, SecurityScorecard } from '~~/types/api'
 import { componentService, eolService, packageMetadataService, securityScoreService } from '../../services/singletons'
+import { calculateMaintenanceHealth } from '../../utils/component-health'
 
 /**
  * @openapi
@@ -54,6 +55,9 @@ import { componentService, eolService, packageMetadataService, securityScoreServ
  *                               type: object
  *                               nullable: true
  *                             packageMetadata:
+ *                               type: object
+ *                               nullable: true
+ *                             maintenanceHealth:
  *                               type: object
  *                               nullable: true
  *                             securityScorecard:
@@ -124,6 +128,7 @@ export default defineEventHandler(async (event) => {
       }
     }))
   ])
+  const maintenanceHealth = calculateMaintenanceHealth(component, packageMetadata)
 
   return {
     success: true,
@@ -131,6 +136,7 @@ export default defineEventHandler(async (event) => {
       ...component,
       eol,
       packageMetadata,
+      maintenanceHealth,
       securityScorecard
     }
   }

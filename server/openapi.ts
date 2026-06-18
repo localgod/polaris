@@ -467,6 +467,38 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             }
           }
         },
+        MaintenanceHealth: {
+          type: 'object',
+          required: ['status', 'confidence', 'ageInDays', 'isMature', 'currentVersion', 'latestVersion', 'updateType', 'recentActivity', 'reasonCodes', 'inputsUsed', 'calculatedAt'],
+          properties: {
+            status: {
+              type: 'string',
+              enum: ['healthy', 'stable', 'aging', 'stale', 'unknown']
+            },
+            confidence: {
+              type: 'string',
+              enum: ['high', 'medium', 'low']
+            },
+            ageInDays: { type: 'integer', nullable: true },
+            isMature: { type: 'boolean', nullable: true },
+            currentVersion: { type: 'string', nullable: true },
+            latestVersion: { type: 'string', nullable: true },
+            updateType: {
+              type: 'string',
+              enum: ['none', 'patch', 'minor', 'major', 'unknown']
+            },
+            recentActivity: { type: 'boolean', nullable: true },
+            reasonCodes: {
+              type: 'array',
+              items: { type: 'string' }
+            },
+            inputsUsed: {
+              type: 'array',
+              items: { type: 'string' }
+            },
+            calculatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
         GroupedComponentVersion: {
           type: 'object',
           required: ['name', 'version'],

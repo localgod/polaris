@@ -129,7 +129,65 @@
             </div>
           </UCard>
 
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-6">
+            <UCard>
+              <template #header>
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-lg font-semibold">Maintenance</h2>
+                    <p class="text-xs text-(--ui-text-muted)">Derived from available component and registry data</p>
+                  </div>
+                  <UBadge :color="getMaintenanceHealthColor(component.maintenanceHealth?.status)" variant="subtle">
+                    {{ getMaintenanceHealthLabel(component.maintenanceHealth?.status) }}
+                  </UBadge>
+                </div>
+              </template>
+
+              <div class="space-y-4">
+                <UAlert
+                  v-if="!component.maintenanceHealth || component.maintenanceHealth.status === 'unknown'"
+                  color="neutral"
+                  variant="subtle"
+                  icon="i-lucide-circle-help"
+                  title="Maintenance health unknown"
+                  :description="getMaintenanceReasonDescription(component.maintenanceHealth?.reasonCodes[0])"
+                />
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">Confidence</span>
+                    <p class="font-medium">{{ getMaintenanceConfidenceLabel(component.maintenanceHealth?.confidence) }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">Version Age</span>
+                    <p class="font-medium">{{ formatAge(component.maintenanceHealth?.ageInDays) }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">Update Status</span>
+                    <p class="font-medium">{{ getMaintenanceUpdateLabel(component.maintenanceHealth?.updateType) }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm text-(--ui-text-muted)">Recent Activity</span>
+                    <p class="font-medium">{{ formatNullableBoolean(component.maintenanceHealth?.recentActivity) }}</p>
+                  </div>
+                </div>
+
+                <div v-if="component.maintenanceHealth?.reasonCodes.length">
+                  <span class="text-sm text-(--ui-text-muted)">Reasons</span>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <UBadge
+                      v-for="reason in component.maintenanceHealth.reasonCodes.slice(0, 3)"
+                      :key="reason"
+                      color="neutral"
+                      variant="subtle"
+                    >
+                      {{ getMaintenanceReasonLabel(reason) }}
+                    </UBadge>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+
             <UCard>
               <template #header>
                 <div class="flex items-center justify-between gap-3">
@@ -482,7 +540,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataSource, PackageMetadataStatus, SecurityScorecardStatus } from '~~/types/api'
+import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, MaintenanceHealthConfidence, MaintenanceHealthReasonCode, MaintenanceHealthStatus, PackageMetadataSource, PackageMetadataStatus, SecurityScorecardStatus } from '~~/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -579,6 +637,86 @@ function getEolUnknownDescription(reason?: string): string {
   return descriptions[reason || ''] || 'No lifecycle data is available from the configured third-party source.'
 }
 
+function getMaintenanceHealthColor(status?: MaintenanceHealthStatus): 'success' | 'warning' | 'error' | 'neutral' {
+  const colors: Record<MaintenanceHealthStatus, 'success' | 'warning' | 'error' | 'neutral'> = {
+    healthy: 'success',
+    stable: 'success',
+    aging: 'warning',
+    stale: 'error',
+    unknown: 'neutral'
+  }
+  return colors[status || 'unknown']
+}
+
+function getMaintenanceHealthLabel(status?: MaintenanceHealthStatus): string {
+  const labels: Record<MaintenanceHealthStatus, string> = {
+    healthy: 'Healthy',
+    stable: 'Stable',
+    aging: 'Aging',
+    stale: 'Stale',
+    unknown: 'Unknown'
+  }
+  return labels[status || 'unknown']
+}
+
+function getMaintenanceConfidenceLabel(confidence?: MaintenanceHealthConfidence): string {
+  const labels: Record<MaintenanceHealthConfidence, string> = {
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low'
+  }
+  return confidence ? labels[confidence] : '—'
+}
+
+function getMaintenanceUpdateLabel(updateType?: string): string {
+  const labels: Record<string, string> = {
+    none: 'Current',
+    patch: 'Patch available',
+    minor: 'Minor update available',
+    major: 'Major update available',
+    unknown: 'Unknown'
+  }
+  return labels[updateType || 'unknown'] || 'Unknown'
+}
+
+function getMaintenanceReasonLabel(reason: MaintenanceHealthReasonCode): string {
+  const labels: Record<MaintenanceHealthReasonCode, string> = {
+    insufficient_data: 'Insufficient data',
+    missing_release_date: 'Missing release date',
+    invalid_release_date: 'Invalid release date',
+    missing_version: 'Missing version',
+    unsupported_version_scheme: 'Unsupported version',
+    metadata_unavailable: 'Metadata unavailable',
+    version_recent: 'Recent version',
+    version_moderately_old: 'Moderate age',
+    version_old: 'Old version',
+    version_very_old: 'Very old version',
+    mature_version: 'Mature version',
+    pre_1_0_version: 'Pre-1.0',
+    upstream_recent_activity: 'Recent activity',
+    upstream_no_recent_activity: 'No recent activity',
+    update_status_unknown: 'Update status unknown',
+    current_version_current: 'Current version',
+    patch_update_available: 'Patch available',
+    minor_update_available: 'Minor available',
+    major_update_available: 'Major available',
+    package_deprecated: 'Deprecated',
+    advisories_reported: 'Advisories reported'
+  }
+  return labels[reason]
+}
+
+function getMaintenanceReasonDescription(reason?: MaintenanceHealthReasonCode): string {
+  const descriptions: Partial<Record<MaintenanceHealthReasonCode, string>> = {
+    insufficient_data: 'There is not enough date, version, or registry metadata to classify this component.',
+    missing_release_date: 'No component or registry publication date was available.',
+    invalid_release_date: 'The available release date could not be parsed.',
+    unsupported_version_scheme: 'This component uses a version format that Polaris cannot compare safely.',
+    metadata_unavailable: 'Registry metadata was unavailable, so the result uses only local component data.'
+  }
+  return descriptions[reason || 'insufficient_data'] || 'Maintenance health could not be classified with high confidence.'
+}
+
 function getPackageMetadataColor(status?: PackageMetadataStatus): 'success' | 'neutral' {
   return status === 'available' ? 'success' : 'neutral'
 }
@@ -637,6 +775,18 @@ function getSecurityScorecardUnavailableDescription(reason?: string): string {
 
 function formatScore(score?: number | null): string {
   return typeof score === 'number' ? `${score.toFixed(1)} / 10` : '—'
+}
+
+function formatAge(ageInDays?: number | null): string {
+  if (typeof ageInDays !== 'number') return '—'
+  if (ageInDays === 1) return '1 day'
+  return `${ageInDays} days`
+}
+
+function formatNullableBoolean(value?: boolean | null): string {
+  if (value === true) return 'Yes'
+  if (value === false) return 'No'
+  return '—'
 }
 
 function formatDate(dateString: string): string {
