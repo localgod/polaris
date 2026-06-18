@@ -239,14 +239,18 @@ export class SBOMService {
 
     if (!rootName) return []
 
-    // Extract the name segment from a purl: pkg:<type>/<name>@<version> → <name>
+    // Extract the name segment from a purl: pkg:<type>/<name>@<version> -> <name>.
+    // Compare case-insensitively because npm package names are normalized to
+    // lowercase in some cdxgen dependency refs while metadata.component may
+    // preserve the package.json casing.
     const nameFromRef = (ref: string): string | null => {
       const m = ref.match(/^pkg:[^/]+\/([^@]+)@/)
-      return m?.[1] ?? null
+      return m?.[1] ? decodeURIComponent(m[1]).toLowerCase() : null
     }
+    const normalizedRootName = rootName.toLowerCase()
 
     const candidates = dependencies
-      .filter(d => nameFromRef(d.ref) === rootName && d.dependsOn.length > 0)
+      .filter(d => nameFromRef(d.ref) === normalizedRootName && d.dependsOn.length > 0)
       .sort((a, b) => b.dependsOn.length - a.dependsOn.length)
 
     return candidates[0]?.dependsOn ?? []

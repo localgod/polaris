@@ -80,33 +80,92 @@
             description="Dependencies are discovered from manifest files fetched via the GitHub API. The full transitive dependency graph is only available after the polaris-sbom.yml workflow runs against this repository."
           />
 
-          <UFormField name="repositoryUrl" label="GitHub Repository" required>
+          <UFormField name="organization" label="GitHub Owner" required>
             <UInput
-              v-model="importState.repositoryUrl"
-              placeholder="owner/repo or https://github.com/owner/repo"
+              v-model="importState.organization"
+              placeholder="owner or https://github.com/owner"
+              :disabled="isImporting"
             />
-            <template #help>
-              <span class="text-(--ui-text-muted)">
-                Repository metadata and dependencies will be fetched via the GitHub API.
-              </span>
-            </template>
           </UFormField>
 
-          <UFormField name="domain" label="Domain">
-            <UInput v-model="importState.domain" placeholder="Development" />
-          </UFormField>
+          <div class="grid md:grid-cols-3 gap-3">
+            <UFormField name="language" label="Language">
+              <UInput v-model="importState.language" placeholder="TypeScript" :disabled="isImporting" />
+            </UFormField>
+            <UFormField name="topic" label="Topic">
+              <UInput v-model="importState.topic" placeholder="platform" :disabled="isImporting" />
+            </UFormField>
+            <UFormField name="namePattern" label="Name Pattern">
+              <UInput v-model="importState.namePattern" placeholder="^service-" :disabled="isImporting" />
+            </UFormField>
+          </div>
+
+          <div v-if="ownerRepositories.length" class="space-y-3 rounded-md border border-(--ui-border) p-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="font-medium">{{ ownerRepositories.length }} repositories found</p>
+                <p class="text-sm text-(--ui-text-muted)">{{ selectedRepositoryFullNames.length }} selected</p>
+              </div>
+              <div class="flex gap-2">
+                <UButton label="Select All" size="xs" color="neutral" variant="outline" :disabled="isImporting" @click="selectAllOwnerRepositories" />
+                <UButton label="Clear" size="xs" color="neutral" variant="ghost" :disabled="isImporting" @click="clearSelectedOwnerRepositories" />
+              </div>
+            </div>
+            <div class="max-h-72 overflow-auto divide-y divide-(--ui-border)">
+              <label
+                v-for="repo in ownerRepositories"
+                :key="repo.fullName"
+                class="flex cursor-pointer items-start gap-3 py-2"
+              >
+                <UCheckbox
+                  :model-value="selectedRepositoryFullNames.includes(repo.fullName)"
+                  :disabled="isImporting"
+                  @update:model-value="toggleOwnerRepository(repo.fullName, Boolean($event))"
+                />
+                <span class="min-w-0 flex-1">
+                  <span class="flex flex-wrap items-center gap-2">
+                    <span class="truncate text-sm font-medium">{{ repo.fullName }}</span>
+                    <UBadge v-if="repo.private" color="warning" variant="subtle">private</UBadge>
+                    <UBadge v-if="repo.archived" color="neutral" variant="subtle">archived</UBadge>
+                    <UBadge v-if="repo.fork" color="info" variant="subtle">fork</UBadge>
+                  </span>
+                  <span class="mt-1 block truncate text-xs text-(--ui-text-muted)">
+                    {{ repo.language || 'Unknown language' }}<template v-if="repo.description"> · {{ repo.description }}</template>
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
 
           <UFormField name="ownerTeam" label="Owner Team" required>
-            <USelect v-model="importState.ownerTeam" :items="importTeamItems" placeholder="Select a team" />
+            <USelect v-model="importState.ownerTeam" :items="importTeamItems" placeholder="Select a team" :disabled="isImporting" />
           </UFormField>
 
-          <UFormField name="businessCriticality" label="Business Criticality">
-            <USelect v-model="importState.businessCriticality" :items="importCriticalityItems" placeholder="medium" />
-          </UFormField>
-
-          <UFormField name="environment" label="Environment">
-            <USelect v-model="importState.environment" :items="importEnvironmentItems" placeholder="dev" />
-          </UFormField>
+          <div v-if="activeImportJob" class="space-y-3 rounded-md border border-(--ui-border) p-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="font-medium">{{ importProgressLabel }}</p>
+                <p class="text-sm text-(--ui-text-muted)">{{ activeImportJob.status }}</p>
+              </div>
+              <UBadge :color="importJobStatusColor" variant="subtle">
+                {{ activeImportJob.completed }}/{{ activeImportJob.total }}
+              </UBadge>
+            </div>
+            <div class="h-2 overflow-hidden rounded bg-(--ui-bg-elevated)">
+              <div class="h-full bg-(--ui-primary)" :style="{ width: `${importProgressPercent}%` }" />
+            </div>
+            <div v-if="activeImportJob.items.length" class="max-h-56 overflow-auto divide-y divide-(--ui-border)">
+              <div v-for="item in activeImportJob.items" :key="item.id" class="flex items-start justify-between gap-3 py-2">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium">{{ item.repositoryFullName }}</p>
+                  <p v-if="item.message" class="text-xs text-(--ui-text-muted)">{{ item.message }}</p>
+                </div>
+                <UBadge :color="importItemStatusColor(item.status)" variant="subtle">
+                  {{ item.status }}
+                </UBadge>
+              </div>
+            </div>
+          </div>
 
           <UAlert
             v-if="importError"
@@ -118,12 +177,13 @@
         </UForm>
       </template>
       <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="closeImportModal" />
+        <UButton label="Cancel" color="neutral" variant="outline" :disabled="isImporting" @click="closeImportModal" />
         <UButton
           type="submit"
           form="import-form"
-          :loading="isImporting"
-          label="Import"
+          :loading="isImporting || isFetchingRepositories"
+          :disabled="isImportSubmitDisabled"
+          :label="importSubmitLabel"
           color="primary"
         />
       </template>
@@ -311,20 +371,47 @@ interface TeamsResponse {
   count: number
 }
 
-interface ImportResult {
-  systemName: string
+type ImportJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+type ImportJobItemStatus = 'pending' | 'running' | 'imported' | 'skipped' | 'failed'
+
+interface ImportJobItem {
+  id: string
+  repositoryFullName: string
   repositoryUrl: string
-  manifestsFound: number
-  componentsAdded: number
-  componentsUpdated: number
+  status: ImportJobItemStatus
+  message: string | null
+}
+
+interface ImportJob {
+  id: string
+  status: ImportJobStatus
+  organization: string
+  total: number
+  completed: number
+  failed: number
+  skipped: number
+  error: string | null
+  items: ImportJobItem[]
+}
+
+interface OwnerRepository {
+  name: string
+  fullName: string
+  url: string
+  description: string | null
+  language: string | null
+  private: boolean
+  fork: boolean
+  archived: boolean
+  topics: string[]
 }
 
 const importSchema = z.object({
-  repositoryUrl: z.string().min(1, 'Repository URL is required'),
-  domain: z.string().optional(),
-  ownerTeam: z.string().min(1, 'Owner team is required'),
-  businessCriticality: z.string().optional(),
-  environment: z.string().optional()
+  organization: z.string().min(1, 'GitHub owner is required'),
+  language: z.string().optional(),
+  topic: z.string().optional(),
+  namePattern: z.string().optional(),
+  ownerTeam: z.string().min(1, 'Owner team is required')
 })
 type ImportSchema = z.infer<typeof importSchema>
 
@@ -333,67 +420,136 @@ const importTeamItems = computed(() =>
   (teamsData.value?.data || []).map(t => ({ label: t.name, value: t.name }))
 )
 
-const importCriticalityItems = [
-  { label: 'Critical', value: 'critical' },
-  { label: 'High', value: 'high' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Low', value: 'low' }
-]
-
-const importEnvironmentItems = [
-  { label: 'Development', value: 'dev' },
-  { label: 'Test', value: 'test' },
-  { label: 'Staging', value: 'staging' },
-  { label: 'Production', value: 'prod' }
-]
-
 const toast = useToast()
 const showImportModal = ref(false)
 const isImporting = ref(false)
+const isFetchingRepositories = ref(false)
 const importError = ref('')
+const activeImportJob = ref<ImportJob | null>(null)
+const ownerRepositories = ref<OwnerRepository[]>([])
+const selectedRepositoryFullNames = ref<string[]>([])
+let importPollTimer: ReturnType<typeof setInterval> | null = null
 
 const importState = reactive<Partial<ImportSchema>>({
-  repositoryUrl: '',
-  domain: '',
-  ownerTeam: '',
-  businessCriticality: '',
-  environment: ''
+  organization: '',
+  language: '',
+  topic: '',
+  namePattern: '',
+  ownerTeam: ''
 })
+
+const importProgressPercent = computed(() => {
+  if (!activeImportJob.value?.total) return 0
+  return Math.round((activeImportJob.value.completed / activeImportJob.value.total) * 100)
+})
+
+const importProgressLabel = computed(() => {
+  const job = activeImportJob.value
+  if (!job) return ''
+  if (job.status === 'queued') return 'Queued'
+  if (job.status === 'running') return `Importing ${job.completed}/${job.total} repositories`
+  if (job.status === 'completed') return `Finished ${job.completed}/${job.total} repositories`
+  return job.error || 'Import failed'
+})
+
+const importJobStatusColor = computed(() => {
+  const status = activeImportJob.value?.status
+  if (status === 'completed') return 'success'
+  if (status === 'failed' || status === 'cancelled') return 'error'
+  return 'info'
+})
+
+const importSubmitLabel = computed(() => {
+  return ownerRepositories.value.length > 0 ? 'Import Selected' : 'Fetch Repositories'
+})
+
+const isImportSubmitDisabled = computed(() => {
+  if (isImporting.value || isFetchingRepositories.value) return true
+  if (ownerRepositories.value.length > 0) {
+    return selectedRepositoryFullNames.value.length === 0
+  }
+  return false
+})
+
+function importItemStatusColor(status: ImportJobItemStatus): 'success' | 'error' | 'warning' | 'info' | 'neutral' {
+  if (status === 'imported') return 'success'
+  if (status === 'failed') return 'error'
+  if (status === 'skipped') return 'warning'
+  if (status === 'running') return 'info'
+  return 'neutral'
+}
+
+function stopImportPolling() {
+  if (importPollTimer) {
+    clearInterval(importPollTimer)
+    importPollTimer = null
+  }
+}
+
+function resetOwnerRepositorySelection() {
+  ownerRepositories.value = []
+  selectedRepositoryFullNames.value = []
+}
+
+function selectAllOwnerRepositories() {
+  selectedRepositoryFullNames.value = ownerRepositories.value.map(repo => repo.fullName)
+}
+
+function clearSelectedOwnerRepositories() {
+  selectedRepositoryFullNames.value = []
+}
+
+function toggleOwnerRepository(fullName: string, selected: boolean) {
+  const current = new Set(selectedRepositoryFullNames.value)
+  if (selected) {
+    current.add(fullName)
+  } else {
+    current.delete(fullName)
+  }
+  selectedRepositoryFullNames.value = ownerRepositories.value
+    .map(repo => repo.fullName)
+    .filter(fullName => current.has(fullName))
+}
+
+watch(
+  () => [
+    importState.organization,
+    importState.language,
+    importState.topic,
+    importState.namePattern
+  ],
+  () => {
+    resetOwnerRepositorySelection()
+  }
+)
 
 function closeImportModal() {
   showImportModal.value = false
   setTimeout(() => {
-    Object.assign(importState, { repositoryUrl: '', domain: '', ownerTeam: '', businessCriticality: '', environment: '' })
+    Object.assign(importState, {
+      organization: '',
+      language: '',
+      topic: '',
+      namePattern: '',
+      ownerTeam: ''
+    })
     importError.value = ''
+    activeImportJob.value = null
+    resetOwnerRepositorySelection()
   }, 300)
 }
 
 async function onImport(event: FormSubmitEvent<ImportSchema>) {
   isImporting.value = true
   importError.value = ''
+  activeImportJob.value = null
+  stopImportPolling()
 
   try {
-    const body: Record<string, string> = { repositoryUrl: event.data.repositoryUrl }
-    if (event.data.domain) body.domain = event.data.domain
-    if (event.data.ownerTeam) body.ownerTeam = event.data.ownerTeam
-    if (event.data.businessCriticality) body.businessCriticality = event.data.businessCriticality
-    if (event.data.environment) body.environment = event.data.environment
-
-    const response = await $fetch<{ success: boolean; data: ImportResult }>('/api/admin/import/github', {
-      method: 'POST',
-      body
-    })
-
-    if (response.success) {
-      const result = response.data
-      closeImportModal()
-      await refreshNuxtData()
-      toast.add({
-        title: `${result.systemName} imported`,
-        description: `${result.manifestsFound} manifest(s) found · ${result.componentsAdded} added · ${result.componentsUpdated} updated`,
-        color: 'success',
-        icon: 'i-lucide-check-circle'
-      })
+    if (ownerRepositories.value.length === 0) {
+      await fetchOwnerRepositories(event.data)
+    } else {
+      await startOrganizationImport(event.data)
     }
   }
   catch (error: unknown) {
@@ -401,9 +557,105 @@ async function onImport(event: FormSubmitEvent<ImportSchema>) {
     importError.value = err.data?.message || err.message || 'Import failed'
   }
   finally {
-    isImporting.value = false
+    if (!activeImportJob.value) {
+      isImporting.value = false
+    }
   }
 }
+
+async function startOrganizationImport(data: ImportSchema) {
+  const selected = ownerRepositories.value.filter(repo => selectedRepositoryFullNames.value.includes(repo.fullName))
+  const body = {
+    owner: data.organization,
+    repositories: selected.map(repo => ({
+      repositoryFullName: repo.fullName,
+      repositoryUrl: repo.url
+    })),
+    filters: {
+      language: data.language || undefined,
+      topic: data.topic || undefined,
+      namePattern: data.namePattern || undefined
+    },
+    ownerTeam: data.ownerTeam
+  }
+
+  const response = await $fetch<{ success: boolean; data: ImportJob }>('/api/admin/import/github-org', {
+    method: 'POST',
+    body
+  })
+
+  activeImportJob.value = response.data
+  startImportPolling(response.data.id)
+}
+
+async function fetchOwnerRepositories(data: ImportSchema) {
+  isFetchingRepositories.value = true
+  importError.value = ''
+
+  try {
+    const response = await $fetch<{ success: boolean; data: OwnerRepository[]; count: number }>('/api/admin/import/github-org/repositories', {
+      method: 'POST',
+      body: {
+        owner: data.organization,
+        filters: {
+          language: data.language || undefined,
+          topic: data.topic || undefined,
+          namePattern: data.namePattern || undefined
+        }
+      }
+    })
+
+    ownerRepositories.value = response.data
+    selectAllOwnerRepositories()
+
+    if (response.count === 0) {
+      importError.value = 'No repositories matched the current owner and filters'
+    }
+  } catch (error: unknown) {
+    const err = error as { data?: { message?: string }; message?: string }
+    importError.value = err.data?.message || err.message || 'Failed to fetch repositories'
+  } finally {
+    isFetchingRepositories.value = false
+  }
+}
+
+function startImportPolling(jobId: string) {
+  const poll = async () => {
+    try {
+      const response = await $fetch<{ success: boolean; data: ImportJob }>(`/api/admin/import/jobs/${encodeURIComponent(jobId)}`)
+      activeImportJob.value = response.data
+
+      if (['completed', 'failed', 'cancelled'].includes(response.data.status)) {
+        stopImportPolling()
+        isImporting.value = false
+
+        if (response.data.status === 'completed') {
+          await refreshNuxtData()
+          toast.add({
+            title: 'Owner import complete',
+            description: `${response.data.completed}/${response.data.total} finished · ${response.data.failed} failed · ${response.data.skipped} skipped`,
+            color: response.data.failed > 0 ? 'warning' : 'success',
+            icon: response.data.failed > 0 ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle'
+          })
+        } else {
+          importError.value = response.data.error || 'Import failed'
+        }
+      }
+    } catch (error: unknown) {
+      stopImportPolling()
+      isImporting.value = false
+      const err = error as { data?: { message?: string }; message?: string }
+      importError.value = err.data?.message || err.message || 'Failed to load import status'
+    }
+  }
+
+  void poll()
+  importPollTimer = setInterval(() => { void poll() }, 2000)
+}
+
+onBeforeUnmount(() => {
+  stopImportPolling()
+})
 
 // --- Edit System ---
 const editSystemSchema = z.object({

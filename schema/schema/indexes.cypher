@@ -43,6 +43,19 @@ CREATE INDEX audit_log_entity_composite IF NOT EXISTS
 FOR (a:AuditLog)
 ON (a.entityType, a.entityId, a.timestamp);
 
+// Import job indexes
+CREATE INDEX import_job_status IF NOT EXISTS
+FOR (j:ImportJob)
+ON (j.status);
+
+CREATE INDEX import_job_requested_by IF NOT EXISTS
+FOR (j:ImportJob)
+ON (j.requestedBy);
+
+CREATE INDEX import_job_item_status IF NOT EXISTS
+FOR (i:ImportJobItem)
+ON (i.status);
+
 // License indexes
 CREATE INDEX license_spdx_id IF NOT EXISTS
 FOR (l:License)

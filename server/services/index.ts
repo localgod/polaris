@@ -11,6 +11,7 @@ export { TokenService } from './token.service'
 export { UserService } from './user.service'
 export { AuditLogService } from './audit-log.service'
 export { GitHubImportService } from './github-import.service'
+export { GitHubOrgImportService } from './github-org-import.service'
 export { EOLService } from './eol.service'
 export { EOLRollupService } from './eol-rollup.service'
 export { PackageMetadataService } from './package-metadata.service'
@@ -29,6 +30,7 @@ export {
   userService,
   auditLogService,
   gitHubImportService,
+  gitHubOrgImportService,
   eolService,
   eolRollupService,
   packageMetadataService,

@@ -459,6 +459,53 @@ describe('SBOMService', () => {
       expect(persistCall.componentUsage.get('pkg:npm/express@4.18.2')).toMatchObject({ isDirect: true })
     })
 
+    it('should resolve directDeps case-insensitively when cdxgen lowercases npm root package refs', async () => {
+      const sbomWithRootNameCasingMismatch = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'AzureMap',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/AzureMap@1.0.0',
+          }
+        },
+        dependencies: [
+          { ref: 'pkg:application/AzureMap@1.0.0', dependsOn: [] },
+          { ref: 'pkg:npm/AzureMap@1.0.0', dependsOn: ['pkg:npm/@slidev/cli@52.0.0'] },
+          {
+            ref: 'pkg:npm/azuremap@1.0.0',
+            dependsOn: [
+              'pkg:npm/@actions/core@1.11.1',
+              'pkg:npm/@azure/identity@4.10.2',
+              'pkg:npm/commander@14.0.0'
+            ]
+          },
+          { ref: 'pkg:npm/@slidev/cli@52.0.0', dependsOn: [] },
+          { ref: 'pkg:npm/@actions/core@1.11.1', dependsOn: [] },
+          { ref: 'pkg:npm/@azure/identity@4.10.2', dependsOn: [] },
+          { ref: 'pkg:npm/commander@14.0.0', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 3, componentsUpdated: 0, relationshipsCreated: 3
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithRootNameCasingMismatch,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.componentUsage.get('pkg:npm/@actions/core@1.11.1')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/@azure/identity@4.10.2')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/commander@14.0.0')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/@slidev/cli@52.0.0')?.isDirect).not.toBe(true)
+    })
+
     it('should use exact match directDeps when root bom-ref matches a non-empty dependsOn entry', async () => {
       const sbomWithExactMatch = {
         ...validCycloneDxSbom,
