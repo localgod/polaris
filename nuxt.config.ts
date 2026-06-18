@@ -2,6 +2,8 @@
 
 const isEnabled = (value: string | undefined) => value === 'true' || value === '1'
 const shouldTrustAuthHost = process.env.NODE_ENV !== 'production' || isEnabled(process.env.AUTH_TRUST_HOST)
+const apiCacheDriver = process.env.API_CACHE_DRIVER || 'memory'
+const apiCacheBase = process.env.API_CACHE_BASE || './.cache/api'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -83,8 +85,8 @@ export default defineNuxtConfig({
     },
     storage: {
       'cache:api': {
-        driver: 'fs',
-        base: './.cache/api'
+        driver: apiCacheDriver,
+        ...(apiCacheDriver === 'fs' && { base: apiCacheBase })
       }
     }
   }
