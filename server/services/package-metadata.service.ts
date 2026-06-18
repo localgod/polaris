@@ -1,4 +1,5 @@
-import type { Component, PackageAdvisory, PackageMetadata, PackageMetadataUnavailableReason } from '~~/types/api'
+import type { Component, PackageAdvisory, PackageMetadata, PackageMetadataSource, PackageMetadataUnavailableReason } from '~~/types/api'
+import { logger } from '../utils/logger'
 
 interface CacheEntry<T> {
   expiresAt: number
@@ -35,6 +36,44 @@ interface DepsVersionResponse {
   links?: Array<{ label?: string; url?: string }>
 }
 
+interface NpmVersionResponse {
+  deprecated?: string
+  license?: string
+  licenses?: Array<{ type?: string } | string> | string
+}
+
+interface NpmPackageResponse {
+  'dist-tags'?: {
+    latest?: string
+  }
+  time?: Record<string, string>
+  versions?: Record<string, NpmVersionResponse>
+}
+
+interface PyPIPackageResponse {
+  info?: {
+    version?: string
+    license?: string
+    classifiers?: string[]
+  }
+  releases?: Record<string, Array<{
+    upload_time_iso_8601?: string
+    yanked?: boolean
+    yanked_reason?: string
+  }>>
+}
+
+interface MavenSearchResponse {
+  response?: {
+    docs?: Array<{
+      g?: string
+      a?: string
+      latestVersion?: string
+      timestamp?: number
+    }>
+  }
+}
+
 export interface ParsedPackagePurl {
   system: string
   packageName: string
@@ -45,6 +84,12 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const RECENT_RELEASE_WINDOW_MS = 365 * 24 * 60 * 60 * 1000
 const DEPS_DEV_API_BASE = 'https://api.deps.dev/v3'
 const DEPS_DEV_WEB_BASE = 'https://deps.dev'
+const NPM_REGISTRY_BASE = 'https://registry.npmjs.org'
+const NPM_WEB_BASE = 'https://www.npmjs.com/package'
+const PYPI_API_BASE = 'https://pypi.org/pypi'
+const PYPI_WEB_BASE = 'https://pypi.org/project'
+const MAVEN_SEARCH_API = 'https://search.maven.org/solrsearch/select'
+const MAVEN_SEARCH_WEB = 'https://search.maven.org/search'
 
 const SYSTEM_MAP: Record<string, string> = {
   npm: 'npm',
@@ -81,16 +126,30 @@ export class PackageMetadataService {
     try {
       packageData = await this.getPackage(parsed.system, parsed.packageName)
     } catch (error) {
-      return this.unavailable(this.isNotFound(error) ? 'package_not_found' : 'fetch_failed', parsed.system, parsed.packageName, currentVersion)
+      return await this.fallbackOrUnavailable(
+        this.isNotFound(error) ? 'package_not_found' : 'fetch_failed',
+        parsed.system,
+        parsed.packageName,
+        currentVersion
+      )
     }
 
     try {
       const versionData = currentVersion
         ? await this.getVersion(parsed.system, parsed.packageName, currentVersion)
         : null
-      return this.available(parsed.system, parsed.packageName, currentVersion, packageData, versionData)
+      const metadata = this.available(parsed.system, parsed.packageName, currentVersion, packageData, versionData)
+      if (this.isIncomplete(metadata)) {
+        return await this.fallbackOrMetadata(metadata, parsed.system, parsed.packageName, currentVersion)
+      }
+      return metadata
     } catch (error) {
-      return this.unavailable(this.isNotFound(error) ? 'version_not_found' : 'fetch_failed', parsed.system, parsed.packageName, currentVersion)
+      return await this.fallbackOrUnavailable(
+        this.isNotFound(error) ? 'version_not_found' : 'fetch_failed',
+        parsed.system,
+        parsed.packageName,
+        currentVersion
+      )
     }
   }
 
@@ -129,6 +188,65 @@ export class PackageMetadataService {
   private async getVersion(system: string, packageName: string, version: string): Promise<DepsVersionResponse> {
     const key = `package-metadata:v2:version:${system}:${encodeURIComponent(packageName)}:${encodeURIComponent(version)}`
     return await this.cached(key, () => this.fetcher<DepsVersionResponse>(this.versionApiUrl(system, packageName, version)))
+  }
+
+  private async fallbackOrMetadata(
+    metadata: PackageMetadata,
+    system: string,
+    packageName: string,
+    currentVersion: string | null
+  ): Promise<PackageMetadata> {
+    try {
+      return await this.getNativeMetadata(system, packageName, currentVersion)
+    } catch (error) {
+      logger.warn({
+        err: error,
+        system,
+        packageName,
+        currentVersion
+      }, 'Native package metadata fallback failed; returning deps.dev metadata')
+      return metadata
+    }
+  }
+
+  private async fallbackOrUnavailable(
+    reason: PackageMetadataUnavailableReason,
+    system: string,
+    packageName: string,
+    currentVersion: string | null
+  ): Promise<PackageMetadata> {
+    try {
+      return await this.getNativeMetadata(system, packageName, currentVersion)
+    } catch (error) {
+      logger.warn({
+        err: error,
+        system,
+        packageName,
+        currentVersion,
+        reason
+      }, 'Native package metadata fallback failed; returning unavailable metadata')
+      return this.unavailable(reason, system, packageName, currentVersion)
+    }
+  }
+
+  private async getNativeMetadata(
+    system: string,
+    packageName: string,
+    currentVersion: string | null
+  ): Promise<PackageMetadata> {
+    const key = `package-metadata:v2:native:${system}:${encodeURIComponent(packageName)}:${encodeURIComponent(currentVersion || '_')}`
+    return await this.cached(key, async () => {
+      switch (system) {
+        case 'npm':
+          return await this.getNpmMetadata(packageName, currentVersion)
+        case 'pypi':
+          return await this.getPyPIMetadata(packageName, currentVersion)
+        case 'maven':
+          return await this.getMavenMetadata(packageName, currentVersion)
+        default:
+          throw new Error(`Unsupported native registry system: ${system}`)
+      }
+    })
   }
 
   private async cached<T>(key: string, producer: () => Promise<T>): Promise<T> {
@@ -180,6 +298,41 @@ export class PackageMetadataService {
     }
   }
 
+  private nativeAvailable(input: {
+    source: PackageMetadataSource
+    system: string
+    packageName: string
+    currentVersion: string | null
+    latestVersion: string | null
+    defaultVersion?: string | null
+    publishedAt?: string | null
+    isDeprecated?: boolean | null
+    deprecatedReason?: string | null
+    licenses?: string[]
+    recentReleases?: number | null
+    url: string | null
+  }): PackageMetadata {
+    return {
+      status: 'available',
+      system: input.system,
+      packageName: input.packageName,
+      currentVersion: input.currentVersion,
+      latestVersion: input.latestVersion,
+      defaultVersion: input.defaultVersion ?? input.latestVersion,
+      publishedAt: input.publishedAt ?? null,
+      isDeprecated: input.isDeprecated ?? null,
+      deprecatedReason: input.deprecatedReason ?? null,
+      licenses: input.licenses ?? [],
+      advisoryCount: null,
+      advisories: [],
+      recentReleases: input.recentReleases ?? null,
+      source: {
+        name: input.source,
+        url: input.url
+      }
+    }
+  }
+
   private unavailable(
     reason: PackageMetadataUnavailableReason,
     system: string | null,
@@ -227,6 +380,14 @@ export class PackageMetadataService {
     }).length
   }
 
+  private recentReleaseCountFromDates(dates: string[]): number {
+    const cutoff = Date.now() - RECENT_RELEASE_WINDOW_MS
+    return dates.filter((date) => {
+      const publishedAt = Date.parse(date)
+      return !Number.isNaN(publishedAt) && publishedAt >= cutoff
+    }).length
+  }
+
   private advisories(advisoryKeys: Array<{ id?: string }>): PackageAdvisory[] {
     return advisoryKeys
       .map(advisory => advisory.id)
@@ -255,6 +416,162 @@ export class PackageMetadataService {
       : null
 
     return statusCode === 404
+  }
+
+  private isIncomplete(metadata: PackageMetadata): boolean {
+    return metadata.status === 'available'
+      && (
+        !metadata.latestVersion
+        || (Boolean(metadata.currentVersion) && metadata.publishedAt === null && metadata.isDeprecated === null)
+      )
+  }
+
+  private async getNpmMetadata(packageName: string, currentVersion: string | null): Promise<PackageMetadata> {
+    const data = await this.fetcher<NpmPackageResponse>(`${NPM_REGISTRY_BASE}/${encodeURIComponent(packageName)}`)
+    const latestVersion = data['dist-tags']?.latest || null
+    const selectedVersion = currentVersion || latestVersion
+    const versionData = selectedVersion ? data.versions?.[selectedVersion] : undefined
+    const deprecatedReason = typeof versionData?.deprecated === 'string' && versionData.deprecated.trim()
+      ? versionData.deprecated
+      : null
+    const publishDates = Object.entries(data.time || {})
+      .filter(([key]) => key !== 'created' && key !== 'modified')
+      .map(([, value]) => value)
+
+    return this.nativeAvailable({
+      source: 'npm',
+      system: 'npm',
+      packageName,
+      currentVersion,
+      latestVersion,
+      defaultVersion: latestVersion,
+      publishedAt: selectedVersion ? data.time?.[selectedVersion] || null : data.time?.modified || null,
+      isDeprecated: deprecatedReason !== null,
+      deprecatedReason,
+      licenses: this.npmLicenses(versionData),
+      recentReleases: this.recentReleaseCountFromDates(publishDates),
+      url: `${NPM_WEB_BASE}/${packageName}`
+    })
+  }
+
+  private async getPyPIMetadata(packageName: string, currentVersion: string | null): Promise<PackageMetadata> {
+    const data = await this.fetcher<PyPIPackageResponse>(`${PYPI_API_BASE}/${encodeURIComponent(packageName)}/json`)
+    const latestVersion = data.info?.version || null
+    const selectedVersion = currentVersion || latestVersion
+    const releaseFiles = selectedVersion ? data.releases?.[selectedVersion] || [] : []
+    const yankedFiles = releaseFiles.filter(file => file.yanked)
+    const isDeprecated = releaseFiles.length > 0 ? yankedFiles.length === releaseFiles.length : null
+    const deprecatedReason = yankedFiles.map(file => file.yanked_reason).find(Boolean) || null
+    const releaseDates = Object.values(data.releases || {})
+      .flat()
+      .map(file => file.upload_time_iso_8601)
+      .filter((date): date is string => Boolean(date))
+
+    return this.nativeAvailable({
+      source: 'pypi',
+      system: 'pypi',
+      packageName,
+      currentVersion,
+      latestVersion,
+      defaultVersion: latestVersion,
+      publishedAt: this.firstReleaseUploadTime(releaseFiles),
+      isDeprecated,
+      deprecatedReason,
+      licenses: this.pypiLicenses(data),
+      recentReleases: this.recentReleaseCountFromDates(releaseDates),
+      url: `${PYPI_WEB_BASE}/${encodeURIComponent(packageName)}/`
+    })
+  }
+
+  private async getMavenMetadata(packageName: string, currentVersion: string | null): Promise<PackageMetadata> {
+    const coordinates = this.mavenCoordinates(packageName)
+    if (!coordinates) {
+      throw new Error(`Invalid Maven coordinates: ${packageName}`)
+    }
+
+    const group = this.escapeSolrPhrase(coordinates.group)
+    const artifact = this.escapeSolrPhrase(coordinates.artifact)
+    const query = `g:"${group}" AND a:"${artifact}"`
+    const params = new URLSearchParams({
+      q: query,
+      rows: '1',
+      wt: 'json'
+    })
+    const data = await this.fetcher<MavenSearchResponse>(`${MAVEN_SEARCH_API}?${params.toString()}`)
+    const doc = data.response?.docs?.[0]
+    if (!doc?.latestVersion) {
+      throw new Error(`Maven metadata not found for ${packageName}`)
+    }
+
+    const timestamp = typeof doc.timestamp === 'number' ? new Date(doc.timestamp).toISOString() : null
+    return this.nativeAvailable({
+      source: 'maven',
+      system: 'maven',
+      packageName,
+      currentVersion,
+      latestVersion: doc.latestVersion,
+      defaultVersion: doc.latestVersion,
+      publishedAt: currentVersion === doc.latestVersion ? timestamp : null,
+      isDeprecated: null,
+      deprecatedReason: null,
+      licenses: [],
+      recentReleases: null,
+      url: `${MAVEN_SEARCH_WEB}?${new URLSearchParams({ q: query }).toString()}`
+    })
+  }
+
+  private npmLicenses(versionData: NpmVersionResponse | undefined): string[] {
+    if (!versionData) return []
+
+    if (typeof versionData.license === 'string' && versionData.license.trim()) {
+      return [versionData.license]
+    }
+
+    if (typeof versionData.licenses === 'string' && versionData.licenses.trim()) {
+      return [versionData.licenses]
+    }
+
+    if (Array.isArray(versionData.licenses)) {
+      return versionData.licenses
+        .map(license => typeof license === 'string' ? license : license.type)
+        .filter((license): license is string => Boolean(license))
+    }
+
+    return []
+  }
+
+  private pypiLicenses(data: PyPIPackageResponse): string[] {
+    const license = data.info?.license?.trim()
+    if (license) return [license]
+
+    return (data.info?.classifiers || [])
+      .filter(classifier => classifier.startsWith('License :: '))
+      .map(classifier => classifier.split(' :: ').at(-1))
+      .filter((classifier): classifier is string => Boolean(classifier))
+  }
+
+  private firstReleaseUploadTime(files: Array<{ upload_time_iso_8601?: string }>): string | null {
+    return files
+      .map(file => file.upload_time_iso_8601)
+      .filter((date): date is string => Boolean(date) && !Number.isNaN(Date.parse(date)))
+      .sort((a, b) => Date.parse(a) - Date.parse(b))
+      .at(0) || null
+  }
+
+  private mavenCoordinates(packageName: string): { group: string; artifact: string } | null {
+    const separatorIndex = packageName.indexOf(':')
+    if (separatorIndex <= 0 || separatorIndex === packageName.length - 1) {
+      return null
+    }
+
+    return {
+      group: packageName.slice(0, separatorIndex),
+      artifact: packageName.slice(separatorIndex + 1)
+    }
+  }
+
+  private escapeSolrPhrase(value: string): string {
+    return value.replace(/([+\-&|!(){}[\]^"~*?:\\/])/g, '\\$1')
   }
 
   private packageApiUrl(system: string, packageName: string): string {

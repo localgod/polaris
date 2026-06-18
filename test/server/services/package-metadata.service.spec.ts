@@ -49,6 +49,65 @@ function notFound() {
   return Object.assign(new Error('not found'), { statusCode: 404 })
 }
 
+const npmResponse = {
+  'dist-tags': { latest: '2.0.0' },
+  time: {
+    created: '2023-01-01T00:00:00.000Z',
+    modified: '2026-05-22T00:00:00.000Z',
+    '1.2.0': '2025-09-23T12:05:06.000Z',
+    '2.0.0': '2026-05-21T00:00:00.000Z'
+  },
+  versions: {
+    '1.2.0': {
+      deprecated: 'Use 2.x instead.',
+      license: 'MIT'
+    },
+    '2.0.0': {
+      license: 'MIT'
+    }
+  }
+}
+
+const pypiResponse = {
+  info: {
+    version: '5.0.2',
+    license: '',
+    classifiers: ['License :: OSI Approved :: BSD License']
+  },
+  releases: {
+    '5.0.1': [
+      {
+        upload_time_iso_8601: '2025-05-02T08:00:00.000Z',
+        yanked: true
+      },
+      {
+        upload_time_iso_8601: '2025-05-01T08:00:00.000Z',
+        yanked: true,
+        yanked_reason: 'Broken wheel metadata.'
+      }
+    ],
+    '5.0.2': [
+      {
+        upload_time_iso_8601: '2026-04-01T08:00:00.000Z',
+        yanked: false
+      }
+    ]
+  }
+}
+
+const mavenResponse = {
+  response: {
+    docs: [
+      {
+        g: 'org.springframework',
+        a: 'spring-core',
+        latestVersion: '6.2.8',
+        timestamp: Date.parse('2026-05-11T10:30:00.000Z')
+      }
+    ]
+  }
+}
+
 describe('PackageMetadataService', () => {
   beforeEach(() => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-06-02T00:00:00Z'))
@@ -195,6 +254,145 @@ describe('PackageMetadataService', () => {
       system: 'npm',
       packageName: 'missing',
       currentVersion: '1.0.0'
+    })
+  })
+
+  it('falls back to npm metadata when deps.dev package lookup fails', async () => {
+    const storage = createStorage()
+    const fetcher = vi.fn()
+      .mockRejectedValueOnce(notFound())
+      .mockResolvedValueOnce(npmResponse)
+    const service = new PackageMetadataService(fetcher as never, () => storage)
+
+    const metadata = await service.getMetadata({
+      purl: 'pkg:npm/@nuxt/ui@1.2.0',
+      version: '1.2.0'
+    })
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, 'https://api.deps.dev/v3/systems/npm/packages/%40nuxt%2Fui')
+    expect(fetcher).toHaveBeenNthCalledWith(2, 'https://registry.npmjs.org/%40nuxt%2Fui')
+    expect(metadata).toMatchObject({
+      status: 'available',
+      system: 'npm',
+      packageName: '@nuxt/ui',
+      currentVersion: '1.2.0',
+      latestVersion: '2.0.0',
+      defaultVersion: '2.0.0',
+      publishedAt: '2025-09-23T12:05:06.000Z',
+      isDeprecated: true,
+      deprecatedReason: 'Use 2.x instead.',
+      licenses: ['MIT'],
+      advisoryCount: null,
+      advisories: [],
+      recentReleases: 2,
+      source: {
+        name: 'npm',
+        url: 'https://www.npmjs.com/package/@nuxt/ui'
+      }
+    })
+  })
+
+  it('falls back to PyPI metadata when deps.dev version lookup fails', async () => {
+    const storage = createStorage()
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(packageResponse)
+      .mockRejectedValueOnce(notFound())
+      .mockResolvedValueOnce(pypiResponse)
+    const service = new PackageMetadataService(fetcher as never, () => storage)
+
+    const metadata = await service.getMetadata({
+      purl: 'pkg:pypi/Django@5.0.1',
+      version: '5.0.1'
+    })
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, 'https://api.deps.dev/v3/systems/pypi/packages/Django')
+    expect(fetcher).toHaveBeenNthCalledWith(2, 'https://api.deps.dev/v3/systems/pypi/packages/Django/versions/5.0.1')
+    expect(fetcher).toHaveBeenNthCalledWith(3, 'https://pypi.org/pypi/Django/json')
+    expect(metadata).toMatchObject({
+      status: 'available',
+      system: 'pypi',
+      packageName: 'Django',
+      currentVersion: '5.0.1',
+      latestVersion: '5.0.2',
+      publishedAt: '2025-05-01T08:00:00.000Z',
+      isDeprecated: true,
+      deprecatedReason: 'Broken wheel metadata.',
+      licenses: ['BSD License'],
+      source: {
+        name: 'pypi',
+        url: 'https://pypi.org/project/Django/'
+      }
+    })
+  })
+
+  it('falls back to Maven metadata with encoded group and artifact query', async () => {
+    const storage = createStorage()
+    const fetcher = vi.fn()
+      .mockRejectedValueOnce(notFound())
+      .mockResolvedValueOnce(mavenResponse)
+    const service = new PackageMetadataService(fetcher as never, () => storage)
+
+    const metadata = await service.getMetadata({
+      purl: 'pkg:maven/org.springframework/spring-core@6.2.8',
+      version: '6.2.8'
+    })
+
+    const mavenUrl = new URL(fetcher.mock.calls[1][0])
+    expect(mavenUrl.origin + mavenUrl.pathname).toBe('https://search.maven.org/solrsearch/select')
+    expect(mavenUrl.searchParams.get('q')).toBe('g:"org.springframework" AND a:"spring\\-core"')
+    expect(mavenUrl.searchParams.get('rows')).toBe('1')
+    expect(mavenUrl.searchParams.get('wt')).toBe('json')
+    expect(metadata).toMatchObject({
+      status: 'available',
+      system: 'maven',
+      packageName: 'org.springframework:spring-core',
+      currentVersion: '6.2.8',
+      latestVersion: '6.2.8',
+      publishedAt: '2026-05-11T10:30:00.000Z',
+      isDeprecated: null,
+      deprecatedReason: null,
+      licenses: [],
+      advisoryCount: null,
+      recentReleases: null,
+      source: {
+        name: 'maven'
+      }
+    })
+  })
+
+  it('escapes Maven Solr phrase values before querying native metadata', async () => {
+    const storage = createStorage()
+    const fetcher = vi.fn()
+      .mockRejectedValueOnce(notFound())
+      .mockResolvedValueOnce(mavenResponse)
+    const service = new PackageMetadataService(fetcher as never, () => storage)
+
+    await service.getMetadata({
+      purl: 'pkg:maven/com.example/foo%22bar%5Cbaz@1.0.0',
+      version: '1.0.0'
+    })
+
+    const mavenUrl = new URL(fetcher.mock.calls[1][0])
+    expect(mavenUrl.searchParams.get('q')).toBe('g:"com.example" AND a:"foo\\"bar\\\\baz"')
+  })
+
+  it('returns deps.dev unavailable metadata when native fallback also fails', async () => {
+    const storage = createStorage()
+    const service = new PackageMetadataService(vi.fn(async () => {
+      throw notFound()
+    }) as never, () => storage)
+
+    const metadata = await service.getMetadata({ purl: 'pkg:npm/missing@1.0.0', version: '1.0.0' })
+
+    expect(metadata).toMatchObject({
+      status: 'unavailable',
+      reason: 'package_not_found',
+      system: 'npm',
+      packageName: 'missing',
+      currentVersion: '1.0.0',
+      source: {
+        name: 'deps.dev'
+      }
     })
   })
 
