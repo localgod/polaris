@@ -200,6 +200,8 @@ export interface PackageAdvisory {
   url: string | null
 }
 
+export type PackageMetadataSource = 'deps.dev' | 'npm' | 'pypi' | 'maven'
+
 export interface PackageMetadata {
   status: PackageMetadataStatus
   reason?: PackageMetadataUnavailableReason
@@ -216,7 +218,7 @@ export interface PackageMetadata {
   advisories: PackageAdvisory[]
   recentReleases: number | null
   source: {
-    name: 'deps.dev'
+    name: PackageMetadataSource
     url: string | null
   }
 }

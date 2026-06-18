@@ -95,7 +95,7 @@
                 <span class="text-sm text-(--ui-text-muted)">External Signals</span>
                 <div class="mt-1 flex flex-wrap gap-2">
                   <UBadge v-if="component.packageMetadata?.status === 'available'" color="success" variant="subtle">
-                    deps.dev
+                    {{ getPackageSourceLabel(component.packageMetadata.source.name) }}
                   </UBadge>
                   <UBadge v-if="component.eol?.source.url" color="neutral" variant="subtle">
                     endoflife.date
@@ -198,7 +198,7 @@
             <div class="flex items-center justify-between gap-3">
               <div>
                 <h2 class="text-lg font-semibold">Registry</h2>
-                <p class="text-xs text-(--ui-text-muted)">Source: deps.dev</p>
+                <p class="text-xs text-(--ui-text-muted)">Source: {{ getPackageSourceLabel(component.packageMetadata?.source.name) }}</p>
               </div>
               <UBadge :color="getPackageMetadataColor(component.packageMetadata?.status)" variant="subtle">
                 {{ getPackageMetadataLabel(component.packageMetadata?.status) }}
@@ -223,7 +223,7 @@
                 variant="subtle"
                 icon="i-lucide-triangle-alert"
                 title="Package version is deprecated"
-                :description="component.packageMetadata.deprecatedReason || 'deps.dev reports this package version as deprecated.'"
+                :description="component.packageMetadata.deprecatedReason || `${getPackageSourceLabel(component.packageMetadata.source.name)} reports this package version as deprecated.`"
               />
 
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
@@ -288,7 +288,7 @@
               :to="component.packageMetadata.source.url"
               target="_blank"
               rel="noopener noreferrer"
-              label="Open deps.dev"
+              :label="`Open ${getPackageSourceLabel(component.packageMetadata.source.name)}`"
               icon="i-lucide-external-link"
               variant="outline"
               size="sm"
@@ -482,7 +482,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataStatus, SecurityScorecardStatus } from '~~/types/api'
+import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, PackageMetadataSource, PackageMetadataStatus, SecurityScorecardStatus } from '~~/types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -585,6 +585,16 @@ function getPackageMetadataColor(status?: PackageMetadataStatus): 'success' | 'n
 
 function getPackageMetadataLabel(status?: PackageMetadataStatus): string {
   return status === 'available' ? 'Available' : 'Unavailable'
+}
+
+function getPackageSourceLabel(source?: PackageMetadataSource): string {
+  const labels: Record<PackageMetadataSource, string> = {
+    'deps.dev': 'deps.dev',
+    npm: 'npm',
+    pypi: 'PyPI',
+    maven: 'Maven Central'
+  }
+  return source ? labels[source] : 'deps.dev'
 }
 
 function getPackageMetadataUnavailableDescription(reason?: string): string {
