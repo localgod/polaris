@@ -243,9 +243,17 @@ export class SBOMService {
     // Compare case-insensitively because npm package names are normalized to
     // lowercase in some cdxgen dependency refs while metadata.component may
     // preserve the package.json casing.
+    const decodePurlName = (value: string): string => {
+      try {
+        return decodeURIComponent(value)
+      } catch {
+        return value
+      }
+    }
+
     const nameFromRef = (ref: string): string | null => {
       const m = ref.match(/^pkg:[^/]+\/([^@]+)@/)
-      return m?.[1] ? decodeURIComponent(m[1]).toLowerCase() : null
+      return m?.[1] ? decodePurlName(m[1]).toLowerCase() : null
     }
     const normalizedRootName = rootName.toLowerCase()
 

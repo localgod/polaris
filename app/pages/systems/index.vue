@@ -429,6 +429,7 @@ const activeImportJob = ref<ImportJob | null>(null)
 const ownerRepositories = ref<OwnerRepository[]>([])
 const selectedRepositoryFullNames = ref<string[]>([])
 let importPollTimer: ReturnType<typeof setInterval> | null = null
+let importPollInFlight = false
 
 const importState = reactive<Partial<ImportSchema>>({
   organization: '',
@@ -621,6 +622,9 @@ async function fetchOwnerRepositories(data: ImportSchema) {
 
 function startImportPolling(jobId: string) {
   const poll = async () => {
+    if (importPollInFlight) return
+    importPollInFlight = true
+
     try {
       const response = await $fetch<{ success: boolean; data: ImportJob }>(`/api/admin/import/jobs/${encodeURIComponent(jobId)}`)
       activeImportJob.value = response.data
@@ -646,6 +650,8 @@ function startImportPolling(jobId: string) {
       isImporting.value = false
       const err = error as { data?: { message?: string }; message?: string }
       importError.value = err.data?.message || err.message || 'Failed to load import status'
+    } finally {
+      importPollInFlight = false
     }
   }
 

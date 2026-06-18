@@ -182,6 +182,32 @@ describe('GitHubOrgImportService', () => {
     }))
   })
 
+  it('deduplicates selected repositories by full name before processing', async () => {
+    const repo = createRepoMocks()
+    const service = new GitHubOrgImportService(
+      repo as never,
+      { import: vi.fn() } as never,
+      { create: vi.fn() } as never
+    )
+    const processSpy = vi.spyOn(service, 'process').mockResolvedValue(undefined)
+
+    await service.start({
+      organization: 'acme',
+      ownerTeam: 'Platform',
+      userId: 'user-1',
+      repositories: [
+        { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a' },
+        { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a' }
+      ]
+    })
+
+    expect(processSpy).toHaveBeenCalledWith('job-1', expect.objectContaining({
+      repositories: [
+        { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a' }
+      ]
+    }))
+  })
+
   it('continues importing after a per-repository failure', async () => {
     const repo = createRepoMocks()
     const importService = {

@@ -506,6 +506,39 @@ describe('SBOMService', () => {
       expect(persistCall.componentUsage.get('pkg:npm/@slidev/cli@52.0.0')?.isDirect).not.toBe(true)
     })
 
+    it('should not throw when a dependency purl has a malformed encoded name segment', async () => {
+      const sbomWithMalformedPurlName = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'bad%zzname',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/bad%zzname@1.0.0',
+          }
+        },
+        dependencies: [
+          { ref: 'pkg:application/bad%zzname@1.0.0', dependsOn: [] },
+          { ref: 'pkg:npm/bad%zzname@1.0.0', dependsOn: ['pkg:npm/lodash@4.17.21'] },
+          { ref: 'pkg:npm/lodash@4.17.21', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1, componentsUpdated: 0, relationshipsCreated: 1
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithMalformedPurlName,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')).toMatchObject({ isDirect: true })
+    })
+
     it('should use exact match directDeps when root bom-ref matches a non-empty dependsOn entry', async () => {
       const sbomWithExactMatch = {
         ...validCycloneDxSbom,

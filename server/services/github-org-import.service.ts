@@ -196,10 +196,17 @@ export class GitHubOrgImportService {
       }))
       .filter(repo => repo.repositoryFullName && repo.repositoryUrl)
 
-    if (normalized.length === 0) {
+    const unique = new Map<string, GitHubRepositorySelection>()
+    for (const repo of normalized) {
+      if (!unique.has(repo.repositoryFullName)) {
+        unique.set(repo.repositoryFullName, repo)
+      }
+    }
+
+    if (unique.size === 0) {
       throw createError({ statusCode: 400, message: 'At least one repository must be selected' })
     }
 
-    return normalized
+    return [...unique.values()]
   }
 }
