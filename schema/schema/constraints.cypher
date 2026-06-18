@@ -19,6 +19,15 @@ CREATE CONSTRAINT audit_log_id_unique IF NOT EXISTS
 FOR (a:AuditLog)
 REQUIRE a.id IS UNIQUE;
 
+// Import job constraints
+CREATE CONSTRAINT import_job_id_unique IF NOT EXISTS
+FOR (j:ImportJob)
+REQUIRE j.id IS UNIQUE;
+
+CREATE CONSTRAINT import_job_item_id_unique IF NOT EXISTS
+FOR (i:ImportJobItem)
+REQUIRE i.id IS UNIQUE;
+
 // License constraints
 CREATE CONSTRAINT license_id_unique IF NOT EXISTS
 FOR (l:License)

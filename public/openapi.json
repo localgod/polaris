@@ -6069,6 +6069,218 @@
           }
         }
       }
+    },
+    "/admin/import/github-org": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Start a GitHub owner import job",
+        "description": "Lists repositories for a GitHub organization or user and starts a background import job.\nReturns immediately with a job ID that can be polled for progress.\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "owner",
+                  "ownerTeam"
+                ],
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "description": "GitHub organization/user login or profile URL",
+                    "example": "https://github.com/localgod"
+                  },
+                  "organization": {
+                    "type": "string",
+                    "deprecated": true,
+                    "description": "Backward-compatible alias for owner"
+                  },
+                  "filters": {
+                    "type": "object",
+                    "properties": {
+                      "language": {
+                        "type": "string"
+                      },
+                      "topic": {
+                        "type": "string"
+                      },
+                      "namePattern": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  },
+                  "repositories": {
+                    "type": "array",
+                    "description": "Selected repositories to import. When omitted, all matching owner repositories are imported.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "repositoryFullName",
+                        "repositoryUrl"
+                      ],
+                      "properties": {
+                        "repositoryFullName": {
+                          "type": "string"
+                        },
+                        "repositoryUrl": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "domain": {
+                    "type": "string"
+                  },
+                  "ownerTeam": {
+                    "type": "string"
+                  },
+                  "businessCriticality": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "dev",
+                      "test",
+                      "staging",
+                      "prod"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Import job accepted"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Superuser access required"
+          }
+        }
+      }
+    },
+    "/admin/import/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get import job status",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import job status"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Import job not found"
+          }
+        }
+      }
+    },
+    "/admin/import/github-org/repositories": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Preview GitHub owner repositories",
+        "description": "Lists repositories for a GitHub organization or user before starting an import job.\nSuperusers can use the returned list to choose which repositories to import.\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "owner"
+                ],
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "description": "GitHub organization/user login or profile URL",
+                    "example": "https://github.com/localgod"
+                  },
+                  "organization": {
+                    "type": "string",
+                    "deprecated": true,
+                    "description": "Backward-compatible alias for owner"
+                  },
+                  "filters": {
+                    "type": "object",
+                    "properties": {
+                      "language": {
+                        "type": "string"
+                      },
+                      "topic": {
+                        "type": "string"
+                      },
+                      "namePattern": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Repositories retrieved successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "422": {
+            "description": "GitHub owner not accessible"
+          }
+        }
+      }
     }
   }
 }

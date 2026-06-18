@@ -30,6 +30,38 @@ export interface GitHubFileContent {
   content: string
 }
 
+export interface GitHubOrgRepository {
+  name: string
+  full_name: string
+  html_url: string
+  description: string | null
+  default_branch: string
+  language: string | null
+  private: boolean
+  fork: boolean
+  archived: boolean
+  topics: string[]
+}
+
+export interface GitHubOrgRepositoryFilters {
+  language?: string
+  topic?: string
+  namePattern?: string
+}
+
+type GitHubRepositoryOwnerType = 'organization' | 'user'
+
+class GitHubApiError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    message: string
+  ) {
+    super(message)
+    this.name = 'GitHubApiError'
+  }
+}
+
 /** Known dependency manifest and lockfile names */
 const MANIFEST_FILENAMES = new Set([
   // Node.js
@@ -95,6 +127,32 @@ export function parseGitHubRepo(input: string): { owner: string; repo: string } 
 }
 
 /**
+ * Parse a GitHub organization/user name or profile URL into an owner login.
+ */
+export function parseGitHubOwner(input: string): string {
+  const value = input.trim()
+  if (/^[A-Za-z0-9_.-]+$/.test(value)) {
+    return value
+  }
+
+  try {
+    const url = new URL(value)
+    if (url.hostname !== 'github.com' && url.hostname !== 'www.github.com') {
+      throw new Error('not github')
+    }
+
+    const segments = url.pathname.split('/').filter(Boolean)
+    if (segments.length === 1 && /^[A-Za-z0-9_.-]+$/.test(segments[0])) {
+      return segments[0]
+    }
+  } catch {
+    // Fall through to the common error below.
+  }
+
+  throw new Error(`Cannot parse GitHub owner from: ${input}`)
+}
+
+/**
  * Build GitHub API request headers.
  * Includes a Bearer token when GITHUB_TOKEN is set in the environment,
  * raising the rate limit from 60 to 5,000 requests/hour.
@@ -118,18 +176,62 @@ function githubHeaders(): Record<string, string> {
  */
 function throwGitHubError(status: number, statusText: string, context: string): never {
   if (status === 404) {
-    throw new Error(`${context} not found`)
+    throw new GitHubApiError(status, statusText, `${context} not found`)
   }
   if (status === 401) {
-    throw new Error(`GitHub API authentication failed for ${context} — check GITHUB_TOKEN`)
+    throw new GitHubApiError(status, statusText, `GitHub API authentication failed for ${context} — check GITHUB_TOKEN`)
   }
   if (status === 403) {
-    throw new Error(`GitHub API rate limit exceeded or access denied for ${context}`)
+    throw new GitHubApiError(status, statusText, `GitHub API rate limit exceeded or access denied for ${context}`)
   }
   if (status === 429) {
-    throw new Error(`GitHub API rate limit exceeded for ${context}`)
+    throw new GitHubApiError(status, statusText, `GitHub API rate limit exceeded for ${context}`)
   }
-  throw new Error(`GitHub API error ${status} ${statusText} for ${context}`)
+  throw new GitHubApiError(status, statusText, `GitHub API error ${status} ${statusText} for ${context}`)
+}
+
+function parseRateLimitReset(response: Response): number | null {
+  const retryAfter = response.headers.get('retry-after')
+  if (retryAfter) {
+    const seconds = Number.parseInt(retryAfter, 10)
+    if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000
+  }
+
+  const remaining = response.headers.get('x-ratelimit-remaining')
+  const reset = response.headers.get('x-ratelimit-reset')
+  if (remaining === '0' && reset) {
+    const resetAt = Number.parseInt(reset, 10) * 1000
+    const delay = resetAt - Date.now()
+    if (Number.isFinite(delay) && delay > 0) return delay
+  }
+
+  return null
+}
+
+async function fetchGitHub(url: string, context: string): Promise<Response> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(url, { headers: githubHeaders() })
+    if (response.ok) return response
+
+    const delay = parseRateLimitReset(response)
+    if ((response.status === 403 || response.status === 429) && delay && delay <= 60_000 && attempt === 0) {
+      logger.warn({ context, delay }, 'GitHub API rate limited, backing off before retry')
+      await new Promise(resolve => setTimeout(resolve, delay))
+      continue
+    }
+
+    throwGitHubError(response.status, response.statusText, context)
+  }
+
+  throw new Error(`GitHub API request failed for ${context}`)
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return error instanceof GitHubApiError && error.status === 404
+}
+
+function isGitHubApiError(error: unknown, status: number): boolean {
+  return error instanceof GitHubApiError && error.status === status
 }
 
 /**
@@ -137,11 +239,7 @@ function throwGitHubError(status: number, statusText: string, context: string): 
  */
 export async function fetchRepoMetadata(owner: string, repo: string): Promise<GitHubRepoMetadata> {
   const url = `https://api.github.com/repos/${owner}/${repo}`
-  const response = await fetch(url, { headers: githubHeaders() })
-
-  if (!response.ok) {
-    throwGitHubError(response.status, response.statusText, `repository ${owner}/${repo}`)
-  }
+  const response = await fetchGitHub(url, `repository ${owner}/${repo}`)
 
   return await response.json() as GitHubRepoMetadata
 }
@@ -151,10 +249,16 @@ export async function fetchRepoMetadata(owner: string, repo: string): Promise<Gi
  */
 export async function fetchFileTree(owner: string, repo: string, branch: string): Promise<GitHubTreeEntry[]> {
   const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`
-  const response = await fetch(url, { headers: githubHeaders() })
+  let response: Response
 
-  if (!response.ok) {
-    throwGitHubError(response.status, response.statusText, `file tree for ${owner}/${repo}@${branch}`)
+  try {
+    response = await fetchGitHub(url, `file tree for ${owner}/${repo}@${branch}`)
+  } catch (error: unknown) {
+    if (isGitHubApiError(error, 409)) {
+      logger.warn({ owner, repo, branch }, 'GitHub tree unavailable for repository ref; continuing without manifests')
+      return []
+    }
+    throw error
   }
 
   const data = await response.json() as { tree: GitHubTreeEntry[]; truncated: boolean }
@@ -174,11 +278,7 @@ export async function fetchFileTree(owner: string, repo: string, branch: string)
  */
 export async function fetchFileContent(owner: string, repo: string, path: string, branch: string): Promise<string> {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`
-  const response = await fetch(url, { headers: githubHeaders() })
-
-  if (!response.ok) {
-    throwGitHubError(response.status, response.statusText, path)
-  }
+  const response = await fetchGitHub(url, path)
 
   const data = await response.json() as { content: string; encoding: string }
 
@@ -187,6 +287,95 @@ export async function fetchFileContent(owner: string, repo: string, path: string
   }
 
   return data.content
+}
+
+function compileNamePattern(pattern?: string): RegExp | null {
+  if (!pattern) return null
+  try {
+    return new RegExp(pattern, 'i')
+  } catch {
+    throw new Error('namePattern must be a valid regular expression')
+  }
+}
+
+function matchesOrgRepositoryFilters(
+  repo: GitHubOrgRepository,
+  filters: GitHubOrgRepositoryFilters = {},
+  nameRegex = compileNamePattern(filters.namePattern)
+): boolean {
+  if (filters.language && repo.language?.toLowerCase() !== filters.language.toLowerCase()) {
+    return false
+  }
+
+  if (filters.topic && !(repo.topics || []).some(topic => topic.toLowerCase() === filters.topic!.toLowerCase())) {
+    return false
+  }
+
+  if (nameRegex && !nameRegex.test(repo.name) && !nameRegex.test(repo.full_name)) {
+    return false
+  }
+
+  return true
+}
+
+async function listRepositoriesForOwner(
+  owner: string,
+  ownerType: GitHubRepositoryOwnerType,
+  filters: GitHubOrgRepositoryFilters = {}
+): Promise<GitHubOrgRepository[]> {
+  const nameRegex = compileNamePattern(filters.namePattern)
+  const repos: GitHubOrgRepository[] = []
+  const perPage = 100
+  const basePath = ownerType === 'organization'
+    ? `orgs/${encodeURIComponent(owner)}/repos?type=all`
+    : `users/${encodeURIComponent(owner)}/repos?type=owner`
+  const context = ownerType === 'organization'
+    ? `organization ${owner} repositories`
+    : `user ${owner} repositories`
+
+  for (let page = 1; ; page++) {
+    const url = `https://api.github.com/${basePath}&sort=full_name&per_page=${perPage}&page=${page}`
+    const response = await fetchGitHub(url, context)
+    const data = await response.json() as GitHubOrgRepository[]
+
+    repos.push(...data.filter(repo => matchesOrgRepositoryFilters(repo, filters, nameRegex)))
+
+    if (data.length < perPage) break
+  }
+
+  return repos
+}
+
+/**
+ * List repositories for a GitHub organization or user, following pagination.
+ * Organization listing is attempted first so authenticated tokens can include
+ * private organization repositories. If no organization exists, falls back to
+ * the public user repositories endpoint.
+ */
+export async function listGitHubOwnerRepositories(
+  ownerInput: string,
+  filters: GitHubOrgRepositoryFilters = {}
+): Promise<GitHubOrgRepository[]> {
+  const owner = parseGitHubOwner(ownerInput)
+
+  try {
+    return await listRepositoriesForOwner(owner, 'organization', filters)
+  } catch (error: unknown) {
+    if (!isNotFoundError(error)) throw error
+  }
+
+  return await listRepositoriesForOwner(owner, 'user', filters)
+}
+
+/**
+ * List repositories for a GitHub organisation, following REST API pagination.
+ */
+export async function listOrgRepositories(
+  organization: string,
+  filters: GitHubOrgRepositoryFilters = {}
+): Promise<GitHubOrgRepository[]> {
+  const org = parseGitHubOwner(organization)
+  return await listRepositoriesForOwner(org, 'organization', filters)
 }
 
 /**
