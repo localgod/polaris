@@ -256,6 +256,7 @@ export type MaintenanceHealthInput =
   | 'component.modifiedDate'
   | 'component.version'
   | 'packageMetadata.publishedAt'
+  | 'packageMetadata.currentVersion'
   | 'packageMetadata.latestVersion'
   | 'packageMetadata.recentReleases'
   | 'packageMetadata.isDeprecated'

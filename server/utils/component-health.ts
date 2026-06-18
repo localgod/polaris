@@ -74,13 +74,15 @@ function buildHealthState(
     else reasonCodes.add('version_very_old')
   }
 
-  const currentVersion = packageMetadata?.currentVersion || component.version || null
+  const currentVersion = component.version || packageMetadata?.currentVersion || null
   const latestVersion = packageMetadata?.status === 'available' ? packageMetadata.latestVersion : null
   const currentSemver = normalizeSemver(currentVersion)
   const latestSemver = normalizeSemver(latestVersion)
 
-  if (currentVersion) {
+  if (component.version) {
     inputsUsed.add('component.version')
+  } else if (packageMetadata?.currentVersion) {
+    inputsUsed.add('packageMetadata.currentVersion')
   } else {
     reasonCodes.add('missing_version')
   }
@@ -167,9 +169,10 @@ function calculateAgeInDays(dateString: string | null, now: Date): { ageInDays: 
 
   const timestamp = Date.parse(dateString)
   if (Number.isNaN(timestamp)) return { ageInDays: null, invalid: true }
+  if (timestamp > now.getTime()) return { ageInDays: null, invalid: true }
 
   return {
-    ageInDays: Math.max(0, Math.floor((now.getTime() - timestamp) / DAY_MS)),
+    ageInDays: Math.floor((now.getTime() - timestamp) / DAY_MS),
     invalid: false
   }
 }

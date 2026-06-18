@@ -202,4 +202,58 @@ describe('calculateMaintenanceHealth', () => {
       reasonCodes: expect.arrayContaining(['package_deprecated'])
     })
   })
+
+  it('prefers the component version when package metadata disagrees', () => {
+    const health = calculateMaintenanceHealth({
+      ...baseComponent,
+      version: '1.2.3',
+      releaseDate: '2026-05-01T00:00:00Z'
+    }, {
+      ...baseMetadata,
+      currentVersion: '9.9.9',
+      latestVersion: '1.2.4'
+    }, now)
+
+    expect(health).toMatchObject({
+      currentVersion: '1.2.3',
+      latestVersion: '1.2.4',
+      updateType: 'patch',
+      inputsUsed: expect.arrayContaining(['component.version'])
+    })
+    expect(health.inputsUsed).not.toContain('packageMetadata.currentVersion')
+  })
+
+  it('tracks package metadata current version when component version is missing', () => {
+    const health = calculateMaintenanceHealth({
+      ...baseComponent,
+      version: '',
+      releaseDate: '2026-05-01T00:00:00Z'
+    }, {
+      ...baseMetadata,
+      currentVersion: '1.2.3',
+      latestVersion: '1.2.4'
+    }, now)
+
+    expect(health).toMatchObject({
+      currentVersion: '1.2.3',
+      updateType: 'patch',
+      inputsUsed: expect.arrayContaining(['packageMetadata.currentVersion'])
+    })
+    expect(health.inputsUsed).not.toContain('component.version')
+  })
+
+  it('treats future dates as invalid instead of clamping them to recent', () => {
+    const health = calculateMaintenanceHealth({
+      ...baseComponent,
+      releaseDate: '2026-07-01T00:00:00Z'
+    }, baseMetadata, now)
+
+    expect(health).toMatchObject({
+      status: 'unknown',
+      confidence: 'low',
+      ageInDays: null,
+      reasonCodes: expect.arrayContaining(['invalid_release_date'])
+    })
+    expect(health.reasonCodes).not.toContain('version_recent')
+  })
 })
