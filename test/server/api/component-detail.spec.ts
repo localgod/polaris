@@ -51,6 +51,7 @@ const mockComponent = {
   ],
   eol: null,
   packageMetadata: null,
+  maintenanceHealth: null,
   securityScorecard: null
 }
 
@@ -125,6 +126,11 @@ describe('GET /api/components/{key}', () => {
         directDependencies: mockComponent.directDependencies,
         eol: mockEol,
         packageMetadata: mockPackageMetadata,
+        maintenanceHealth: {
+          status: 'stable',
+          updateType: 'minor',
+          reasonCodes: expect.arrayContaining(['minor_update_available'])
+        },
         securityScorecard: mockSecurityScorecard
       }
     })
@@ -155,6 +161,10 @@ describe('GET /api/components/{key}', () => {
           reason: 'fetch_failed',
           currentVersion: '24.16.0'
         },
+        maintenanceHealth: {
+          status: 'unknown',
+          reasonCodes: expect.arrayContaining(['metadata_unavailable', 'missing_release_date', 'update_status_unknown'])
+        },
         securityScorecard: mockSecurityScorecard
       }
     })
@@ -175,6 +185,9 @@ describe('GET /api/components/{key}', () => {
         name: 'node',
         eol: mockEol,
         packageMetadata: mockPackageMetadata,
+        maintenanceHealth: {
+          status: 'stable'
+        },
         securityScorecard: {
           status: 'unavailable',
           reason: 'fetch_failed',

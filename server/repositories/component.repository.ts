@@ -571,6 +571,7 @@ export class ComponentRepository extends BaseRepository {
       })),
       eol: null,
       packageMetadata: null,
+      maintenanceHealth: null,
       securityScorecard: null
     }
   }

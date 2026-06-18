@@ -45,6 +45,7 @@ const baseComponent: ComponentDetail = {
   ],
   eol: null,
   packageMetadata: null,
+  maintenanceHealth: null,
   securityScorecard: null
 }
 
@@ -190,6 +191,35 @@ describe('component detail dependencies section', () => {
     expect(wrapper.text()).toContain('8.5 / 10')
     expect(wrapper.text()).toContain('Code-Review')
     expect(wrapper.text()).toContain('Vulnerabilities')
+  })
+
+  it('renders maintenance health when available', async () => {
+    const { wrapper } = mountPage({
+      component: {
+        maintenanceHealth: {
+          status: 'aging',
+          confidence: 'medium',
+          ageInDays: 420,
+          isMature: true,
+          currentVersion: '1.2.0',
+          latestVersion: '1.3.0',
+          updateType: 'minor',
+          recentActivity: false,
+          reasonCodes: ['version_old', 'minor_update_available', 'upstream_no_recent_activity'],
+          inputsUsed: ['component.version', 'packageMetadata.latestVersion', 'packageMetadata.recentReleases'],
+          calculatedAt: '2026-06-18T00:00:00.000Z'
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Maintenance')
+    expect(wrapper.text()).toContain('Aging')
+    expect(wrapper.text()).toContain('Medium')
+    expect(wrapper.text()).toContain('420 days')
+    expect(wrapper.text()).toContain('Minor update available')
+    expect(wrapper.text()).toContain('No')
+    expect(wrapper.text()).toContain('Old version')
   })
 
   it('does not repeat canonical package identity in registry enrichment', async () => {

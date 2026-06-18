@@ -223,6 +223,58 @@ export interface PackageMetadata {
   }
 }
 
+export type MaintenanceHealthStatus = 'healthy' | 'stable' | 'aging' | 'stale' | 'unknown'
+
+export type MaintenanceHealthConfidence = 'high' | 'medium' | 'low'
+
+export type MaintenanceHealthReasonCode =
+  | 'insufficient_data'
+  | 'missing_release_date'
+  | 'invalid_release_date'
+  | 'missing_version'
+  | 'unsupported_version_scheme'
+  | 'metadata_unavailable'
+  | 'version_recent'
+  | 'version_moderately_old'
+  | 'version_old'
+  | 'version_very_old'
+  | 'mature_version'
+  | 'pre_1_0_version'
+  | 'upstream_recent_activity'
+  | 'upstream_no_recent_activity'
+  | 'update_status_unknown'
+  | 'current_version_current'
+  | 'patch_update_available'
+  | 'minor_update_available'
+  | 'major_update_available'
+  | 'package_deprecated'
+  | 'advisories_reported'
+
+export type MaintenanceHealthInput =
+  | 'component.releaseDate'
+  | 'component.publishedDate'
+  | 'component.modifiedDate'
+  | 'component.version'
+  | 'packageMetadata.publishedAt'
+  | 'packageMetadata.latestVersion'
+  | 'packageMetadata.recentReleases'
+  | 'packageMetadata.isDeprecated'
+  | 'packageMetadata.advisoryCount'
+
+export interface MaintenanceHealth {
+  status: MaintenanceHealthStatus
+  confidence: MaintenanceHealthConfidence
+  ageInDays: number | null
+  isMature: boolean | null
+  currentVersion: string | null
+  latestVersion: string | null
+  updateType: 'none' | 'patch' | 'minor' | 'major' | 'unknown'
+  recentActivity: boolean | null
+  reasonCodes: MaintenanceHealthReasonCode[]
+  inputsUsed: MaintenanceHealthInput[]
+  calculatedAt: string
+}
+
 export type SecurityScorecardStatus = 'available' | 'unavailable'
 
 export type SecurityScorecardUnavailableReason =
@@ -260,6 +312,7 @@ export interface ComponentDetail extends Component {
   directDependencies: ComponentDirectDependency[]
   eol: EOLStatus | null
   packageMetadata: PackageMetadata | null
+  maintenanceHealth: MaintenanceHealth | null
   securityScorecard: SecurityScorecard | null
 }
 

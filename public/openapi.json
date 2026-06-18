@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "0.6.7",
+    "version": "0.6.14",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",
@@ -533,6 +533,88 @@
           "systemCount": {
             "type": "integer",
             "description": "Number of systems using this component"
+          }
+        }
+      },
+      "MaintenanceHealth": {
+        "type": "object",
+        "required": [
+          "status",
+          "confidence",
+          "ageInDays",
+          "isMature",
+          "currentVersion",
+          "latestVersion",
+          "updateType",
+          "recentActivity",
+          "reasonCodes",
+          "inputsUsed",
+          "calculatedAt"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "stable",
+              "aging",
+              "stale",
+              "unknown"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "ageInDays": {
+            "type": "integer",
+            "nullable": true
+          },
+          "isMature": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "currentVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "latestVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "updateType": {
+            "type": "string",
+            "enum": [
+              "none",
+              "patch",
+              "minor",
+              "major",
+              "unknown"
+            ]
+          },
+          "recentActivity": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "reasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inputsUsed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "calculatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -4826,6 +4908,10 @@
                                   "nullable": true
                                 },
                                 "packageMetadata": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "maintenanceHealth": {
                                   "type": "object",
                                   "nullable": true
                                 },
