@@ -4918,6 +4918,10 @@
                                 "securityScorecard": {
                                   "type": "object",
                                   "nullable": true
+                                },
+                                "vulnerabilities": {
+                                  "type": "object",
+                                  "nullable": true
                                 }
                               }
                             }

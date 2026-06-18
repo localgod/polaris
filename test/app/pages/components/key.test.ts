@@ -46,7 +46,8 @@ const baseComponent: ComponentDetail = {
   eol: null,
   packageMetadata: null,
   maintenanceHealth: null,
-  securityScorecard: null
+  securityScorecard: null,
+  vulnerabilities: null
 }
 
 function mountPage(options: {
@@ -191,6 +192,65 @@ describe('component detail dependencies section', () => {
     expect(wrapper.text()).toContain('8.5 / 10')
     expect(wrapper.text()).toContain('Code-Review')
     expect(wrapper.text()).toContain('Vulnerabilities')
+  })
+
+  it('renders known vulnerabilities when OSV reports matches', async () => {
+    const { wrapper } = mountPage({
+      component: {
+        vulnerabilities: {
+          status: 'available',
+          vulnerabilities: [
+            {
+              id: 'GHSA-xxxx-yyyy-zzzz',
+              aliases: ['CVE-2026-1234'],
+              summary: 'Prototype pollution in example package.',
+              severity: {
+                type: 'CVSS_V3',
+                score: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+                cvssScore: 9.8
+              },
+              affectedRanges: ['all versions before 24.16.1'],
+              advisoryUrl: 'https://osv.dev/vulnerability/GHSA-xxxx-yyyy-zzzz',
+              publishedAt: '2026-05-01T00:00:00Z',
+              modifiedAt: '2026-05-02T00:00:00Z'
+            }
+          ],
+          source: {
+            name: 'OSV.dev',
+            url: 'https://osv.dev/list?q=pkg%3Anpm%2Fnode%4024.16.0'
+          }
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Known Vulnerabilities')
+    expect(wrapper.text()).toContain('1 found')
+    expect(wrapper.text()).toContain('GHSA-xxxx-yyyy-zzzz')
+    expect(wrapper.text()).toContain('CVSS 9.8')
+    expect(wrapper.text()).toContain('all versions before 24.16.1')
+    expect(wrapper.text()).toContain('Open advisory')
+    expect(wrapper.text()).toContain('Open OSV.dev')
+  })
+
+  it('renders an empty known vulnerabilities state', async () => {
+    const { wrapper } = mountPage({
+      component: {
+        vulnerabilities: {
+          status: 'available',
+          vulnerabilities: [],
+          source: {
+            name: 'OSV.dev',
+            url: 'https://osv.dev/list?q=pkg%3Anpm%2Fnode%4024.16.0'
+          }
+        }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Known Vulnerabilities')
+    expect(wrapper.text()).toContain('None found')
+    expect(wrapper.text()).toContain('No known vulnerabilities found')
   })
 
   it('renders maintenance health when available', async () => {

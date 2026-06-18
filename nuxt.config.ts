@@ -80,6 +80,12 @@ export default defineNuxtConfig({
     // runtime — bundling strips those files and causes ENOENT errors in production.
     externals: {
       external: ['@cyclonedx/cdxgen']
+    },
+    storage: {
+      'cache:api': {
+        driver: 'fs',
+        base: './.cache/api'
+      }
     }
   }
 

@@ -3,13 +3,14 @@ import { mockEvent } from '../../fixtures/h3-event'
 import { encodeComponentKey } from '../../../utils/component-identity'
 import handler from '../../../server/api/components/[key].get'
 import eolHandler from '../../../server/api/components/eol.get'
-import { componentService, eolService, packageMetadataService, securityScoreService } from '../../../server/services/singletons'
+import { componentService, eolService, packageMetadataService, securityScoreService, vulnerabilityService } from '../../../server/services/singletons'
 
 vi.mock('../../../server/services/singletons', () => ({
   componentService: { findByIdentity: vi.fn() },
   eolService: { getEOLStatus: vi.fn() },
   packageMetadataService: { getMetadata: vi.fn() },
-  securityScoreService: { getScore: vi.fn() }
+  securityScoreService: { getScore: vi.fn() },
+  vulnerabilityService: { getVulnerabilities: vi.fn() }
 }))
 
 const mockComponent = {
@@ -52,7 +53,8 @@ const mockComponent = {
   eol: null,
   packageMetadata: null,
   maintenanceHealth: null,
-  securityScorecard: null
+  securityScorecard: null,
+  vulnerabilities: null
 }
 
 const mockEol = {
@@ -101,6 +103,23 @@ const mockSecurityScorecard = {
   source: { name: 'OpenSSF Scorecard' as const, url: 'https://scorecard.dev/viewer/?uri=github.com/nodejs/node' }
 }
 
+const mockVulnerabilities = {
+  status: 'available' as const,
+  vulnerabilities: [
+    {
+      id: 'GHSA-xxxx-yyyy-zzzz',
+      aliases: ['CVE-2026-1234'],
+      summary: 'Example vulnerability',
+      severity: { type: 'CVSS_V3', score: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H', cvssScore: 9.8 },
+      affectedRanges: ['all versions before 24.16.1'],
+      advisoryUrl: 'https://osv.dev/vulnerability/GHSA-xxxx-yyyy-zzzz',
+      publishedAt: '2026-05-01T00:00:00Z',
+      modifiedAt: '2026-05-02T00:00:00Z'
+    }
+  ],
+  source: { name: 'OSV.dev' as const, url: 'https://osv.dev/list?q=pkg%3Anpm%2Fnode%4024.16.0' }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -111,6 +130,7 @@ describe('GET /api/components/{key}', () => {
     vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
     vi.mocked(packageMetadataService.getMetadata).mockResolvedValue(mockPackageMetadata)
     vi.mocked(securityScoreService.getScore).mockResolvedValue(mockSecurityScorecard)
+    vi.mocked(vulnerabilityService.getVulnerabilities).mockResolvedValue(mockVulnerabilities)
 
     const key = encodeComponentKey(mockComponent)
     const result = await handler(mockEvent({ params: { key } }))
@@ -119,6 +139,7 @@ describe('GET /api/components/{key}', () => {
     expect(eolService.getEOLStatus).toHaveBeenCalledWith(mockComponent)
     expect(packageMetadataService.getMetadata).toHaveBeenCalledWith(mockComponent)
     expect(securityScoreService.getScore).toHaveBeenCalledWith(mockComponent)
+    expect(vulnerabilityService.getVulnerabilities).toHaveBeenCalledWith(mockComponent)
     expect(result).toMatchObject({
       success: true,
       data: {
@@ -131,7 +152,8 @@ describe('GET /api/components/{key}', () => {
           updateType: 'minor',
           reasonCodes: expect.arrayContaining(['minor_update_available'])
         },
-        securityScorecard: mockSecurityScorecard
+        securityScorecard: mockSecurityScorecard,
+        vulnerabilities: mockVulnerabilities
       }
     })
   })
@@ -147,6 +169,7 @@ describe('GET /api/components/{key}', () => {
     vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
     vi.mocked(packageMetadataService.getMetadata).mockRejectedValue(new Error('deps.dev unavailable'))
     vi.mocked(securityScoreService.getScore).mockResolvedValue(mockSecurityScorecard)
+    vi.mocked(vulnerabilityService.getVulnerabilities).mockResolvedValue(mockVulnerabilities)
 
     const key = encodeComponentKey(mockComponent)
     const result = await handler(mockEvent({ params: { key } }))
@@ -165,7 +188,8 @@ describe('GET /api/components/{key}', () => {
           status: 'unknown',
           reasonCodes: expect.arrayContaining(['metadata_unavailable', 'missing_release_date', 'update_status_unknown'])
         },
-        securityScorecard: mockSecurityScorecard
+        securityScorecard: mockSecurityScorecard,
+        vulnerabilities: mockVulnerabilities
       }
     })
   })
@@ -175,6 +199,7 @@ describe('GET /api/components/{key}', () => {
     vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
     vi.mocked(packageMetadataService.getMetadata).mockResolvedValue(mockPackageMetadata)
     vi.mocked(securityScoreService.getScore).mockRejectedValue(new Error('scorecard unavailable'))
+    vi.mocked(vulnerabilityService.getVulnerabilities).mockResolvedValue(mockVulnerabilities)
 
     const key = encodeComponentKey(mockComponent)
     const result = await handler(mockEvent({ params: { key } }))
@@ -193,6 +218,34 @@ describe('GET /api/components/{key}', () => {
           reason: 'fetch_failed',
           score: null,
           checks: []
+        },
+        vulnerabilities: mockVulnerabilities
+      }
+    })
+  })
+
+  it('does not fail component details when vulnerability enrichment throws', async () => {
+    vi.mocked(componentService.findByIdentity).mockResolvedValue(mockComponent)
+    vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
+    vi.mocked(packageMetadataService.getMetadata).mockResolvedValue(mockPackageMetadata)
+    vi.mocked(securityScoreService.getScore).mockResolvedValue(mockSecurityScorecard)
+    vi.mocked(vulnerabilityService.getVulnerabilities).mockRejectedValue(new Error('osv unavailable'))
+
+    const key = encodeComponentKey(mockComponent)
+    const result = await handler(mockEvent({ params: { key } }))
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        name: 'node',
+        vulnerabilities: {
+          status: 'unavailable',
+          reason: 'fetch_failed',
+          vulnerabilities: [],
+          source: {
+            name: 'OSV.dev',
+            url: null
+          }
         }
       }
     })
