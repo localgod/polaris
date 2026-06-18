@@ -77,6 +77,10 @@ const pypiResponse = {
   releases: {
     '5.0.1': [
       {
+        upload_time_iso_8601: '2025-05-02T08:00:00.000Z',
+        yanked: true
+      },
+      {
         upload_time_iso_8601: '2025-05-01T08:00:00.000Z',
         yanked: true,
         yanked_reason: 'Broken wheel metadata.'
@@ -335,7 +339,7 @@ describe('PackageMetadataService', () => {
 
     const mavenUrl = new URL(fetcher.mock.calls[1][0])
     expect(mavenUrl.origin + mavenUrl.pathname).toBe('https://search.maven.org/solrsearch/select')
-    expect(mavenUrl.searchParams.get('q')).toBe('g:"org.springframework" AND a:"spring-core"')
+    expect(mavenUrl.searchParams.get('q')).toBe('g:"org.springframework" AND a:"spring\\-core"')
     expect(mavenUrl.searchParams.get('rows')).toBe('1')
     expect(mavenUrl.searchParams.get('wt')).toBe('json')
     expect(metadata).toMatchObject({
@@ -354,6 +358,22 @@ describe('PackageMetadataService', () => {
         name: 'maven'
       }
     })
+  })
+
+  it('escapes Maven Solr phrase values before querying native metadata', async () => {
+    const storage = createStorage()
+    const fetcher = vi.fn()
+      .mockRejectedValueOnce(notFound())
+      .mockResolvedValueOnce(mavenResponse)
+    const service = new PackageMetadataService(fetcher as never, () => storage)
+
+    await service.getMetadata({
+      purl: 'pkg:maven/com.example/foo%22bar%5Cbaz@1.0.0',
+      version: '1.0.0'
+    })
+
+    const mavenUrl = new URL(fetcher.mock.calls[1][0])
+    expect(mavenUrl.searchParams.get('q')).toBe('g:"com.example" AND a:"foo\\"bar\\\\baz"')
   })
 
   it('returns deps.dev unavailable metadata when native fallback also fails', async () => {

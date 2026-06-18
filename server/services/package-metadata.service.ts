@@ -1,4 +1,5 @@
 import type { Component, PackageAdvisory, PackageMetadata, PackageMetadataSource, PackageMetadataUnavailableReason } from '~~/types/api'
+import { logger } from '../utils/logger'
 
 interface CacheEntry<T> {
   expiresAt: number
@@ -197,7 +198,13 @@ export class PackageMetadataService {
   ): Promise<PackageMetadata> {
     try {
       return await this.getNativeMetadata(system, packageName, currentVersion)
-    } catch {
+    } catch (error) {
+      logger.warn({
+        err: error,
+        system,
+        packageName,
+        currentVersion
+      }, 'Native package metadata fallback failed; returning deps.dev metadata')
       return metadata
     }
   }
@@ -210,7 +217,14 @@ export class PackageMetadataService {
   ): Promise<PackageMetadata> {
     try {
       return await this.getNativeMetadata(system, packageName, currentVersion)
-    } catch {
+    } catch (error) {
+      logger.warn({
+        err: error,
+        system,
+        packageName,
+        currentVersion,
+        reason
+      }, 'Native package metadata fallback failed; returning unavailable metadata')
       return this.unavailable(reason, system, packageName, currentVersion)
     }
   }
@@ -475,7 +489,9 @@ export class PackageMetadataService {
       throw new Error(`Invalid Maven coordinates: ${packageName}`)
     }
 
-    const query = `g:"${coordinates.group}" AND a:"${coordinates.artifact}"`
+    const group = this.escapeSolrPhrase(coordinates.group)
+    const artifact = this.escapeSolrPhrase(coordinates.artifact)
+    const query = `g:"${group}" AND a:"${artifact}"`
     const params = new URLSearchParams({
       q: query,
       rows: '1',
@@ -535,7 +551,11 @@ export class PackageMetadataService {
   }
 
   private firstReleaseUploadTime(files: Array<{ upload_time_iso_8601?: string }>): string | null {
-    return files.map(file => file.upload_time_iso_8601).find(Boolean) || null
+    return files
+      .map(file => file.upload_time_iso_8601)
+      .filter((date): date is string => Boolean(date) && !Number.isNaN(Date.parse(date)))
+      .sort((a, b) => Date.parse(a) - Date.parse(b))
+      .at(0) || null
   }
 
   private mavenCoordinates(packageName: string): { group: string; artifact: string } | null {
@@ -548,6 +568,10 @@ export class PackageMetadataService {
       group: packageName.slice(0, separatorIndex),
       artifact: packageName.slice(separatorIndex + 1)
     }
+  }
+
+  private escapeSolrPhrase(value: string): string {
+    return value.replace(/([+\-&|!(){}[\]^"~*?:\\/])/g, '\\$1')
   }
 
   private packageApiUrl(system: string, packageName: string): string {
