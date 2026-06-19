@@ -342,6 +342,67 @@ CREATE (n:TestNode {name: 'retry'})`
     })
   })
 
+  Scenario('Preserve successful migration when modified file is retried', ({ Given, When, Then, And }) => {
+    Given('a migration has already succeeded', async () => {
+      migrationFile = join(testMigrationsDir, 'common', '2025-10-15_120009_preserve_success.up.cypher')
+      const content = `/*
+ * Migration: Preserve Success Migration
+ * Version: 2025.10.15.120009
+ */
+CREATE (n:TestNode {name: 'preserve-success'})`
+      writeFileSync(migrationFile, content)
+
+      const session = driver.session()
+      try {
+        applyResult = await runner.applyMigration(session, migrationFile, { verbose: false })
+      } finally {
+        await session.close()
+      }
+
+      expect(applyResult.success).toBe(true)
+    })
+
+    When('I modify and retry the migration', async () => {
+      const modifiedContent = `/*
+ * Migration: Preserve Success Migration
+ * Version: 2025.10.15.120009
+ */
+CREATE (n:TestNode {name: 'preserve-success-modified'})`
+      writeFileSync(migrationFile, modifiedContent)
+
+      const session = driver.session()
+      try {
+        applyResult = await runner.applyMigration(session, migrationFile, { verbose: false })
+      } finally {
+        await session.close()
+      }
+    })
+
+    Then('the retry should fail checksum validation', () => {
+      expect(applyResult.success).toBe(false)
+      expect(applyResult.error).toContain('has been modified after application')
+    })
+
+    And('the successful migration status should be preserved', async () => {
+      const session = driver.session()
+      try {
+        const result = await session.run(
+          'MATCH (m:Migration {filename: $filename}) RETURN m.status AS status, count(m) AS count',
+          { filename: migrationFile }
+        )
+        expect(result.records[0].get('status')).toBe('SUCCESS')
+        expect(result.records[0].get('count').toNumber()).toBe(1)
+      } finally {
+        await session.close()
+      }
+    })
+
+    And('the successful migration should not be pending', async () => {
+      status = await runner.getStatus()
+      expect(status.pending).not.toContain(migrationFile)
+    })
+  })
+
   Scenario('Apply multiple migrations in order', ({ Given, When, Then, And }) => {
     let runResult: { success: boolean; applied: string[]; failed: string[] }
 

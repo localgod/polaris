@@ -59,6 +59,13 @@ Feature: Database Migration Runner
     And the migration status should be "SUCCESS"
     And the failed migration should not be pending
 
+  Scenario: Preserve successful migration when modified file is retried
+    Given a migration has already succeeded
+    When I modify and retry the migration
+    Then the retry should fail checksum validation
+    And the successful migration status should be preserved
+    And the successful migration should not be pending
+
   Scenario: Apply multiple migrations in order
     Given three migration files exist in sequence
     When I run all pending migrations

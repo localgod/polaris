@@ -108,6 +108,19 @@ export class MigrationRunner {
   }
 
   /**
+   * Check whether a migration has already been applied successfully.
+   */
+  async hasSuccessfulMigration(session: Session, filename: string): Promise<boolean> {
+    const result = await session.run(
+      'MATCH (m:Migration {filename: $filename, status: "SUCCESS"}) RETURN count(m) AS count',
+      { filename }
+    )
+
+    const count = result.records[0]?.get('count')
+    return typeof count?.toNumber === 'function' ? count.toNumber() > 0 : count > 0
+  }
+
+  /**
    * Parse migration metadata from file header
    */
   parseMigrationMetadata(content: string, filename: string): Partial<MigrationMetadata> {
@@ -254,15 +267,21 @@ export class MigrationRunner {
       const executionTime = Date.now() - startTime
       const errorMessage = error instanceof Error ? error.message : String(error)
 
-      // Record failed migration
-      await this.recordMigration(session, {
-        filename,
-        version: metadata.version || 'unknown',
-        checksum,
-        executionTime,
-        status: 'FAILED',
-        description: `FAILED: ${errorMessage}`
-      })
+      const alreadySucceeded = await this.hasSuccessfulMigration(session, filename)
+
+      if (!alreadySucceeded) {
+        // Record failed migration attempts only for migrations that have not
+        // already succeeded. A modified applied migration must keep its
+        // SUCCESS row so checksum validation remains protective.
+        await this.recordMigration(session, {
+          filename,
+          version: metadata.version || 'unknown',
+          checksum,
+          executionTime,
+          status: 'FAILED',
+          description: `FAILED: ${errorMessage}`
+        })
+      }
 
       if (options.verbose) {
         console.error(`❌ Failed migration: ${filename}`)
