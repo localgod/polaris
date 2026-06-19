@@ -28,6 +28,23 @@ CREATE CONSTRAINT import_job_item_id_unique IF NOT EXISTS
 FOR (i:ImportJobItem)
 REQUIRE i.id IS UNIQUE;
 
+// Health snapshot constraints
+CREATE CONSTRAINT health_snapshot_component_purl_unique IF NOT EXISTS
+FOR (h:HealthSnapshot)
+REQUIRE h.componentPurl IS UNIQUE;
+
+CREATE CONSTRAINT advisory_id_unique IF NOT EXISTS
+FOR (a:Advisory)
+REQUIRE a.id IS UNIQUE;
+
+CREATE CONSTRAINT health_refresh_job_id_unique IF NOT EXISTS
+FOR (j:HealthRefreshJob)
+REQUIRE j.id IS UNIQUE;
+
+CREATE CONSTRAINT health_refresh_job_item_id_unique IF NOT EXISTS
+FOR (i:HealthRefreshJobItem)
+REQUIRE i.id IS UNIQUE;
+
 // License constraints
 CREATE CONSTRAINT license_id_unique IF NOT EXISTS
 FOR (l:License)

@@ -77,6 +77,9 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    experimental: {
+      tasks: true
+    },
     // Keep @cyclonedx/cdxgen as an external module so Nitro does not bundle it.
     // cdxgen reads data files (JSON mappings) relative to its own location at
     // runtime — bundling strips those files and causes ENOENT errors in production.
@@ -87,6 +90,20 @@ export default defineNuxtConfig({
       'cache:api': {
         driver: apiCacheDriver,
         ...(apiCacheDriver === 'fs' && { base: apiCacheBase })
+      }
+    },
+    scheduledTasks: {
+      '*/5 * * * *': ['health-refresh:process'],
+      '0 */12 * * *': ['health-refresh:enqueue-scheduled']
+    },
+    tasks: {
+      'health-refresh:process': {
+        handler: './server/tasks/health-refresh/process.ts',
+        description: 'Process the next queued component health refresh job'
+      },
+      'health-refresh:enqueue-scheduled': {
+        handler: './server/tasks/health-refresh/enqueue-scheduled.ts',
+        description: 'Enqueue a scheduled full-landscape component health refresh'
       }
     }
   }
