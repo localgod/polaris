@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.19] - 2026-06-19
+
+## What's Changed
+
+- Fix component migration retry handling @localgod (#675)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.18...v0.6.19
+
 ## [0.6.14] - 2026-06-17
 
 ## What's Changed
