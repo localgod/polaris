@@ -52,6 +52,20 @@ Feature: Database Migration Runner
     And an error message should be recorded
     And the migration status should be "FAILED"
 
+  Scenario: Retry a failed migration after fixing it
+    Given a migration file failed previously
+    When I fix and retry the migration
+    Then the migration should succeed
+    And the migration status should be "SUCCESS"
+    And the failed migration should not be pending
+
+  Scenario: Preserve successful migration when modified file is retried
+    Given a migration has already succeeded
+    When I modify and retry the migration
+    Then the retry should fail checksum validation
+    And the successful migration status should be preserved
+    And the successful migration should not be pending
+
   Scenario: Apply multiple migrations in order
     Given three migration files exist in sequence
     When I run all pending migrations
