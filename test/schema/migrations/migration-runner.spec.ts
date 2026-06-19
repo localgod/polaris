@@ -282,6 +282,66 @@ INVALID CYPHER SYNTAX`
     })
   })
 
+  Scenario('Retry a failed migration after fixing it', ({ Given, When, Then, And }) => {
+    Given('a migration file failed previously', async () => {
+      migrationFile = join(testMigrationsDir, 'common', '2025-10-15_120008_retry.up.cypher')
+      const invalidContent = `/*
+ * Migration: Retry Migration
+ * Version: 2025.10.15.120008
+ */
+INVALID CYPHER SYNTAX`
+      writeFileSync(migrationFile, invalidContent)
+
+      const session = driver.session()
+      try {
+        applyResult = await runner.applyMigration(session, migrationFile, { verbose: false })
+      } finally {
+        await session.close()
+      }
+
+      expect(applyResult.success).toBe(false)
+    })
+
+    When('I fix and retry the migration', async () => {
+      const validContent = `/*
+ * Migration: Retry Migration
+ * Version: 2025.10.15.120008
+ */
+CREATE (n:TestNode {name: 'retry'})`
+      writeFileSync(migrationFile, validContent)
+
+      const session = driver.session()
+      try {
+        applyResult = await runner.applyMigration(session, migrationFile, { verbose: false })
+      } finally {
+        await session.close()
+      }
+    })
+
+    Then('the migration should succeed', () => {
+      expect(applyResult.success).toBe(true)
+    })
+
+    And('the migration status should be "SUCCESS"', async () => {
+      const session = driver.session()
+      try {
+        const result = await session.run(
+          'MATCH (m:Migration {filename: $filename}) RETURN m.status AS status, count(m) AS count',
+          { filename: migrationFile }
+        )
+        expect(result.records[0].get('status')).toBe('SUCCESS')
+        expect(result.records[0].get('count').toNumber()).toBe(1)
+      } finally {
+        await session.close()
+      }
+    })
+
+    And('the failed migration should not be pending', async () => {
+      status = await runner.getStatus()
+      expect(status.pending).not.toContain(migrationFile)
+    })
+  })
+
   Scenario('Apply multiple migrations in order', ({ Given, When, Then, And }) => {
     let runResult: { success: boolean; applied: string[]; failed: string[] }
 

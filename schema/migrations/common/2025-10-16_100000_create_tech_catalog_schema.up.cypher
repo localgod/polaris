@@ -80,10 +80,9 @@ ON (v.releaseDate);
 // COMPONENT NODE
 // ============================================================================
 
-// Composite unique constraint on name, version, and packageManager
-CREATE CONSTRAINT component_name_version_pm_unique IF NOT EXISTS
-FOR (c:Component)
-REQUIRE (c.name, c.version, c.packageManager) IS UNIQUE;
+// Component identity is enforced by purl in the SBOM schema migration.
+// name + version + packageManager is not unique for scoped npm packages because
+// some tools expose the unscoped package name in the name field.
 
 // Index on packageManager for filtering by ecosystem
 CREATE INDEX component_package_manager IF NOT EXISTS

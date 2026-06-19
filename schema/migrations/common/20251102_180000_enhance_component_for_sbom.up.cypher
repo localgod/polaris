@@ -47,11 +47,9 @@ CREATE CONSTRAINT component_purl_unique IF NOT EXISTS
 FOR (c:Component)
 REQUIRE c.purl IS UNIQUE;
 
-// Fallback constraint for components without purl (legacy/internal)
-// Composite: name + version + packageManager
-CREATE CONSTRAINT component_name_version_pm_unique IF NOT EXISTS
-FOR (c:Component)
-REQUIRE (c.name, c.version, c.packageManager) IS UNIQUE;
+// Do not recreate the old name + version + packageManager uniqueness
+// constraint. It is not unique for scoped npm packages when the name field is
+// unscoped; purl is the canonical identity.
 
 // ============================================================================
 // CREATE NEW INDEXES
@@ -172,14 +170,3 @@ ON (v.cvssScore);
 CREATE INDEX vulnerability_published_date IF NOT EXISTS
 FOR (v:Vulnerability)
 ON (v.publishedDate);
-
-// ============================================================================
-// MIGRATION TRACKING
-// ============================================================================
-
-CREATE (m:Migration {
-  version: '20251102_180000',
-  name: 'enhance_component_for_sbom',
-  appliedAt: datetime(),
-  description: 'Enhanced Component schema for full SBOM support (SPDX and CycloneDX)'
-});

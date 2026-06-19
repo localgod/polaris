@@ -1,4 +1,4 @@
-import type { Driver, Session } from 'neo4j-driver'
+import type { Driver, ManagedTransaction, Session } from 'neo4j-driver'
 import { createHash } from 'crypto'
 import { readFileSync, readdirSync, existsSync } from 'fs'
 import { join, resolve } from 'path'
@@ -49,7 +49,11 @@ export class MigrationRunner {
    * Get list of pending migrations from filesystem
    */
   getPendingMigrations(applied: MigrationMetadata[], environment: string = 'common'): string[] {
-    const appliedFiles = new Set(applied.map(m => m.filename))
+    const appliedFiles = new Set(
+      applied
+        .filter(m => m.status === 'SUCCESS')
+        .map(m => m.filename)
+    )
     const dirs = [join(this.migrationsDir, 'common')]
     
     if (environment !== 'common') {
@@ -88,7 +92,7 @@ export class MigrationRunner {
   ): Promise<void> {
     const checksum = this.calculateChecksum(content)
     const result = await session.run(
-      'MATCH (m:Migration {filename: $filename}) RETURN m.checksum AS stored',
+      'MATCH (m:Migration {filename: $filename, status: "SUCCESS"}) RETURN m.checksum AS stored',
       { filename }
     )
 
@@ -148,16 +152,14 @@ export class MigrationRunner {
   ): Promise<void> {
     await sessionOrTx.run(
       `
-      CREATE (m:Migration {
-        filename: $filename,
-        version: $version,
-        checksum: $checksum,
-        appliedAt: datetime(),
-        appliedBy: $appliedBy,
-        executionTime: $executionTime,
-        status: $status,
-        description: $description
-      })
+      MERGE (m:Migration {filename: $filename})
+      SET m.version = $version,
+          m.checksum = $checksum,
+          m.appliedAt = datetime(),
+          m.appliedBy = $appliedBy,
+          m.executionTime = $executionTime,
+          m.status = $status,
+          m.description = $description
       `,
       {
         filename: metadata.filename,
