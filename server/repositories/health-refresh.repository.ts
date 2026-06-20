@@ -89,20 +89,20 @@ export class HealthRefreshRepository extends BaseRepository {
       CALL {
         WITH job
         MATCH (c:Component)
-        WHERE $systemName IS NULL
-           OR EXISTS {
-             MATCH (:System {name: $systemName})-[:USES]->(c)
-           }
-        RETURN collect(DISTINCT c) AS components
-      }
-      SET job.totalItems = size(components)
-      FOREACH (component IN components |
+        WHERE c.purl IS NOT NULL
+          AND (
+            $systemName IS NULL
+            OR EXISTS {
+              MATCH (:System {name: $systemName})-[:USES]->(c)
+            }
+          )
+        WITH DISTINCT job, c
         CREATE (job)-[:HAS_ITEM]->(:HealthRefreshJobItem {
           id: randomUUID(),
-          componentPurl: component.purl,
-          componentName: component.name,
-          componentVersion: component.version,
-          packageManager: component.packageManager,
+          componentPurl: c.purl,
+          componentName: c.name,
+          componentVersion: c.version,
+          packageManager: c.packageManager,
           status: 'pending',
           failedSources: [],
           failedFields: [],
@@ -110,7 +110,9 @@ export class HealthRefreshRepository extends BaseRepository {
           startedAt: null,
           finishedAt: null
         })
-      )
+        RETURN count(c) AS totalItems
+      }
+      SET job.totalItems = totalItems
       RETURN job.id AS id
     `, { trigger, systemName })
 

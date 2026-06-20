@@ -227,6 +227,11 @@ export class MigrationRunner {
       // This is required for schema modifications (CREATE CONSTRAINT, CREATE INDEX)
       // which cannot be mixed with data writes in the same transaction
       for (const statement of statements) {
+        if (/\bIN\s+TRANSACTIONS\b/i.test(statement)) {
+          await session.run(statement)
+          continue
+        }
+
         const tx = session.beginTransaction()
         try {
           await tx.run(statement)

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HealthRefreshService } from '../../../server/services/health-refresh.service'
 
 const component = {
@@ -66,6 +66,11 @@ describe('HealthRefreshService', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-06-19T12:00:00Z'))
+  })
+
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
   })
 
   it('preserves failed source fields while persisting successful dimensions and auditing failures', async () => {
