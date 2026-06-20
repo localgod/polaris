@@ -3,6 +3,8 @@ import { SBOMRepository } from '../repositories/sbom.repository'
 import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
 import { normalizeRepoUrl } from '../utils/repository'
 import { parseLicenseExpression } from '../utils/license-expression'
+import { logger } from '../utils/logger'
+import { HealthRefreshService } from './health-refresh.service'
 import type {
   ProcessSBOMInput,
   ProcessSBOMResult,
@@ -57,11 +59,13 @@ export class SBOMService {
   private systemRepo: SystemRepository
   private sbomRepo: SBOMRepository
   private sourceRepoRepo: SourceRepositoryRepository
+  private healthRefreshService: HealthRefreshService
 
   constructor() {
     this.systemRepo = new SystemRepository()
     this.sbomRepo = new SBOMRepository()
     this.sourceRepoRepo = new SourceRepositoryRepository()
+    this.healthRefreshService = new HealthRefreshService()
   }
 
   /**
@@ -110,8 +114,8 @@ export class SBOMService {
     
     // 4. Extract components and dependency relationships from SBOM
     const sbomData = input.sbom as Record<string, unknown>
-    const components = this.extractComponents(sbomData, input.format)
     const { bomRef: rootBomRef, name: rootName } = this.extractRootBomRef(sbomData, input.format)
+    const components = this.extractComponents(sbomData, input.format, rootBomRef, rootName)
 
     // For SPDX, extract scoped edges (carry per-edge scope from relationship type).
     // For CycloneDX, extract plain dependency edges (scope comes from component field).
@@ -160,6 +164,14 @@ export class SBOMService {
       componentsAdded: result.componentsAdded,
       componentsUpdated: result.componentsUpdated
     })
+
+    // Queue health refresh after import persistence is complete. External
+    // source lookups run later through HealthRefreshJob processing.
+    try {
+      await this.healthRefreshService.enqueueForSystem(system.name)
+    } catch (error) {
+      logger.error({ err: error, systemName: system.name }, 'Failed to enqueue post-import health refresh')
+    }
     
     return {
       systemName: system.name,
@@ -181,9 +193,14 @@ export class SBOMService {
   /**
    * Extract components from SBOM based on format
    */
-  private extractComponents(sbom: Record<string, unknown>, format: 'cyclonedx' | 'spdx'): ExtractedComponent[] {
+  private extractComponents(
+    sbom: Record<string, unknown>,
+    format: 'cyclonedx' | 'spdx',
+    rootBomRef: string | null,
+    rootName: string | null,
+  ): ExtractedComponent[] {
     if (format === 'cyclonedx') {
-      return this.extractCycloneDXComponents(sbom)
+      return this.extractCycloneDXComponents(sbom, rootBomRef, rootName)
     } else {
       return this.extractSPDXComponents(sbom)
     }
@@ -239,29 +256,87 @@ export class SBOMService {
 
     if (!rootName) return []
 
-    // Extract the name segment from a purl: pkg:<type>/<name>@<version> -> <name>.
-    // Compare case-insensitively because npm package names are normalized to
-    // lowercase in some cdxgen dependency refs while metadata.component may
-    // preserve the package.json casing.
-    const decodePurlName = (value: string): string => {
-      try {
-        return decodeURIComponent(value)
-      } catch {
-        return value
-      }
-    }
-
-    const nameFromRef = (ref: string): string | null => {
-      const m = ref.match(/^pkg:[^/]+\/([^@]+)@/)
-      return m?.[1] ? decodePurlName(m[1]).toLowerCase() : null
-    }
     const normalizedRootName = rootName.toLowerCase()
 
     const candidates = dependencies
-      .filter(d => nameFromRef(d.ref) === normalizedRootName && d.dependsOn.length > 0)
+      .filter(d => this.nameFromPackageRef(d.ref) === normalizedRootName && d.dependsOn.length > 0)
       .sort((a, b) => b.dependsOn.length - a.dependsOn.length)
 
     return candidates[0]?.dependsOn ?? []
+  }
+
+  private nameFromPackageRef(ref: string | null): string | null {
+    if (!ref) return null
+
+    const match = ref.match(/^pkg:[^/]+\/(.+)$/)
+    if (!match?.[1]) return null
+
+    const withoutQualifiers = match[1].split(/[?#]/, 1)[0]
+    const versionSeparator = withoutQualifiers.lastIndexOf('@')
+    const name = versionSeparator > 0
+      ? withoutQualifiers.slice(0, versionSeparator)
+      : withoutQualifiers
+
+    try {
+      return decodeURIComponent(name).toLowerCase()
+    } catch {
+      return name.toLowerCase()
+    }
+  }
+
+  private isRootEquivalentComponent(
+    component: ExtractedComponent,
+    rootBomRef: string | null,
+    rootName: string | null,
+  ): boolean {
+    if (rootBomRef && (component.bomRef === rootBomRef || component.purl === rootBomRef)) {
+      return true
+    }
+
+    if (!rootName) return false
+
+    const normalizedRootName = rootName.toLowerCase()
+    if (component.name?.toLowerCase() === normalizedRootName) {
+      return true
+    }
+
+    return this.nameFromPackageRef(component.bomRef) === normalizedRootName
+      || this.nameFromPackageRef(component.purl) === normalizedRootName
+  }
+
+  /**
+   * Infer direct dependencies when an SBOM contains a dependency graph but no
+   * usable root entry. In that shape, direct dependencies are the component
+   * nodes that have no parent component within the same SBOM graph.
+   */
+  private inferDirectDepsFromComponentGraph(
+    components: ExtractedComponent[],
+    dependencies: ComponentDependency[],
+  ): string[] {
+    const componentRefs = new Set(
+      components
+        .map(component => component.bomRef)
+        .filter((bomRef): bomRef is string => Boolean(bomRef))
+    )
+
+    if (componentRefs.size === 0) return []
+
+    const childRefs = new Set<string>()
+    let componentEdgeCount = 0
+
+    for (const dependency of dependencies) {
+      if (!componentRefs.has(dependency.ref)) continue
+
+      for (const targetRef of dependency.dependsOn) {
+        if (!componentRefs.has(targetRef) || targetRef === dependency.ref) continue
+        childRefs.add(targetRef)
+        componentEdgeCount++
+      }
+    }
+
+    if (componentEdgeCount === 0) return []
+
+    return [...componentRefs].filter(bomRef => !childRefs.has(bomRef))
   }
 
   /**
@@ -319,8 +394,13 @@ export class SBOMService {
       }
     }
 
-    // Resolve direct deps of the root
-    const directBomRefs = this.resolveRootDirectDeps(rootBomRef, rootName, dependencies)
+    // Resolve direct deps of the root. If the root is missing or unusable but
+    // the SBOM still carries a component dependency graph, infer top-level
+    // components as those with no parent component in that graph.
+    let directBomRefs = this.resolveRootDirectDeps(rootBomRef, rootName, dependencies)
+    if (directBomRefs.length === 0) {
+      directBomRefs = this.inferDirectDepsFromComponentGraph(components, dependencies)
+    }
 
     // Determine scope for each direct dep
     const directScopes = new Map<string, string | null>()
@@ -448,7 +528,11 @@ export class SBOMService {
    * `metadata.component` is the subject of the SBOM (the scanned system
    * itself) and is intentionally excluded — it is not a dependency.
    */
-  private extractCycloneDXComponents(sbom: Record<string, unknown>): ExtractedComponent[] {
+  private extractCycloneDXComponents(
+    sbom: Record<string, unknown>,
+    rootBomRef: string | null,
+    rootName: string | null,
+  ): ExtractedComponent[] {
     const components: ExtractedComponent[] = []
 
     // Extract components array (with nested components)
@@ -456,12 +540,15 @@ export class SBOMService {
     if (componentsArray && Array.isArray(componentsArray)) {
       for (const comp of componentsArray) {
         const component = comp as Record<string, unknown>
-        components.push(this.mapCycloneDXComponent(component))
+        const mapped = this.mapCycloneDXComponent(component)
+        if (!this.isRootEquivalentComponent(mapped, rootBomRef, rootName)) {
+          components.push(mapped)
+        }
         
         // Recursively extract nested components
         const nestedComponents = component.components as unknown[] | undefined
         if (nestedComponents && Array.isArray(nestedComponents)) {
-          components.push(...this.extractNestedComponents(nestedComponents))
+          components.push(...this.extractNestedComponents(nestedComponents, rootBomRef, rootName))
         }
       }
     }
@@ -472,15 +559,22 @@ export class SBOMService {
   /**
    * Recursively extract nested CycloneDX components
    */
-  private extractNestedComponents(components: unknown[]): ExtractedComponent[] {
+  private extractNestedComponents(
+    components: unknown[],
+    rootBomRef: string | null,
+    rootName: string | null,
+  ): ExtractedComponent[] {
     const extracted: ExtractedComponent[] = []
     
     for (const comp of components) {
       const component = comp as Record<string, unknown>
-      extracted.push(this.mapCycloneDXComponent(component))
+      const mapped = this.mapCycloneDXComponent(component)
+      if (!this.isRootEquivalentComponent(mapped, rootBomRef, rootName)) {
+        extracted.push(mapped)
+      }
       
       if (component.components && Array.isArray(component.components)) {
-        extracted.push(...this.extractNestedComponents(component.components))
+        extracted.push(...this.extractNestedComponents(component.components, rootBomRef, rootName))
       }
     }
     

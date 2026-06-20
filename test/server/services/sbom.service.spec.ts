@@ -644,6 +644,127 @@ describe('SBOMService', () => {
       expect(persistCall.componentUsage.get('pkg:npm/lodash@4.17.21')).toMatchObject({ isDirect: true })
     })
 
+    it('should exclude a CycloneDX root package component while using it to resolve direct deps', async () => {
+      const sbomWithRootPackageComponent = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'AzureMap',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/AzureMap@1.0.0',
+          }
+        },
+        components: [
+          {
+            type: 'library',
+            name: 'AzureMap',
+            purl: 'pkg:npm/AzureMap',
+            'bom-ref': 'pkg:npm/AzureMap',
+          },
+          {
+            type: 'library',
+            name: 'theme-default',
+            version: '1.0.0',
+            purl: 'pkg:npm/@slidev/theme-default@1.0.0',
+            'bom-ref': 'pkg:npm/@slidev/theme-default@1.0.0',
+          },
+          {
+            type: 'library',
+            name: 'cli',
+            version: '52.0.0',
+            purl: 'pkg:npm/@slidev/cli@52.0.0',
+            'bom-ref': 'pkg:npm/@slidev/cli@52.0.0',
+          },
+        ],
+        dependencies: [
+          {
+            ref: 'pkg:npm/AzureMap',
+            dependsOn: [
+              'pkg:npm/@slidev/theme-default@1.0.0',
+              'pkg:npm/@slidev/cli@52.0.0',
+            ]
+          },
+          { ref: 'pkg:npm/@slidev/theme-default@1.0.0', dependsOn: [] },
+          { ref: 'pkg:npm/@slidev/cli@52.0.0', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 2, componentsUpdated: 0, relationshipsCreated: 2
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithRootPackageComponent,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.components.map(component => component.name)).not.toContain('AzureMap')
+      expect(persistCall.components.map(component => component.name).toSorted()).toEqual(['cli', 'theme-default'])
+      expect(persistCall.componentUsage.get('pkg:npm/@slidev/theme-default@1.0.0')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/@slidev/cli@52.0.0')).toMatchObject({ isDirect: true })
+    })
+
+    it('should infer direct dependencies from the component graph when no root entry matches', async () => {
+      const sbomWithRootlessGraph = {
+        ...validCycloneDxSbom,
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'my-app',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/my-app@1.0.0',
+          }
+        },
+        components: [
+          {
+            type: 'library',
+            name: 'direct-lib',
+            version: '1.0.0',
+            purl: 'pkg:npm/direct-lib@1.0.0',
+            'bom-ref': 'pkg:npm/direct-lib@1.0.0',
+          },
+          {
+            type: 'library',
+            name: 'transitive-lib',
+            version: '1.0.0',
+            purl: 'pkg:npm/transitive-lib@1.0.0',
+            'bom-ref': 'pkg:npm/transitive-lib@1.0.0',
+          },
+          {
+            type: 'library',
+            name: 'isolated-lib',
+            version: '1.0.0',
+            purl: 'pkg:npm/isolated-lib@1.0.0',
+            'bom-ref': 'pkg:npm/isolated-lib@1.0.0',
+          }
+        ],
+        dependencies: [
+          { ref: 'pkg:npm/direct-lib@1.0.0', dependsOn: ['pkg:npm/transitive-lib@1.0.0'] },
+          { ref: 'pkg:npm/transitive-lib@1.0.0', dependsOn: [] },
+        ]
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 3, componentsUpdated: 0, relationshipsCreated: 3
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithRootlessGraph,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.componentUsage.get('pkg:npm/direct-lib@1.0.0')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/isolated-lib@1.0.0')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/transitive-lib@1.0.0')).toMatchObject({ isDirect: false })
+    })
+
     it('should return empty directDeps when no dependency entry matches the root name', async () => {
       const sbomNoMatch = {
         ...validCycloneDxSbom,

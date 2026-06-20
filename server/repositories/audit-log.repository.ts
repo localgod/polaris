@@ -188,6 +188,7 @@ export class AuditLogRepository extends BaseRepository {
     entityLabel: string
     changedFields?: string[]
     changes?: Record<string, { before: unknown; after: unknown }> | null
+    reason?: string | null
     source?: string
     userId: string
     realUserId?: string | null
@@ -202,6 +203,7 @@ export class AuditLogRepository extends BaseRepository {
         entityLabel: $entityLabel,
         changedFields: $changedFields,
         changes: $changes,
+        reason: $reason,
         source: $source,
         userId: $userId,
         realUserId: $realUserId
@@ -213,6 +215,7 @@ export class AuditLogRepository extends BaseRepository {
       entityLabel: params.entityLabel,
       changedFields: params.changedFields || [],
       changes: params.changes ? JSON.stringify(params.changes) : null,
+      reason: params.reason ?? null,
       source: params.source || 'API',
       userId: params.userId,
       realUserId: params.realUserId ?? null

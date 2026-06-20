@@ -858,4 +858,41 @@ describe('ComponentRepository', () => {
     })
   })
 
+  describe('findEOLCandidates()', () => {
+    it('returns EOL candidates with linked systems', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (component:Component {
+          name: $componentName,
+          version: '24.16.0',
+          packageManager: 'npm',
+          purl: $componentPurl,
+          group: '@types'
+        })
+        CREATE (system:System { name: $systemName })
+        CREATE (technology:Technology { name: $technologyName })
+        CREATE (system)-[:USES { scope: 'runtime', isDirect: true }]->(component)
+        CREATE (component)-[:IS_VERSION_OF]->(technology)
+      `, {
+        componentName: `${PREFIX}eol-node`,
+        componentPurl: `pkg:npm/${PREFIX}eol-node@24.16.0`,
+        systemName: `${PREFIX}eol-system`,
+        technologyName: `${PREFIX}Node.js`
+      })
+
+      const candidates = await repo.findEOLCandidates()
+      const candidate = candidates.find(item => item.name === `${PREFIX}eol-node`)
+
+      expect(candidate).toMatchObject({
+        name: `${PREFIX}eol-node`,
+        version: '24.16.0',
+        packageManager: 'npm',
+        purl: `pkg:npm/${PREFIX}eol-node@24.16.0`,
+        group: '@types',
+        technologyName: `${PREFIX}Node.js`,
+        systems: [{ name: `${PREFIX}eol-system` }]
+      })
+    })
+  })
+
 })

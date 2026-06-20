@@ -29,6 +29,7 @@ import { EOLRollupService } from './eol-rollup.service'
 import { PackageMetadataService } from './package-metadata.service'
 import { SecurityScoreService } from './security-score.service'
 import { VulnerabilityService } from './vulnerability.service'
+import { HealthRefreshService } from './health-refresh.service'
 
 export const technologyService = new TechnologyService()
 export const teamService = new TeamService()
@@ -49,3 +50,4 @@ export const eolRollupService = new EOLRollupService()
 export const packageMetadataService = new PackageMetadataService()
 export const securityScoreService = new SecurityScoreService()
 export const vulnerabilityService = new VulnerabilityService()
+export const healthRefreshService = new HealthRefreshService()
