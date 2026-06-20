@@ -1,6 +1,7 @@
 import type {
   Component,
   EOLStatus,
+  HealthDashboardSummary,
   KnownVulnerability,
   MaintenanceHealth,
   PackageMetadata,
@@ -74,6 +75,10 @@ export class HealthRefreshService {
 
   async enqueueScheduledRefresh(): Promise<string> {
     return await this.healthRepo.enqueueAll('scheduled')
+  }
+
+  async getDashboardSummary(): Promise<HealthDashboardSummary> {
+    return await this.healthRepo.getDashboardSummary()
   }
 
   async processNextQueuedJob(options: { batchSize?: number } = {}): Promise<string | null> {

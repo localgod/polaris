@@ -223,6 +223,38 @@ export interface PackageMetadata {
   }
 }
 
+export interface HealthDashboardSummary {
+  vulnerabilityExposure: {
+    vulnerableComponents: number
+    criticalComponents: number
+    highComponents: number
+    affectedSystems: number
+    criticalVulnerabilities: number
+    highVulnerabilities: number
+  }
+  advisoryHotspots: Array<{
+    id: string
+    aliases: string[]
+    summary: string | null
+    cvssScore: number | null
+    affectedComponents: number
+    affectedSystems: number
+  }>
+  refreshCoverage: {
+    totalComponents: number
+    refreshedComponents: number
+    staleComponents: number
+    neverCheckedComponents: number
+    failedItems: number
+  }
+  criticalSystemsAtRisk: {
+    systems: number
+    criticalSystems: number
+    highSystems: number
+    affectedComponents: number
+  }
+}
+
 export type MaintenanceHealthStatus = 'healthy' | 'stable' | 'aging' | 'stale' | 'unknown'
 
 export type MaintenanceHealthConfidence = 'high' | 'medium' | 'low'

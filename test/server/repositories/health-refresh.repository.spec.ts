@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import type { Session } from 'neo4j-driver'
+import type { QueryResult, Session } from 'neo4j-driver'
 import { HealthRefreshRepository } from '../../../server/repositories/health-refresh.repository'
 import { cleanupTestData, getTestContext, type TestContext } from '../../fixtures/neo4j-test-helper'
 
@@ -7,6 +7,12 @@ const PREFIX = 'test_health_refresh_repo_'
 let ctx: TestContext
 let repo: HealthRefreshRepository
 let session: Session
+
+function record(values: Record<string, unknown>) {
+  return {
+    get: (key: string) => values[key]
+  }
+}
 
 beforeAll(async () => { ctx = await getTestContext() })
 afterAll(async () => { if (ctx.neo4jAvailable) await cleanupTestData(ctx.driver, { prefix: PREFIX }) })
@@ -21,6 +27,89 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('HealthRefreshRepository', () => {
+  it('maps cross-system health dashboard summary aggregates', async () => {
+    class TestHealthRefreshRepository extends HealthRefreshRepository {
+      protected override async executeQuery(query: string): Promise<QueryResult> {
+        if (query.includes('vulnerableComponents')) {
+          return { records: [record({
+            vulnerableComponents: 8,
+            criticalComponents: 2,
+            highComponents: 3,
+            criticalVulnerabilities: 4,
+            highVulnerabilities: 6
+          })] } as QueryResult
+        }
+        if (query.includes('affectedSystems') && query.includes('vulnerabilityTotal')) {
+          return { records: [record({ affectedSystems: 5 })] } as QueryResult
+        }
+        if (query.includes('Advisory')) {
+          return { records: [record({
+            id: 'GHSA-1234',
+            aliases: ['CVE-2026-1234'],
+            summary: 'Example advisory',
+            cvssScore: 9.8,
+            affectedComponents: 2,
+            affectedSystems: 4
+          })] } as QueryResult
+        }
+        if (query.includes('totalComponents')) {
+          return { records: [record({
+            totalComponents: 20,
+            refreshedComponents: 15,
+            staleComponents: 3,
+            neverCheckedComponents: 5
+          })] } as QueryResult
+        }
+        if (query.includes('failedItems')) {
+          return { records: [record({ failedItems: 2 })] } as QueryResult
+        }
+        if (query.includes('criticalSystems')) {
+          return { records: [record({
+            systems: 3,
+            criticalSystems: 1,
+            highSystems: 2,
+            affectedComponents: 4
+          })] } as QueryResult
+        }
+        throw new Error(`Unexpected query: ${query}`)
+      }
+    }
+
+    const summary = await new TestHealthRefreshRepository().getDashboardSummary()
+
+    expect(summary).toEqual({
+      vulnerabilityExposure: {
+        vulnerableComponents: 8,
+        criticalComponents: 2,
+        highComponents: 3,
+        affectedSystems: 5,
+        criticalVulnerabilities: 4,
+        highVulnerabilities: 6
+      },
+      advisoryHotspots: [{
+        id: 'GHSA-1234',
+        aliases: ['CVE-2026-1234'],
+        summary: 'Example advisory',
+        cvssScore: 9.8,
+        affectedComponents: 2,
+        affectedSystems: 4
+      }],
+      refreshCoverage: {
+        totalComponents: 20,
+        refreshedComponents: 15,
+        staleComponents: 3,
+        neverCheckedComponents: 5,
+        failedItems: 2
+      },
+      criticalSystemsAtRisk: {
+        systems: 3,
+        criticalSystems: 1,
+        highSystems: 2,
+        affectedComponents: 4
+      }
+    })
+  })
+
   it('enqueues one item per component linked to a system', async () => {
     if (!ctx.neo4jAvailable) return
 

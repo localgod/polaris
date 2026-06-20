@@ -126,6 +126,112 @@
       </UCard>
     </div>
 
+    <!-- Health Signals -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Health Signals</h2>
+        <NuxtLink to="/components" class="text-sm text-(--ui-color-primary-500)">View components →</NuxtLink>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-semibold">Vulnerability Exposure</h3>
+              <UIcon name="i-lucide-shield-alert" class="size-5 text-(--ui-color-error-500)" />
+            </div>
+          </template>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">Critical</p>
+              <p class="text-xl font-bold text-(--ui-color-error-500)">{{ healthSummary.vulnerabilityExposure.criticalComponents }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">High</p>
+              <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ healthSummary.vulnerabilityExposure.highComponents }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">Systems</p>
+              <p class="text-xl font-bold">{{ healthSummary.vulnerabilityExposure.affectedSystems }}</p>
+            </div>
+          </div>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-semibold">Advisory Hotspots</h3>
+              <UIcon name="i-lucide-radar" class="size-5 text-(--ui-color-warning-500)" />
+            </div>
+          </template>
+          <div v-if="healthSummary.advisoryHotspots.length > 0" class="space-y-3">
+            <div
+              v-for="advisory in healthSummary.advisoryHotspots"
+              :key="advisory.id"
+              class="flex items-center justify-between gap-3"
+            >
+              <div class="min-w-0">
+                <p class="font-medium truncate">{{ advisory.aliases[0] || advisory.id }}</p>
+                <p class="text-xs text-(--ui-text-muted)">{{ advisory.affectedSystems }} systems · {{ advisory.affectedComponents }} components</p>
+              </div>
+              <UBadge color="warning" variant="subtle">
+                {{ advisory.cvssScore ?? '—' }}
+              </UBadge>
+            </div>
+          </div>
+          <p v-else class="text-sm text-(--ui-text-muted)">No active advisories observed.</p>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-semibold">Refresh Coverage</h3>
+              <UIcon name="i-lucide-refresh-cw" class="size-5 text-(--ui-color-primary-500)" />
+            </div>
+          </template>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">Stale</p>
+              <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ healthSummary.refreshCoverage.staleComponents }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">Never</p>
+              <p class="text-xl font-bold">{{ healthSummary.refreshCoverage.neverCheckedComponents }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">Failed</p>
+              <p class="text-xl font-bold text-(--ui-color-error-500)">{{ healthSummary.refreshCoverage.failedItems }}</p>
+            </div>
+          </div>
+          <p class="text-xs text-(--ui-text-muted) mt-3">{{ healthSummary.refreshCoverage.refreshedComponents }} of {{ healthSummary.refreshCoverage.totalComponents }} direct components checked.</p>
+        </UCard>
+
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-semibold">Critical Systems at Risk</h3>
+              <UIcon name="i-lucide-server-crash" class="size-5 text-(--ui-color-error-500)" />
+            </div>
+          </template>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">Systems</p>
+              <p class="text-xl font-bold text-(--ui-color-error-500)">{{ healthSummary.criticalSystemsAtRisk.systems }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">Critical</p>
+              <p class="text-xl font-bold">{{ healthSummary.criticalSystemsAtRisk.criticalSystems }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-(--ui-text-muted)">High</p>
+              <p class="text-xl font-bold">{{ healthSummary.criticalSystemsAtRisk.highSystems }}</p>
+            </div>
+          </div>
+          <p class="text-xs text-(--ui-text-muted) mt-3">{{ healthSummary.criticalSystemsAtRisk.affectedComponents }} risky direct components in critical or high systems.</p>
+        </UCard>
+      </div>
+    </div>
+
     <!-- Quick Links -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <UPageCard
@@ -161,7 +267,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse, EOLRollupResponse, Technology, System, GroupedComponent, VersionConstraint } from '~~/types/api'
+import type { ApiResponse, EOLRollupResponse, Technology, System, GroupedComponent, HealthDashboardSummary, VersionConstraint } from '~~/types/api'
 
 interface LicenseStatsResponse {
   success: boolean
@@ -195,6 +301,12 @@ interface EOLRollupApiResponse {
   count: number
 }
 
+interface HealthSummaryApiResponse {
+  success: boolean
+  data: HealthDashboardSummary
+  count: number
+}
+
 const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
 const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
 const { data: compData } = await useFetch<ApiResponse<GroupedComponent>>('/api/components/grouped', {
@@ -204,8 +316,9 @@ const { data: vcData } = await useFetch<ApiResponse<VersionConstraint>>('/api/ve
 const { data: licenseStatsData } = await useFetch<LicenseStatsResponse>('/api/licenses/statistics')
 const { data: licenseViolationsData } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')
 const { data: vcViolationsData } = await useFetch<ViolationsResponse>('/api/version-constraints/violations')
-const { data: eolApproachingData } = await useFetch<EOLRollupApiResponse>('/api/eol/approaching')
-const { data: eolExpiredData } = await useFetch<EOLRollupApiResponse>('/api/eol/expired')
+const { data: eolApproachingData } = await useFetch<EOLRollupApiResponse>('/api/eol/approaching', { server: false })
+const { data: eolExpiredData } = await useFetch<EOLRollupApiResponse>('/api/eol/expired', { server: false })
+const { data: healthSummaryData } = await useFetch<HealthSummaryApiResponse>('/api/health/summary')
 
 const techCount = useApiCount(techData)
 const sysCount = useApiCount(sysData)
@@ -268,6 +381,33 @@ const lifecycleStats = computed(() => {
     ]).size
   }
 })
+
+const emptyHealthSummary: HealthDashboardSummary = {
+  vulnerabilityExposure: {
+    vulnerableComponents: 0,
+    criticalComponents: 0,
+    highComponents: 0,
+    affectedSystems: 0,
+    criticalVulnerabilities: 0,
+    highVulnerabilities: 0
+  },
+  advisoryHotspots: [],
+  refreshCoverage: {
+    totalComponents: 0,
+    refreshedComponents: 0,
+    staleComponents: 0,
+    neverCheckedComponents: 0,
+    failedItems: 0
+  },
+  criticalSystemsAtRisk: {
+    systems: 0,
+    criticalSystems: 0,
+    highSystems: 0,
+    affectedComponents: 0
+  }
+}
+
+const healthSummary = computed(() => healthSummaryData.value?.data || emptyHealthSummary)
 
 useHead({ title: 'Dashboard - Polaris' })
 </script>
