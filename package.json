@@ -96,7 +96,7 @@
     "@nuxt/test-utils": "^4.0.3",
     "@playwright/test": "^1.61.0",
     "@types/d3": "^7.4.3",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "@types/semver": "^7.7.1",
     "@types/swagger-jsdoc": "^6.0.4",
     "@vitejs/plugin-vue": "^6.0.7",
