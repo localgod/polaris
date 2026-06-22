@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.23] - 2026-06-22
+
+## What's Changed
+
+- Add Lighthouse CI audits @localgod (#687)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.22...v0.6.23
+
 ## [0.6.14] - 2026-06-17
 
 ## What's Changed
