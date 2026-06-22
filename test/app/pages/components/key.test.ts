@@ -83,7 +83,7 @@ function mountPage(options: {
   }), {
     global: {
       stubs: {
-        ComponentDependencyTree: {
+        AsyncComponentDependencyTree: {
           props: ['componentKey', 'systemName'],
           template: '<div data-test="dependency-tree" :data-component-key="componentKey" :data-system-name="systemName || \'\'" />'
         },

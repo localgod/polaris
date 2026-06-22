@@ -195,17 +195,29 @@ interface EOLRollupApiResponse {
   count: number
 }
 
-const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
-const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
-const { data: compData } = await useFetch<ApiResponse<GroupedComponent>>('/api/components/grouped', {
-  query: { direct: 'true' }
-})
-const { data: vcData } = await useFetch<ApiResponse<VersionConstraint>>('/api/version-constraints')
-const { data: licenseStatsData } = await useFetch<LicenseStatsResponse>('/api/licenses/statistics')
-const { data: licenseViolationsData } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')
-const { data: vcViolationsData } = await useFetch<ViolationsResponse>('/api/version-constraints/violations')
-const { data: eolApproachingData } = await useFetch<EOLRollupApiResponse>('/api/eol/approaching')
-const { data: eolExpiredData } = await useFetch<EOLRollupApiResponse>('/api/eol/expired')
+const [
+  { data: techData },
+  { data: sysData },
+  { data: compData },
+  { data: vcData },
+  { data: licenseStatsData },
+  { data: licenseViolationsData },
+  { data: vcViolationsData },
+  { data: eolApproachingData },
+  { data: eolExpiredData }
+] = await Promise.all([
+  useFetch<ApiResponse<Technology>>('/api/technologies'),
+  useFetch<ApiResponse<System>>('/api/systems'),
+  useFetch<ApiResponse<GroupedComponent>>('/api/components/grouped', {
+    query: { direct: 'true' }
+  }),
+  useFetch<ApiResponse<VersionConstraint>>('/api/version-constraints'),
+  useFetch<LicenseStatsResponse>('/api/licenses/statistics'),
+  useFetch<LicenseViolationsResponse>('/api/licenses/violations'),
+  useFetch<ViolationsResponse>('/api/version-constraints/violations'),
+  useFetch<EOLRollupApiResponse>('/api/eol/approaching'),
+  useFetch<EOLRollupApiResponse>('/api/eol/expired')
+])
 
 const techCount = useApiCount(techData)
 const sysCount = useApiCount(sysData)

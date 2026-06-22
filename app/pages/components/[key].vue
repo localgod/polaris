@@ -622,7 +622,7 @@
               </div>
             </template>
 
-            <ComponentDependencyTree
+            <AsyncComponentDependencyTree
               :component-key="route.params.key as string"
               :system-name="activeDependencySystem"
             />
@@ -634,10 +634,13 @@
 </template>
 
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
 import type { ComponentDetail, EOLStatusValue, ComponentSystemUsage, KnownVulnerability, MaintenanceHealthConfidence, MaintenanceHealthReasonCode, MaintenanceHealthStatus, PackageMetadataSource, PackageMetadataStatus, SecurityScorecardStatus, VulnerabilityStatus } from '~~/types/api'
 
 const route = useRoute()
 const router = useRouter()
+
+const AsyncComponentDependencyTree = defineAsyncComponent(() => import('../../components/ComponentDependencyTree.vue'))
 
 type DependencyView = 'global' | 'system'
 
