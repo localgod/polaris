@@ -118,8 +118,12 @@ async function auditRoute(url: string, port: number): Promise<string[]> {
 async function main() {
   await mkdir(outputDir, { recursive: true })
 
+  const { existsSync } = await import('node:fs')
+  const preferredChromePath = process.env.CHROME_PATH || chromium.executablePath()
+  const chromePath = existsSync(preferredChromePath) ? preferredChromePath : undefined
+
   const chrome = await launcher.launch({
-    chromePath: process.env.CHROME_PATH || chromium.executablePath(),
+    ...(chromePath ? { chromePath } : {}),
     chromeFlags: ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage'],
   })
 
