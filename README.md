@@ -393,7 +393,7 @@ Access the documentation at `/docs` when running the application, or browse the 
 - **Documentation**: @nuxt/content with Markdown
 - **Testing**: Vitest with Gherkin-style BDD
 - **Development**: Docker, Dev Containers, Gitpod
-- **CI/CD**: GitHub Actions with automated testing and coverage
+- **CI/CD**: GitHub Actions with automated testing, coverage, and Lighthouse audits
 
 ## Key Features
 

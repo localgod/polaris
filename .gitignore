@@ -6,6 +6,7 @@
 .cache
 dist
 coverage
+lighthouse-reports
 
 # Node dependencies
 node_modules
