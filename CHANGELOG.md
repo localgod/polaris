@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.21] - 2026-06-22
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump undici from 7.27.0 to 7.28.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#681)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.20...v0.6.21
+
 ## [0.6.14] - 2026-06-17
 
 ## What's Changed
