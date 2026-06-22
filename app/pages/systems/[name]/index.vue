@@ -127,7 +127,7 @@
           </p>
         </template>
         <ClientOnly>
-          <SystemDependencyGraph
+          <AsyncSystemDependencyGraph
             :system-name="data.data.name"
             :nodes="graphData?.data?.nodes ?? []"
             :edges="graphData?.data?.edges ?? []"
@@ -139,7 +139,11 @@
 </template>
 
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
+
 const route = useRoute()
+
+const AsyncSystemDependencyGraph = defineAsyncComponent(() => import('../../../components/SystemDependencyGraph.vue'))
 
 interface System {
   name: string

@@ -83,7 +83,7 @@
           <UBadge v-if="radarPending" color="neutral" variant="subtle">Loading…</UBadge>
         </div>
         <UCard>
-          <TechnologyRadar :data="radarData" />
+          <AsyncTechnologyRadar :data="radarData" />
         </UCard>
       </template>
     </template>
@@ -275,7 +275,7 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
+import { defineAsyncComponent, h } from 'vue'
 import * as z from 'zod'
 import type { TableColumn, FormSubmitEvent } from '@nuxt/ui'
 import type { ApiResponse, Technology } from '~~/types/api'
@@ -285,7 +285,7 @@ const { getSortableHeader } = useSortableTable()
 const { data: session } = useAuth()
 const { isSuperuser } = useEffectiveRole()
 
-
+const AsyncTechnologyRadar = defineAsyncComponent(() => import('../../components/TechnologyRadar.vue'))
 
 const userTeams = computed(() =>
   (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
