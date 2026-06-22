@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.22] - 2026-06-22
+
+## What's Changed
+
+- Refactor GitHub seed to use import service @localgod (#684)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.21...v0.6.22
+
 ## [0.6.14] - 2026-06-17
 
 ## What's Changed
