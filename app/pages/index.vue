@@ -267,13 +267,9 @@
 </template>
 
 <script setup lang="ts">
-<<<<<<< HEAD
-import type { ApiResponse, EOLRollupResponse, Technology, System, GroupedComponent, HealthDashboardSummary, VersionConstraint } from '~~/types/api'
+import type { HealthDashboardSummary } from '~~/types/api'
 
-interface LicenseStatsResponse {
-=======
 interface DashboardSummaryResponse {
->>>>>>> origin/main
   success: boolean
   data: {
     counts: {
@@ -312,28 +308,15 @@ interface DashboardSummaryResponse {
 
 const { data: dashboardData } = await useFetch<DashboardSummaryResponse>('/api/dashboard')
 
-<<<<<<< HEAD
 interface HealthSummaryApiResponse {
   success: boolean
   data: HealthDashboardSummary
   count: number
 }
 
-const { data: techData } = await useFetch<ApiResponse<Technology>>('/api/technologies')
-const { data: sysData } = await useFetch<ApiResponse<System>>('/api/systems')
-const { data: compData } = await useFetch<ApiResponse<GroupedComponent>>('/api/components/grouped', {
-  query: { direct: 'true' }
-})
-const { data: vcData } = await useFetch<ApiResponse<VersionConstraint>>('/api/version-constraints')
-const { data: licenseStatsData } = await useFetch<LicenseStatsResponse>('/api/licenses/statistics')
-const { data: licenseViolationsData } = await useFetch<LicenseViolationsResponse>('/api/licenses/violations')
-const { data: vcViolationsData } = await useFetch<ViolationsResponse>('/api/version-constraints/violations')
-const { data: eolApproachingData } = await useFetch<EOLRollupApiResponse>('/api/eol/approaching', { server: false })
-const { data: eolExpiredData } = await useFetch<EOLRollupApiResponse>('/api/eol/expired', { server: false })
 const { data: healthSummaryData } = await useFetch<HealthSummaryApiResponse>('/api/health/summary')
-=======
+
 const summary = computed(() => dashboardData.value?.data)
->>>>>>> origin/main
 
 const counts = computed(() => ({
   technologies: summary.value?.counts.technologies || 0,
