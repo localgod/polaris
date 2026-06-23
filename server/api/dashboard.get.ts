@@ -35,18 +35,29 @@ async function buildDashboardSummary(
     versionViolationResult
   ] = await Promise.all([
     driver.executeQuery(`
-      MATCH (t:Technology)
-      WITH count(t) AS technologies
-      MATCH (s:System)
-      WITH technologies, count(s) AS systems, collect(toLower(coalesce(s.businessCriticality, ''))) AS criticalities
-      MATCH (vc:VersionConstraint)
+      CALL {
+        MATCH (t:Technology)
+        RETURN count(t) AS technologies
+      }
+      CALL {
+        MATCH (s:System)
+        RETURN count(s) AS systems,
+               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'critical' THEN 1 ELSE 0 END) AS critical,
+               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'high' THEN 1 ELSE 0 END) AS high,
+               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'medium' THEN 1 ELSE 0 END) AS medium,
+               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'low' THEN 1 ELSE 0 END) AS low
+      }
+      CALL {
+        MATCH (vc:VersionConstraint)
+        RETURN count(vc) AS versionConstraints
+      }
       RETURN technologies,
              systems,
-             count(vc) AS versionConstraints,
-             size([criticality IN criticalities WHERE criticality = 'critical']) AS critical,
-             size([criticality IN criticalities WHERE criticality = 'high']) AS high,
-             size([criticality IN criticalities WHERE criticality = 'medium']) AS medium,
-             size([criticality IN criticalities WHERE criticality = 'low']) AS low
+             versionConstraints,
+             critical,
+             high,
+             medium,
+             low
     `),
     driver.executeQuery(`
       MATCH (:System)-[u:USES]->(c:Component)
@@ -70,13 +81,25 @@ async function buildDashboardSummary(
         `)
       : Promise.resolve({ records: [] }),
     driver.executeQuery(`
-      MATCH (h:HealthSnapshot)
-      WHERE h.eolStatus IN ['unsupported', 'approaching_eol']
-      OPTIONAL MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h)
-      OPTIONAL MATCH (sys:System)-[:USES]->(c)
-      RETURN sum(CASE WHEN h.eolStatus = 'unsupported' THEN 1 ELSE 0 END) AS unsupported,
-             sum(CASE WHEN h.eolStatus = 'approaching_eol' THEN 1 ELSE 0 END) AS approaching,
-             count(DISTINCT sys.name) AS systems
+      CALL {
+        MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
+        WHERE h.eolStatus = 'unsupported'
+        RETURN count(DISTINCT coalesce(c.purl, h.componentPurl, elementId(c))) AS unsupported
+      }
+      CALL {
+        MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
+        WHERE h.eolStatus = 'approaching_eol'
+        RETURN count(DISTINCT coalesce(c.purl, h.componentPurl, elementId(c))) AS approaching
+      }
+      CALL {
+        MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
+        WHERE h.eolStatus IN ['unsupported', 'approaching_eol']
+        OPTIONAL MATCH (sys:System)-[:USES]->(c)
+        RETURN count(DISTINCT sys.name) AS systems
+      }
+      RETURN unsupported,
+             approaching,
+             systems
     `),
     user
       ? versionConstraintService.getViolations({})
