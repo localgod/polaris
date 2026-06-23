@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.28] - 2026-06-23
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(actions): bump actions/checkout from 6 to 7 @[dependabot[bot]](https://github.com/apps/dependabot) (#686)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.27...v0.6.28
+
 ## [0.6.14] - 2026-06-17
 
 ## What's Changed
