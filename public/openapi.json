@@ -4479,6 +4479,20 @@
         }
       }
     },
+    "/health/summary": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Get cross-system component health summary",
+        "description": "Returns dashboard-ready health, advisory, freshness, and critical-system risk aggregates.",
+        "responses": {
+          "200": {
+            "description": "Health summary retrieved successfully"
+          }
+        }
+      }
+    },
     "/eol/expired": {
       "get": {
         "tags": [

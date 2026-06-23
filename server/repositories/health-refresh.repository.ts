@@ -1,5 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import type { HealthDashboardSummary } from '~~/types/api'
 
 export type HealthRefreshJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 export type HealthRefreshJobItemStatus = 'pending' | 'running' | 'refreshed' | 'failed' | 'skipped'
@@ -62,6 +63,37 @@ function intValue(value: unknown): number {
 }
 
 export class HealthRefreshRepository extends BaseRepository {
+  async getDashboardSummary(staleAfterDays = 7): Promise<HealthDashboardSummary> {
+    const [
+      vulnerabilityExposure,
+      vulnerabilityAffectedSystems,
+      advisoryHotspots,
+      refreshCoverage,
+      failedItems,
+      criticalSystemsAtRisk
+    ] = await Promise.all([
+      this.getVulnerabilityExposure(),
+      this.getVulnerabilityAffectedSystems(),
+      this.getAdvisoryHotspots(),
+      this.getRefreshCoverage(staleAfterDays),
+      this.getRecentFailedItems(),
+      this.getCriticalSystemsAtRisk()
+    ])
+
+    return {
+      vulnerabilityExposure: {
+        ...vulnerabilityExposure,
+        affectedSystems: vulnerabilityAffectedSystems
+      },
+      advisoryHotspots,
+      refreshCoverage: {
+        ...refreshCoverage,
+        failedItems
+      },
+      criticalSystemsAtRisk
+    }
+  }
+
   async enqueueForSystem(systemName: string, trigger: HealthRefreshTrigger = 'sbom_import'): Promise<string> {
     return await this.enqueue(trigger, systemName)
   }
@@ -301,6 +333,131 @@ export class HealthRefreshRepository extends BaseRepository {
       errorSummary: (item.errorSummary as string | null | undefined) ?? null,
       startedAt: item.startedAt?.toString() || null,
       finishedAt: item.finishedAt?.toString() || null
+    }
+  }
+
+  private async getVulnerabilityExposure(): Promise<Omit<HealthDashboardSummary['vulnerabilityExposure'], 'affectedSystems'>> {
+    const { records } = await this.executeQuery(`
+      MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
+      RETURN
+        count(CASE WHEN coalesce(h.vulnerabilityTotal, 0) > 0 THEN 1 END) AS vulnerableComponents,
+        count(CASE WHEN coalesce(h.vulnerabilityCritical, 0) > 0 THEN 1 END) AS criticalComponents,
+        count(CASE WHEN coalesce(h.vulnerabilityHigh, 0) > 0 THEN 1 END) AS highComponents,
+        coalesce(sum(coalesce(h.vulnerabilityCritical, 0)), 0) AS criticalVulnerabilities,
+        coalesce(sum(coalesce(h.vulnerabilityHigh, 0)), 0) AS highVulnerabilities
+    `)
+    const record = records[0]
+    return {
+      vulnerableComponents: intValue(record?.get('vulnerableComponents')),
+      criticalComponents: intValue(record?.get('criticalComponents')),
+      highComponents: intValue(record?.get('highComponents')),
+      criticalVulnerabilities: intValue(record?.get('criticalVulnerabilities')),
+      highVulnerabilities: intValue(record?.get('highVulnerabilities'))
+    }
+  }
+
+  private async getVulnerabilityAffectedSystems(): Promise<number> {
+    const { records } = await this.executeQuery(`
+      MATCH (s:System)-[u:USES]->(c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
+      WHERE u.isDirect = true
+        AND coalesce(h.vulnerabilityTotal, 0) > 0
+      RETURN count(DISTINCT s) AS affectedSystems
+    `)
+    return intValue(records[0]?.get('affectedSystems'))
+  }
+
+  private async getAdvisoryHotspots(): Promise<HealthDashboardSummary['advisoryHotspots']> {
+    const { records } = await this.executeQuery(`
+      MATCH (a:Advisory)<-[:HAS_ADVISORY]-(c:Component)
+      OPTIONAL MATCH (s:System)-[u:USES]->(c)
+      WHERE u.isDirect = true
+      WITH a,
+           count(DISTINCT c) AS affectedComponents,
+           count(DISTINCT s) AS affectedSystems
+      ORDER BY affectedSystems DESC, affectedComponents DESC, coalesce(a.cvssScore, 0) DESC, a.id ASC
+      LIMIT 3
+      RETURN a.id AS id,
+             a.aliases AS aliases,
+             a.summary AS summary,
+             a.cvssScore AS cvssScore,
+             affectedComponents,
+             affectedSystems
+    `)
+
+    return records.map(record => ({
+      id: record.get('id'),
+      aliases: record.get('aliases') ?? [],
+      summary: record.get('summary') ?? null,
+      cvssScore: record.get('cvssScore') ?? null,
+      affectedComponents: intValue(record.get('affectedComponents')),
+      affectedSystems: intValue(record.get('affectedSystems'))
+    }))
+  }
+
+  private async getRefreshCoverage(staleAfterDays: number): Promise<Omit<HealthDashboardSummary['refreshCoverage'], 'failedItems'>> {
+    const { records } = await this.executeQuery(`
+      MATCH (s:System)-[u:USES]->(c:Component)
+      WHERE u.isDirect = true
+      WITH DISTINCT c
+      OPTIONAL MATCH (c)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
+      WITH c, h,
+           h IS NOT NULL AND (
+             h.eolRefreshedAt IS NOT NULL OR
+             h.vulnerabilityRefreshedAt IS NOT NULL OR
+             h.maintenanceRefreshedAt IS NOT NULL OR
+             h.securityScoreRefreshedAt IS NOT NULL
+           ) AS hasAnyRefresh,
+           h IS NOT NULL AND any(ts IN [
+             h.eolRefreshedAt,
+             h.vulnerabilityRefreshedAt,
+             h.maintenanceRefreshedAt,
+             h.securityScoreRefreshedAt
+           ] WHERE ts IS NOT NULL AND datetime(ts) < datetime() - duration({days: $staleAfterDays})) AS hasStaleRefresh
+      RETURN count(c) AS totalComponents,
+             sum(CASE WHEN hasAnyRefresh THEN 1 ELSE 0 END) AS refreshedComponents,
+             sum(CASE WHEN hasStaleRefresh THEN 1 ELSE 0 END) AS staleComponents,
+             sum(CASE WHEN NOT hasAnyRefresh THEN 1 ELSE 0 END) AS neverCheckedComponents
+    `, { staleAfterDays })
+    const record = records[0]
+    return {
+      totalComponents: intValue(record?.get('totalComponents')),
+      refreshedComponents: intValue(record?.get('refreshedComponents')),
+      staleComponents: intValue(record?.get('staleComponents')),
+      neverCheckedComponents: intValue(record?.get('neverCheckedComponents'))
+    }
+  }
+
+  private async getRecentFailedItems(): Promise<number> {
+    const { records } = await this.executeQuery(`
+      MATCH (item:HealthRefreshJobItem {status: 'failed'})
+      WHERE item.finishedAt IS NULL
+         OR item.finishedAt >= datetime() - duration({days: 1})
+      RETURN count(item) AS failedItems
+    `)
+    return intValue(records[0]?.get('failedItems'))
+  }
+
+  private async getCriticalSystemsAtRisk(): Promise<HealthDashboardSummary['criticalSystemsAtRisk']> {
+    const { records } = await this.executeQuery(`
+      MATCH (s:System)-[u:USES]->(c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
+      WHERE u.isDirect = true
+        AND lower(coalesce(s.businessCriticality, '')) IN ['critical', 'high']
+        AND (
+          coalesce(h.vulnerabilityCritical, 0) > 0 OR
+          h.eolStatus = 'unsupported' OR
+          h.isDeprecated = true
+        )
+      RETURN count(DISTINCT s) AS systems,
+             count(DISTINCT CASE WHEN lower(coalesce(s.businessCriticality, '')) = 'critical' THEN s END) AS criticalSystems,
+             count(DISTINCT CASE WHEN lower(coalesce(s.businessCriticality, '')) = 'high' THEN s END) AS highSystems,
+             count(DISTINCT c) AS affectedComponents
+    `)
+    const record = records[0]
+    return {
+      systems: intValue(record?.get('systems')),
+      criticalSystems: intValue(record?.get('criticalSystems')),
+      highSystems: intValue(record?.get('highSystems')),
+      affectedComponents: intValue(record?.get('affectedComponents'))
     }
   }
 }

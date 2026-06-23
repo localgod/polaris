@@ -55,6 +55,27 @@ describe('SystemRepository', () => {
 
       expect(test.length).toBe(3)
     })
+
+    it('should count only direct components', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (s:System { name: $system, domain: 'Platform', businessCriticality: 'medium' })
+        CREATE (direct:Component { name: $direct, version: '1.0.0' })
+        CREATE (transitive:Component { name: $transitive, version: '2.0.0' })
+        CREATE (s)-[:USES { isDirect: true }]->(direct)
+        CREATE (s)-[:USES { isDirect: false }]->(transitive)
+      `, {
+        system: `${PREFIX}direct-count`,
+        direct: `${PREFIX}direct-component`,
+        transitive: `${PREFIX}transitive-component`
+      })
+
+      const { data } = await repo.findAll()
+      const sys = data.find(s => s.name === `${PREFIX}direct-count`)
+
+      expect(sys).toBeDefined()
+      expect(sys!.componentCount).toBe(1)
+    })
   })
 
   describe('findByName()', () => {
@@ -72,8 +93,8 @@ describe('SystemRepository', () => {
         CREATE (c1:Component { name: $c1, version: '1.0.0' })
         CREATE (c2:Component { name: $c2, version: '2.0.0' })
         MERGE (r:Repository { url: $url }) ON CREATE SET r.name = 'repo'
-        CREATE (s)-[:USES]->(c1)
-        CREATE (s)-[:USES]->(c2)
+        CREATE (s)-[:USES { isDirect: true }]->(c1)
+        CREATE (s)-[:USES { isDirect: false }]->(c2)
         CREATE (s)-[:HAS_SOURCE_IN]->(r)
       `, {
         name: `${PREFIX}test-system`, team: `${PREFIX}Platform Team`,
@@ -86,7 +107,7 @@ describe('SystemRepository', () => {
       expect(sys).not.toBeNull()
       expect(sys!.name).toBe(`${PREFIX}test-system`)
       expect(sys!.ownerTeam).toBe(`${PREFIX}Platform Team`)
-      expect(sys!.componentCount).toBe(2)
+      expect(sys!.componentCount).toBe(1)
       expect(sys!.repositoryCount).toBe(1)
     })
   })
