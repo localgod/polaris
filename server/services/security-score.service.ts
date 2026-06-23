@@ -1,4 +1,5 @@
 import type { Component, ExternalReference, SecurityScorecard, SecurityScorecardCheck, SecurityScorecardUnavailableReason } from '~~/types/api'
+import { logger } from '../utils/logger'
 
 interface CacheEntry<T> {
   expiresAt: number
@@ -67,6 +68,9 @@ export class SecurityScoreService {
       const scorecard = await this.getScorecard(repository)
       return this.available(repository, scorecard)
     } catch (error) {
+      if (!this.isNotFound(error)) {
+        logger.warn({ err: error, repository }, 'Security scorecard fetch failed')
+      }
       return this.unavailable(this.isNotFound(error) ? 'repository_not_found' : 'fetch_failed', repository)
     }
   }

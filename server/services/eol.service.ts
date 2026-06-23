@@ -1,4 +1,5 @@
 import type { EOLStatus, EOLStatusValue } from '~~/types/api'
+import { logger } from '../utils/logger'
 
 export interface EOLStatusInput {
   name: string
@@ -118,7 +119,8 @@ export class EOLService {
       }
 
       return this.toStatus(product, release)
-    } catch {
+    } catch (error) {
+      logger.warn({ err: error, productName }, 'EOL fetch failed')
       return this.unknown('fetch_failed', productName, null)
     }
   }
