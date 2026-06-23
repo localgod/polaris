@@ -598,6 +598,29 @@ No thresholds are currently enforced. Coverage is collected for informational pu
 
 GitHub Actions runs tests with `--coverage`, uploads per-layer coverage artifacts, and posts a coverage summary on pull requests via the Vitest coverage-report Action.
 
+## Lighthouse Audits
+
+Lighthouse runs outside the Vitest coverage matrix because it audits a built frontend rather than exercising source-level test coverage.
+
+Run a production audit locally after building and starting a preview server:
+
+```bash
+npm run build
+npm run preview
+npm run lighthouse
+```
+
+By default, the audit checks `/`, `/components`, `/systems`, `/technologies`, and `/docs/concepts`. Reports are written to `lighthouse-reports/` as HTML and JSON.
+
+The default thresholds fail CI for accessibility below 85 and best practices or SEO below 90. Performance below 70 is reported as a warning because CI runner timing can be noisy. Raise the accessibility threshold as current issues are fixed. Set `LIGHTHOUSE_FAIL_PERFORMANCE=true` to make the performance threshold blocking.
+
+Useful environment variables:
+
+- `LIGHTHOUSE_BASE_URL` - Base URL to audit, defaults to `http://localhost:3000`
+- `LIGHTHOUSE_ROUTES` - Comma-separated route list, for example `/,/components`
+- `LIGHTHOUSE_OUTPUT_DIR` - Report output directory, defaults to `lighthouse-reports`
+- `LIGHTHOUSE_ACCESSIBILITY_MIN`, `LIGHTHOUSE_BEST_PRACTICES_MIN`, `LIGHTHOUSE_SEO_MIN`, `LIGHTHOUSE_PERFORMANCE_MIN` - Category thresholds as whole percentages
+
 ## Writing Tests with vitest-cucumber
 
 Note: use Gherkin (`vitest-cucumber`) only for feature/acceptance tests.

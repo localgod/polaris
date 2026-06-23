@@ -5,8 +5,8 @@
  * 
  * This script performs a complete database seeding:
  * 1. Seeds governance data (teams, technologies, policies, approvals) from fixtures
- * 2. Clones GitHub repositories and generates SBOMs using cdxgen
- * 3. Posts SBOMs to the /api/sboms endpoint to populate systems and components
+ * 2. Imports GitHub repositories through the admin import API
+ * 3. Creates fixture-specific technology and ownership relationships
  * 
  * Usage:
  *   npm run seed:github                    # Full seed (fixtures + GitHub repos)
@@ -15,17 +15,16 @@
  * 
  * Requirements:
  *   - SEED_API_TOKEN environment variable (generate via UI or API)
- *   - Git installed
+ *   - Nuxt dev server running
  *   - Internet connection
  * 
  * Note: Repository metadata (default branch, description) is fetched from
- * the GitHub API automatically, overriding values in github-repos.json.
+ * the GitHub API by the import service.
  */
 
 import { execSync } from 'child_process'
-import { mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import { createBom } from '@cyclonedx/cdxgen'
 import neo4j from 'neo4j-driver'
 import { randomBytes, createHash } from 'crypto'
 
@@ -73,7 +72,6 @@ interface SeedOptions {
   repos?: string[]
 }
 
-const TEMP_DIR = join(process.cwd(), '.data', 'temp')
 const CONFIG_PATH = join(process.cwd(), 'schema', 'fixtures', 'github-repos.json')
 
 /**
@@ -91,135 +89,6 @@ function getApiBaseUrl(): string {
 }
 
 /**
- * GitHub repository metadata from API
- */
-interface GitHubRepoMetadata {
-  default_branch: string
-  description: string | null
-  language: string | null
-  name: string
-  full_name: string
-  private: boolean
-}
-
-/**
- * Fetch repository metadata from GitHub API
- */
-async function fetchGitHubMetadata(repoUrl: string): Promise<GitHubRepoMetadata | null> {
-  // Extract owner/repo from URL
-  const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/)
-  if (!match) {
-    console.warn(`  ⚠️  Could not parse GitHub URL: ${repoUrl}`)
-    return null
-  }
-  
-  const [, owner, repo] = match
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}`
-  
-  try {
-    const response = await fetch(apiUrl, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'Polaris-Seeder'
-      }
-    })
-    
-    if (!response.ok) {
-      console.warn(`  ⚠️  GitHub API returned ${response.status} for ${owner}/${repo}`)
-      return null
-    }
-    
-    const data = await response.json() as GitHubRepoMetadata
-    return data
-  } catch (error) {
-    console.warn(`  ⚠️  Failed to fetch GitHub metadata: ${error instanceof Error ? error.message : error}`)
-    return null
-  }
-}
-
-/**
- * Enrich repository config with GitHub metadata
- */
-async function enrichWithGitHubMetadata(config: RepositoryConfig): Promise<RepositoryConfig> {
-  console.log(`  🔍 Fetching metadata from GitHub API...`)
-  
-  const metadata = await fetchGitHubMetadata(config.url)
-  
-  if (!metadata) {
-    console.log(`  ℹ️  Using config file values (GitHub API unavailable)`)
-    return config
-  }
-  
-  // Update config with GitHub metadata
-  const enriched: RepositoryConfig = {
-    ...config,
-    branch: metadata.default_branch,
-    repository: {
-      ...config.repository,
-      name: metadata.name,
-      description: metadata.description || config.repository.description,
-      isPublic: !metadata.private,
-      defaultBranch: metadata.default_branch
-    }
-  }
-  
-  console.log(`  ✅ Got metadata: branch=${metadata.default_branch}, description="${metadata.description || '(none)'}"`)
-  
-  return enriched
-}
-
-/**
- * Clone a GitHub repository to a temporary directory
- */
-async function cloneRepository(repoUrl: string, branch: string, targetDir: string): Promise<void> {
-  console.log(`  📥 Cloning ${repoUrl} (branch: ${branch})...`)
-  
-  try {
-    execSync(`git clone --depth 1 --branch ${branch} ${repoUrl} ${targetDir}`, {
-      stdio: 'pipe'
-    })
-    console.log(`  ✅ Cloned successfully`)
-  } catch (error) {
-    throw new Error(`Failed to clone repository: ${error instanceof Error ? error.message : error}`, { cause: error })
-  }
-}
-
-/**
- * Generate SBOM using cdxgen
- */
-async function generateSBOM(repoPath: string, repoName: string): Promise<object> {
-  console.log(`  🔨 Generating SBOM for ${repoName}...`)
-  
-  try {
-    const bom = await createBom(repoPath, {
-      installDeps: false,
-      projectName: repoName,
-      projectVersion: '1.0.0',
-      multiProject: true  // Detect multiple package managers (npm, composer, etc.)
-    })
-    
-    if (!bom) {
-      throw new Error('cdxgen returned empty BOM')
-    }
-    
-    console.log(`  ✅ SBOM generated successfully`)
-    
-    // cdxgen can return either string or object
-    if (typeof bom === 'string') {
-      return JSON.parse(bom)
-    } else if (bom && typeof bom === 'object' && 'bomJson' in bom) {
-      // Newer versions return an object with bomJson property
-      return (bom as Record<string, unknown>).bomJson as object
-    } else {
-      // It's already a BOM object
-      return bom as object
-    }
-  } catch (error) {
-    throw new Error(`Failed to generate SBOM: ${error instanceof Error ? error.message : error}`, { cause: error })
-  }
-}
-
-/**
  * Get Neo4j driver
  */
 function getDriver(): neo4j.Driver {
@@ -231,220 +100,59 @@ function getDriver(): neo4j.Driver {
 }
 
 /**
- * Ensure system and repository exist in database via REST API.
- *
- * Tries to create the system with the repository inline. If the system
- * already exists (409), registers the repository separately.
- */
-async function ensureSystemExists(config: RepositoryConfig, apiToken: string): Promise<void> {
-  console.log(`  🔍 Ensuring system exists: ${config.system.name}`)
-  
-  const baseUrl = getApiBaseUrl()
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiToken}`
-  }
-
-  const repoPayload = {
-    url: config.url,
-    scmType: config.repository.scmType,
-    name: config.repository.name,
-    isPublic: config.repository.isPublic,
-    requiresAuth: config.repository.requiresAuth
-  }
-  
-  // Try to create system with repository inline
-  try {
-    const response = await fetch(`${baseUrl}/api/systems`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        ...config.system,
-        repositories: [repoPayload]
-      })
-    })
-    
-    if (response.ok) {
-      console.log(`  ✅ System created with repository`)
-      return
-    } else if (response.status === 409) {
-      console.log(`  ✅ System already exists`)
-      // Fall through to register repository separately
-    } else {
-      const error = await response.text()
-      throw new Error(`Failed to create system: ${response.status} ${error}`)
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('409')) {
-      console.log(`  ✅ System already exists`)
-    } else {
-      const msg = error instanceof Error ? error.message : String(error)
-      throw new Error(`Failed to create system via API at ${baseUrl}/api/systems: ${msg}. Is the Nuxt dev server running? Start it with 'npm run dev' and ensure ${baseUrl} is reachable.`, { cause: error })
-    }
-  }
-  
-  // System already existed — register the repository via API
-  await ensureRepositoryExists(config, apiToken)
-}
-
-/**
- * Register a repository for an existing system via REST API.
- */
-async function ensureRepositoryExists(config: RepositoryConfig, apiToken: string): Promise<void> {
-  const baseUrl = getApiBaseUrl()
-  const systemName = encodeURIComponent(config.system.name)
-
-  try {
-    const response = await fetch(`${baseUrl}/api/systems/${systemName}/repositories`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`
-      },
-      body: JSON.stringify({
-        url: config.url,
-        name: config.repository.name
-      })
-    })
-
-    if (response.ok) {
-      console.log(`  ✅ Repository registered for system`)
-    } else if (response.status === 409) {
-      console.log(`  ✅ Repository already linked to system`)
-    } else {
-      const error = await response.text()
-      throw new Error(`Failed to register repository: ${response.status} ${error}`)
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('409')) {
-      console.log(`  ✅ Repository already linked to system`)
-    } else {
-      throw new Error(`Failed to register repository: ${error instanceof Error ? error.message : error}`, { cause: error })
-    }
-  }
-}
-
-/**
- * Sanitize SBOM by converting Maps and Sets to plain objects/arrays
- * Neo4j doesn't support Map or Set objects
- */
-function sanitizeSBOM(obj: unknown): unknown {
-  if (obj === null || obj === undefined) {
-    return obj
-  }
-  
-  // Convert Map to plain object
-  if (obj instanceof Map) {
-    const plain: Record<string, unknown> = {}
-    obj.forEach((value, key) => {
-      plain[String(key)] = sanitizeSBOM(value)
-    })
-    return plain
-  }
-  
-  // Convert Set to array
-  if (obj instanceof Set) {
-    return Array.from(obj).map(item => sanitizeSBOM(item))
-  }
-  
-  // Handle arrays
-  if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeSBOM(item))
-  }
-  
-  // Handle plain objects
-  if (typeof obj === 'object' && obj.constructor === Object) {
-    const sanitized: Record<string, unknown> = {}
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeSBOM(value)
-    }
-    return sanitized
-  }
-  
-  // Return primitives and other types as-is
-  return obj
-}
-
-/**
- * Post SBOM to the API endpoint
- */
-async function postSBOM(repoUrl: string, sbom: object, apiToken: string): Promise<void> {
-  console.log(`  📤 Posting SBOM to API...`)
-  
-  const baseUrl = getApiBaseUrl()
-  
-  // Sanitize SBOM to remove Map/Set objects
-  const sanitized = sanitizeSBOM(sbom)
-  
-  try {
-    const response = await fetch(`${baseUrl}/api/sboms`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`
-      },
-      body: JSON.stringify({
-        repositoryUrl: repoUrl,
-        sbom: sanitized
-      })
-    })
-    
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`API returned ${response.status}: ${JSON.stringify(error)}`)
-    }
-    
-    const result = await response.json()
-    console.log(`  ✅ SBOM processed successfully`)
-    console.log(`     System: ${result.systemName}`)
-    console.log(`     Components added: ${result.componentsAdded}`)
-    console.log(`     Components updated: ${result.componentsUpdated}`)
-    console.log(`     Relationships created: ${result.relationshipsCreated}`)
-  } catch (error) {
-    throw new Error(`Failed to post SBOM: ${error instanceof Error ? error.message : error}`, { cause: error })
-  }
-}
-
-/**
  * Process a single repository
  */
 async function processRepository(config: RepositoryConfig, apiToken: string): Promise<void> {
   const repoName = config.url.split('/').pop() || 'unknown'
-  const repoDir = join(TEMP_DIR, repoName)
   
   console.log(`\n📦 Processing: ${config.url}`)
   
   try {
-    // Enrich config with GitHub metadata (default branch, description, etc.)
-    const enrichedConfig = await enrichWithGitHubMetadata(config)
-    
-    // Clean up any existing directory first
-    if (existsSync(repoDir)) {
-      console.log(`  🧹 Cleaning up existing directory...`)
-      rmSync(repoDir, { recursive: true, force: true })
+    const baseUrl = getApiBaseUrl()
+    const response = await fetch(`${baseUrl}/api/admin/import/github`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiToken}`
+      },
+      body: JSON.stringify({
+        repositoryUrl: config.url,
+        systemName: config.system.name,
+        domain: config.system.domain,
+        ownerTeam: config.system.ownerTeam,
+        businessCriticality: config.system.businessCriticality,
+        environment: config.system.environment
+      })
+    })
+
+    const result = await response.json().catch(() => null) as {
+      data?: {
+        systemName: string
+        manifestsFound: number
+        componentsAdded: number
+        componentsUpdated: number
+        relationshipsCreated: number
+      }
+      message?: string
+      statusMessage?: string
+    } | null
+
+    if (!response.ok) {
+      const message = result?.message || result?.statusMessage || response.statusText
+      throw new Error(`Import API returned ${response.status}: ${message}. Is the Nuxt dev server running at ${baseUrl}?`)
     }
-    
-    // Clone repository using the correct branch from GitHub
-    await cloneRepository(enrichedConfig.url, enrichedConfig.branch, repoDir)
-    
-    // Generate SBOM
-    const sbom = await generateSBOM(repoDir, repoName)
-    
-    // Ensure system exists
-    await ensureSystemExists(enrichedConfig, apiToken)
-    
-    // Post SBOM
-    await postSBOM(enrichedConfig.url, sbom, apiToken)
+
+    console.log(`  ✅ Imported via GitHub import service`)
+    console.log(`     System: ${result?.data?.systemName || config.system.name}`)
+    console.log(`     Manifests found: ${result?.data?.manifestsFound ?? 0}`)
+    console.log(`     Components added: ${result?.data?.componentsAdded ?? 0}`)
+    console.log(`     Components updated: ${result?.data?.componentsUpdated ?? 0}`)
+    console.log(`     Relationships created: ${result?.data?.relationshipsCreated ?? 0}`)
     
     console.log(`✅ Successfully processed ${repoName}\n`)
   } catch (error) {
     console.error(`❌ Error processing ${repoName}:`, error instanceof Error ? error.message : error)
     throw error
-  } finally {
-    // Cleanup cloned repository
-    if (existsSync(repoDir)) {
-      rmSync(repoDir, { recursive: true, force: true })
-    }
   }
 }
 
@@ -852,11 +560,6 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
     process.exit(1)
   }
   
-  // Create temp directory
-  if (!existsSync(TEMP_DIR)) {
-    mkdirSync(TEMP_DIR, { recursive: true })
-  }
-  
   try {
     // Load configurations
     const repositories = loadConfigurations(options)
@@ -899,11 +602,6 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
   } catch (error) {
     console.error('\n❌ Error:', error instanceof Error ? error.message : error)
     process.exit(1)
-  } finally {
-    // Cleanup temp directory
-    if (existsSync(TEMP_DIR)) {
-      rmSync(TEMP_DIR, { recursive: true, force: true })
-    }
   }
 }
 

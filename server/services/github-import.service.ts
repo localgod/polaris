@@ -16,6 +16,8 @@ import { SBOMService } from './sbom.service'
 export interface GitHubImportInput {
   /** GitHub repo URL or owner/repo shorthand */
   repositoryUrl: string
+  /** Override system name (defaults to the GitHub repository name) */
+  systemName?: string
   /** Override system domain (defaults to 'Development') */
   domain?: string
   /** Owning team name (must exist) */
@@ -88,7 +90,7 @@ export class GitHubImportService {
     }
 
     return {
-      systemName: metadata.name,
+      systemName: input.systemName?.trim() || metadata.name,
       repositoryUrl: repoUrl,
       description: metadata.description,
       defaultBranch: metadata.default_branch,
@@ -109,10 +111,11 @@ export class GitHubImportService {
     input: GitHubImportInput
   ): Promise<void> {
     const repoUrl = metadata.html_url
+    const systemName = input.systemName?.trim() || metadata.name
 
     try {
       await this.systemService.create({
-        name: metadata.name,
+        name: systemName,
         domain: input.domain || 'Development',
         ownerTeam: input.ownerTeam,
         businessCriticality: input.businessCriticality || 'medium',
@@ -128,7 +131,7 @@ export class GitHubImportService {
       // If system already exists, add the repository to it
       if (error && typeof error === 'object' && 'statusCode' in error && (error as { statusCode: number }).statusCode === 409) {
         try {
-          await this.systemService.addRepository(metadata.name, { url: repoUrl, name: metadata.name }, input.userId)
+          await this.systemService.addRepository(systemName, { url: repoUrl, name: metadata.name }, input.userId)
         } catch (repoError: unknown) {
           // Repository may already be linked — that's fine
           if (!(repoError && typeof repoError === 'object' && 'statusCode' in repoError && (repoError as { statusCode: number }).statusCode === 409)) {

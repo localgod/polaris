@@ -29,6 +29,9 @@ import { AuditLogRepository } from '../../../repositories/audit-log.repository'
  *                 type: string
  *                 description: GitHub repo URL or owner/repo shorthand
  *                 example: "https://github.com/org/repo"
+ *               systemName:
+ *                 type: string
+ *                 description: Optional system name override (defaults to repository name)
  *               domain:
  *                 type: string
  *                 description: Business domain (defaults to Development)
@@ -58,6 +61,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event) || {}
 
   const repositoryUrl = typeof body.repositoryUrl === 'string' ? body.repositoryUrl.trim() : ''
+  const systemName = typeof body.systemName === 'string' ? body.systemName.trim() : ''
   const ownerTeam = typeof body.ownerTeam === 'string' ? body.ownerTeam.trim() : ''
 
   if (!repositoryUrl) {
@@ -71,6 +75,7 @@ export default defineEventHandler(async (event) => {
   try {
     const result = await gitHubImportService.import({
       repositoryUrl,
+      systemName: systemName || undefined,
       domain: typeof body.domain === 'string' ? body.domain.trim() || undefined : undefined,
       ownerTeam,
       businessCriticality: body.businessCriticality,
