@@ -265,11 +265,70 @@ interface System {
   repositoryCount: number
 }
 
+const actionInProgress = ref<Set<string>>(new Set())
+
 interface SystemsResponse {
   success: boolean
   data: System[]
   count: number
   total?: number
+}
+
+async function triggerHealthRefresh(system: System) {
+  if (actionInProgress.value.has(system.name)) return
+  actionInProgress.value = new Set([...actionInProgress.value, system.name])
+  try {
+    await $fetch(`/api/systems/${encodeURIComponent(system.name)}/health-refresh`, { method: 'POST' })
+    toast.add({
+      title: 'Health refresh queued',
+      description: `Health data for ${system.name} will be updated shortly.`,
+      color: 'success',
+      icon: 'i-lucide-refresh-cw'
+    })
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    toast.add({
+      title: 'Health refresh failed',
+      description: err.data?.message || err.message || 'Unknown error',
+      color: 'error',
+      icon: 'i-lucide-alert-circle'
+    })
+  } finally {
+    const next = new Set(actionInProgress.value)
+    next.delete(system.name)
+    actionInProgress.value = next
+  }
+}
+
+async function triggerRescan(system: System) {
+  if (actionInProgress.value.has(system.name)) return
+  actionInProgress.value = new Set([...actionInProgress.value, system.name])
+  try {
+    const response = await $fetch<{ success: boolean; data: { total: number; succeeded: number; failed: number } }>(
+      `/api/admin/systems/${encodeURIComponent(system.name)}/rescan`,
+      { method: 'POST' }
+    )
+    const { succeeded, failed, total } = response.data
+    toast.add({
+      title: 'Rescan complete',
+      description: `${succeeded}/${total} repositories rescanned successfully${failed > 0 ? ` · ${failed} failed` : ''}.`,
+      color: failed > 0 ? 'warning' : 'success',
+      icon: failed > 0 ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle'
+    })
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    toast.add({
+      title: 'Rescan failed',
+      description: err.data?.message || err.message || 'Unknown error',
+      color: 'error',
+      icon: 'i-lucide-alert-circle'
+    })
+  } finally {
+    const next = new Set(actionInProgress.value)
+    next.delete(system.name)
+    actionInProgress.value = next
+  }
 }
 
 function getCriticalityColor(criticality: string): 'error' | 'warning' | 'success' | 'neutral' {
@@ -332,15 +391,18 @@ const columns: TableColumn<System>[] = [
     meta: { class: { th: 'w-10', td: 'text-right' } },
     cell: ({ row }) => {
       const system = row.original
+      const busy = actionInProgress.value.has(system.name)
       const items = [[
         { label: 'View Details', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/systems/${encodeURIComponent(system.name)}`) },
         ...(isSuperuser.value ? [
           { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEditSystemModal(system) },
+          { label: 'Rescan dependencies', icon: 'i-lucide-git-branch', disabled: busy || system.repositoryCount === 0, onSelect: () => triggerRescan(system) },
+          { label: 'Refresh health data', icon: 'i-lucide-refresh-cw', disabled: busy, onSelect: () => triggerHealthRefresh(system) },
           { label: 'Delete', icon: 'i-lucide-trash-2', onSelect: () => openDeleteSystemModal(system.name) }
         ] : [])
       ]]
       return h(resolveComponent('UDropdownMenu'), { items, content: { align: 'end' } }, {
-        default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
+        default: () => h(resolveComponent('UButton'), { icon: busy ? 'i-lucide-loader-circle' : 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
       })
     }
   }

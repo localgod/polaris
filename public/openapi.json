@@ -2610,6 +2610,33 @@
         }
       }
     },
+    "/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user details",
+        "description": "Returns full user details including teams, tokens (technical users), and recent audit activity. Superuser only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "tags": [
@@ -2689,116 +2716,6 @@
           },
           "500": {
             "description": "Failed to fetch users"
-          }
-        }
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "tags": [
-          "Users"
-        ],
-        "summary": "Get user details",
-        "description": "Returns full user details including teams, tokens (technical users), and recent audit activity. Superuser only.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User details"
-          },
-          "404": {
-            "description": "User not found"
-          }
-        }
-      }
-    },
-    "/technologies/radar": {
-      "get": {
-        "tags": [
-          "Technologies"
-        ],
-        "summary": "Get technologies shaped for the radar visualization",
-        "description": "Returns all technologies with a resolved TIME value for the radar view. When `team` is provided each technology is placed in the ring matching that team's TIME approval. Without `team` the dominant TIME value across all approvals is used (majority vote; ties broken by severity). Technologies with no applicable approval are marked 'unclassified'.\n",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "team",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "Filter TIME values by this team name"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved radar data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "type": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "domain": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "timeValue": {
-                                "type": "string",
-                                "enum": [
-                                  "invest",
-                                  "tolerate",
-                                  "migrate",
-                                  "eliminate",
-                                  "unclassified"
-                                ]
-                              },
-                              "approvalCount": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to fetch radar data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -3052,6 +2969,89 @@
           },
           "404": {
             "description": "Technology not found"
+          }
+        }
+      }
+    },
+    "/technologies/radar": {
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Get technologies shaped for the radar visualization",
+        "description": "Returns all technologies with a resolved TIME value for the radar view. When `team` is provided each technology is placed in the ring matching that team's TIME approval. Without `team` the dominant TIME value across all approvals is used (majority vote; ties broken by severity). Technologies with no applicable approval are marked 'unclassified'.\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "team",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Filter TIME values by this team name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved radar data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "domain": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "timeValue": {
+                                "type": "string",
+                                "enum": [
+                                  "invest",
+                                  "tolerate",
+                                  "migrate",
+                                  "eliminate",
+                                  "unclassified"
+                                ]
+                              },
+                              "approvalCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch radar data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4156,6 +4156,103 @@
         }
       }
     },
+    "/licenses/{id}": {
+      "get": {
+        "tags": [
+          "Licenses",
+          "License Compliance"
+        ],
+        "summary": "Get license details",
+        "description": "Retrieves detailed information about a specific license including\nusage statistics and full license text from the SPDX license list.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "License ID (SPDX identifier)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "spdxId": {
+                                "type": "string"
+                              },
+                              "osiApproved": {
+                                "type": "boolean"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "licenseText": {
+                                "type": "string"
+                              },
+                              "deprecated": {
+                                "type": "boolean"
+                              },
+                              "componentCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "License not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/licenses/violations": {
       "get": {
         "tags": [
@@ -4341,103 +4438,6 @@
         }
       }
     },
-    "/licenses/{id}": {
-      "get": {
-        "tags": [
-          "Licenses",
-          "License Compliance"
-        ],
-        "summary": "Get license details",
-        "description": "Retrieves detailed information about a specific license including\nusage statistics and full license text from the SPDX license list.\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "License ID (SPDX identifier)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved license",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "spdxId": {
-                                "type": "string"
-                              },
-                              "osiApproved": {
-                                "type": "boolean"
-                              },
-                              "url": {
-                                "type": "string"
-                              },
-                              "category": {
-                                "type": "string"
-                              },
-                              "licenseText": {
-                                "type": "string"
-                              },
-                              "deprecated": {
-                                "type": "boolean"
-                              },
-                              "componentCount": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "License not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to fetch license",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/licenses/{id}/components": {
       "get": {
         "tags": [
@@ -4517,6 +4517,119 @@
         "responses": {
           "200": {
             "description": "EOL rollup retrieved successfully"
+          }
+        }
+      }
+    },
+    "/components/{key}": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Get component details",
+        "description": "Retrieves a single component by its encoded component identity key.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Encoded component identity from the components list."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Component details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/Component"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "systems": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "scope": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                          "required",
+                                          "optional",
+                                          "excluded",
+                                          "dev",
+                                          "test",
+                                          "runtime",
+                                          "provided"
+                                        ]
+                                      },
+                                      "isDirect": {
+                                        "type": "boolean",
+                                        "nullable": true
+                                      }
+                                    }
+                                  }
+                                },
+                                "directDependencies": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/ComponentDirectDependency"
+                                  }
+                                },
+                                "eol": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "packageMetadata": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "maintenanceHealth": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "securityScorecard": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "vulnerabilities": {
+                                  "type": "object",
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Component key is missing or invalid"
+          },
+          "404": {
+            "description": "Component not found"
           }
         }
       }
@@ -4840,119 +4953,6 @@
           },
           "400": {
             "description": "Missing required parameters"
-          }
-        }
-      }
-    },
-    "/components/{key}": {
-      "get": {
-        "tags": [
-          "Components"
-        ],
-        "summary": "Get component details",
-        "description": "Retrieves a single component by its encoded component identity key.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Encoded component identity from the components list."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Component details retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "allOf": [
-                            {
-                              "$ref": "#/components/schemas/Component"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "systems": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "scope": {
-                                        "type": "string",
-                                        "nullable": true,
-                                        "enum": [
-                                          "required",
-                                          "optional",
-                                          "excluded",
-                                          "dev",
-                                          "test",
-                                          "runtime",
-                                          "provided"
-                                        ]
-                                      },
-                                      "isDirect": {
-                                        "type": "boolean",
-                                        "nullable": true
-                                      }
-                                    }
-                                  }
-                                },
-                                "directDependencies": {
-                                  "type": "array",
-                                  "items": {
-                                    "$ref": "#/components/schemas/ComponentDirectDependency"
-                                  }
-                                },
-                                "eol": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "packageMetadata": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "maintenanceHealth": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "securityScorecard": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "vulnerabilities": {
-                                  "type": "object",
-                                  "nullable": true
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Component key is missing or invalid"
-          },
-          "404": {
-            "description": "Component not found"
           }
         }
       }

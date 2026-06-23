@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { h, resolveComponent, defineComponent, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
-import type { TableColumn, TableRow } from '@nuxt/ui'
+import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, GroupedComponent } from '~~/types/api'
 
 const PM_COLORS: Record<string, string> = {
@@ -156,7 +156,7 @@ const ComponentNameCell = defineComponent({
           default: () => h('button', {
             type: 'button',
             class: 'font-semibold hover:underline text-left',
-            onClick: () => openGroupedComponent(null, { original: props.component } as TableRow<GroupedComponent>)
+            onClick: () => openGroupedComponent(null, { original: props.component })
           }, displayName),
           content: () => tooltipContent()
         }
@@ -272,7 +272,7 @@ const showDevDependencies = computed({
 const selectedComponent = ref<GroupedComponent | null>(null)
 const versionsModalOpen = ref(false)
 
-function openGroupedComponent(_event: Event | null, row: TableRow<GroupedComponent>) {
+function openGroupedComponent(_event: Event | null, row: { original: GroupedComponent }) {
   selectedComponent.value = row.original
   versionsModalOpen.value = true
 }
