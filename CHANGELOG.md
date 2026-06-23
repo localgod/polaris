@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.25] - 2026-06-23
+
+## What's Changed
+
+- Improve dashboard SSR performance @localgod (#696)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.24...v0.6.25
+
 ## [0.6.14] - 2026-06-17
 
 ## What's Changed
