@@ -161,125 +161,91 @@
 </template>
 
 <script setup lang="ts">
-import type { ApiResponse, EOLRollupResponse, Technology, System, GroupedComponent, VersionConstraint } from '~~/types/api'
-
-interface LicenseStatsResponse {
+interface DashboardSummaryResponse {
   success: boolean
-  data: Array<{
-    total: number
-    osiApproved: number
-    byCategory: Record<string, number>
-  }>
-}
-
-interface LicenseViolationsResponse {
-  success: boolean
-  data: unknown[]
-  count: number
-}
-
-interface ViolationsResponse {
-  success: boolean
-  count: number
-  summary: {
-    critical: number
-    error: number
-    warning: number
-    info: number
+  data: {
+    counts: {
+      technologies: number
+      systems: number
+      components: number
+      versionConstraints: number
+      violations: number
+      licenseViolations: number
+    }
+    criticality: {
+      critical: number
+      high: number
+      medium: number
+      low: number
+    }
+    licenses: {
+      total: number
+      permissive: number
+      copyleft: number
+      disallowed: number
+    }
+    violations: {
+      total: number
+      critical: number
+      error: number
+      warning: number
+    }
+    lifecycle: {
+      unsupported: number
+      approaching: number
+      systems: number
+    }
   }
 }
 
-interface EOLRollupApiResponse {
-  success: boolean
-  data: EOLRollupResponse
-  count: number
-}
+const { data: dashboardData } = await useFetch<DashboardSummaryResponse>('/api/dashboard')
 
-const [
-  { data: techData },
-  { data: sysData },
-  { data: compData },
-  { data: vcData },
-  { data: licenseStatsData },
-  { data: licenseViolationsData },
-  { data: vcViolationsData },
-  { data: eolApproachingData },
-  { data: eolExpiredData }
-] = await Promise.all([
-  useFetch<ApiResponse<Technology>>('/api/technologies'),
-  useFetch<ApiResponse<System>>('/api/systems'),
-  useFetch<ApiResponse<GroupedComponent>>('/api/components/grouped', {
-    query: { direct: 'true' }
-  }),
-  useFetch<ApiResponse<VersionConstraint>>('/api/version-constraints'),
-  useFetch<LicenseStatsResponse>('/api/licenses/statistics'),
-  useFetch<LicenseViolationsResponse>('/api/licenses/violations'),
-  useFetch<ViolationsResponse>('/api/version-constraints/violations'),
-  useFetch<EOLRollupApiResponse>('/api/eol/approaching'),
-  useFetch<EOLRollupApiResponse>('/api/eol/expired')
-])
+const summary = computed(() => dashboardData.value?.data)
 
-const techCount = useApiCount(techData)
-const sysCount = useApiCount(sysData)
-const compCount = useApiCount(compData)
-const vcCount = useApiCount(vcData)
-const violationsCount = computed(() => vcViolationsData.value?.count || 0)
-const licenseViolationsCount = computed(() => licenseViolationsData.value?.count || 0)
+const counts = computed(() => ({
+  technologies: summary.value?.counts.technologies || 0,
+  systems: summary.value?.counts.systems || 0,
+  components: summary.value?.counts.components || 0,
+  versionConstraints: summary.value?.counts.versionConstraints || 0,
+  violations: summary.value?.counts.violations || 0,
+  licenseViolations: summary.value?.counts.licenseViolations || 0
+}))
 
 const navItems = computed(() => [
-  { title: 'Technologies', value: techCount.value, icon: 'i-lucide-settings', to: '/technologies', valueClass: 'text-(--ui-color-primary-500)' },
-  { title: 'Systems', value: sysCount.value, icon: 'i-lucide-cpu', to: '/systems', valueClass: 'text-(--ui-color-success-500)' },
-  { title: 'Components', value: compCount.value, icon: 'i-lucide-box', to: '/components', valueClass: 'text-(--ui-color-warning-500)' },
-  { title: 'Version Constraints', value: vcCount.value, icon: 'i-lucide-file-text', to: '/version-constraints', valueClass: '' },
-  { title: 'Violations', value: violationsCount.value, icon: 'i-lucide-alert-triangle', to: '/violations', valueClass: 'text-(--ui-color-error-500)' },
-  { title: 'License Violations', value: licenseViolationsCount.value, icon: 'i-lucide-scale', to: '/violations/licenses', valueClass: 'text-(--ui-color-error-500)' }
+  { title: 'Technologies', value: counts.value.technologies, icon: 'i-lucide-settings', to: '/technologies', valueClass: 'text-(--ui-color-primary-500)' },
+  { title: 'Systems', value: counts.value.systems, icon: 'i-lucide-cpu', to: '/systems', valueClass: 'text-(--ui-color-success-500)' },
+  { title: 'Components', value: counts.value.components, icon: 'i-lucide-box', to: '/components', valueClass: 'text-(--ui-color-warning-500)' },
+  { title: 'Version Constraints', value: counts.value.versionConstraints, icon: 'i-lucide-file-text', to: '/version-constraints', valueClass: '' },
+  { title: 'Violations', value: counts.value.violations, icon: 'i-lucide-alert-triangle', to: '/violations', valueClass: 'text-(--ui-color-error-500)' },
+  { title: 'License Violations', value: counts.value.licenseViolations, icon: 'i-lucide-scale', to: '/violations/licenses', valueClass: 'text-(--ui-color-error-500)' }
 ])
 
-const criticalityCounts = computed(() => {
-  const systems = sysData.value?.data || []
-  const counts = { critical: 0, high: 0, medium: 0, low: 0 }
-  systems.forEach((sys: System) => {
-    const criticality = sys.businessCriticality?.toLowerCase()
-    if (criticality === 'critical') counts.critical++
-    else if (criticality === 'high') counts.high++
-    else if (criticality === 'medium') counts.medium++
-    else if (criticality === 'low') counts.low++
-  })
-  return counts
-})
+const criticalityCounts = computed(() => ({
+  critical: summary.value?.criticality.critical || 0,
+  high: summary.value?.criticality.high || 0,
+  medium: summary.value?.criticality.medium || 0,
+  low: summary.value?.criticality.low || 0
+}))
 
-const licenseStats = computed(() => {
-  const statsData = licenseStatsData.value?.data?.[0]
-  return {
-    total: statsData?.total || 0,
-    permissive: statsData?.byCategory?.permissive || 0,
-    copyleft: statsData?.byCategory?.copyleft || 0,
-    disallowed: licenseViolationsCount.value
-  }
-})
+const licenseStats = computed(() => ({
+  total: summary.value?.licenses.total || 0,
+  permissive: summary.value?.licenses.permissive || 0,
+  copyleft: summary.value?.licenses.copyleft || 0,
+  disallowed: summary.value?.licenses.disallowed || 0
+}))
 
-const violationStats = computed(() => {
-  const data = vcViolationsData.value
-  return {
-    total: data?.count || 0,
-    critical: data?.summary?.critical || 0,
-    error: data?.summary?.error || 0,
-    warning: data?.summary?.warning || 0
-  }
-})
+const violationStats = computed(() => ({
+  total: summary.value?.violations.total || 0,
+  critical: summary.value?.violations.critical || 0,
+  error: summary.value?.violations.error || 0,
+  warning: summary.value?.violations.warning || 0
+}))
 
-const lifecycleStats = computed(() => {
-  const approaching = eolApproachingData.value?.data
-  const expired = eolExpiredData.value?.data
-  return {
-    unsupported: expired?.summary.components || 0,
-    approaching: approaching?.summary.components || 0,
-    systems: new Set([
-      ...(approaching?.items || []).flatMap(item => item.systems.map(system => system.name)),
-      ...(expired?.items || []).flatMap(item => item.systems.map(system => system.name))
-    ]).size
-  }
-})
+const lifecycleStats = computed(() => ({
+  unsupported: summary.value?.lifecycle.unsupported || 0,
+  approaching: summary.value?.lifecycle.approaching || 0,
+  systems: summary.value?.lifecycle.systems || 0
+}))
 
 useHead({ title: 'Dashboard - Polaris' })
 </script>
