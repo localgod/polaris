@@ -1,0 +1,39 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-22
+    volumes:
+      - ..:/workspaces/polaris:cached
+    command: sleep infinity
+    network_mode: host
+
+  neo4j:
+    image: neo4j:5-community
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/devpassword
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 2G
+      # Rotate GC logs: keep 7 files, max 20MB each
+      NEO4J_server_logs_gc_rotation_keep__number: 7
+      NEO4J_server_logs_gc_rotation_size: 20m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - ../.data/neo4j/data:/data
+      - ../.data/neo4j/logs:/logs
+      - ../.data/neo4j/import:/var/lib/neo4j/import
+      - ../.data/neo4j/plugins:/plugins
+    healthcheck:
+      test: ["CMD", "bash", "-c", "wget -qO- http://localhost:7474 > /dev/null 2>&1 && (echo > /dev/tcp/localhost/7687) 2>/dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s

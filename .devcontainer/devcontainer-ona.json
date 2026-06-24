@@ -1,0 +1,26 @@
+
+{
+    "name": "Ona",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspaces/polaris",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker": {
+            "moby": false,
+            "dockerDaemonOptions": "{\"storage-driver\": \"vfs\"}"
+        },
+        "ghcr.io/devcontainers/features/node": {
+            "nodeGypDependencies": true,
+            "version": "lts",
+            "nvmVersion": "latest"
+        },
+        "ghcr.io/devcontainers/features/github-cli": {}
+    },
+    "forwardPorts": [3000],
+    "portsAttributes": {
+        "3000": {
+            "label": "Nuxt Dev Server",
+            "onAutoForward": "notify"
+        }
+    }
+}

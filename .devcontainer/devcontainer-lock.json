@@ -1,0 +1,19 @@
+{
+  "features": {
+    "ghcr.io/postfinance/devcontainer-features/docker-out:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/postfinance/devcontainer-features/docker-out@sha256:22d3e61bad5411b5076ba64d478b2e71eecb2a05441e4bff34487bfc892e6a81",
+      "integrity": "sha256:22d3e61bad5411b5076ba64d478b2e71eecb2a05441e4bff34487bfc892e6a81"
+    },
+    "ghcr.io/srzstephen/devcontainer-features/act:1": {
+      "version": "1.0.1",
+      "resolved": "ghcr.io/srzstephen/devcontainer-features/act@sha256:b28f1e863153eeaea6543d70228149b55cfdd3fb4f21e10dba5e6e77d0a7fa36",
+      "integrity": "sha256:b28f1e863153eeaea6543d70228149b55cfdd3fb4f21e10dba5e6e77d0a7fa36"
+    },
+    "ghcr.io/wxw-matt/devcontainer-features/command_runner:0": {
+      "version": "0.5.0",
+      "resolved": "ghcr.io/wxw-matt/devcontainer-features/command_runner@sha256:ee54b2f7a82b373be5ca093726187a4c1bfa604c0ac3e07e787e68f31fca2736",
+      "integrity": "sha256:ee54b2f7a82b373be5ca093726187a4c1bfa604c0ac3e07e787e68f31fca2736"
+    }
+  }
+}

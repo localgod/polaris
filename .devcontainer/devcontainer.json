@@ -1,26 +1,28 @@
-
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
 {
-    "name": "Ona",
-    "dockerComposeFile": "docker-compose.yml",
-    "service": "app",
-    "workspaceFolder": "/workspaces/polaris",
-    "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker": {
-            "moby": false,
-            "dockerDaemonOptions": "{\"storage-driver\": \"vfs\"}"
-        },
-        "ghcr.io/devcontainers/features/node": {
-            "nodeGypDependencies": true,
-            "version": "lts",
-            "nvmVersion": "latest"
-        },
-        "ghcr.io/devcontainers/features/github-cli": {}
-    },
-    "forwardPorts": [3000],
-    "portsAttributes": {
-        "3000": {
-            "label": "Nuxt Dev Server",
-            "onAutoForward": "notify"
-        }
-    }
+	"name": "Polaris Local Dev Container",
+	// Use docker-compose to start both app and neo4j services
+	"dockerComposeFile": "docker-compose-local.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/polaris",
+	"features": {
+		"ghcr.io/wxw-matt/devcontainer-features/command_runner:0": {},
+		"ghcr.io/postfinance/devcontainer-features/docker-out:1": {},
+		"ghcr.io/srzstephen/devcontainer-features/act:1": {}
+	},
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "sudo chown -R node:node /workspaces/polaris/node_modules && npm install",
+
+	// Run as node user to avoid permission issues
+	"remoteUser": "node",
+	
+	// Allow node user to use sudo without password
+	"updateContentCommand": "sudo chown -R node:node /workspaces/polaris/node_modules || true",
+
+	// Ensure node_modules has proper permissions
+	"containerEnv": {
+		"npm_config_cache": "/tmp/.npm"
+	}
 }
