@@ -32,3 +32,5 @@ infra/ansible/inventory.ini
 test-migrations
 gh.exe
 core
+# Added by code-review-graph
+.code-review-graph/
