@@ -11,6 +11,11 @@ const global = {
       props: ['label', 'disabled'],
       emits: ['click'],
       template: '<button type="button" :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>'
+    },
+    UCheckbox: {
+      props: ['modelValue', 'label'],
+      emits: ['update:modelValue'],
+      template: '<input type="checkbox" :value="label" :checked="modelValue" @change="$emit(\'update:modelValue\', !modelValue)" />'
     }
   }
 }

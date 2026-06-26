@@ -96,7 +96,12 @@ const global = {
     UButton: {
       props: ['label', 'disabled'],
       emits: ['click'],
-      template: '<button type="button" :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>'
+      template: '<button type="button" :disabled="disabled" @click="$emit(\'click\')">{{ label }}<slot /></button>'
+    },
+    UCheckbox: {
+      props: ['modelValue', 'label'],
+      emits: ['update:modelValue'],
+      template: '<input type="checkbox" :value="label" :checked="modelValue" @change="$emit(\'update:modelValue\', !modelValue)" />'
     },
     UIcon: { template: '<span />' },
     USkeleton: { template: '<div data-test="skeleton" />' },
@@ -134,6 +139,7 @@ async function mountTree(fetchMock: ReturnType<typeof vi.fn>, props = {}) {
 
 beforeEach(() => {
   vi.unstubAllGlobals()
+  vi.stubGlobal('useToast', () => ({ add: vi.fn() }))
 })
 
 describe('ComponentDependencyTree', () => {
