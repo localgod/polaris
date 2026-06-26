@@ -20,6 +20,6 @@ RETURN s.name as name,
        componentCount,
        repositoryCount,
        total
-ORDER BY s.businessCriticality DESC, s.name ASC
+ORDER BY {{ORDER_BY}}
 SKIP toInteger($offset)
 LIMIT toInteger($limit)
