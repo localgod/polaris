@@ -125,7 +125,7 @@
         </template>
         <div class="divide-y divide-(--ui-border)">
           <div v-for="repo in repositories" :key="repo.url" class="flex items-center justify-between gap-4 py-3">
-            <NuxtLink :to="repo.url" target="_blank" class="flex items-center gap-2 text-sm font-medium hover:underline min-w-0">
+            <NuxtLink :to="repo.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm font-medium hover:underline min-w-0">
               <UIcon name="i-lucide-github" class="size-4 shrink-0 text-(--ui-text-muted)" />
               <span class="truncate">{{ repo.name }}</span>
             </NuxtLink>

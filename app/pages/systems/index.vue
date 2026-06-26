@@ -614,7 +614,7 @@ const importJobStatusColor = computed(() => {
 })
 
 const isJobRunning = computed(() =>
-  !activeImportJob.value || ['queued', 'running'].includes(activeImportJob.value.status)
+  isImporting.value || (!!activeImportJob.value && ['queued', 'running'].includes(activeImportJob.value.status))
 )
 
 const nextDisabled = computed(() => {

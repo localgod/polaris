@@ -103,7 +103,7 @@ describe('GitHubOrgImportService', () => {
 
     expect(repo.markRunning).toHaveBeenCalledWith('job-1')
     expect(repo.createItems).toHaveBeenCalledWith('job-1', [
-      { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a' }
+      { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a', ownerTeam: null, systemName: null }
     ])
     expect(repo.markItemFinished).toHaveBeenCalledWith('job-1', 'acme/repo-a', 'skipped', {
       message: 'Dry run only'
@@ -174,7 +174,7 @@ describe('GitHubOrgImportService', () => {
 
     expect(listGitHubOwnerRepositories).not.toHaveBeenCalled()
     expect(repo.createItems).toHaveBeenCalledWith('job-1', [
-      { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a' }
+      { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a', ownerTeam: null, systemName: null }
     ])
     expect(importService.import).toHaveBeenCalledTimes(1)
     expect(importService.import).toHaveBeenCalledWith(expect.objectContaining({

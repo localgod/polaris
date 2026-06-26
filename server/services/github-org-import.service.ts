@@ -106,8 +106,8 @@ export class GitHubOrgImportService {
       const items = repositories.map(repo => ({
         repositoryFullName: repo.repositoryFullName,
         repositoryUrl: repo.repositoryUrl,
-        ownerTeam: repo.ownerTeam,
-        systemName: repo.systemName
+        ownerTeam: repo.ownerTeam ?? null,
+        systemName: repo.systemName ?? null
       }))
 
       await this.jobRepo.createItems(jobId, items)
