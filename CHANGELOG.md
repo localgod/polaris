@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.37] - 2026-06-26
+
+## What's Changed
+
+- feat(systems): redesign GitHub org import flow as 4-step wizard @localgod (#709)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.36...v0.6.37
+
 ## [0.6.29] - 2026-06-23
 
 ## What's Changed
