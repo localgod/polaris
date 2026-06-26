@@ -33,6 +33,7 @@ export interface ImportJobItem {
   id: string
   repositoryFullName: string
   repositoryUrl: string
+  ownerTeam: string | null
   status: ImportJobItemStatus
   message: string | null
   systemName: string | null
@@ -55,6 +56,7 @@ export interface CreateImportJobParams {
 export interface CreateImportJobItemParams {
   repositoryFullName: string
   repositoryUrl: string
+  ownerTeam?: string | null
   status?: ImportJobItemStatus
   message?: string | null
   systemName?: string | null
@@ -167,6 +169,7 @@ export class ImportJobRepository extends BaseRepository {
         id: randomUUID(),
         repositoryFullName: item.repositoryFullName,
         repositoryUrl: item.repositoryUrl,
+        ownerTeam: item.ownerTeam,
         status: coalesce(item.status, 'pending'),
         message: item.message,
         systemName: item.systemName,
@@ -259,6 +262,7 @@ export class ImportJobRepository extends BaseRepository {
       id: item.id as string,
       repositoryFullName: item.repositoryFullName as string,
       repositoryUrl: item.repositoryUrl as string,
+      ownerTeam: (item.ownerTeam as string | null | undefined) ?? null,
       status: item.status as ImportJobItemStatus,
       message: (item.message as string | null | undefined) ?? null,
       systemName: (item.systemName as string | null | undefined) ?? null,

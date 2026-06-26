@@ -85,7 +85,9 @@ export default defineEventHandler(async (event) => {
   const repositories = Array.isArray(body.repositories)
     ? body.repositories.map((repo: Record<string, unknown>) => ({
         repositoryFullName: typeof repo.repositoryFullName === 'string' ? repo.repositoryFullName.trim() : '',
-        repositoryUrl: typeof repo.repositoryUrl === 'string' ? repo.repositoryUrl.trim() : ''
+        repositoryUrl: typeof repo.repositoryUrl === 'string' ? repo.repositoryUrl.trim() : '',
+        ownerTeam: typeof repo.ownerTeam === 'string' ? repo.ownerTeam.trim() || undefined : undefined,
+        systemName: typeof repo.systemName === 'string' ? repo.systemName.trim() || undefined : undefined
       }))
     : undefined
 

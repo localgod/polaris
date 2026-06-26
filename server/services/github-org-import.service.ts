@@ -13,6 +13,8 @@ import { logger } from '../utils/logger'
 export interface GitHubRepositorySelection {
   repositoryFullName: string
   repositoryUrl: string
+  ownerTeam?: string
+  systemName?: string
 }
 
 export interface GitHubOrgImportInput {
@@ -103,7 +105,9 @@ export class GitHubOrgImportService {
           }))
       const items = repositories.map(repo => ({
         repositoryFullName: repo.repositoryFullName,
-        repositoryUrl: repo.repositoryUrl
+        repositoryUrl: repo.repositoryUrl,
+        ownerTeam: repo.ownerTeam,
+        systemName: repo.systemName
       }))
 
       await this.jobRepo.createItems(jobId, items)
@@ -137,7 +141,7 @@ export class GitHubOrgImportService {
 
   private async importRepository(
     jobId: string,
-    item: Pick<ImportJobItem, 'repositoryFullName' | 'repositoryUrl'>,
+    item: Pick<ImportJobItem, 'repositoryFullName' | 'repositoryUrl'> & { ownerTeam?: string | null; systemName?: string | null },
     input: GitHubOrgImportInput
   ): Promise<void> {
     await this.jobRepo.markItemRunning(jobId, item.repositoryFullName)
@@ -146,7 +150,8 @@ export class GitHubOrgImportService {
       const result = await this.gitHubImportService.import({
         repositoryUrl: item.repositoryUrl,
         domain: input.domain,
-        ownerTeam: input.ownerTeam,
+        ownerTeam: item.ownerTeam ?? input.ownerTeam,
+        systemName: item.systemName ?? undefined,
         businessCriticality: input.businessCriticality,
         environment: input.environment,
         userId: input.userId
@@ -192,7 +197,9 @@ export class GitHubOrgImportService {
     const normalized = repositories
       .map(repo => ({
         repositoryFullName: typeof repo.repositoryFullName === 'string' ? repo.repositoryFullName.trim() : '',
-        repositoryUrl: typeof repo.repositoryUrl === 'string' ? repo.repositoryUrl.trim() : ''
+        repositoryUrl: typeof repo.repositoryUrl === 'string' ? repo.repositoryUrl.trim() : '',
+        ownerTeam: typeof repo.ownerTeam === 'string' && repo.ownerTeam.trim() ? repo.ownerTeam.trim() : undefined,
+        systemName: typeof repo.systemName === 'string' && repo.systemName.trim() ? repo.systemName.trim() : undefined
       }))
       .filter(repo => repo.repositoryFullName && repo.repositoryUrl)
 
