@@ -20,7 +20,7 @@ interface CacheStorage {
   setItem<T>(key: string, value: T): Promise<void>
 }
 
-type JsonFetcher = <T>(url: string) => Promise<T>
+type JsonFetcher = <T>(url: string) => Promise<T | null>
 
 interface EOLProductResponse {
   result?: EOLProduct
@@ -152,7 +152,7 @@ export class EOLService {
     const data = await this.fetcher<EOLProductResponse>(
       `https://endoflife.date/api/v1/products/${encodeURIComponent(productName)}/`
     )
-    const product = data.result || null
+    const product = data?.result ?? null
     await storage.setItem(key, {
       expiresAt: Date.now() + CACHE_TTL_MS,
       value: product
@@ -309,8 +309,9 @@ export class EOLService {
   }
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(url: string): Promise<T | null> {
   const response = await fetch(url)
+  if (response.status === 404) return null
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`)
   }
