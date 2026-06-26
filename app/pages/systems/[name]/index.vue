@@ -116,6 +116,26 @@
         </div>
       </UCard>
 
+      <UCard v-if="repositories.length > 0">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-git-branch" class="w-5 h-5 text-(--ui-primary)" />
+            <h2 class="text-lg font-semibold">Repositories</h2>
+          </div>
+        </template>
+        <div class="divide-y divide-(--ui-border)">
+          <div v-for="repo in repositories" :key="repo.url" class="flex items-center justify-between gap-4 py-3">
+            <NuxtLink :to="repo.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm font-medium hover:underline min-w-0">
+              <UIcon name="i-lucide-github" class="size-4 shrink-0 text-(--ui-text-muted)" />
+              <span class="truncate">{{ repo.name }}</span>
+            </NuxtLink>
+            <span class="text-xs text-(--ui-text-muted) shrink-0">
+              {{ repo.lastSbomScanAt ? formatDate(repo.lastSbomScanAt) : 'Not scanned' }}
+            </span>
+          </div>
+        </div>
+      </UCard>
+
       <UCard v-if="data.data.componentCount > 0">
         <template #header>
           <div class="flex items-center gap-2">
@@ -195,6 +215,22 @@ const { data, pending, error } = await useFetch<SystemResponse>(() => `/api/syst
 const { data: graphData } = useFetch<GraphResponse>(
   () => `/api/systems/${encodeURIComponent(route.params.name as string)}/graph`
 )
+
+interface Repository {
+  name: string
+  url: string
+  lastSbomScanAt: string | null
+}
+
+interface RepositoriesResponse {
+  success: boolean
+  data: Repository[]
+}
+
+const { data: reposData } = useFetch<RepositoriesResponse>(
+  () => `/api/systems/${encodeURIComponent(route.params.name as string)}/repositories`
+)
+const repositories = computed(() => reposData.value?.data ?? [])
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString()

@@ -68,124 +68,221 @@
     <!-- Import from GitHub Modal -->
     <UModal v-model:open="showImportModal" :ui="{ footer: 'justify-end' }">
       <template #header>
-        <h3 class="text-lg font-semibold">Import System from GitHub</h3>
+        <h3 class="text-lg font-semibold">Import from GitHub</h3>
       </template>
       <template #body>
-        <UForm id="import-form" :schema="importSchema" :state="importState" class="space-y-4" @submit="onImport">
-          <UAlert
-            color="info"
-            variant="subtle"
-            icon="i-lucide-info"
-            title="Initial scan may be incomplete"
-            description="Dependencies are discovered from manifest files fetched via the GitHub API. The full transitive dependency graph is only available after the polaris-sbom.yml workflow runs against this repository."
-          />
-
-          <UFormField name="organization" label="GitHub Owner" required>
-            <UInput
-              v-model="importState.organization"
-              placeholder="owner or https://github.com/owner"
-              :disabled="isImporting"
-            />
-          </UFormField>
-
-          <div class="grid md:grid-cols-3 gap-3">
-            <UFormField name="language" label="Language">
-              <UInput v-model="importState.language" placeholder="TypeScript" :disabled="isImporting" />
-            </UFormField>
-            <UFormField name="topic" label="Topic">
-              <UInput v-model="importState.topic" placeholder="platform" :disabled="isImporting" />
-            </UFormField>
-            <UFormField name="namePattern" label="Name Pattern">
-              <UInput v-model="importState.namePattern" placeholder="^service-" :disabled="isImporting" />
-            </UFormField>
-          </div>
-
-          <div v-if="ownerRepositories.length" class="space-y-3 rounded-md border border-(--ui-border) p-3">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p class="font-medium">{{ ownerRepositories.length }} repositories found</p>
-                <p class="text-sm text-(--ui-text-muted)">{{ selectedRepositoryFullNames.length }} selected</p>
-              </div>
-              <div class="flex gap-2">
-                <UButton label="Select All" size="xs" color="neutral" variant="outline" :disabled="isImporting" @click="selectAllOwnerRepositories" />
-                <UButton label="Clear" size="xs" color="neutral" variant="ghost" :disabled="isImporting" @click="clearSelectedOwnerRepositories" />
-              </div>
-            </div>
-            <div class="max-h-72 overflow-auto divide-y divide-(--ui-border)">
-              <label
-                v-for="repo in ownerRepositories"
-                :key="repo.fullName"
-                class="flex cursor-pointer items-start gap-3 py-2"
-              >
-                <UCheckbox
-                  :model-value="selectedRepositoryFullNames.includes(repo.fullName)"
-                  :disabled="isImporting"
-                  @update:model-value="toggleOwnerRepository(repo.fullName, Boolean($event))"
-                />
-                <span class="min-w-0 flex-1">
-                  <span class="flex flex-wrap items-center gap-2">
-                    <span class="truncate text-sm font-medium">{{ repo.fullName }}</span>
-                    <UBadge v-if="repo.private" color="warning" variant="subtle">private</UBadge>
-                    <UBadge v-if="repo.archived" color="neutral" variant="subtle">archived</UBadge>
-                    <UBadge v-if="repo.fork" color="info" variant="subtle">fork</UBadge>
-                  </span>
-                  <span class="mt-1 block truncate text-xs text-(--ui-text-muted)">
-                    {{ repo.language || 'Unknown language' }}<template v-if="repo.description"> · {{ repo.description }}</template>
-                  </span>
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <UFormField name="ownerTeam" label="Owner Team" required>
-            <USelect v-model="importState.ownerTeam" :items="importTeamItems" placeholder="Select a team" :disabled="isImporting" />
-          </UFormField>
-
-          <div v-if="activeImportJob" class="space-y-3 rounded-md border border-(--ui-border) p-3">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="font-medium">{{ importProgressLabel }}</p>
-                <p class="text-sm text-(--ui-text-muted)">{{ activeImportJob.status }}</p>
-              </div>
-              <UBadge :color="importJobStatusColor" variant="subtle">
-                {{ activeImportJob.completed }}/{{ activeImportJob.total }}
-              </UBadge>
-            </div>
-            <div class="h-2 overflow-hidden rounded bg-(--ui-bg-elevated)">
-              <div class="h-full bg-(--ui-primary)" :style="{ width: `${importProgressPercent}%` }" />
-            </div>
-            <div v-if="activeImportJob.items.length" class="max-h-56 overflow-auto divide-y divide-(--ui-border)">
-              <div v-for="item in activeImportJob.items" :key="item.id" class="flex items-start justify-between gap-3 py-2">
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-medium">{{ item.repositoryFullName }}</p>
-                  <p v-if="item.message" class="text-xs text-(--ui-text-muted)">{{ item.message }}</p>
+        <div class="space-y-6">
+          <!-- Step indicator -->
+          <div class="flex items-center">
+            <template v-for="(stepLabel, i) in ['Organization', 'Repositories', 'Configure', 'Progress']" :key="i">
+              <div class="flex items-center gap-1.5 shrink-0">
+                <div
+                  class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
+                  :class="importStep > i ? 'bg-(--ui-success) text-white' : importStep === i ? 'bg-(--ui-primary) text-white' : 'bg-(--ui-bg-elevated) text-(--ui-text-muted)'"
+                >
+                  <UIcon v-if="importStep > i" name="i-lucide-check" class="size-3" />
+                  <span v-else>{{ i + 1 }}</span>
                 </div>
-                <UBadge :color="importItemStatusColor(item.status)" variant="subtle">
-                  {{ item.status }}
+                <span class="text-xs hidden sm:inline" :class="importStep === i ? 'font-semibold' : 'text-(--ui-text-muted)'">{{ stepLabel }}</span>
+              </div>
+              <div v-if="i < 3" class="flex-1 h-px bg-(--ui-border) mx-2 min-w-2" />
+            </template>
+          </div>
+
+          <!-- Step 0: Organization -->
+          <div v-if="importStep === 0" class="space-y-4">
+            <UAlert
+              color="info"
+              variant="subtle"
+              icon="i-lucide-info"
+              title="Initial scan may be incomplete"
+              description="Dependencies are discovered from manifest files fetched via the GitHub API. The full transitive dependency graph is only available after the polaris-sbom.yml workflow runs against this repository."
+            />
+            <UFormField label="GitHub Owner" required>
+              <UInput
+                v-model="importOrganization"
+                placeholder="owner or https://github.com/owner"
+                :disabled="isFetchingRepositories"
+                @keydown.enter.prevent="nextStep"
+              />
+            </UFormField>
+            <UAlert
+              v-if="importError"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-alert-circle"
+              :description="importError"
+            />
+          </div>
+
+          <!-- Step 1: Select repositories -->
+          <div v-else-if="importStep === 1" class="space-y-4">
+            <USkeleton v-if="isFetchingRepositories" class="h-64 w-full" />
+            <template v-else>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p class="font-medium">{{ ownerRepositories.length }} repositories found</p>
+                  <p class="text-sm text-(--ui-text-muted)">{{ selectedRepositoryFullNames.length }} selected</p>
+                </div>
+                <div class="flex gap-2">
+                  <UButton label="Select All" size="xs" color="neutral" variant="outline" @click="selectAllOwnerRepositories" />
+                  <UButton label="Clear" size="xs" color="neutral" variant="ghost" @click="clearSelectedOwnerRepositories" />
+                </div>
+              </div>
+              <div class="max-h-80 overflow-auto divide-y divide-(--ui-border) rounded-md border border-(--ui-border)">
+                <label
+                  v-for="repo in ownerRepositories"
+                  :key="repo.fullName"
+                  class="flex cursor-pointer items-start gap-3 px-3 py-2"
+                >
+                  <UCheckbox
+                    :model-value="selectedRepositoryFullNames.includes(repo.fullName)"
+                    @update:model-value="toggleOwnerRepository(repo.fullName, Boolean($event))"
+                  />
+                  <span class="min-w-0 flex-1">
+                    <span class="flex flex-wrap items-center gap-2">
+                      <span class="truncate text-sm font-medium">{{ repo.fullName }}</span>
+                      <UBadge v-if="repo.private" color="warning" variant="subtle">private</UBadge>
+                      <UBadge v-if="repo.archived" color="neutral" variant="subtle">archived</UBadge>
+                      <UBadge v-if="repo.fork" color="info" variant="subtle">fork</UBadge>
+                    </span>
+                    <span class="mt-1 block truncate text-xs text-(--ui-text-muted)">
+                      {{ repo.language || 'Unknown language' }}<template v-if="repo.description"> · {{ repo.description }}</template>
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </template>
+            <UAlert
+              v-if="importError"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-alert-circle"
+              :description="importError"
+            />
+          </div>
+
+          <!-- Step 2: Configure each repository -->
+          <div v-else-if="importStep === 2" class="space-y-4">
+            <UFormField label="Default team">
+              <USelect
+                v-model="defaultTeam"
+                :items="importTeamItems"
+                placeholder="Select a team to pre-fill all rows"
+                @update:model-value="applyDefaultTeam"
+              />
+            </UFormField>
+            <p class="text-xs text-(--ui-text-muted)">Enter the same system name on multiple repositories to group them under one system.</p>
+            <div class="rounded-md border border-(--ui-border) overflow-hidden">
+              <div class="grid grid-cols-[1fr_160px_140px] gap-2 bg-(--ui-bg-elevated) px-3 py-2 text-xs font-medium text-(--ui-text-muted)">
+                <span>Repository</span>
+                <span>Owner team *</span>
+                <span>System name</span>
+              </div>
+              <div class="divide-y divide-(--ui-border)">
+                <div
+                  v-for="config in repoConfigs"
+                  :key="config.repositoryFullName"
+                  class="grid grid-cols-[1fr_160px_140px] gap-2 px-3 py-2 items-center"
+                >
+                  <p class="text-sm truncate font-medium">{{ config.repositoryFullName }}</p>
+                  <USelect
+                    v-model="config.ownerTeam"
+                    :items="importTeamItems"
+                    placeholder="Team"
+                    size="sm"
+                  />
+                  <UInput
+                    v-model="config.systemName"
+                    :placeholder="deriveSystemName(config.repositoryFullName)"
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Progress -->
+          <div v-else-if="importStep === 3" class="space-y-4">
+            <USkeleton v-if="!activeImportJob" class="h-32 w-full" />
+            <div v-else class="space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="font-medium">{{ importProgressLabel }}</p>
+                  <p class="text-sm text-(--ui-text-muted)">{{ activeImportJob.status }}</p>
+                </div>
+                <UBadge :color="importJobStatusColor" variant="subtle">
+                  {{ activeImportJob.completed }}/{{ activeImportJob.total }}
                 </UBadge>
               </div>
+              <div class="h-2 overflow-hidden rounded bg-(--ui-bg-elevated)">
+                <div class="h-full bg-(--ui-primary) transition-all duration-300" :style="{ width: `${importProgressPercent}%` }" />
+              </div>
+              <div v-if="activeImportJob.items.length" class="max-h-64 overflow-auto divide-y divide-(--ui-border) rounded-md border border-(--ui-border)">
+                <div v-for="item in activeImportJob.items" :key="item.id" class="flex items-start justify-between gap-3 px-3 py-2">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium">{{ item.repositoryFullName }}</p>
+                    <p v-if="item.message" class="text-xs text-(--ui-text-muted)">{{ item.message }}</p>
+                  </div>
+                  <UBadge :color="importItemStatusColor(item.status)" variant="subtle">{{ item.status }}</UBadge>
+                </div>
+              </div>
             </div>
+            <UAlert
+              v-if="importError"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-alert-circle"
+              :description="importError"
+            />
           </div>
-
-          <UAlert
-            v-if="importError"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-alert-circle"
-            :description="importError"
-          />
-        </UForm>
+        </div>
       </template>
       <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" :disabled="isImporting" @click="closeImportModal" />
-        <UButton
-          type="submit"
-          form="import-form"
-          :loading="isImporting || isFetchingRepositories"
-          :disabled="isImportSubmitDisabled"
-          :label="importSubmitLabel"
-          color="primary"
-        />
+        <template v-if="importStep === 0">
+          <UButton label="Cancel" color="neutral" variant="outline" @click="closeImportModal" />
+          <UButton
+            label="Next"
+            icon="i-lucide-arrow-right"
+            trailing
+            :disabled="nextDisabled"
+            :loading="isFetchingRepositories"
+            color="primary"
+            @click="nextStep"
+          />
+        </template>
+        <template v-else-if="importStep === 1">
+          <UButton label="Back" icon="i-lucide-arrow-left" color="neutral" variant="outline" @click="prevStep" />
+          <UButton
+            label="Next"
+            icon="i-lucide-arrow-right"
+            trailing
+            :disabled="nextDisabled"
+            color="primary"
+            @click="nextStep"
+          />
+        </template>
+        <template v-else-if="importStep === 2">
+          <UButton label="Back" icon="i-lucide-arrow-left" color="neutral" variant="outline" @click="prevStep" />
+          <UButton
+            label="Start Import"
+            icon="i-lucide-upload"
+            trailing
+            :disabled="nextDisabled"
+            :loading="isImporting"
+            color="primary"
+            @click="nextStep"
+          />
+        </template>
+        <template v-else-if="importStep === 3">
+          <UButton
+            label="Close"
+            color="neutral"
+            variant="outline"
+            :disabled="isJobRunning"
+            @click="closeImportModal"
+          />
+        </template>
       </template>
     </UModal>
 
@@ -468,14 +565,12 @@ interface OwnerRepository {
   topics: string[]
 }
 
-const importSchema = z.object({
-  organization: z.string().min(1, 'GitHub owner is required'),
-  language: z.string().optional(),
-  topic: z.string().optional(),
-  namePattern: z.string().optional(),
-  ownerTeam: z.string().min(1, 'Owner team is required')
-})
-type ImportSchema = z.infer<typeof importSchema>
+interface RepoConfig {
+  repositoryFullName: string
+  repositoryUrl: string
+  ownerTeam: string
+  systemName: string
+}
 
 const { data: teamsData } = await useFetch<TeamsResponse>('/api/teams')
 const importTeamItems = computed(() =>
@@ -484,22 +579,18 @@ const importTeamItems = computed(() =>
 
 const toast = useToast()
 const showImportModal = ref(false)
+const importStep = ref(0)
 const isImporting = ref(false)
 const isFetchingRepositories = ref(false)
 const importError = ref('')
+const importOrganization = ref('')
 const activeImportJob = ref<ImportJob | null>(null)
 const ownerRepositories = ref<OwnerRepository[]>([])
 const selectedRepositoryFullNames = ref<string[]>([])
+const repoConfigs = ref<RepoConfig[]>([])
+const defaultTeam = ref('')
 let importPollTimer: ReturnType<typeof setInterval> | null = null
 let importPollInFlight = false
-
-const importState = reactive<Partial<ImportSchema>>({
-  organization: '',
-  language: '',
-  topic: '',
-  namePattern: '',
-  ownerTeam: ''
-})
 
 const importProgressPercent = computed(() => {
   if (!activeImportJob.value?.total) return 0
@@ -522,15 +613,14 @@ const importJobStatusColor = computed(() => {
   return 'info'
 })
 
-const importSubmitLabel = computed(() => {
-  return ownerRepositories.value.length > 0 ? 'Import Selected' : 'Fetch Repositories'
-})
+const isJobRunning = computed(() =>
+  isImporting.value || (!!activeImportJob.value && ['queued', 'running'].includes(activeImportJob.value.status))
+)
 
-const isImportSubmitDisabled = computed(() => {
-  if (isImporting.value || isFetchingRepositories.value) return true
-  if (ownerRepositories.value.length > 0) {
-    return selectedRepositoryFullNames.value.length === 0
-  }
+const nextDisabled = computed(() => {
+  if (importStep.value === 0) return !importOrganization.value.trim() || isFetchingRepositories.value
+  if (importStep.value === 1) return selectedRepositoryFullNames.value.length === 0
+  if (importStep.value === 2) return repoConfigs.value.some(r => !r.ownerTeam)
   return false
 })
 
@@ -571,108 +661,107 @@ function toggleOwnerRepository(fullName: string, selected: boolean) {
   }
   selectedRepositoryFullNames.value = ownerRepositories.value
     .map(repo => repo.fullName)
-    .filter(fullName => current.has(fullName))
+    .filter(name => current.has(name))
 }
 
-watch(
-  () => [
-    importState.organization,
-    importState.language,
-    importState.topic,
-    importState.namePattern
-  ],
-  () => {
-    resetOwnerRepositorySelection()
+function deriveSystemName(fullName: string): string {
+  const repoName = fullName.split('/')[1] || fullName
+  return repoName.replace(/[^a-z0-9-]/gi, '-').toLowerCase()
+}
+
+function applyDefaultTeam(team: string) {
+  repoConfigs.value.forEach(r => { r.ownerTeam = team })
+}
+
+async function nextStep() {
+  if (importStep.value === 0) {
+    await fetchOwnerRepositories()
+    if (!importError.value) {
+      importStep.value = 1
+    }
+  } else if (importStep.value === 1) {
+    repoConfigs.value = selectedRepositoryFullNames.value.map(fullName => {
+      const repo = ownerRepositories.value.find(r => r.fullName === fullName)!
+      return { repositoryFullName: fullName, repositoryUrl: repo.url, ownerTeam: defaultTeam.value, systemName: '' }
+    })
+    importStep.value = 2
+  } else if (importStep.value === 2) {
+    importStep.value = 3
+    await startOrganizationImport()
   }
-)
+}
+
+function prevStep() {
+  if (importStep.value === 1) {
+    resetOwnerRepositorySelection()
+    importError.value = ''
+  }
+  if (importStep.value === 2) {
+    repoConfigs.value = []
+  }
+  importStep.value--
+}
 
 function closeImportModal() {
+  stopImportPolling()
   showImportModal.value = false
   setTimeout(() => {
-    Object.assign(importState, {
-      organization: '',
-      language: '',
-      topic: '',
-      namePattern: '',
-      ownerTeam: ''
-    })
+    importStep.value = 0
+    importOrganization.value = ''
     importError.value = ''
     activeImportJob.value = null
+    isImporting.value = false
+    repoConfigs.value = []
+    defaultTeam.value = ''
     resetOwnerRepositorySelection()
   }, 300)
 }
 
-async function onImport(event: FormSubmitEvent<ImportSchema>) {
+async function startOrganizationImport() {
   isImporting.value = true
   importError.value = ''
   activeImportJob.value = null
   stopImportPolling()
 
   try {
-    if (ownerRepositories.value.length === 0) {
-      await fetchOwnerRepositories(event.data)
-    } else {
-      await startOrganizationImport(event.data)
-    }
-  }
-  catch (error: unknown) {
+    const response = await $fetch<{ success: boolean; data: ImportJob }>('/api/admin/import/github-org', {
+      method: 'POST',
+      body: {
+        owner: importOrganization.value,
+        repositories: repoConfigs.value.map(r => ({
+          repositoryFullName: r.repositoryFullName,
+          repositoryUrl: r.repositoryUrl,
+          ownerTeam: r.ownerTeam || undefined,
+          systemName: r.systemName || undefined
+        })),
+        ownerTeam: defaultTeam.value || repoConfigs.value[0]?.ownerTeam || ''
+      }
+    })
+
+    activeImportJob.value = response.data
+    startImportPolling(response.data.id)
+  } catch (error: unknown) {
     const err = error as { data?: { message?: string }; message?: string }
     importError.value = err.data?.message || err.message || 'Import failed'
-  }
-  finally {
-    if (!activeImportJob.value) {
-      isImporting.value = false
-    }
+    isImporting.value = false
   }
 }
 
-async function startOrganizationImport(data: ImportSchema) {
-  const selected = ownerRepositories.value.filter(repo => selectedRepositoryFullNames.value.includes(repo.fullName))
-  const body = {
-    owner: data.organization,
-    repositories: selected.map(repo => ({
-      repositoryFullName: repo.fullName,
-      repositoryUrl: repo.url
-    })),
-    filters: {
-      language: data.language || undefined,
-      topic: data.topic || undefined,
-      namePattern: data.namePattern || undefined
-    },
-    ownerTeam: data.ownerTeam
-  }
-
-  const response = await $fetch<{ success: boolean; data: ImportJob }>('/api/admin/import/github-org', {
-    method: 'POST',
-    body
-  })
-
-  activeImportJob.value = response.data
-  startImportPolling(response.data.id)
-}
-
-async function fetchOwnerRepositories(data: ImportSchema) {
+async function fetchOwnerRepositories() {
   isFetchingRepositories.value = true
   importError.value = ''
 
   try {
     const response = await $fetch<{ success: boolean; data: OwnerRepository[]; count: number }>('/api/admin/import/github-org/repositories', {
       method: 'POST',
-      body: {
-        owner: data.organization,
-        filters: {
-          language: data.language || undefined,
-          topic: data.topic || undefined,
-          namePattern: data.namePattern || undefined
-        }
-      }
+      body: { owner: importOrganization.value }
     })
 
     ownerRepositories.value = response.data
     selectAllOwnerRepositories()
 
     if (response.count === 0) {
-      importError.value = 'No repositories matched the current owner and filters'
+      importError.value = 'No repositories found for this owner'
     }
   } catch (error: unknown) {
     const err = error as { data?: { message?: string }; message?: string }
