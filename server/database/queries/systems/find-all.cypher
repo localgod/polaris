@@ -1,4 +1,5 @@
 MATCH (s:System)
+{{WHERE_CONDITIONS}}
 OPTIONAL MATCH (team:Team)-[:OWNS]->(s)
 CALL {
   WITH s

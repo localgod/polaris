@@ -70,7 +70,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       getResult = await getHandler(mockEvent())
     })
     Then('the service should be called with limit 50 and offset 0', () => {
-      expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 50, 0)
+      expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 50, 0, undefined)
     })
   })
 
@@ -80,7 +80,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       getResult = await getHandler(mockEvent({ query: { limit: '9999' } }))
     })
     Then('the service should be called with limit 200 and offset 0', () => {
-      expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 200, 0)
+      expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 200, 0, undefined)
     })
   })
 
@@ -90,7 +90,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       getResult = await getHandler(mockEvent({ query: { limit: '0' } }))
     })
     Then('the service should be called with limit 1 and offset 0', () => {
-      expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 1, 0)
+      expect(systemService.findAll).toHaveBeenCalledWith(expect.any(Object), 1, 0, undefined)
     })
   })
 
