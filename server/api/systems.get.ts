@@ -59,13 +59,17 @@ export default defineEventHandler(async (event): Promise<ApiResponse<System>> =>
     const limit = Math.min(Math.max(1, rawLimit), 200)
     const offset = Math.max(0, rawOffset)
 
+    const rawSearch = query.search
+    const search = (Array.isArray(rawSearch) ? rawSearch[0] : rawSearch as string | undefined)?.trim() || undefined
+
     const result = await systemService.findAll(
       {
         sortBy: query.sortBy as string | undefined,
         sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
       },
       limit,
-      offset
+      offset,
+      search
     )
 
     return {

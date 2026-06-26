@@ -2,6 +2,7 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Repository } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
+import { injectWhereConditions } from '../utils/query-loader'
 import { buildCreateChanges } from '../utils/audit-diff'
 
 const systemSortConfig: SortConfig = {
@@ -74,11 +75,15 @@ export class SystemRepository extends BaseRepository {
    * 
    * @returns Array of systems
    */
-  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: System[]; total: number }> {
+  async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: System[]; total: number }> {
     const query = await loadQuery('systems/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, systemSortConfig)
-    const finalQuery = injectOrderBy(query, orderBy)
-    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+    const conditions = search ? [`toLower(s.name) CONTAINS toLower($search)`] : []
+    const withWhere = injectWhereConditions(query, conditions)
+    const finalQuery = injectOrderBy(withWhere, orderBy)
+    const params: Record<string, unknown> = { limit, offset }
+    if (search) params.search = search
+    const { records } = await this.executeQuery(finalQuery, params)
 
     const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
     return { data: records.map(record => this.mapToSystem(record)), total }

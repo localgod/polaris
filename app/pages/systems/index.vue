@@ -34,6 +34,15 @@
 
     <template v-else>
       <UCard>
+        <div class="pb-4 border-b border-(--ui-border) mb-4">
+          <UInput
+            v-model="searchInput"
+            placeholder="Filter by name..."
+            icon="i-lucide-search"
+            class="max-w-sm"
+          />
+        </div>
+
         <UTable
           v-model:sorting="sorting"
           :manual-sorting="true"
@@ -345,6 +354,7 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import * as z from 'zod'
 import type { TableColumn, FormSubmitEvent } from '@nuxt/ui'
 
@@ -509,14 +519,20 @@ const sorting = ref([])
 const page = ref(1)
 const pageSize = 20
 
-watch(sorting, () => { page.value = 1 })
+const searchInput = ref('')
+const debouncedSearch = ref('')
+
+watch([debouncedSearch, sorting], () => { page.value = 1 })
+
+const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
+watch(searchInput, updateSearch)
 
 const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
 const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
 const offset = computed(() => (page.value - 1) * pageSize)
 
 const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems', {
-  query: { limit: pageSize, offset, sortBy, sortOrder }
+  query: { limit: pageSize, offset, sortBy, sortOrder, search: debouncedSearch }
 })
 
 const systems = computed(() => data.value?.data || [])

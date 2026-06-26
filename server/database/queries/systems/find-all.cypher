@@ -1,4 +1,5 @@
 MATCH (s:System)
+{{WHERE_CONDITIONS}}
 OPTIONAL MATCH (team:Team)-[:OWNS]->(s)
 CALL {
   WITH s
@@ -19,6 +20,6 @@ RETURN s.name as name,
        componentCount,
        repositoryCount,
        total
-ORDER BY s.businessCriticality DESC, s.name ASC
+ORDER BY {{ORDER_BY}}
 SKIP toInteger($offset)
 LIMIT toInteger($limit)
