@@ -64,14 +64,15 @@
             <span>{{ item.label }}</span>
           </div>
 
-          <button
+          <UButton
             v-else
-            type="button"
+            variant="ghost"
+            color="neutral"
             :data-node-key="item.key"
-            class="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-(--ui-bg-elevated) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ui-primary)"
             :aria-expanded="item.children?.length ? String(expanded) : undefined"
             :aria-label="`${expanded ? 'Collapse' : 'Expand'} ${item.displayName}`"
             :disabled="item.loading"
+            class="w-full justify-start px-2 py-2"
             @click="toggleTreeItem(item, expanded, handleToggle)"
           >
             <UIcon
@@ -108,7 +109,7 @@
               name="i-lucide-loader-circle"
               class="mt-0.5 size-4 animate-spin text-(--ui-text-muted)"
             />
-          </button>
+          </UButton>
         </template>
       </UTree>
     </template>
@@ -121,6 +122,8 @@ import { encodeComponentKey } from '~~/utils/component-identity'
 import { dependencyNodeKey } from '~~/utils/dependency-node-key'
 import type { Component, DependencyNode, DependencyScope, DependencyTreeResponse } from '~~/types/api'
 import DependencyFilters from './DependencyFilters.vue'
+
+const toast = useToast()
 
 interface DependencyTreeApiResponse {
   success: boolean
@@ -255,7 +258,8 @@ async function toggleTreeItem(
     }
     markLoaded(item.key)
   } catch (error) {
-    console.error('Failed to load dependency children:', error)
+    const message = error instanceof Error ? error.message : 'Failed to load dependency children'
+    toast.add({ title: 'Failed to load dependencies', description: message, color: 'error' })
   } finally {
     clearItemLoading(item)
   }

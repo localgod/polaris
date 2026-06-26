@@ -1,21 +1,14 @@
 <template>
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex flex-wrap items-center gap-2">
-      <label
+      <UCheckbox
         v-for="scope in scopes"
         :key="scope"
-        class="inline-flex items-center gap-2 rounded-md border border-(--ui-border) px-3 py-1.5 text-sm text-(--ui-text) hover:bg-(--ui-bg-elevated)"
-      >
-        <input
-          type="checkbox"
-          class="size-4 accent-(--ui-primary)"
-          :value="scope"
-          :checked="modelValue.includes(scope)"
-          :aria-label="`${scope} dependencies`"
-          @change="toggleScope(scope)"
-        >
-        <span>{{ scope }}</span>
-      </label>
+        :model-value="modelValue.includes(scope)"
+        :label="scope"
+        class="rounded-md border border-(--ui-border) px-3 py-1.5 text-sm"
+        @update:model-value="toggleScope(scope)"
+      />
     </div>
 
     <div class="flex items-center gap-2">

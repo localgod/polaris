@@ -51,6 +51,7 @@ import type { TableColumn } from '@nuxt/ui'
 
 const { getSortableHeader } = useSortableTable()
 const { isSuperuser: isSuperuserRef } = useEffectiveRole()
+const toast = useToast()
 
 interface License {
   id: string
@@ -194,7 +195,7 @@ async function toggleAllowed(license: License) {
     await refreshNuxtData()
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Failed to update license status'
-    console.error('Toggle allowed error:', message)
+    toast.add({ title: 'Error', description: message, color: 'error' })
   }
 }
 

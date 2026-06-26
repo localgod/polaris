@@ -111,9 +111,8 @@ const signInWithGithub = async () => {
     await signIn('github', {
       callbackUrl: (route.query.callbackUrl as string) || '/'
     })
-  } catch (e) {
+  } catch {
     error.value = 'Failed to sign in. Please try again.'
-    console.error('Sign in error:', e)
   } finally {
     loading.value = false
   }

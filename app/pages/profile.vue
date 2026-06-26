@@ -189,6 +189,7 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
 const { data: session, status, signOut } = useAuth()
+const toast = useToast()
 
 useHead({ title: 'Profile - Polaris' })
 
@@ -338,7 +339,7 @@ async function confirmRevokeToken() {
     await refreshTokens()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to revoke token')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to revoke token', color: 'error' })
   } finally {
     revokeLoading.value = false
   }
