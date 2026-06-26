@@ -807,7 +807,7 @@ async function confirmDeleteSystem() {
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to delete system')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to delete system', color: 'error' })
   } finally {
     isDeletingSystem.value = false
   }

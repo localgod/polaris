@@ -235,17 +235,18 @@
             No components found.
           </div>
           <div v-if="linkSearchResults.length > 0" class="max-h-60 overflow-y-auto border border-(--ui-border) rounded-md divide-y divide-(--ui-border)">
-            <button
+            <UButton
               v-for="comp in linkSearchResults"
               :key="`${comp.name}@${comp.version}`"
-              type="button"
-              class="w-full text-left px-3 py-2 hover:bg-(--ui-bg-elevated) transition-colors"
+              variant="ghost"
+              color="neutral"
+              class="w-full justify-start px-3 py-2"
               :class="{ 'bg-(--ui-bg-elevated)': linkSelected?.name === comp.name && linkSelected?.version === comp.version }"
               @click="linkSelected = { name: comp.name, version: comp.version }"
             >
               <span class="font-medium">{{ comp.name }}</span>
               <code class="ml-2 text-sm">{{ comp.version }}</code>
-            </button>
+            </UButton>
           </div>
           <div v-if="linkSelected" class="text-sm">
             Selected: <strong>{{ linkSelected.name }}</strong> <code>{{ linkSelected.version }}</code>

@@ -187,6 +187,7 @@ import type { TableColumn } from '@nuxt/ui'
 const { data: session } = useAuth()
 const { isSuperuser } = useEffectiveRole()
 const { getSortableHeader } = useSortableTable()
+const toast = useToast()
 
 interface VersionConstraint {
   name: string
@@ -391,7 +392,7 @@ async function handleCreate() {
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to create version constraint')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to create version constraint', color: 'error' })
   } finally {
     isCreating.value = false
   }
@@ -444,7 +445,7 @@ async function handleEdit() {
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to update version constraint')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to update version constraint', color: 'error' })
   } finally {
     isEditing.value = false
   }
@@ -460,7 +461,7 @@ async function toggleStatus(name: string, newStatus: string) {
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to update status')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to update status', color: 'error' })
   }
 }
 
@@ -482,7 +483,7 @@ async function confirmDelete() {
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to delete version constraint')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to delete version constraint', color: 'error' })
   } finally {
     isDeleting.value = false
   }

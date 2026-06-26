@@ -285,6 +285,7 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
 const { getSortableHeader } = useSortableTable()
+const toast = useToast()
 
 interface UserTeam {
   name: string
@@ -594,7 +595,7 @@ async function confirmDeleteUser() {
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to delete user')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to delete user', color: 'error' })
   } finally {
     deleteUserLoading.value = false
   }

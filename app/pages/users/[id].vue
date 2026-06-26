@@ -168,6 +168,7 @@ import type { TableColumn } from '@nuxt/ui'
 
 const route = useRoute()
 const { isSuperuser } = useEffectiveRole()
+const toast = useToast()
 
 interface UserTeam {
   name: string
@@ -384,7 +385,7 @@ async function confirmRevokeToken() {
     await refresh()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
-    alert(err.data?.message || err.message || 'Failed to revoke token')
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to revoke token', color: 'error' })
   } finally {
     revokeLoading.value = false
   }
