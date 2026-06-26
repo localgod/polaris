@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.38] - 2026-06-26
+
+## What's Changed
+
+- feat: systems name filter + fix health refresh false failures @localgod (#711)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.37...v0.6.38
+
 ## [0.6.29] - 2026-06-23
 
 ## What's Changed
