@@ -10,6 +10,7 @@ declare module 'next-auth' {
         name: string
         email: string | null
       }>
+      githubToken?: string
     } & DefaultSession['user']
   }
 
@@ -33,5 +34,6 @@ declare module 'next-auth/jwt' {
       name: string
       email: string | null
     }>
+    accessToken?: string
   }
 }

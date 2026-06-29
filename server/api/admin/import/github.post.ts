@@ -1,5 +1,6 @@
 import { gitHubImportService } from '../../../services/singletons'
 import { AuditLogRepository } from '../../../repositories/audit-log.repository'
+import { getServerSession } from '#auth'
 
 /**
  * @openapi
@@ -57,6 +58,8 @@ import { AuditLogRepository } from '../../../repositories/audit-log.repository'
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
   const realUserId = await getImpersonatorId(event)
+  const session = await getServerSession(event)
+  const githubToken = session?.user?.githubToken
 
   const body = await readBody(event) || {}
 
@@ -80,7 +83,8 @@ export default defineEventHandler(async (event) => {
       ownerTeam,
       businessCriticality: body.businessCriticality,
       environment: body.environment,
-      userId: user.id
+      userId: user.id,
+      githubToken
     })
 
     // Audit log

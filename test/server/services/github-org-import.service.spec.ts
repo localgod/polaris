@@ -5,7 +5,19 @@ import type { ImportJob } from '../../../server/repositories/import-job.reposito
 
 vi.mock('../../../server/utils/github', () => ({
   listGitHubOwnerRepositories: vi.fn(),
-  parseGitHubOwner: vi.fn((value: string) => value.replace(/^https:\/\/github\.com\//, ''))
+  parseGitHubOwner: vi.fn((value: string) => value.replace(/^https:\/\/github\.com\//, '')),
+  // Run tasks sequentially in tests so assertions remain deterministic
+  runWithConcurrency: vi.fn(async (tasks: (() => Promise<unknown>)[], _limit: number) => {
+    const results: PromiseSettledResult<unknown>[] = []
+    for (const task of tasks) {
+      try {
+        results.push({ status: 'fulfilled', value: await task() })
+      } catch (reason) {
+        results.push({ status: 'rejected', reason })
+      }
+    }
+    return results
+  })
 }))
 
 const baseJob: ImportJob = {
@@ -137,7 +149,7 @@ describe('GitHubOrgImportService', () => {
     const result = await service.previewRepositories('https://github.com/acme', { language: 'TypeScript' })
 
     expect(result).toHaveLength(1)
-    expect(listGitHubOwnerRepositories).toHaveBeenCalledWith('acme', { language: 'TypeScript' })
+    expect(listGitHubOwnerRepositories).toHaveBeenCalledWith('acme', { language: 'TypeScript' }, undefined)
     expect(repo.create).not.toHaveBeenCalled()
   })
 

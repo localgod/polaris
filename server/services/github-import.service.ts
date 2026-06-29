@@ -1,14 +1,13 @@
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs'
-import { join, dirname } from 'path'
+import { rmSync, existsSync } from 'fs'
+import { join } from 'path'
 import { randomBytes } from 'crypto'
 import { createBom } from '@cyclonedx/cdxgen'
 import { logger } from '../utils/logger'
 import {
   parseGitHubRepo,
   fetchRepoMetadata,
-  fetchManifestFiles,
-  type GitHubRepoMetadata,
-  type GitHubFileContent
+  cloneRepository,
+  type GitHubRepoMetadata
 } from '../utils/github'
 import { SystemService } from './system.service'
 import { SBOMService } from './sbom.service'
@@ -28,6 +27,8 @@ export interface GitHubImportInput {
   environment?: string
   /** Authenticated user ID */
   userId: string
+  /** GitHub OAuth token for the requesting user — used to clone the repository */
+  githubToken?: string
 }
 
 export interface GitHubImportResult {
@@ -56,28 +57,32 @@ export class GitHubImportService {
    *
    * Steps:
    * 1. Parse the repo URL and fetch metadata from GitHub API
-   * 2. Fetch the file tree and download dependency manifests
-   * 3. Write manifests to a temp directory and run cdxgen
-   * 4. Create the system with the repository linked
-   * 5. Submit the generated SBOM for processing
+   * 2. Shallow-clone the repository to a temp directory
+   * 3. Create the system with the repository linked
+   * 4. Run cdxgen on the clone and submit the SBOM
    */
   async import(input: GitHubImportInput): Promise<GitHubImportResult> {
-    // 1. Parse and fetch metadata
+    if (!input.githubToken) {
+      throw new Error('GitHub authentication required — please sign in via GitHub to import repositories')
+    }
+
+    // 1. Parse and fetch metadata (name, description, topics, language)
     const { owner, repo } = parseGitHubRepo(input.repositoryUrl)
-    const metadata = await fetchRepoMetadata(owner, repo)
+    const metadata = await fetchRepoMetadata(owner, repo, input.githubToken)
     const repoUrl = metadata.html_url
 
-    // 2. Fetch manifest files
-    const manifests = await fetchManifestFiles(owner, repo, metadata.default_branch)
-
-    // 3. Create system with repository
-    await this.createSystemWithRepo(metadata, input)
-
-    // 4. Generate and submit SBOM if manifests were found
+    // 2. Clone and generate SBOM
+    const tempDir = join(process.cwd(), '.data', 'temp', `import-${randomBytes(8).toString('hex')}`)
     let sbomResult = { componentsAdded: 0, componentsUpdated: 0, relationshipsCreated: 0 }
 
-    if (manifests.length > 0) {
-      const sbom = await this.generateSBOM(manifests, metadata.name)
+    try {
+      await cloneRepository(repoUrl, tempDir, input.githubToken)
+
+      // 3. Create system with repository
+      await this.createSystemWithRepo(metadata, input)
+
+      // 4. Generate and submit SBOM
+      const sbom = await this.generateSBOM(tempDir, metadata.name)
 
       if (sbom) {
         sbomResult = await this.sbomService.processSBOM({
@@ -87,6 +92,10 @@ export class GitHubImportService {
           userId: input.userId
         })
       }
+    } finally {
+      if (existsSync(tempDir)) {
+        rmSync(tempDir, { recursive: true, force: true })
+      }
     }
 
     return {
@@ -95,7 +104,7 @@ export class GitHubImportService {
       description: metadata.description,
       defaultBranch: metadata.default_branch,
       language: metadata.language,
-      manifestsFound: manifests.length,
+      manifestsFound: 0,
       componentsAdded: sbomResult.componentsAdded,
       componentsUpdated: sbomResult.componentsUpdated,
       relationshipsCreated: sbomResult.relationshipsCreated
@@ -145,63 +154,17 @@ export class GitHubImportService {
   }
 
   /**
-   * Derive cdxgen project type(s) from the set of manifest files present.
-   * Returning a non-empty array restricts cdxgen to the matching language
-   * scanners, preventing unrelated scanners (e.g. createJarBom) from running.
+   * Run cdxgen on a cloned repository directory to generate an SBOM.
    */
-  private inferProjectTypes(manifests: GitHubFileContent[]): string[] {
-    const NODE_MANIFESTS = new Set(['package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'])
-    const JAVA_MANIFESTS = new Set(['pom.xml', 'build.gradle', 'build.gradle.kts', 'gradle.lockfile'])
-    const PYTHON_MANIFESTS = new Set(['requirements.txt', 'pyproject.toml', 'Pipfile', 'Pipfile.lock', 'poetry.lock', 'setup.py', 'setup.cfg'])
-    const GO_MANIFESTS = new Set(['go.mod', 'go.sum'])
-    const RUBY_MANIFESTS = new Set(['Gemfile', 'Gemfile.lock'])
-    const RUST_MANIFESTS = new Set(['Cargo.toml', 'Cargo.lock'])
-    const PHP_MANIFESTS = new Set(['composer.json', 'composer.lock'])
-    const DOTNET_MANIFESTS = new Set(['packages.config', 'packages.lock.json'])
-
-    const types = new Set<string>()
-    for (const { path } of manifests) {
-      const filename = path.split('/').pop()!
-      if (NODE_MANIFESTS.has(filename)) types.add('js')
-      if (JAVA_MANIFESTS.has(filename)) types.add('java')
-      if (PYTHON_MANIFESTS.has(filename)) types.add('py')
-      if (GO_MANIFESTS.has(filename)) types.add('go')
-      if (RUBY_MANIFESTS.has(filename)) types.add('ruby')
-      if (RUST_MANIFESTS.has(filename)) types.add('rust')
-      if (PHP_MANIFESTS.has(filename)) types.add('php')
-      if (DOTNET_MANIFESTS.has(filename) || filename.endsWith('.csproj')) types.add('dotnet')
-    }
-    return [...types]
-  }
-
-  /**
-   * Write manifest files to a temp directory and run cdxgen to generate an SBOM.
-   */
-  private async generateSBOM(
-    manifests: GitHubFileContent[],
-    projectName: string
-  ): Promise<object | null> {
-    const tempDir = join(process.cwd(), '.data', 'temp', `import-${randomBytes(8).toString('hex')}`)
+  private async generateSBOM(repoDir: string, projectName: string): Promise<object | null> {
+    logger.info({ projectName, repoDir }, 'Running cdxgen for GitHub import')
 
     try {
-      // Write manifest files preserving directory structure
-      for (const file of manifests) {
-        const filePath = join(tempDir, file.path)
-        mkdirSync(dirname(filePath), { recursive: true })
-        writeFileSync(filePath, file.content, 'utf-8')
-      }
-
-      const projectTypes = this.inferProjectTypes(manifests)
-      logger.info({ projectName, manifestCount: manifests.length, projectTypes }, 'Running cdxgen for GitHub import')
-
-      // Run cdxgen — restrict to detected project types to prevent unrelated
-      // language scanners (e.g. createJarBom) from producing spurious components.
-      const bom = await createBom(tempDir, {
+      const bom = await createBom(repoDir, {
         installDeps: false,
         projectName,
         projectVersion: '1.0.0',
         multiProject: true,
-        ...(projectTypes.length > 0 && { projectType: projectTypes }),
       })
 
       if (!bom) {
@@ -219,11 +182,6 @@ export class GitHubImportService {
     } catch (err) {
       logger.error({ err, projectName }, 'cdxgen threw during GitHub import')
       throw err
-    } finally {
-      // Always clean up
-      if (existsSync(tempDir)) {
-        rmSync(tempDir, { recursive: true, force: true })
-      }
     }
   }
 }

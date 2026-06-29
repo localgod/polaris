@@ -1,9 +1,13 @@
 /**
- * GitHub API utilities for fetching repository metadata and dependency manifests.
+ * GitHub API utilities for fetching repository metadata and cloning repositories.
  *
- * Used by the GitHub import feature to create systems without cloning repos.
+ * Used by the GitHub import feature to create systems from GitHub repos.
  */
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { logger } from './logger'
+
+const execFileAsync = promisify(execFile)
 
 export interface GitHubRepoMetadata {
   name: string
@@ -17,18 +21,6 @@ export interface GitHubRepoMetadata {
   license: { spdx_id: string; name: string } | null
 }
 
-export interface GitHubTreeEntry {
-  path: string
-  mode: string
-  type: 'blob' | 'tree'
-  sha: string
-  size?: number
-}
-
-export interface GitHubFileContent {
-  path: string
-  content: string
-}
 
 export interface GitHubOrgRepository {
   name: string
@@ -62,50 +54,6 @@ class GitHubApiError extends Error {
   }
 }
 
-/** Known dependency manifest and lockfile names */
-const MANIFEST_FILENAMES = new Set([
-  // Node.js
-  'package.json',
-  'package-lock.json',
-  'yarn.lock',
-  'pnpm-lock.yaml',
-  // PHP
-  'composer.json',
-  'composer.lock',
-  // Python
-  'requirements.txt',
-  'pyproject.toml',
-  'Pipfile',
-  'Pipfile.lock',
-  'poetry.lock',
-  'setup.py',
-  'setup.cfg',
-  // Go
-  'go.mod',
-  'go.sum',
-  // Java
-  'pom.xml',
-  'build.gradle',
-  'build.gradle.kts',
-  'gradle.lockfile',
-  // Ruby
-  'Gemfile',
-  'Gemfile.lock',
-  // Rust
-  'Cargo.toml',
-  'Cargo.lock',
-  // .NET
-  'packages.config',
-  'packages.lock.json'
-])
-
-/** Also match *.csproj files */
-function isManifestFile(path: string): boolean {
-  const filename = path.split('/').pop() || ''
-  if (MANIFEST_FILENAMES.has(filename)) return true
-  if (filename.endsWith('.csproj')) return true
-  return false
-}
 
 /**
  * Parse a GitHub URL or owner/repo shorthand into owner and repo.
@@ -154,17 +102,16 @@ export function parseGitHubOwner(input: string): string {
 
 /**
  * Build GitHub API request headers.
- * Includes a Bearer token when GITHUB_TOKEN is set in the environment,
- * raising the rate limit from 60 to 5,000 requests/hour.
+ * Prefers the explicitly supplied token; falls back to GITHUB_TOKEN env var.
  */
-function githubHeaders(): Record<string, string> {
+function githubHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'Polaris'
   }
-  const token = process.env.GITHUB_TOKEN
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+  const resolved = token || process.env.GITHUB_TOKEN
+  if (resolved) {
+    headers['Authorization'] = `Bearer ${resolved}`
   }
   return headers
 }
@@ -208,9 +155,9 @@ function parseRateLimitReset(response: Response): number | null {
   return null
 }
 
-async function fetchGitHub(url: string, context: string): Promise<Response> {
+async function fetchGitHub(url: string, context: string, token?: string): Promise<Response> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(url, { headers: githubHeaders() })
+    const response = await fetch(url, { headers: githubHeaders(token) })
     if (response.ok) return response
 
     const delay = parseRateLimitReset(response)
@@ -237,57 +184,13 @@ function isGitHubApiError(error: unknown, status: number): boolean {
 /**
  * Fetch repository metadata from the GitHub API.
  */
-export async function fetchRepoMetadata(owner: string, repo: string): Promise<GitHubRepoMetadata> {
+export async function fetchRepoMetadata(owner: string, repo: string, token?: string): Promise<GitHubRepoMetadata> {
   const url = `https://api.github.com/repos/${owner}/${repo}`
-  const response = await fetchGitHub(url, `repository ${owner}/${repo}`)
+  const response = await fetchGitHub(url, `repository ${owner}/${repo}`, token)
 
   return await response.json() as GitHubRepoMetadata
 }
 
-/**
- * Fetch the full file tree for a branch using the Git Trees API.
- */
-export async function fetchFileTree(owner: string, repo: string, branch: string): Promise<GitHubTreeEntry[]> {
-  const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`
-  let response: Response
-
-  try {
-    response = await fetchGitHub(url, `file tree for ${owner}/${repo}@${branch}`)
-  } catch (error: unknown) {
-    if (isGitHubApiError(error, 409)) {
-      logger.warn({ owner, repo, branch }, 'GitHub tree unavailable for repository ref; continuing without manifests')
-      return []
-    }
-    throw error
-  }
-
-  const data = await response.json() as { tree: GitHubTreeEntry[]; truncated: boolean }
-
-  if (data.truncated) {
-    // Repository has more than 100,000 tree entries; the tree is partial.
-    // Log a warning but continue — manifests near the root will still be found.
-    logger.warn({ owner, repo, branch }, 'GitHub tree response truncated — large repo, some manifests may be missed')
-  }
-
-  return data.tree
-}
-
-/**
- * Fetch a single file's content from the GitHub Contents API.
- * Returns decoded UTF-8 content.
- */
-export async function fetchFileContent(owner: string, repo: string, path: string, branch: string): Promise<string> {
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`
-  const response = await fetchGitHub(url, path)
-
-  const data = await response.json() as { content: string; encoding: string }
-
-  if (data.encoding === 'base64') {
-    return Buffer.from(data.content, 'base64').toString('utf-8')
-  }
-
-  return data.content
-}
 
 function compileNamePattern(pattern?: string): RegExp | null {
   if (!pattern) return null
@@ -321,7 +224,8 @@ function matchesOrgRepositoryFilters(
 async function listRepositoriesForOwner(
   owner: string,
   ownerType: GitHubRepositoryOwnerType,
-  filters: GitHubOrgRepositoryFilters = {}
+  filters: GitHubOrgRepositoryFilters = {},
+  token?: string
 ): Promise<GitHubOrgRepository[]> {
   const nameRegex = compileNamePattern(filters.namePattern)
   const repos: GitHubOrgRepository[] = []
@@ -335,7 +239,7 @@ async function listRepositoriesForOwner(
 
   for (let page = 1; ; page++) {
     const url = `https://api.github.com/${basePath}&sort=full_name&per_page=${perPage}&page=${page}`
-    const response = await fetchGitHub(url, context)
+    const response = await fetchGitHub(url, context, token)
     const data = await response.json() as GitHubOrgRepository[]
 
     repos.push(...data.filter(repo => matchesOrgRepositoryFilters(repo, filters, nameRegex)))
@@ -354,17 +258,18 @@ async function listRepositoriesForOwner(
  */
 export async function listGitHubOwnerRepositories(
   ownerInput: string,
-  filters: GitHubOrgRepositoryFilters = {}
+  filters: GitHubOrgRepositoryFilters = {},
+  token?: string
 ): Promise<GitHubOrgRepository[]> {
   const owner = parseGitHubOwner(ownerInput)
 
   try {
-    return await listRepositoriesForOwner(owner, 'organization', filters)
+    return await listRepositoriesForOwner(owner, 'organization', filters, token)
   } catch (error: unknown) {
     if (!isNotFoundError(error)) throw error
   }
 
-  return await listRepositoriesForOwner(owner, 'user', filters)
+  return await listRepositoriesForOwner(owner, 'user', filters, token)
 }
 
 /**
@@ -372,47 +277,60 @@ export async function listGitHubOwnerRepositories(
  */
 export async function listOrgRepositories(
   organization: string,
-  filters: GitHubOrgRepositoryFilters = {}
+  filters: GitHubOrgRepositoryFilters = {},
+  token?: string
 ): Promise<GitHubOrgRepository[]> {
   const org = parseGitHubOwner(organization)
-  return await listRepositoriesForOwner(org, 'organization', filters)
+  return await listRepositoriesForOwner(org, 'organization', filters, token)
 }
 
 /**
- * Identify and download dependency manifest files from a GitHub repository.
- *
- * 1. Fetches the file tree
- * 2. Filters for known manifest/lockfile names
- * 3. Downloads each matching file
+ * Run an array of async tasks with a bounded concurrency limit.
+ * Returns settled results in the same order as the input tasks.
  */
-export async function fetchManifestFiles(
-  owner: string,
-  repo: string,
-  branch: string
-): Promise<GitHubFileContent[]> {
-  const tree = await fetchFileTree(owner, repo, branch)
+export async function runWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  limit: number
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length)
+  let next = 0
 
-  const manifestPaths = tree
-    .filter(entry =>
-      entry.type === 'blob' &&
-      isManifestFile(entry.path) &&
-      !entry.path.includes('node_modules/')
-    )
-    .map(entry => entry.path)
-
-  if (manifestPaths.length === 0) {
-    return []
-  }
-
-  const files: GitHubFileContent[] = []
-  for (const path of manifestPaths) {
-    try {
-      const content = await fetchFileContent(owner, repo, path, branch)
-      files.push({ path, content })
-    } catch {
-      // Skip files that fail to download (e.g., too large)
+  async function worker() {
+    while (next < tasks.length) {
+      const index = next++
+      try {
+        results[index] = { status: 'fulfilled', value: await tasks[index]() }
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason }
+      }
     }
   }
 
-  return files
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker))
+  return results
+}
+
+/**
+ * Shallow-clone a GitHub repository to a local directory using git.
+ *
+ * Uses --depth=1 to fetch only the latest commit, keeping disk and network usage minimal.
+ * The token is injected into the HTTPS URL so no separate credential setup is needed.
+ * Requires git to be available on PATH.
+ */
+export async function cloneRepository(repoUrl: string, targetDir: string, token: string): Promise<void> {
+  const { owner, repo } = parseGitHubRepo(repoUrl)
+  const cloneUrl = `https://x-access-token:${token}@github.com/${owner}/${repo}.git`
+
+  try {
+    await execFileAsync('git', ['clone', '--depth=1', '--quiet', cloneUrl, targetDir])
+  } catch (error: unknown) {
+    const stderr = (error as { stderr?: string }).stderr || ''
+    if (stderr.includes('Repository not found') || stderr.includes('not found')) {
+      throw new GitHubApiError(404, 'Not Found', `repository ${owner}/${repo} not found`)
+    }
+    if (stderr.includes('Authentication failed') || stderr.includes('could not read Username')) {
+      throw new GitHubApiError(401, 'Unauthorized', `GitHub authentication failed for ${owner}/${repo} — check your GitHub token scope`)
+    }
+    throw new Error(`git clone failed for ${owner}/${repo}: ${stderr || String(error)}`)
+  }
 }

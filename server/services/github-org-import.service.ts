@@ -7,7 +7,7 @@ import {
   type CreateImportJobItemParams
 } from '../repositories/import-job.repository'
 import { GitHubImportService } from './github-import.service'
-import { listGitHubOwnerRepositories, parseGitHubOwner, type GitHubOrgRepository } from '../utils/github'
+import { listGitHubOwnerRepositories, parseGitHubOwner, runWithConcurrency, type GitHubOrgRepository } from '../utils/github'
 import { logger } from '../utils/logger'
 
 export interface GitHubRepositorySelection {
@@ -28,6 +28,8 @@ export interface GitHubOrgImportInput {
   environment?: string
   userId: string
   realUserId?: string | null
+  /** GitHub OAuth token for the requesting user — passed through to each repository clone */
+  githubToken?: string
 }
 
 const activeJobs = new Set<string>()
@@ -71,9 +73,9 @@ export class GitHubOrgImportService {
     return job
   }
 
-  async previewRepositories(ownerInput: string, filters: ImportJobFilters = {}): Promise<GitHubOrgRepository[]> {
+  async previewRepositories(ownerInput: string, filters: ImportJobFilters = {}, token?: string): Promise<GitHubOrgRepository[]> {
     const owner = parseGitHubOwner(ownerInput)
-    return await listGitHubOwnerRepositories(owner, filters)
+    return await listGitHubOwnerRepositories(owner, filters, token)
   }
 
   async findById(id: string): Promise<ImportJob | null> {
@@ -118,9 +120,8 @@ export class GitHubOrgImportService {
         return
       }
 
-      for (const item of items) {
-        await this.importRepository(jobId, item, input)
-      }
+      const tasks = items.map(item => () => this.importRepository(jobId, item, input))
+      await runWithConcurrency(tasks, 5)
 
       await this.jobRepo.markCompleted(jobId)
       await this.createAuditLog(jobId, input)
@@ -154,7 +155,8 @@ export class GitHubOrgImportService {
         systemName: item.systemName ?? undefined,
         businessCriticality: input.businessCriticality,
         environment: input.environment,
-        userId: input.userId
+        userId: input.userId,
+        githubToken: input.githubToken
       })
 
       await this.jobRepo.markItemFinished(jobId, item.repositoryFullName, 'imported', {

@@ -67,7 +67,10 @@ export default NuxtAuthHandler({
     // @ts-expect-error Use .default here for it to work during SSR
     GithubProvider.default({
       clientId: process.env.GITHUB_CLIENT_ID || '',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || ''
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+      authorization: {
+        params: { scope: 'read:user user:email repo read:org' }
+      }
     })
   ],
 
@@ -105,6 +108,7 @@ export default NuxtAuthHandler({
         session.user.provider = token.provider as string
         session.user.role = (token.role as 'user' | 'superuser') || 'user'
         session.user.teams = (token.teams as Array<{ name: string; email: string | null }>) || []
+        session.user.githubToken = token.accessToken as string | undefined
       }
       return session
     },

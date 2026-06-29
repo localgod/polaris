@@ -24,6 +24,8 @@ RUN npm run build
 
 FROM node:lts-alpine AS runner
 
+RUN apk add --no-cache git
+
 WORKDIR /app
 
 COPY --from=builder /app/.output ./output

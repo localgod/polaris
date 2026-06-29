@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GitHubImportService } from '../../../server/services/github-import.service'
-import { fetchManifestFiles, fetchRepoMetadata } from '../../../server/utils/github'
+import { cloneRepository, fetchRepoMetadata } from '../../../server/utils/github'
 import { SystemService } from '../../../server/services/system.service'
 import { SBOMService } from '../../../server/services/sbom.service'
 
 vi.mock('../../../server/utils/github', () => ({
   parseGitHubRepo: vi.fn(() => ({ owner: 'acme', repo: 'repo-a' })),
   fetchRepoMetadata: vi.fn(),
-  fetchManifestFiles: vi.fn()
+  cloneRepository: vi.fn()
 }))
 
 vi.mock('../../../server/services/system.service', () => ({
@@ -16,6 +16,17 @@ vi.mock('../../../server/services/system.service', () => ({
 
 vi.mock('../../../server/services/sbom.service', () => ({
   SBOMService: vi.fn()
+}))
+
+// cdxgen is invoked inside generateSBOM; stub it out
+vi.mock('@cyclonedx/cdxgen', () => ({
+  createBom: vi.fn().mockResolvedValue(null)
+}))
+
+// fs cleanup runs in finally; mock to avoid touching the filesystem
+vi.mock('fs', () => ({
+  existsSync: vi.fn(() => false),
+  rmSync: vi.fn()
 }))
 
 const metadata = {
@@ -48,7 +59,7 @@ describe('GitHubImportService', () => {
       return sbomService
     } as never)
     vi.mocked(fetchRepoMetadata).mockResolvedValue(metadata)
-    vi.mocked(fetchManifestFiles).mockResolvedValue([])
+    vi.mocked(cloneRepository).mockResolvedValue(undefined)
   })
 
   it('uses a systemName override when creating and returning the imported system', async () => {
@@ -61,7 +72,8 @@ describe('GitHubImportService', () => {
       ownerTeam: 'Platform Team',
       businessCriticality: 'high',
       environment: 'prod',
-      userId: 'user-1'
+      userId: 'user-1',
+      githubToken: 'tok'
     })
 
     expect(result.systemName).toBe('Curated System Name')
@@ -79,6 +91,33 @@ describe('GitHubImportService', () => {
     }))
   })
 
+  it('clones the repository using the supplied github token', async () => {
+    const service = new GitHubImportService()
+
+    await service.import({
+      repositoryUrl: 'https://github.com/acme/repo-a',
+      ownerTeam: 'Platform Team',
+      userId: 'user-1',
+      githubToken: 'my-token'
+    })
+
+    expect(cloneRepository).toHaveBeenCalledWith(
+      'https://github.com/acme/repo-a',
+      expect.stringContaining('import-'),
+      'my-token'
+    )
+  })
+
+  it('throws when no github token is provided', async () => {
+    const service = new GitHubImportService()
+
+    await expect(service.import({
+      repositoryUrl: 'https://github.com/acme/repo-a',
+      ownerTeam: 'Platform Team',
+      userId: 'user-1'
+    })).rejects.toThrow('GitHub authentication required')
+  })
+
   it('links repositories to the overridden system name when the system already exists', async () => {
     systemService.create.mockRejectedValueOnce({ statusCode: 409 })
     const service = new GitHubImportService()
@@ -87,7 +126,8 @@ describe('GitHubImportService', () => {
       repositoryUrl: 'https://github.com/acme/repo-a',
       systemName: 'Curated System Name',
       ownerTeam: 'Platform Team',
-      userId: 'user-1'
+      userId: 'user-1',
+      githubToken: 'tok'
     })
 
     expect(systemService.addRepository).toHaveBeenCalledWith(

@@ -1,4 +1,5 @@
 import { gitHubOrgImportService } from '../../../../services/singletons'
+import { getServerSession } from '#auth'
 
 /**
  * @openapi
@@ -50,6 +51,8 @@ import { gitHubOrgImportService } from '../../../../services/singletons'
  */
 export default defineEventHandler(async (event) => {
   await requireSuperuser(event)
+  const session = await getServerSession(event)
+  const githubToken = session?.user?.githubToken
   const body = await readBody(event) || {}
 
   const owner = typeof body.owner === 'string'
@@ -66,7 +69,7 @@ export default defineEventHandler(async (event) => {
       language: typeof filters.language === 'string' ? filters.language.trim() || undefined : undefined,
       topic: typeof filters.topic === 'string' ? filters.topic.trim() || undefined : undefined,
       namePattern: typeof filters.namePattern === 'string' ? filters.namePattern.trim() || undefined : undefined
-    })
+    }, githubToken)
 
     return {
       success: true,

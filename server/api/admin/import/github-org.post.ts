@@ -1,4 +1,5 @@
 import { gitHubOrgImportService } from '../../../services/singletons'
+import { getServerSession } from '#auth'
 
 /**
  * @openapi
@@ -75,6 +76,8 @@ import { gitHubOrgImportService } from '../../../services/singletons'
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
   const realUserId = await getImpersonatorId(event)
+  const session = await getServerSession(event)
+  const githubToken = session?.user?.githubToken
   const body = await readBody(event) || {}
 
   const owner = typeof body.owner === 'string'
@@ -114,7 +117,8 @@ export default defineEventHandler(async (event) => {
       businessCriticality: body.businessCriticality,
       environment: body.environment,
       userId: user.id,
-      realUserId
+      realUserId,
+      githubToken
     })
 
     setResponseStatus(event, 202)
