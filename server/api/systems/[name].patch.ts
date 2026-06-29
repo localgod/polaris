@@ -57,6 +57,7 @@
  */
 import { buildAuditChanges } from '../../utils/audit-diff'
 import { VALID_CRITICALITIES, VALID_ENVIRONMENTS } from '../../services/system.service'
+import { loadQuery } from '../../utils/query-loader'
 import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
@@ -109,10 +110,8 @@ export default defineEventHandler(async (event) => {
   const driver = useDriver()
 
   // Fetch current state before writing so we can diff it
-  const { records: currentRecords } = await driver.executeQuery(`
-    MATCH (s:System {name: $name})
-    RETURN s { .description, .domain, .businessCriticality, .environment } as props
-  `, { name })
+  const getCurrentStateQuery = await loadQuery('systems/get-current-state.cypher')
+  const { records: currentRecords } = await driver.executeQuery(getCurrentStateQuery, { name })
 
   if (currentRecords.length === 0) {
     throw createError({
@@ -156,32 +155,11 @@ export default defineEventHandler(async (event) => {
   params.userId = user.id
   params.realUserId = realUserId
   params.changes = JSON.stringify(changes)
+  params.changedFields = changedFields
 
-  const query = `
-    MATCH (s:System {name: $name})
-    SET ${updates.join(', ')}
-    WITH s
-    CREATE (a:AuditLog {
-      id: randomUUID(),
-      timestamp: datetime(),
-      operation: 'UPDATE',
-      entityType: 'System',
-      entityId: s.name,
-      entityLabel: s.name,
-      changedFields: ${JSON.stringify(changedFields)},
-      changes: $changes,
-      source: 'API',
-      userId: $userId,
-      realUserId: $realUserId
-    })
-    CREATE (a)-[:AUDITS]->(s)
-    RETURN s {
-      .*,
-      ownerTeam: [(s)<-[:OWNS]-(t:Team) | t.name][0]
-    } as system
-  `
-
-  const { records } = await driver.executeQuery(query, params)
+  const updateQuery = (await loadQuery('systems/update-patch.cypher'))
+    .replace('{{SET_CLAUSES}}', updates.join(', '))
+  const { records } = await driver.executeQuery(updateQuery, params)
 
   if (records.length === 0) {
     throw createError({

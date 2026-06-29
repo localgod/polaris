@@ -1,6 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { HealthDashboardSummary } from '~~/types/api'
+import { loadQuery } from '../utils/query-loader'
 
 export type HealthRefreshJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 export type HealthRefreshJobItemStatus = 'pending' | 'running' | 'refreshed' | 'failed' | 'skipped'
@@ -103,50 +104,7 @@ export class HealthRefreshRepository extends BaseRepository {
   }
 
   private async enqueue(trigger: HealthRefreshTrigger, systemName: string | null): Promise<string> {
-    const { records } = await this.executeQuery(`
-      CREATE (job:HealthRefreshJob {
-        id: randomUUID(),
-        status: 'queued',
-        trigger: $trigger,
-        systemName: $systemName,
-        totalItems: 0,
-        completedItems: 0,
-        failedItems: 0,
-        createdAt: datetime(),
-        startedAt: null,
-        finishedAt: null,
-        error: null
-      })
-      WITH job
-      CALL {
-        WITH job
-        MATCH (c:Component)
-        WHERE c.purl IS NOT NULL
-          AND (
-            $systemName IS NULL
-            OR EXISTS {
-              MATCH (:System {name: $systemName})-[:USES]->(c)
-            }
-          )
-        WITH DISTINCT job, c
-        CREATE (job)-[:HAS_ITEM]->(:HealthRefreshJobItem {
-          id: randomUUID(),
-          componentPurl: c.purl,
-          componentName: c.name,
-          componentVersion: c.version,
-          packageManager: c.packageManager,
-          status: 'pending',
-          failedSources: [],
-          failedFields: [],
-          errorSummary: null,
-          startedAt: null,
-          finishedAt: null
-        })
-        RETURN count(c) AS totalItems
-      }
-      SET job.totalItems = totalItems
-      RETURN job.id AS id
-    `, { trigger, systemName })
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/enqueue.cypher'), { trigger, systemName })
 
     const id = records[0]?.get('id')
     if (!id) throw new Error('Failed to enqueue health refresh job')
@@ -154,51 +112,26 @@ export class HealthRefreshRepository extends BaseRepository {
   }
 
   async claimNextQueuedJob(): Promise<string | null> {
-    const { records } = await this.executeQuery(`
-      MATCH (job:HealthRefreshJob {status: 'queued'})
-      WITH job
-      ORDER BY job.createdAt ASC
-      LIMIT 1
-      SET job.status = 'running',
-          job.startedAt = coalesce(job.startedAt, datetime()),
-          job.error = null
-      RETURN job.id AS id
-    `)
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/claim-next-queued-job.cypher'))
 
     return records[0]?.get('id') ?? null
   }
 
   async findById(id: string): Promise<HealthRefreshJob | null> {
-    const { records } = await this.executeQuery(`
-      MATCH (job:HealthRefreshJob {id: $id})
-      OPTIONAL MATCH (job)-[:HAS_ITEM]->(item:HealthRefreshJobItem)
-      WITH job, item
-      ORDER BY item.componentName ASC, item.componentVersion ASC
-      RETURN job, collect(item) AS items
-    `, { id })
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/find-by-id.cypher'), { id })
 
     if (records.length === 0) return null
     return this.mapJob(records[0]!)
   }
 
   async getPendingItems(jobId: string, limit = 25): Promise<HealthRefreshJobItem[]> {
-    const { records } = await this.executeQuery(`
-      MATCH (:HealthRefreshJob {id: $jobId})-[:HAS_ITEM]->(item:HealthRefreshJobItem {status: 'pending'})
-      RETURN item
-      ORDER BY item.componentName ASC, item.componentVersion ASC
-      LIMIT toInteger($limit)
-    `, { jobId, limit })
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-pending-items.cypher'), { jobId, limit })
 
     return records.map(record => this.mapItem(record.get('item').properties))
   }
 
   async markItemRunning(jobId: string, itemId: string): Promise<void> {
-    await this.executeQuery(`
-      MATCH (:HealthRefreshJob {id: $jobId})-[:HAS_ITEM]->(item:HealthRefreshJobItem {id: $itemId})
-      SET item.status = 'running',
-          item.startedAt = coalesce(item.startedAt, datetime()),
-          item.errorSummary = null
-    `, { jobId, itemId })
+    await this.executeQuery(await loadQuery('health-refresh/mark-item-running.cypher'), { jobId, itemId })
   }
 
   async markItemFinished(
@@ -211,16 +144,7 @@ export class HealthRefreshRepository extends BaseRepository {
       errorSummary?: string | null
     } = {}
   ): Promise<void> {
-    await this.executeQuery(`
-      MATCH (job:HealthRefreshJob {id: $jobId})-[:HAS_ITEM]->(item:HealthRefreshJobItem {id: $itemId})
-      SET item.status = $status,
-          item.failedSources = $failedSources,
-          item.failedFields = $failedFields,
-          item.errorSummary = $errorSummary,
-          item.finishedAt = datetime()
-      SET job.completedItems = job.completedItems + 1,
-          job.failedItems = job.failedItems + CASE WHEN $status = 'failed' THEN 1 ELSE 0 END
-    `, {
+    await this.executeQuery(await loadQuery('health-refresh/mark-item-finished.cypher'), {
       jobId,
       itemId,
       status,
@@ -231,26 +155,11 @@ export class HealthRefreshRepository extends BaseRepository {
   }
 
   async markJobCompletedIfDone(jobId: string): Promise<void> {
-    await this.executeQuery(`
-      MATCH (job:HealthRefreshJob {id: $jobId})
-      OPTIONAL MATCH (job)-[:HAS_ITEM]->(item:HealthRefreshJobItem)
-      WITH job,
-           count(item) AS itemCount,
-           sum(CASE WHEN item.status IN ['pending', 'running'] THEN 1 ELSE 0 END) AS unfinished
-      WHERE unfinished = 0
-      SET job.status = 'completed',
-          job.finishedAt = datetime(),
-          job.completedItems = itemCount
-    `, { jobId })
+    await this.executeQuery(await loadQuery('health-refresh/mark-job-completed-if-done.cypher'), { jobId })
   }
 
   async markJobFailed(jobId: string, error: string): Promise<void> {
-    await this.executeQuery(`
-      MATCH (job:HealthRefreshJob {id: $jobId})
-      SET job.status = 'failed',
-          job.finishedAt = datetime(),
-          job.error = $error
-    `, { jobId, error })
+    await this.executeQuery(await loadQuery('health-refresh/mark-job-failed.cypher'), { jobId, error })
   }
 
   async upsertHealthSnapshot(update: HealthSnapshotUpdate): Promise<void> {
@@ -260,36 +169,13 @@ export class HealthRefreshRepository extends BaseRepository {
     const snapshotSet = setClauses.length > 0 ? `SET ${setClauses.join(',\n          ')}` : ''
     const advisoryQuery = update.advisories === undefined
       ? ''
-      : `
-      WITH c, h
-      OPTIONAL MATCH (c)-[oldAdvisory:HAS_ADVISORY]->(:Advisory)
-      DELETE oldAdvisory
-      WITH c, h
-      UNWIND $advisories AS advisory
-      MERGE (a:Advisory {id: advisory.id})
-      SET a.aliases = advisory.aliases,
-          a.summary = advisory.summary,
-          a.cvssVector = advisory.cvssVector,
-          a.cvssScore = advisory.cvssScore,
-          a.advisoryUrl = advisory.advisoryUrl,
-          a.publishedAt = CASE WHEN advisory.publishedAt IS NULL THEN null ELSE datetime(advisory.publishedAt) END,
-          a.modifiedAt = CASE WHEN advisory.modifiedAt IS NULL THEN null ELSE datetime(advisory.modifiedAt) END,
-          a.source = advisory.source
-      MERGE (c)-[r:HAS_ADVISORY]->(a)
-      SET r.observedAt = datetime()
-      WITH h
-      `
+      : await loadQuery('health-refresh/advisory-subquery.cypher')
 
-    await this.executeQuery(`
-      MATCH (c:Component {purl: $componentPurl})
-      MERGE (h:HealthSnapshot {componentPurl: $componentPurl})
-      ON CREATE SET h.createdAt = datetime()
-      SET h.componentName = $componentName
-      MERGE (c)-[:HAS_HEALTH_SNAPSHOT]->(h)
-      ${snapshotSet}
-      ${advisoryQuery}
-      RETURN h.componentPurl AS componentPurl
-    `, {
+    const query = (await loadQuery('health-refresh/upsert-health-snapshot.cypher'))
+      .replace('{{SNAPSHOT_SET}}', snapshotSet)
+      .replace('{{ADVISORY_QUERY}}', advisoryQuery)
+
+    await this.executeQuery(query, {
       componentPurl: update.componentPurl,
       componentName: update.componentName,
       values: update.values,
@@ -337,15 +223,7 @@ export class HealthRefreshRepository extends BaseRepository {
   }
 
   private async getVulnerabilityExposure(): Promise<Omit<HealthDashboardSummary['vulnerabilityExposure'], 'affectedSystems'>> {
-    const { records } = await this.executeQuery(`
-      MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
-      RETURN
-        count(CASE WHEN coalesce(h.vulnerabilityTotal, 0) > 0 THEN 1 END) AS vulnerableComponents,
-        count(CASE WHEN coalesce(h.vulnerabilityCritical, 0) > 0 THEN 1 END) AS criticalComponents,
-        count(CASE WHEN coalesce(h.vulnerabilityHigh, 0) > 0 THEN 1 END) AS highComponents,
-        coalesce(sum(coalesce(h.vulnerabilityCritical, 0)), 0) AS criticalVulnerabilities,
-        coalesce(sum(coalesce(h.vulnerabilityHigh, 0)), 0) AS highVulnerabilities
-    `)
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-vulnerability-exposure.cypher'))
     const record = records[0]
     return {
       vulnerableComponents: intValue(record?.get('vulnerableComponents')),
@@ -357,32 +235,12 @@ export class HealthRefreshRepository extends BaseRepository {
   }
 
   private async getVulnerabilityAffectedSystems(): Promise<number> {
-    const { records } = await this.executeQuery(`
-      MATCH (s:System)-[u:USES]->(c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
-      WHERE u.isDirect = true
-        AND coalesce(h.vulnerabilityTotal, 0) > 0
-      RETURN count(DISTINCT s) AS affectedSystems
-    `)
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-vulnerability-affected-systems.cypher'))
     return intValue(records[0]?.get('affectedSystems'))
   }
 
   private async getAdvisoryHotspots(): Promise<HealthDashboardSummary['advisoryHotspots']> {
-    const { records } = await this.executeQuery(`
-      MATCH (a:Advisory)<-[:HAS_ADVISORY]-(c:Component)
-      OPTIONAL MATCH (s:System)-[u:USES]->(c)
-      WHERE u.isDirect = true
-      WITH a,
-           count(DISTINCT c) AS affectedComponents,
-           count(DISTINCT s) AS affectedSystems
-      ORDER BY affectedSystems DESC, affectedComponents DESC, coalesce(a.cvssScore, 0) DESC, a.id ASC
-      LIMIT 3
-      RETURN a.id AS id,
-             a.aliases AS aliases,
-             a.summary AS summary,
-             a.cvssScore AS cvssScore,
-             affectedComponents,
-             affectedSystems
-    `)
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-advisory-hotspots.cypher'))
 
     return records.map(record => ({
       id: record.get('id'),
@@ -395,29 +253,7 @@ export class HealthRefreshRepository extends BaseRepository {
   }
 
   private async getRefreshCoverage(staleAfterDays: number): Promise<Omit<HealthDashboardSummary['refreshCoverage'], 'failedItems'>> {
-    const { records } = await this.executeQuery(`
-      MATCH (s:System)-[u:USES]->(c:Component)
-      WHERE u.isDirect = true
-      WITH DISTINCT c
-      OPTIONAL MATCH (c)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
-      WITH c, h,
-           h IS NOT NULL AND (
-             h.eolRefreshedAt IS NOT NULL OR
-             h.vulnerabilityRefreshedAt IS NOT NULL OR
-             h.maintenanceRefreshedAt IS NOT NULL OR
-             h.securityScoreRefreshedAt IS NOT NULL
-           ) AS hasAnyRefresh,
-           h IS NOT NULL AND any(ts IN [
-             h.eolRefreshedAt,
-             h.vulnerabilityRefreshedAt,
-             h.maintenanceRefreshedAt,
-             h.securityScoreRefreshedAt
-           ] WHERE ts IS NOT NULL AND datetime(ts) < datetime() - duration({days: $staleAfterDays})) AS hasStaleRefresh
-      RETURN count(c) AS totalComponents,
-             sum(CASE WHEN hasAnyRefresh THEN 1 ELSE 0 END) AS refreshedComponents,
-             sum(CASE WHEN hasStaleRefresh THEN 1 ELSE 0 END) AS staleComponents,
-             sum(CASE WHEN NOT hasAnyRefresh THEN 1 ELSE 0 END) AS neverCheckedComponents
-    `, { staleAfterDays })
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-refresh-coverage.cypher'), { staleAfterDays })
     const record = records[0]
     return {
       totalComponents: intValue(record?.get('totalComponents')),
@@ -428,30 +264,12 @@ export class HealthRefreshRepository extends BaseRepository {
   }
 
   private async getRecentFailedItems(): Promise<number> {
-    const { records } = await this.executeQuery(`
-      MATCH (item:HealthRefreshJobItem {status: 'failed'})
-      WHERE item.finishedAt IS NULL
-         OR item.finishedAt >= datetime() - duration({days: 1})
-      RETURN count(item) AS failedItems
-    `)
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-recent-failed-items.cypher'))
     return intValue(records[0]?.get('failedItems'))
   }
 
   private async getCriticalSystemsAtRisk(): Promise<HealthDashboardSummary['criticalSystemsAtRisk']> {
-    const { records } = await this.executeQuery(`
-      MATCH (s:System)-[u:USES]->(c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
-      WHERE u.isDirect = true
-        AND lower(coalesce(s.businessCriticality, '')) IN ['critical', 'high']
-        AND (
-          coalesce(h.vulnerabilityCritical, 0) > 0 OR
-          h.eolStatus = 'unsupported' OR
-          h.isDeprecated = true
-        )
-      RETURN count(DISTINCT s) AS systems,
-             count(DISTINCT CASE WHEN lower(coalesce(s.businessCriticality, '')) = 'critical' THEN s END) AS criticalSystems,
-             count(DISTINCT CASE WHEN lower(coalesce(s.businessCriticality, '')) = 'high' THEN s END) AS highSystems,
-             count(DISTINCT c) AS affectedComponents
-    `)
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-critical-systems-at-risk.cypher'))
     const record = records[0]
     return {
       systems: intValue(record?.get('systems')),

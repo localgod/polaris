@@ -32,12 +32,11 @@
 export default defineEventHandler(async (event) => {
   try {
     const driver = useDriver()
-    
+
     // Verify connectivity
     await driver.verifyAuthentication()
-    
-    // Run a simple query
-    const { records } = await driver.executeQuery('RETURN 1 as status')
+
+    const { records } = await driver.executeQuery(await loadQuery('health/ping.cypher'))
     
     if (records && records.length > 0) {
       return {

@@ -2,6 +2,7 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
+import { loadQuery, injectWhereConditions, injectOrderBy } from '../utils/query-loader'
 
 const auditLogSortConfig: SortConfig = {
   allowedFields: {
@@ -68,21 +69,11 @@ export class AuditLogRepository extends BaseRepository {
       params.userId = filters.userId
     }
     
-    const whereClause = whereClauses.length > 0 
-      ? `WHERE ${whereClauses.join(' AND ')}` 
-      : ''
-    
     const orderBy = buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, auditLogSortConfig)
-    const query = `
-      MATCH (a:AuditLog)
-      ${whereClause}
-      OPTIONAL MATCH (performer:User {id: a.userId})
-      RETURN a, performer.name AS performerName
-      ORDER BY ${orderBy}
-      SKIP $offset
-      LIMIT $limit
-    `
-    
+    let query = await loadQuery('audit-logs/find-all.cypher')
+    query = injectWhereConditions(query, whereClauses)
+    query = injectOrderBy(query, orderBy)
+
     const { records } = await this.executeQuery(query, params)
     return records.map(record => this.mapToAuditLog(record))
   }
@@ -109,16 +100,9 @@ export class AuditLogRepository extends BaseRepository {
       params.userId = filters.userId
     }
     
-    const whereClause = whereClauses.length > 0 
-      ? `WHERE ${whereClauses.join(' AND ')}` 
-      : ''
-    
-    const query = `
-      MATCH (a:AuditLog)
-      ${whereClause}
-      RETURN count(a) as count
-    `
-    
+    let query = await loadQuery('audit-logs/count.cypher')
+    query = injectWhereConditions(query, whereClauses)
+
     const { records } = await this.executeQuery(query, params)
     return records[0]?.get('count')?.toNumber() || 0
   }
@@ -127,12 +111,7 @@ export class AuditLogRepository extends BaseRepository {
    * Get distinct entity types for filtering
    */
   async getEntityTypes(): Promise<string[]> {
-    const query = `
-      MATCH (a:AuditLog)
-      RETURN DISTINCT a.entityType as entityType
-      ORDER BY entityType
-    `
-    
+    const query = await loadQuery('audit-logs/get-entity-types.cypher')
     const { records } = await this.executeQuery(query)
     return records.map(r => r.get('entityType')).filter(Boolean)
   }
@@ -141,12 +120,7 @@ export class AuditLogRepository extends BaseRepository {
    * Get distinct operations for filtering
    */
   async getOperations(): Promise<string[]> {
-    const query = `
-      MATCH (a:AuditLog)
-      RETURN DISTINCT a.operation as operation
-      ORDER BY operation
-    `
-    
+    const query = await loadQuery('audit-logs/get-operations.cypher')
     const { records } = await this.executeQuery(query)
     return records.map(r => r.get('operation')).filter(Boolean)
   }
@@ -193,22 +167,7 @@ export class AuditLogRepository extends BaseRepository {
     userId: string
     realUserId?: string | null
   }): Promise<void> {
-    await this.executeQuery(`
-      CREATE (a:AuditLog {
-        id: randomUUID(),
-        timestamp: datetime(),
-        operation: $operation,
-        entityType: $entityType,
-        entityId: $entityId,
-        entityLabel: $entityLabel,
-        changedFields: $changedFields,
-        changes: $changes,
-        reason: $reason,
-        source: $source,
-        userId: $userId,
-        realUserId: $realUserId
-      })
-    `, {
+    await this.executeQuery(await loadQuery('audit-logs/create.cypher'), {
       operation: params.operation,
       entityType: params.entityType,
       entityId: params.entityId,

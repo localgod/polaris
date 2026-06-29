@@ -1,5 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import { loadQuery } from '../utils/query-loader'
 
 export type ImportJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 export type ImportJobItemStatus = 'pending' | 'running' | 'imported' | 'skipped' | 'failed'
@@ -76,31 +77,7 @@ function intValue(value: unknown): number {
 
 export class ImportJobRepository extends BaseRepository {
   async create(params: CreateImportJobParams): Promise<ImportJob> {
-    const { records } = await this.executeQuery(`
-      CREATE (job:ImportJob {
-        id: randomUUID(),
-        type: $type,
-        status: 'queued',
-        requestedBy: $requestedBy,
-        organization: $organization,
-        filters: $filters,
-        dryRun: $dryRun,
-        total: 0,
-        completed: 0,
-        failed: 0,
-        skipped: 0,
-        createdAt: datetime(),
-        startedAt: null,
-        finishedAt: null,
-        error: null
-      })
-      WITH job
-      OPTIONAL MATCH (user:User {id: $requestedBy})
-      FOREACH (_ IN CASE WHEN user IS NULL THEN [] ELSE [1] END |
-        MERGE (user)-[:REQUESTED]->(job)
-      )
-      RETURN job, [] AS items
-    `, {
+    const { records } = await this.executeQuery(await loadQuery('import-jobs/create.cypher'), {
       ...params,
       filters: JSON.stringify(params.filters)
     })
@@ -113,83 +90,35 @@ export class ImportJobRepository extends BaseRepository {
   }
 
   async findById(id: string): Promise<ImportJob | null> {
-    const { records } = await this.executeQuery(`
-      MATCH (job:ImportJob {id: $id})
-      OPTIONAL MATCH (job)-[:HAS_ITEM]->(item:ImportJobItem)
-      WITH job, item
-      ORDER BY item.repositoryFullName ASC
-      RETURN job, collect(item) AS items
-    `, { id })
+    const { records } = await this.executeQuery(await loadQuery('import-jobs/find-by-id.cypher'), { id })
 
     if (records.length === 0) return null
     return this.mapJob(records[0]!)
   }
 
   async markRunning(id: string): Promise<void> {
-    await this.executeQuery(`
-      MATCH (job:ImportJob {id: $id})
-      SET job.status = 'running',
-          job.startedAt = coalesce(job.startedAt, datetime()),
-          job.error = null
-    `, { id })
+    await this.executeQuery(await loadQuery('import-jobs/mark-running.cypher'), { id })
   }
 
   async markCompleted(id: string): Promise<void> {
-    await this.executeQuery(`
-      MATCH (job:ImportJob {id: $id})
-      SET job.status = 'completed',
-          job.finishedAt = datetime()
-    `, { id })
+    await this.executeQuery(await loadQuery('import-jobs/mark-completed.cypher'), { id })
   }
 
   async markFailed(id: string, error: string): Promise<void> {
-    await this.executeQuery(`
-      MATCH (job:ImportJob {id: $id})
-      SET job.status = 'failed',
-          job.finishedAt = datetime(),
-          job.error = $error
-    `, { id, error })
+    await this.executeQuery(await loadQuery('import-jobs/mark-failed.cypher'), { id, error })
   }
 
   async createItems(jobId: string, items: CreateImportJobItemParams[]): Promise<void> {
     if (items.length === 0) {
-      await this.executeQuery(`
-        MATCH (job:ImportJob {id: $jobId})
-        SET job.total = 0
-      `, { jobId })
+      await this.executeQuery(await loadQuery('import-jobs/set-total-zero.cypher'), { jobId })
       return
     }
 
-    await this.executeQuery(`
-      MATCH (job:ImportJob {id: $jobId})
-      SET job.total = size($items)
-      WITH job
-      UNWIND $items AS item
-      CREATE (job)-[:HAS_ITEM]->(:ImportJobItem {
-        id: randomUUID(),
-        repositoryFullName: item.repositoryFullName,
-        repositoryUrl: item.repositoryUrl,
-        ownerTeam: item.ownerTeam,
-        status: coalesce(item.status, 'pending'),
-        message: item.message,
-        systemName: item.systemName,
-        manifestsFound: coalesce(item.manifestsFound, 0),
-        componentsAdded: coalesce(item.componentsAdded, 0),
-        componentsUpdated: coalesce(item.componentsUpdated, 0),
-        relationshipsCreated: coalesce(item.relationshipsCreated, 0),
-        startedAt: null,
-        finishedAt: CASE WHEN coalesce(item.status, 'pending') <> 'pending' THEN datetime() ELSE null END
-      })
-    `, { jobId, items })
+    await this.executeQuery(await loadQuery('import-jobs/create-items.cypher'), { jobId, items })
   }
 
   async markItemRunning(jobId: string, repositoryFullName: string): Promise<void> {
-    await this.executeQuery(`
-      MATCH (:ImportJob {id: $jobId})-[:HAS_ITEM]->(item:ImportJobItem {repositoryFullName: $repositoryFullName})
-      SET item.status = 'running',
-          item.startedAt = coalesce(item.startedAt, datetime()),
-          item.message = null
-    `, { jobId, repositoryFullName })
+    await this.executeQuery(await loadQuery('import-jobs/mark-item-running.cypher'), { jobId, repositoryFullName })
   }
 
   async markItemFinished(
@@ -198,20 +127,7 @@ export class ImportJobRepository extends BaseRepository {
     status: Exclude<ImportJobItemStatus, 'pending' | 'running'>,
     updates: Partial<Omit<ImportJobItem, 'id' | 'repositoryFullName' | 'repositoryUrl' | 'status' | 'startedAt' | 'finishedAt'>>
   ): Promise<void> {
-    await this.executeQuery(`
-      MATCH (job:ImportJob {id: $jobId})-[:HAS_ITEM]->(item:ImportJobItem {repositoryFullName: $repositoryFullName})
-      SET item.status = $status,
-          item.message = $message,
-          item.systemName = $systemName,
-          item.manifestsFound = $manifestsFound,
-          item.componentsAdded = $componentsAdded,
-          item.componentsUpdated = $componentsUpdated,
-          item.relationshipsCreated = $relationshipsCreated,
-          item.finishedAt = datetime()
-      SET job.completed = job.completed + 1,
-          job.failed = job.failed + CASE WHEN $status = 'failed' THEN 1 ELSE 0 END,
-          job.skipped = job.skipped + CASE WHEN $status = 'skipped' THEN 1 ELSE 0 END
-    `, {
+    await this.executeQuery(await loadQuery('import-jobs/mark-item-finished.cypher'), {
       jobId,
       repositoryFullName,
       status,

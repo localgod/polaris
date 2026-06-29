@@ -1,6 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
+import { loadQuery, injectWhereConditions, injectOrderBy } from '../utils/query-loader'
 
 export interface ViolationFilters {
   severity?: string
@@ -112,10 +113,6 @@ export class VersionConstraintRepository extends BaseRepository {
     const limit = filters.limit ?? 50
     const offset = filters.offset ?? 0
 
-    let cypher = `
-      MATCH (vc:VersionConstraint)
-    `
-
     const conditions: string[] = []
     const params: Record<string, unknown> = { limit, offset }
 
@@ -129,36 +126,12 @@ export class VersionConstraintRepository extends BaseRepository {
       params.status = filters.status
     }
 
-    if (conditions.length > 0) {
-      cypher += ' WHERE ' + conditions.join(' AND ')
-    }
+    const orderBy = buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, sortConfig)
+    let query = await loadQuery('version-constraints/find-all.cypher')
+    query = injectWhereConditions(query, conditions)
+    query = injectOrderBy(query, orderBy)
 
-    cypher += `
-      OPTIONAL MATCH (subject:Team)-[:SUBJECT_TO]->(vc)
-      OPTIONAL MATCH (vc)-[:GOVERNS]->(tech:Technology)
-      WITH vc,
-           collect(DISTINCT subject.name) as subjectTeams,
-           collect(DISTINCT tech.name) as governedTechnologies
-      WITH collect({vc: vc, subjectTeams: subjectTeams, governedTechnologies: governedTechnologies}) as allRows, count(vc) as total
-      UNWIND allRows as row
-      WITH row.vc as vc, row.subjectTeams as subjectTeams, row.governedTechnologies as governedTechnologies, total
-      RETURN vc.name as name,
-             vc.description as description,
-             vc.severity as severity,
-             vc.scope as scope,
-             vc.subjectTeam as subjectTeam,
-             vc.versionRange as versionRange,
-             vc.status as status,
-             subjectTeams,
-             governedTechnologies,
-             size(governedTechnologies) as technologyCount,
-             total
-      ORDER BY ${buildOrderByClause({ sortBy: filters.sortBy, sortOrder: filters.sortOrder }, sortConfig)}
-      SKIP toInteger($offset)
-      LIMIT toInteger($limit)
-    `
-
-    const { records } = await this.executeQuery(cypher, params)
+    const { records } = await this.executeQuery(query, params)
 
     const totalCount = records.length > 0 ? records[0]!.get('total').toNumber() : 0
     return { data: records.map(record => this.mapToConstraint(record)), total: totalCount }
@@ -207,70 +180,22 @@ export class VersionConstraintRepository extends BaseRepository {
   }
 
   async exists(name: string): Promise<boolean> {
-    const { records } = await this.executeQuery(
-      'MATCH (vc:VersionConstraint {name: $name}) RETURN vc.name as name LIMIT 1',
-      { name }
-    )
+    const { records } = await this.executeQuery(await loadQuery('version-constraints/check-exists.cypher'), { name })
     return records.length > 0
   }
 
   async getCreator(name: string): Promise<string | null> {
-    const { records } = await this.executeQuery(
-      'MATCH (vc:VersionConstraint {name: $name}) RETURN vc.createdBy as createdBy',
-      { name }
-    )
+    const { records } = await this.executeQuery(await loadQuery('version-constraints/get-creator.cypher'), { name })
     if (records.length === 0) return null
     return records[0]!.get('createdBy') || null
   }
 
   async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
-    await this.executeQuery(`
-      MATCH (vc:VersionConstraint {name: $name})
-      CREATE (a:AuditLog {
-        id: randomUUID(),
-        timestamp: datetime(),
-        operation: 'DELETE',
-        entityType: 'VersionConstraint',
-        entityId: vc.name,
-        entityLabel: vc.name,
-        source: 'API',
-        userId: $userId,
-        realUserId: $realUserId
-      })
-      WITH vc
-      DETACH DELETE vc
-    `, { name, userId, realUserId: realUserId ?? null })
+    await this.executeQuery(await loadQuery('version-constraints/delete.cypher'), { name, userId, realUserId: realUserId ?? null })
   }
 
   async create(input: CreateVersionConstraintInput): Promise<CreateVersionConstraintResult> {
-    await this.executeQuery(`
-      CREATE (vc:VersionConstraint {
-        name: $name,
-        description: $description,
-        severity: $severity,
-        scope: $scope,
-        subjectTeam: $subjectTeam,
-        versionRange: $versionRange,
-        status: $status,
-        createdBy: $userId,
-        createdAt: datetime(),
-        updatedAt: datetime()
-      })
-      WITH vc
-      CREATE (a:AuditLog {
-        id: randomUUID(),
-        timestamp: datetime(),
-        operation: 'CREATE',
-        entityType: 'VersionConstraint',
-        entityId: vc.name,
-        entityLabel: vc.name,
-        changedFields: ['name', 'severity', 'scope', 'status', 'versionRange'],
-        source: 'API',
-        userId: $userId,
-        realUserId: $realUserId
-      })
-      CREATE (a)-[:AUDITS]->(vc)
-    `, {
+    await this.executeQuery(await loadQuery('version-constraints/create.cypher'), {
       name: input.name,
       description: input.description?.trim() || null,
       severity: input.severity,
@@ -286,31 +211,16 @@ export class VersionConstraintRepository extends BaseRepository {
 
     // SUBJECT_TO relationships
     if (input.scope === 'team' && input.subjectTeam) {
-      const { records } = await this.executeQuery(`
-        MATCH (vc:VersionConstraint {name: $name})
-        MATCH (team:Team {name: $subjectTeam})
-        MERGE (team)-[:SUBJECT_TO]->(vc)
-        RETURN count(*) as count
-      `, { name: input.name, subjectTeam: input.subjectTeam })
+      const { records } = await this.executeQuery(await loadQuery('version-constraints/link-subject-team.cypher'), { name: input.name, subjectTeam: input.subjectTeam })
       relationshipsCreated += records[0]?.get('count')?.toNumber() || 0
     } else {
-      const { records } = await this.executeQuery(`
-        MATCH (vc:VersionConstraint {name: $name})
-        MATCH (team:Team)
-        MERGE (team)-[:SUBJECT_TO]->(vc)
-        RETURN count(*) as count
-      `, { name: input.name })
+      const { records } = await this.executeQuery(await loadQuery('version-constraints/link-all-teams.cypher'), { name: input.name })
       relationshipsCreated += records[0]?.get('count')?.toNumber() || 0
     }
 
     // GOVERNS relationship
     if (input.governsTechnology) {
-      const { records } = await this.executeQuery(`
-        MATCH (vc:VersionConstraint {name: $name})
-        MATCH (tech:Technology {name: $technology})
-        MERGE (vc)-[:GOVERNS]->(tech)
-        RETURN count(*) as count
-      `, { name: input.name, technology: input.governsTechnology })
+      const { records } = await this.executeQuery(await loadQuery('version-constraints/link-governs.cypher'), { name: input.name, technology: input.governsTechnology })
       relationshipsCreated += records[0]?.get('count')?.toNumber() || 0
     }
 
@@ -331,34 +241,7 @@ export class VersionConstraintRepository extends BaseRepository {
     const previousStatus = current.status
     const newStatus = input.status || current.status
 
-    await this.executeQuery(`
-      MATCH (vc:VersionConstraint {name: $name})
-      SET vc.status = $status,
-          vc.updatedAt = datetime(),
-          vc.statusChangedAt = datetime(),
-          vc.statusChangeReason = $reason
-      WITH vc
-      CREATE (a:AuditLog {
-        id: randomUUID(),
-        timestamp: datetime(),
-        operation: CASE $newStatus
-          WHEN 'active' THEN 'ACTIVATE'
-          WHEN 'archived' THEN 'ARCHIVE'
-          ELSE 'DEACTIVATE'
-        END,
-        entityType: 'VersionConstraint',
-        entityId: vc.name,
-        entityLabel: vc.name,
-        previousStatus: $previousStatus,
-        newStatus: $newStatus,
-        changedFields: ['status'],
-        reason: $reason,
-        source: 'API',
-        userId: $userId,
-        realUserId: $realUserId
-      })
-      CREATE (a)-[:AUDITS]->(vc)
-    `, {
+    await this.executeQuery(await loadQuery('version-constraints/update-status.cypher'), {
       name,
       status: newStatus,
       reason: input.reason?.trim() || null,
@@ -405,56 +288,27 @@ export class VersionConstraintRepository extends BaseRepository {
       params.status = input.status
     }
 
-    await this.executeQuery(`
-      MATCH (vc:VersionConstraint {name: $name})
-      SET ${setClauses.join(', ')}
-      WITH vc
-      CREATE (a:AuditLog {
-        id: randomUUID(),
-        timestamp: datetime(),
-        operation: 'UPDATE',
-        entityType: 'VersionConstraint',
-        entityId: vc.name,
-        entityLabel: vc.name,
-        source: 'API',
-        userId: $userId,
-        realUserId: $realUserId
-      })
-      CREATE (a)-[:AUDITS]->(vc)
-    `, params)
+    const updateQuery = (await loadQuery('version-constraints/update.cypher'))
+      .replace('{{SET_CLAUSES}}', setClauses.join(', '))
+    await this.executeQuery(updateQuery, params)
 
     // Update SUBJECT_TO relationships if scope changed
     if (input.scope !== undefined) {
-      await this.executeQuery(
-        'MATCH (t:Team)-[r:SUBJECT_TO]->(vc:VersionConstraint {name: $name}) DELETE r',
-        { name }
-      )
+      await this.executeQuery(await loadQuery('version-constraints/remove-subject-teams.cypher'), { name })
 
       if (input.scope === 'team' && input.subjectTeam) {
-        await this.executeQuery(
-          'MATCH (vc:VersionConstraint {name: $name}) MATCH (t:Team {name: $subjectTeam}) MERGE (t)-[:SUBJECT_TO]->(vc)',
-          { name, subjectTeam: input.subjectTeam }
-        )
+        await this.executeQuery(await loadQuery('version-constraints/link-subject-team.cypher'), { name, subjectTeam: input.subjectTeam })
       } else {
-        await this.executeQuery(
-          'MATCH (vc:VersionConstraint {name: $name}) MATCH (t:Team) MERGE (t)-[:SUBJECT_TO]->(vc)',
-          { name }
-        )
+        await this.executeQuery(await loadQuery('version-constraints/link-all-teams.cypher'), { name })
       }
     }
 
     // Update GOVERNS relationship if governsTechnology changed
     if (input.governsTechnology !== undefined) {
-      await this.executeQuery(
-        'MATCH (vc:VersionConstraint {name: $name})-[r:GOVERNS]->(:Technology) DELETE r',
-        { name }
-      )
+      await this.executeQuery(await loadQuery('version-constraints/remove-governs.cypher'), { name })
 
       if (input.governsTechnology) {
-        await this.executeQuery(
-          'MATCH (vc:VersionConstraint {name: $name}) MATCH (tech:Technology {name: $technology}) MERGE (vc)-[:GOVERNS]->(tech)',
-          { name, technology: input.governsTechnology }
-        )
+        await this.executeQuery(await loadQuery('version-constraints/link-governs.cypher'), { name, technology: input.governsTechnology })
       }
     }
 

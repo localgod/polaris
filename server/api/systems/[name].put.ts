@@ -68,6 +68,7 @@
  */
 import { buildAuditChanges } from '../../utils/audit-diff'
 import { VALID_CRITICALITIES, VALID_ENVIRONMENTS } from '../../services/system.service'
+import { loadQuery } from '../../utils/query-loader'
 import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
@@ -116,10 +117,8 @@ export default defineEventHandler(async (event) => {
   const driver = useDriver()
   
   // Check if new owner team exists
-  const { records: teamRecords } = await driver.executeQuery(`
-    MATCH (t:Team {name: $ownerTeam})
-    RETURN t
-  `, { ownerTeam: body.ownerTeam })
+  const checkTeamQuery = await loadQuery('systems/check-team-exists.cypher')
+  const { records: teamRecords } = await driver.executeQuery(checkTeamQuery, { ownerTeam: body.ownerTeam })
   
   if (teamRecords.length === 0) {
     throw createError({
@@ -129,13 +128,8 @@ export default defineEventHandler(async (event) => {
   }
   
   // Fetch current state before writing so we can diff it
-  const { records: currentRecords } = await driver.executeQuery(`
-    MATCH (s:System {name: $name})
-    RETURN s {
-      .domain, .businessCriticality, .environment, .description,
-      ownerTeam: [(s)<-[:OWNS]-(t:Team) | t.name][0]
-    } as props
-  `, { name })
+  const getCurrentStateQuery = await loadQuery('systems/get-current-state-full.cypher')
+  const { records: currentRecords } = await driver.executeQuery(getCurrentStateQuery, { name })
 
   if (currentRecords.length === 0) {
     throw createError({
@@ -156,44 +150,8 @@ export default defineEventHandler(async (event) => {
   const changes = JSON.stringify(buildAuditChanges(currentProps, incomingProps, allFields))
 
   // Replace entire resource
-  const { records } = await driver.executeQuery(`
-    MATCH (s:System {name: $name})
-    MATCH (team:Team {name: $ownerTeam})
-    
-    // Remove old ownership
-    OPTIONAL MATCH (s)<-[oldOwns:OWNS]-(:Team)
-    DELETE oldOwns
-    
-    // Set all properties
-    SET s.domain = $domain,
-        s.businessCriticality = $businessCriticality,
-        s.environment = $environment,
-        s.description = $description
-    
-    // Create new ownership
-    MERGE (team)-[:OWNS]->(s)
-    
-    WITH s, team
-    CREATE (a:AuditLog {
-      id: randomUUID(),
-      timestamp: datetime(),
-      operation: 'UPDATE',
-      entityType: 'System',
-      entityId: s.name,
-      entityLabel: s.name,
-      changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description'],
-      changes: $changes,
-      source: 'API',
-      userId: $userId,
-      realUserId: $realUserId
-    })
-    CREATE (a)-[:AUDITS]->(s)
-    
-    RETURN s {
-      .*,
-      ownerTeam: team.name
-    } as system
-  `, {
+  const updateQuery = await loadQuery('systems/update-put.cypher')
+  const { records } = await driver.executeQuery(updateQuery, {
     name,
     domain: body.domain,
     ownerTeam: body.ownerTeam,

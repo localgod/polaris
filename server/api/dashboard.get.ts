@@ -1,6 +1,7 @@
 import { getCurrentUser } from '../utils/auth'
 import { versionConstraintService } from '../services/singletons'
 import { cachedFetch } from '../utils/cache'
+import { loadQuery } from '../utils/query-loader'
 import type { Driver } from 'neo4j-driver'
 
 function intValue(value: unknown): number {
@@ -27,6 +28,20 @@ async function buildDashboardSummary(
   user: Awaited<ReturnType<typeof getCurrentUser>>
 ) {
   const [
+    portfolioQuery,
+    componentQuery,
+    licenseQuery,
+    licenseViolationsQuery,
+    lifecycleQuery,
+  ] = await Promise.all([
+    loadQuery('dashboard/portfolio-summary.cypher'),
+    loadQuery('dashboard/component-count.cypher'),
+    loadQuery('dashboard/license-summary.cypher'),
+    loadQuery('dashboard/license-violations.cypher'),
+    loadQuery('dashboard/lifecycle-summary.cypher'),
+  ])
+
+  const [
     portfolioResult,
     componentResult,
     licenseResult,
@@ -34,73 +49,13 @@ async function buildDashboardSummary(
     lifecycleResult,
     versionViolationResult
   ] = await Promise.all([
-    driver.executeQuery(`
-      CALL {
-        MATCH (t:Technology)
-        RETURN count(t) AS technologies
-      }
-      CALL {
-        MATCH (s:System)
-        RETURN count(s) AS systems,
-               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'critical' THEN 1 ELSE 0 END) AS critical,
-               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'high' THEN 1 ELSE 0 END) AS high,
-               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'medium' THEN 1 ELSE 0 END) AS medium,
-               sum(CASE WHEN toLower(coalesce(s.businessCriticality, '')) = 'low' THEN 1 ELSE 0 END) AS low
-      }
-      CALL {
-        MATCH (vc:VersionConstraint)
-        RETURN count(vc) AS versionConstraints
-      }
-      RETURN technologies,
-             systems,
-             versionConstraints,
-             critical,
-             high,
-             medium,
-             low
-    `),
-    driver.executeQuery(`
-      MATCH (:System)-[u:USES]->(c:Component)
-      WHERE u.isDirect = true
-      WITH DISTINCT coalesce(c.packageManager, 'unknown') AS packageManagerKey,
-                    coalesce(c.group, '') AS groupKey,
-                    c.name AS name
-      RETURN count(*) AS components
-    `),
-    driver.executeQuery(`
-      MATCH (l:License)
-      RETURN count(l) AS total,
-             sum(CASE WHEN l.category = 'permissive' THEN 1 ELSE 0 END) AS permissive,
-             sum(CASE WHEN l.category = 'copyleft' THEN 1 ELSE 0 END) AS copyleft
-    `),
+    driver.executeQuery(portfolioQuery),
+    driver.executeQuery(componentQuery),
+    driver.executeQuery(licenseQuery),
     user
-      ? driver.executeQuery(`
-          MATCH (team:Team)-[:OWNS]->(sys:System)-[u:USES]->(comp:Component)-[:HAS_LICENSE]->(license:License)
-          WHERE license.allowed = false
-          RETURN count(DISTINCT team.name + '\u0000' + sys.name + '\u0000' + coalesce(comp.purl, comp.name + '@' + coalesce(comp.version, 'unknown')) + '\u0000' + license.id) AS violations
-        `)
+      ? driver.executeQuery(licenseViolationsQuery)
       : Promise.resolve({ records: [] }),
-    driver.executeQuery(`
-      CALL {
-        MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
-        WHERE h.eolStatus = 'unsupported'
-        RETURN count(DISTINCT coalesce(c.purl, h.componentPurl, elementId(c))) AS unsupported
-      }
-      CALL {
-        MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
-        WHERE h.eolStatus = 'approaching_eol'
-        RETURN count(DISTINCT coalesce(c.purl, h.componentPurl, elementId(c))) AS approaching
-      }
-      CALL {
-        MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
-        WHERE h.eolStatus IN ['unsupported', 'approaching_eol']
-        OPTIONAL MATCH (sys:System)-[:USES]->(c)
-        RETURN count(DISTINCT sys.name) AS systems
-      }
-      RETURN unsupported,
-             approaching,
-             systems
-    `),
+    driver.executeQuery(lifecycleQuery),
     user
       ? versionConstraintService.getViolations({})
       : Promise.resolve({
