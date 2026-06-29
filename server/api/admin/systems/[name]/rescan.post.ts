@@ -1,7 +1,10 @@
 import { gitHubImportService, systemService } from '../../../../services/singletons'
+import { getServerSession } from '#auth'
 
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
+  const session = await getServerSession(event)
+  const githubToken = session?.user?.githubToken
 
   const rawName = getRouterParam(event, 'name')
 
@@ -33,7 +36,8 @@ export default defineEventHandler(async (event) => {
         repositoryUrl: repo.url,
         systemName: name,
         ownerTeam: system.ownerTeam!,
-        userId: user.id
+        userId: user.id,
+        githubToken
       })
     )
   )
