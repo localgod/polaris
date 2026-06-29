@@ -1,7 +1,7 @@
 MATCH (u:User {id: $userId})
 OPTIONAL MATCH (performer:User {id: $performedBy})
 UNWIND $events AS evt
-MATCH (t:Team {name: evt.team})
+OPTIONAL MATCH (t:Team {name: evt.team})
 CREATE (a:AuditLog {
   id: randomUUID(),
   timestamp: datetime(),
@@ -21,7 +21,9 @@ CREATE (a:AuditLog {
   realUserId: $realUserId
 })
 CREATE (a)-[:AUDITS]->(u)
-CREATE (a)-[:AUDITS]->(t)
+FOREACH (_ IN CASE WHEN t IS NOT NULL THEN [1] ELSE [] END |
+  CREATE (a)-[:AUDITS]->(t)
+)
 FOREACH (_ IN CASE WHEN performer IS NOT NULL THEN [1] ELSE [] END |
   CREATE (a)-[:PERFORMED_BY]->(performer)
 )

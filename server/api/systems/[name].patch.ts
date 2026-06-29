@@ -57,7 +57,7 @@
  */
 import { buildAuditChanges } from '../../utils/audit-diff'
 import { VALID_CRITICALITIES, VALID_ENVIRONMENTS } from '../../services/system.service'
-import { loadQuery } from '../../utils/query-loader'
+import { loadQuery, injectPlaceholder } from '../../utils/query-loader'
 import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
@@ -157,8 +157,10 @@ export default defineEventHandler(async (event) => {
   params.changes = JSON.stringify(changes)
   params.changedFields = changedFields
 
-  const updateQuery = (await loadQuery('systems/update-patch.cypher'))
-    .replace('{{SET_CLAUSES}}', updates.join(', '))
+  const updateQuery = injectPlaceholder(
+    await loadQuery('systems/update-patch.cypher'),
+    'SET_CLAUSES', updates.join(', ')
+  )
   const { records } = await driver.executeQuery(updateQuery, params)
 
   if (records.length === 0) {

@@ -11,23 +11,29 @@ WHERE (
 )
 OPTIONAL MATCH (systemContext:System {name: $system})
 WITH root, systemContext
+
+// Collect system components once — avoids repeated EXISTS { MATCH } per path node
+OPTIONAL MATCH (systemContext)-[sysUse:USES]->(usedComp:Component)
+WITH root, systemContext,
+     collect(usedComp) AS systemComponents,
+     collect({comp: usedComp, scope: sysUse.scope}) AS systemUses
+
 CALL {
-  WITH root, systemContext
+  WITH root, systemContext, systemComponents, systemUses
   MATCH path = (root)-[:DEPENDS_ON*1..{{MAX_DEPTH}}]->(:Component)
   WHERE (
     $system IS NULL OR (
       systemContext IS NOT NULL
-      AND EXISTS { MATCH (systemContext)-[:USES]->(root) }
-      AND all(pathNode IN nodes(path)[1..] WHERE EXISTS { MATCH (systemContext)-[:USES]->(pathNode) })
+      AND root IN systemComponents
+      AND all(pathNode IN nodes(path)[1..] WHERE pathNode IN systemComponents)
     )
   )
   AND (
-    size($scopes) = 0 OR all(pathNode IN nodes(path)[1..] WHERE EXISTS {
-      MATCH (systemContext)-[scopeUse:USES]->(pathNode)
-      WHERE scopeUse.scope IN $scopes
-    })
+    size($scopes) = 0 OR all(pathNode IN nodes(path)[1..] WHERE
+      any(su IN systemUses WHERE su.comp = pathNode AND su.scope IN $scopes)
+    )
   )
-  WITH path
+  WITH path, systemUses
   ORDER BY length(path)
   LIMIT toInteger($pathLimit)
   RETURN collect({
@@ -40,7 +46,7 @@ CALL {
       purl: pathNode.purl,
       scope: CASE
         WHEN $system IS NULL THEN null
-        ELSE head([(systemContext)-[nodeUse:USES]->(pathNode) | nodeUse.scope])
+        ELSE head([su IN systemUses WHERE su.comp = pathNode | su.scope])
       END
     }]
   }) as paths,

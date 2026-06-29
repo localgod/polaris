@@ -5,7 +5,14 @@ WITH u,
      collect(DISTINCT {name: t.name, email: t.email}) AS teams,
      collect(DISTINCT mt.name) AS canManage
 RETURN u {
-  .*,
+  .id,
+  .email,
+  .name,
+  .role,
+  .provider,
+  .avatarUrl,
+  .lastLogin,
+  .createdAt,
   teams: teams,
   canManage: canManage
 } as user

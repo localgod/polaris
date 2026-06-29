@@ -4,13 +4,16 @@
 // Scoped to $systemName so only the affected system's ownership chain is
 // re-evaluated — avoids a full-graph scan on every SBOM submission.
 //
-// WITH DISTINCT collapses the intermediate row set from O(components) to
-// O(distinct technologies) before the MERGE. count(DISTINCT sys) was always
-// 1 here (query is scoped to a single system), so it is replaced with a literal.
+// systemCount reflects the true number of systems in the team currently using
+// the technology, computed by traversing all team-owned systems after narrowing
+// to the distinct (team, tech) pairs touched by this SBOM.
 MATCH (team:Team)-[:OWNS]->(sys:System {name: $systemName})
 MATCH (sys)-[:USES]->(:Component)-[:IS_VERSION_OF]->(tech:Technology)
 WITH DISTINCT team, tech
-WITH team, tech, 1 AS systemCount, datetime() AS now
+
+MATCH (team)-[:OWNS]->(allSys:System)-[:USES]->(:Component)-[:IS_VERSION_OF]->(tech)
+WITH team, tech, count(DISTINCT allSys) AS systemCount, datetime() AS now
+
 MERGE (team)-[u:USES]->(tech)
 ON CREATE SET
   u.firstUsed    = now,

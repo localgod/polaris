@@ -76,16 +76,26 @@ export class SystemRepository extends BaseRepository {
    * @returns Array of systems
    */
   async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: System[]; total: number }> {
-    const query = await loadQuery('systems/find-all.cypher')
+    const [dataQuery, countQuery] = await Promise.all([
+      loadQuery('systems/find-all.cypher'),
+      loadQuery('systems/count.cypher')
+    ])
     const orderBy = buildOrderByClause(sort || {}, systemSortConfig)
     const conditions = search ? [`toLower(s.name) CONTAINS toLower($search)`] : []
-    const withWhere = injectWhereConditions(query, conditions)
-    const finalQuery = injectOrderBy(withWhere, orderBy)
+
+    const finalDataQuery = injectOrderBy(injectWhereConditions(dataQuery, conditions), orderBy)
+    const finalCountQuery = injectWhereConditions(countQuery, conditions)
+
     const params: Record<string, unknown> = { limit, offset }
     if (search) params.search = search
-    const { records } = await this.executeQuery(finalQuery, params)
+    const countParams: Record<string, unknown> = search ? { search } : {}
 
-    const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    const [{ records }, { records: countRecords }] = await Promise.all([
+      this.executeQuery(finalDataQuery, params),
+      this.executeQuery(finalCountQuery, countParams)
+    ])
+
+    const total = countRecords[0]?.get('total')?.toNumber() ?? 0
     return { data: records.map(record => this.mapToSystem(record)), total }
   }
 

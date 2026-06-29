@@ -1,7 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
-import { loadQuery, injectWhereConditions, injectOrderBy } from '../utils/query-loader'
+import { loadQuery, injectWhereConditions, injectOrderBy, injectPlaceholder } from '../utils/query-loader'
 
 export interface ViolationFilters {
   severity?: string
@@ -288,8 +288,10 @@ export class VersionConstraintRepository extends BaseRepository {
       params.status = input.status
     }
 
-    const updateQuery = (await loadQuery('version-constraints/update.cypher'))
-      .replace('{{SET_CLAUSES}}', setClauses.join(', '))
+    const updateQuery = injectPlaceholder(
+      await loadQuery('version-constraints/update.cypher'),
+      'SET_CLAUSES', setClauses.join(', ')
+    )
     await this.executeQuery(updateQuery, params)
 
     // Update SUBJECT_TO relationships if scope changed

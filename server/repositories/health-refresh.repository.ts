@@ -1,7 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { HealthDashboardSummary } from '~~/types/api'
-import { loadQuery } from '../utils/query-loader'
+import { loadQuery, injectPlaceholder } from '../utils/query-loader'
 
 export type HealthRefreshJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
 export type HealthRefreshJobItemStatus = 'pending' | 'running' | 'refreshed' | 'failed' | 'skipped'
@@ -171,9 +171,9 @@ export class HealthRefreshRepository extends BaseRepository {
       ? ''
       : await loadQuery('health-refresh/advisory-subquery.cypher')
 
-    const query = (await loadQuery('health-refresh/upsert-health-snapshot.cypher'))
-      .replace('{{SNAPSHOT_SET}}', snapshotSet)
-      .replace('{{ADVISORY_QUERY}}', advisoryQuery)
+    let query = await loadQuery('health-refresh/upsert-health-snapshot.cypher')
+    query = injectPlaceholder(query, 'SNAPSHOT_SET', snapshotSet)
+    query = injectPlaceholder(query, 'ADVISORY_QUERY', advisoryQuery)
 
     await this.executeQuery(query, {
       componentPurl: update.componentPurl,

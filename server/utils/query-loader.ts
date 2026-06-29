@@ -39,6 +39,24 @@ export function clearQueryCache(): void {
 }
 
 /**
+ * Inject a value into a named placeholder in a query template.
+ * Throws if the placeholder is not present, preventing a silent syntax error
+ * from reaching Neo4j.
+ *
+ * @param query - Query template containing {{PLACEHOLDER_NAME}}
+ * @param placeholder - Placeholder name without braces (e.g. 'SET_CLAUSES')
+ * @param value - Value to substitute
+ * @returns Query with placeholder replaced
+ */
+export function injectPlaceholder(query: string, placeholder: string, value: string): string {
+  const token = `{{${placeholder}}}`
+  if (!query.includes(token)) {
+    throw new Error(`Query template is missing placeholder ${token}`)
+  }
+  return query.replace(token, value)
+}
+
+/**
  * Inject an ORDER BY expression into a query template
  * Replaces {{ORDER_BY}} placeholder with the actual order-by expression
  *
