@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.42] - 2026-06-29
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps-dev): bump @amiceli/vitest-cucumber from 6.5.0 to 7.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#717)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.41...v0.6.42
+
 ## [0.6.29] - 2026-06-23
 
 ## What's Changed
