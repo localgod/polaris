@@ -16,105 +16,78 @@
     </UAlert>
 
     <template v-else-if="data?.data">
-      <div class="flex justify-between items-center">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <UPageHeader
           :title="data.data.name"
           :description="data.data.domain"
           :links="[{ label: 'Back to Systems', to: '/systems', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
         />
-        <UBadge :color="getCriticalityColor(data.data.businessCriticality)" variant="subtle" size="lg">
-          {{ data.data.businessCriticality }}
-        </UBadge>
-      </div>
-
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Components</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.componentCount || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Repositories</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.repositoryCount || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Environment</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.environment || '—' }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Criticality</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.businessCriticality || '—' }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Last BOM Scan</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.lastSbomScanAt ? formatDate(data.data.lastSbomScanAt) : '—' }}</p>
-          </div>
-        </UCard>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Basic Information</h2>
-          </template>
-          <div class="space-y-3">
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Domain</span>
-              <p class="font-medium">{{ data.data.domain || '—' }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Environment</span>
-              <p class="font-medium">{{ data.data.environment || '—' }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Business Criticality</span>
-              <p class="font-medium">
-                <UBadge :color="getCriticalityColor(data.data.businessCriticality)" variant="subtle">
-                  {{ data.data.businessCriticality || '—' }}
-                </UBadge>
-              </p>
-            </div>
-          </div>
-        </UCard>
-
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Ownership</h2>
-          </template>
-          <div class="space-y-3">
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Owner Team</span>
-              <p v-if="data.data.ownerTeam" class="font-medium">
-                <NuxtLink :to="`/teams/${encodeURIComponent(data.data.ownerTeam)}`" class="hover:underline">
-                  {{ data.data.ownerTeam }}
-                </NuxtLink>
-              </p>
-              <p v-else class="text-(--ui-text-muted)">No owner assigned</p>
-            </div>
-          </div>
-        </UCard>
+        <div class="flex flex-col items-end gap-1 shrink-0">
+          <span class="text-xs text-(--ui-text-muted)">Business Criticality</span>
+          <UBadge :color="getCriticalityColor(data.data.businessCriticality)" variant="subtle" size="lg">
+            {{ data.data.businessCriticality }}
+          </UBadge>
+        </div>
       </div>
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold">Quick Actions</h2>
+          <h2 class="text-lg font-semibold">Overview</h2>
         </template>
-        <div class="flex gap-4 flex-wrap">
-          <UButton
-            label="View All Components"
-            :to="`/components?system=${encodeURIComponent(data.data.name)}`"
-            variant="outline"
-          />
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Domain</span>
+            <p class="font-medium mt-0.5">{{ data.data.domain || '—' }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Environment</span>
+            <p class="font-medium mt-0.5">{{ data.data.environment || '—' }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Owner</span>
+            <p class="font-medium mt-0.5">
+              <NuxtLink
+                v-if="data.data.ownerTeam"
+                :to="`/teams/${encodeURIComponent(data.data.ownerTeam)}`"
+                class="hover:underline"
+              >
+                {{ data.data.ownerTeam }}
+              </NuxtLink>
+              <span v-else class="text-(--ui-text-muted)">No owner assigned</span>
+            </p>
+          </div>
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Criticality</span>
+            <div class="mt-0.5">
+              <UBadge :color="getCriticalityColor(data.data.businessCriticality)" variant="subtle">
+                {{ data.data.businessCriticality || '—' }}
+              </UBadge>
+            </div>
+          </div>
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Components</span>
+            <p class="font-medium mt-0.5">{{ data.data.componentCount || 0 }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Repositories</span>
+            <p class="font-medium mt-0.5">{{ data.data.repositoryCount || 0 }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-(--ui-text-muted)">Last BOM Scan</span>
+            <p class="font-medium mt-0.5">{{ data.data.lastSbomScanAt ? formatDate(data.data.lastSbomScanAt) : '—' }}</p>
+          </div>
+          <div class="flex items-end">
+            <UButton
+              label="View All Components"
+              :to="`/components?system=${encodeURIComponent(data.data.name)}`"
+              variant="outline"
+              size="sm"
+            />
+          </div>
         </div>
       </UCard>
+
+      <SystemIssues v-if="issuesData?.data" :issues="issuesData.data" />
 
       <UCard v-if="repositories.length > 0">
         <template #header>
@@ -208,13 +181,42 @@ interface GraphResponse {
   data: { nodes: GraphNode[]; edges: GraphEdge[] }
 }
 
-const { data, pending, error } = await useFetch<SystemResponse>(() => `/api/systems/${encodeURIComponent(route.params.name as string)}`)
+interface Advisory {
+  id: string | null
+  summary: string | null
+  cvssScore: number | null
+  publishedAt: string | null
+}
 
-// Graph data fetched in parallel — passed as a prop so the graph component
-// stays purely presentational (no async setup, no hydration conflicts).
-const { data: graphData } = useFetch<GraphResponse>(
-  () => `/api/systems/${encodeURIComponent(route.params.name as string)}/graph`
-)
+interface DisallowedLicense {
+  id: string | null
+  name: string | null
+  category: string | null
+}
+
+interface ComponentIssueRow {
+  componentName: string
+  componentVersion: string | null
+  componentPurl: string | null
+  isDirect: boolean
+  advisories: Advisory[]
+  disallowedLicenses: DisallowedLicense[]
+  eolStatus: string | null
+  eolDate: string | null
+  isDeprecated: boolean
+  maintenanceStatus: string | null
+}
+
+interface SystemIssues {
+  vulnerabilities: ComponentIssueRow[]
+  licenseIssues: ComponentIssueRow[]
+  healthIssues: ComponentIssueRow[]
+}
+
+interface IssuesResponse {
+  success: boolean
+  data: SystemIssues
+}
 
 interface Repository {
   name: string
@@ -226,6 +228,16 @@ interface RepositoriesResponse {
   success: boolean
   data: Repository[]
 }
+
+const { data, pending, error } = await useFetch<SystemResponse>(() => `/api/systems/${encodeURIComponent(route.params.name as string)}`)
+
+const { data: graphData } = useFetch<GraphResponse>(
+  () => `/api/systems/${encodeURIComponent(route.params.name as string)}/graph`
+)
+
+const { data: issuesData } = useFetch<IssuesResponse>(
+  () => `/api/systems/${encodeURIComponent(route.params.name as string)}/issues`
+)
 
 const { data: reposData } = useFetch<RepositoriesResponse>(
   () => `/api/systems/${encodeURIComponent(route.params.name as string)}/repositories`

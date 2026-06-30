@@ -1,11 +1,19 @@
 import { SystemRepository } from '../repositories/system.repository'
 import { SourceRepositoryRepository } from '../repositories/source-repository.repository'
 import { TeamRepository } from '../repositories/team.repository'
-import type { System, CreateSystemParams, RepositoryInput } from '../repositories/system.repository'
+import type { System, CreateSystemParams, RepositoryInput, ComponentIssueRow } from '../repositories/system.repository'
 import type { Repository, BusinessCriticality, SystemEnvironment } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
 import type { SortParams } from '../utils/sorting'
 import { buildDeleteChanges } from '../utils/audit-diff'
+
+export interface SystemIssues {
+  vulnerabilities: ComponentIssueRow[]
+  licenseIssues: ComponentIssueRow[]
+  healthIssues: ComponentIssueRow[]
+}
+
+export { ComponentIssueRow }
 
 export const VALID_CRITICALITIES = [
   'critical', 'high', 'medium', 'low'
@@ -236,8 +244,27 @@ export class SystemService {
   }
 
   /**
+   * Get components with active issues for a system
+   *
+   * @param name - System name
+   * @returns Categorised issue lists, or null if system not found
+   */
+  async getIssues(name: string): Promise<SystemIssues | null> {
+    const system = await this.systemRepo.findByName(name)
+    if (!system) return null
+    const rows = await this.systemRepo.getIssues(name)
+    return {
+      vulnerabilities: rows.filter(r => r.advisories.length > 0),
+      licenseIssues:   rows.filter(r => r.disallowedLicenses.length > 0),
+      healthIssues:    rows.filter(r =>
+        r.eolStatus === 'unsupported' || r.isDeprecated || r.maintenanceStatus === 'stale'
+      ),
+    }
+  }
+
+  /**
    * Extract repository name from URL
-   * 
+   *
    * @param url - Repository URL
    * @returns Repository name
    */

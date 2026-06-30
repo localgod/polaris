@@ -46,6 +46,19 @@ export interface GraphComponentRow {
   dependsOnPurls: string[]
 }
 
+export interface ComponentIssueRow {
+  componentName: string
+  componentVersion: string | null
+  componentPurl: string | null
+  isDirect: boolean
+  advisories: Array<{ id: string | null; summary: string | null; cvssScore: number | null; publishedAt: string | null }>
+  disallowedLicenses: Array<{ id: string | null; name: string | null; category: string | null }>
+  eolStatus: string | null
+  eolDate: string | null
+  isDeprecated: boolean
+  maintenanceStatus: string | null
+}
+
 export interface RepositoryInput {
   url: string
   name: string
@@ -253,8 +266,34 @@ export class SystemRepository extends BaseRepository {
   }
 
   /**
+   * Get components with active issues (vulnerabilities, disallowed licenses, health flags)
+   *
+   * Returns an empty array when the system exists but has no issues.
+   * System-not-found must be checked by the caller before invoking this method.
+   *
+   * @param name - System name
+   * @returns Array of component issue rows
+   */
+  async getIssues(name: string): Promise<ComponentIssueRow[]> {
+    const query = await loadQuery('systems/issues.cypher')
+    const { records } = await this.executeQuery(query, { name })
+    return records.map(record => ({
+      componentName: record.get('componentName') as string,
+      componentVersion: record.get('componentVersion') as string | null,
+      componentPurl: record.get('componentPurl') as string | null,
+      isDirect: (record.get('isDirect') as boolean) ?? false,
+      advisories: (record.get('advisories') as ComponentIssueRow['advisories']) ?? [],
+      disallowedLicenses: (record.get('disallowedLicenses') as ComponentIssueRow['disallowedLicenses']) ?? [],
+      eolStatus: record.get('eolStatus') as string | null,
+      eolDate: record.get('eolDate') as string | null,
+      isDeprecated: (record.get('isDeprecated') as boolean) ?? false,
+      maintenanceStatus: record.get('maintenanceStatus') as string | null,
+    }))
+  }
+
+  /**
    * Get all repositories linked to a system
-   * 
+   *
    * @param systemName - System name
    * @returns Array of repositories
    */
