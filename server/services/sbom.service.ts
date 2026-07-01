@@ -28,6 +28,16 @@ const SPDX_DEPENDENCY_TYPES = new Set([
   'TEST_DEPENDENCY_OF',
 ])
 
+// SPDX relationship types where the direction is inverted relative to the dependency graph:
+// "A DEV_DEPENDENCY_OF B" means B depends on A, so the edge in our graph is B→A.
+const SPDX_INVERSE_RELATIONSHIP_TYPES = new Set([
+  'DEV_DEPENDENCY_OF',
+  'OPTIONAL_DEPENDENCY_OF',
+  'PROVIDED_DEPENDENCY_OF',
+  'RUNTIME_DEPENDENCY_OF',
+  'TEST_DEPENDENCY_OF',
+])
+
 // Maps SPDX relationship types to the scope value stored on the USES edge.
 // Relationship types not present here (e.g. DYNAMIC_LINK, STATIC_LINK) yield null.
 const SPDX_SCOPE_MAP: Record<string, string> = {
@@ -222,11 +232,25 @@ export class SBOMService {
         name: (root?.name as string)?.trim() || null,
       }
     } else {
-      // SPDX: the document itself is the root; its SPDXID is typically SPDXRef-DOCUMENT
-      return {
-        bomRef: (sbom.SPDXID as string)?.trim() || null,
-        name: null,
+      // SPDX: the document node (SPDXRef-DOCUMENT) is not itself a package. Follow the
+      // DESCRIBES relationship to find the root application package, which is the true
+      // parent of all direct dependencies. Fall back to the raw SPDXID only if no
+      // DESCRIBES edge is present (non-standard SBOM layout).
+      const documentId = (sbom.SPDXID as string)?.trim() || null
+      const relationships = sbom.relationships as unknown[] | undefined
+      if (Array.isArray(relationships) && documentId) {
+        for (const rel of relationships) {
+          const r = rel as Record<string, unknown>
+          if (
+            r.relationshipType === 'DESCRIBES' &&
+            (r.spdxElementId as string)?.trim() === documentId
+          ) {
+            const target = (r.relatedSpdxElement as string)?.trim()
+            if (target) return { bomRef: target, name: null }
+          }
+        }
       }
+      return { bomRef: documentId, name: null }
     }
   }
 
@@ -501,9 +525,14 @@ export class SBOMService {
       const r = rel as Record<string, unknown>
       const type = r.relationshipType as string | undefined
       if (!type || !SPDX_DEPENDENCY_TYPES.has(type)) continue
-      const from = (r.spdxElementId as string)?.trim()
-      const to = (r.relatedSpdxElement as string)?.trim()
-      if (!from || !to) continue
+      const elementId = (r.spdxElementId as string)?.trim()
+      const relatedElement = (r.relatedSpdxElement as string)?.trim()
+      if (!elementId || !relatedElement) continue
+      // Inverse types encode the child as spdxElementId and the parent as relatedSpdxElement
+      // (e.g. "phpunit DEV_DEPENDENCY_OF karla" means karla→phpunit in our graph).
+      const [from, to] = SPDX_INVERSE_RELATIONSHIP_TYPES.has(type)
+        ? [relatedElement, elementId]
+        : [elementId, relatedElement]
       edges.push({ from, to, scope: SPDX_SCOPE_MAP[type] ?? null })
     }
     return edges
