@@ -376,9 +376,13 @@ export class ComponentRepository extends BaseRepository {
   }
 
   async getLinkSuggestions(skip: number, limit: number): Promise<{ data: LinkSuggestion[]; total: number }> {
-    const query = await loadQuery('components/link-suggestions.cypher')
-    const { records } = await this.executeQuery(query, { skip, limit })
-    const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
+    const countQuery = await loadQuery('components/link-suggestions-count.cypher')
+    const dataQuery = await loadQuery('components/link-suggestions.cypher')
+
+    const { records: countRecords } = await this.executeQuery(countQuery, {})
+    const total = countRecords.length > 0 ? countRecords[0]!.get('total').toNumber() : 0
+
+    const { records } = await this.executeQuery(dataQuery, { skip, limit })
     return {
       data: records.map(record => ({
         purl: record.get('purl') as string,
@@ -386,7 +390,7 @@ export class ComponentRepository extends BaseRepository {
         version: record.get('version') as string,
         packageManager: record.get('packageManager') as string | null,
         purlName: record.get('purlName') as string,
-        suggestedTechnologies: record.get('suggestedTechnologies') as string[],
+        suggestedTechnologies: (record.get('suggestedTechnologies') as string[]).filter(Boolean),
         hasExactMatch: record.get('hasExactMatch') as boolean
       })),
       total

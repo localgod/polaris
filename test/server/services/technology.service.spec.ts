@@ -328,5 +328,13 @@ describe('TechnologyService', () => {
       await expect(service.linkComponentByPurl(input)).rejects.toMatchObject({ statusCode: 404 })
       expect(TechnologyRepository.prototype.linkComponentByPurl).not.toHaveBeenCalled()
     })
+
+    it('should propagate 404 when component purl is not found', async () => {
+      vi.mocked(TechnologyRepository.prototype.exists).mockResolvedValue(true)
+      const notFound = Object.assign(new Error('Component not found'), { statusCode: 404 })
+      vi.mocked(TechnologyRepository.prototype.linkComponentByPurl).mockRejectedValue(notFound)
+
+      await expect(service.linkComponentByPurl(input)).rejects.toMatchObject({ statusCode: 404 })
+    })
   })
 })

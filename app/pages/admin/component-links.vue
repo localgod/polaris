@@ -12,6 +12,16 @@
       icon="i-lucide-circle-x"
     />
 
+    <UAlert
+      v-if="dismissError"
+      color="error"
+      title="Failed to dismiss component"
+      :description="dismissError"
+      icon="i-lucide-circle-x"
+      close
+      @close="dismissError = ''"
+    />
+
     <UCard v-else>
       <UTable
         :data="suggestions"
@@ -270,15 +280,19 @@ async function submitConfirmLink() {
 }
 
 // Dismiss
+const dismissError = ref('')
+
 async function dismissItem(item: LinkSuggestion) {
+  dismissError.value = ''
   try {
     await $fetch('/api/components/dismiss-link', {
       method: 'POST',
       body: { purl: item.purl }
     })
     await refresh()
-  } catch {
-    // silently ignore — the item will still be in the list
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    dismissError.value = (err as { data?: { message?: string } })?.data?.message ?? msg
   }
 }
 

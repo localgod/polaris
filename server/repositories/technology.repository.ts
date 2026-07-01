@@ -275,7 +275,7 @@ export class TechnologyRepository extends BaseRepository {
     const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
 
     if (records.length === 0) {
-      throw new Error('Failed to link component — technology or component not found')
+      throw createError({ statusCode: 404, message: `Component with purl '${params.purl}' not found` })
     }
 
     return {

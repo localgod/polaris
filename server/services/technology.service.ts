@@ -316,7 +316,9 @@ export class TechnologyService {
       throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
     }
     const result = await this.techRepo.linkComponentByPurl(input)
-    await Promise.all(result.affectedSystems.map(systemName => this.sbomRepo.upsertTeamUsesTechnology(systemName)))
+    for (const systemName of result.affectedSystems) {
+      await this.sbomRepo.upsertTeamUsesTechnology(systemName)
+    }
     return { technologyName: result.technologyName, name: result.name, purl: result.purl }
   }
 
