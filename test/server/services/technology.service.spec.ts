@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TechnologyService } from '../../../server/services/technology.service'
 import { TechnologyRepository } from '../../../server/repositories/technology.repository'
+import { SBOMRepository } from '../../../server/repositories/sbom.repository'
 import type { TechnologyDetail } from '../../../server/repositories/technology.repository'
 import '../../fixtures/service-test-helper'
 
 vi.mock('../../../server/repositories/technology.repository')
+vi.mock('../../../server/repositories/sbom.repository')
 
 const mockTech: TechnologyDetail = {
   name: 'React', type: 'framework', domain: 'framework', vendor: 'Meta',
@@ -286,6 +288,45 @@ describe('TechnologyService', () => {
       const result = await service.findForRadar()
       expect(result.find(r => r.name === 'React')?.approvalCount).toBe(2)
       expect(result.find(r => r.name === 'Svelte')?.approvalCount).toBe(0)
+    })
+  })
+
+  describe('linkComponentByPurl()', () => {
+    const input = { technologyName: 'React', purl: 'pkg:npm/react@18.2.0', userId: 'user-1', realUserId: null }
+
+    it('should link component by purl and refresh affected systems', async () => {
+      vi.mocked(TechnologyRepository.prototype.exists).mockResolvedValue(true)
+      vi.mocked(TechnologyRepository.prototype.linkComponentByPurl).mockResolvedValue({
+        technologyName: 'React', name: 'react', purl: 'pkg:npm/react@18.2.0',
+        affectedSystems: ['my-service', 'other-service']
+      })
+      vi.mocked(SBOMRepository.prototype.upsertTeamUsesTechnology).mockResolvedValue(undefined)
+
+      const result = await service.linkComponentByPurl(input)
+
+      expect(result).toEqual({ technologyName: 'React', name: 'react', purl: 'pkg:npm/react@18.2.0' })
+      expect(SBOMRepository.prototype.upsertTeamUsesTechnology).toHaveBeenCalledTimes(2)
+      expect(SBOMRepository.prototype.upsertTeamUsesTechnology).toHaveBeenCalledWith('my-service')
+      expect(SBOMRepository.prototype.upsertTeamUsesTechnology).toHaveBeenCalledWith('other-service')
+    })
+
+    it('should not call upsertTeamUsesTechnology when no systems use the component', async () => {
+      vi.mocked(TechnologyRepository.prototype.exists).mockResolvedValue(true)
+      vi.mocked(TechnologyRepository.prototype.linkComponentByPurl).mockResolvedValue({
+        technologyName: 'React', name: 'react', purl: 'pkg:npm/react@18.2.0', affectedSystems: []
+      })
+      vi.mocked(SBOMRepository.prototype.upsertTeamUsesTechnology).mockResolvedValue(undefined)
+
+      await service.linkComponentByPurl(input)
+
+      expect(SBOMRepository.prototype.upsertTeamUsesTechnology).not.toHaveBeenCalled()
+    })
+
+    it('should throw 404 when technology does not exist', async () => {
+      vi.mocked(TechnologyRepository.prototype.exists).mockResolvedValue(false)
+
+      await expect(service.linkComponentByPurl(input)).rejects.toMatchObject({ statusCode: 404 })
+      expect(TechnologyRepository.prototype.linkComponentByPurl).not.toHaveBeenCalled()
     })
   })
 })

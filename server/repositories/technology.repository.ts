@@ -266,6 +266,27 @@ export class TechnologyRepository extends BaseRepository {
   }
 
   /**
+   * Link a component to a technology via IS_VERSION_OF, matched by PURL.
+   *
+   * Returns the affected system names so the caller can refresh Team→Technology usage.
+   */
+  async linkComponentByPurl(params: { technologyName: string; purl: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; purl: string; affectedSystems: string[] }> {
+    const query = await loadQuery('technologies/link-component-by-purl.cypher')
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
+
+    if (records.length === 0) {
+      throw new Error('Failed to link component — technology or component not found')
+    }
+
+    return {
+      technologyName: records[0]!.get('technologyName'),
+      name: records[0]!.get('name'),
+      purl: records[0]!.get('purl'),
+      affectedSystems: (records[0]!.get('affectedSystems') as string[]).filter(Boolean)
+    }
+  }
+
+  /**
    * Create or update a team's APPROVES relationship on a technology
    */
   /**

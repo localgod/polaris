@@ -1,9 +1,9 @@
 import { ComponentRepository } from '../repositories/component.repository'
-import type { ComponentDependencyFilters, ComponentDependencyTree, ComponentFilters } from '../repositories/component.repository'
+import type { ComponentDependencyFilters, ComponentDependencyTree, ComponentFilters, LinkSuggestion } from '../repositories/component.repository'
 import type { Component, ComponentDetail, GroupedComponent } from '~~/types/api'
 import type { ComponentIdentity } from '~~/utils/component-identity'
 
-export type { ComponentFilters }
+export type { ComponentFilters, LinkSuggestion }
 
 /**
  * Service for component-related business logic
@@ -75,6 +75,15 @@ export class ComponentService {
     filters: ComponentDependencyFilters
   ): Promise<ComponentDependencyTree | null> {
     return await this.componentRepo.findDependencies(identity, filters)
+  }
+
+  async getLinkSuggestions(skip: number, limit: number): Promise<{ data: LinkSuggestion[]; count: number; total: number }> {
+    const { data, total } = await this.componentRepo.getLinkSuggestions(skip, limit)
+    return { data, count: data.length, total }
+  }
+
+  async dismissLink(purl: string): Promise<void> {
+    await this.componentRepo.dismissLink(purl)
   }
 
 }

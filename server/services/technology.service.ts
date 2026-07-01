@@ -1,4 +1,5 @@
 import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
+import { SBOMRepository } from '../repositories/sbom.repository'
 import type { EOLStatus, EOLStatusValue, Technology, ComponentType, TechnologyDomain, TimeValue, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
@@ -59,7 +60,8 @@ export interface UpdateTechnologyInput {
 export class TechnologyService {
   constructor(
     private readonly techRepo = new TechnologyRepository(),
-    private readonly eolService = new EOLService()
+    private readonly eolService = new EOLService(),
+    private readonly sbomRepo = new SBOMRepository()
   ) {
   }
 
@@ -299,6 +301,23 @@ export class TechnologyService {
       throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
     }
     return await this.techRepo.linkComponent(input)
+  }
+
+  /**
+   * Link a component to a technology via IS_VERSION_OF, matched by PURL.
+   *
+   * After linking, refreshes Team→Technology USES edges for every system
+   * that uses the component so that compliance and version-constraint queries
+   * reflect the new relationship immediately.
+   */
+  async linkComponentByPurl(input: { technologyName: string; purl: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; purl: string }> {
+    const exists = await this.techRepo.exists(input.technologyName)
+    if (!exists) {
+      throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
+    }
+    const result = await this.techRepo.linkComponentByPurl(input)
+    await Promise.all(result.affectedSystems.map(systemName => this.sbomRepo.upsertTeamUsesTechnology(systemName)))
+    return { technologyName: result.technologyName, name: result.name, purl: result.purl }
   }
 
   /**
