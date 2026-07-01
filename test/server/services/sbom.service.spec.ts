@@ -506,6 +506,169 @@ describe('SBOMService', () => {
       expect(persistCall.componentUsage.get('pkg:npm/@slidev/cli@52.0.0')?.isDirect).not.toBe(true)
     })
 
+    it('should mark direct deps correctly for SPDX SBOMs using the DESCRIBES+DEPENDS_ON pattern (Composer/cdxgen)', async () => {
+      // Represents the real cdxgen Composer SBOM layout:
+      // SPDXRef-DOCUMENT --DESCRIBES--> root package --DEPENDS_ON--> direct deps
+      const composerSbom = {
+        spdxVersion: 'SPDX-2.3',
+        dataLicense: 'CC0-1.0',
+        SPDXID: 'SPDXRef-DOCUMENT',
+        name: 'karla-sbom',
+        documentNamespace: 'https://example.com/karla',
+        creationInfo: { created: '2024-01-01T00:00:00Z', creators: ['Tool: cdxgen'] },
+        packages: [
+          {
+            SPDXID: 'SPDXRef-Package-karla',
+            name: 'karla',
+            versionInfo: '1.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'MIT',
+            licenseDeclared: 'MIT',
+            copyrightText: 'NOASSERTION',
+          },
+          {
+            SPDXID: 'SPDXRef-Package-symfony-console',
+            name: 'symfony/console',
+            versionInfo: '6.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'MIT',
+            licenseDeclared: 'MIT',
+            copyrightText: 'NOASSERTION',
+            externalRefs: [{ referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: 'pkg:composer/symfony/console@6.0.0' }],
+          },
+          {
+            SPDXID: 'SPDXRef-Package-phpunit',
+            name: 'phpunit/phpunit',
+            versionInfo: '10.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'BSD-3-Clause',
+            licenseDeclared: 'BSD-3-Clause',
+            copyrightText: 'NOASSERTION',
+            externalRefs: [{ referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: 'pkg:composer/phpunit/phpunit@10.0.0' }],
+          },
+          {
+            SPDXID: 'SPDXRef-Package-php-timer',
+            name: 'phpunit/php-timer',
+            versionInfo: '6.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'BSD-3-Clause',
+            licenseDeclared: 'BSD-3-Clause',
+            copyrightText: 'NOASSERTION',
+            externalRefs: [{ referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: 'pkg:composer/phpunit/php-timer@6.0.0' }],
+          },
+        ],
+        relationships: [
+          { spdxElementId: 'SPDXRef-DOCUMENT', relationshipType: 'DESCRIBES', relatedSpdxElement: 'SPDXRef-Package-karla' },
+          { spdxElementId: 'SPDXRef-Package-karla', relationshipType: 'DEPENDS_ON', relatedSpdxElement: 'SPDXRef-Package-symfony-console' },
+          { spdxElementId: 'SPDXRef-Package-karla', relationshipType: 'DEPENDS_ON', relatedSpdxElement: 'SPDXRef-Package-phpunit' },
+          { spdxElementId: 'SPDXRef-Package-phpunit', relationshipType: 'DEPENDS_ON', relatedSpdxElement: 'SPDXRef-Package-php-timer' },
+        ],
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 4, componentsUpdated: 0, relationshipsCreated: 4
+      })
+
+      await service.processSBOM({
+        sbom: composerSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'spdx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.componentUsage.get('SPDXRef-Package-symfony-console')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('SPDXRef-Package-phpunit')).toMatchObject({ isDirect: true })
+      // php-timer is only required by phpunit, so it is transitive
+      expect(persistCall.componentUsage.get('SPDXRef-Package-php-timer')).toMatchObject({ isDirect: false })
+    })
+
+    it('should correctly resolve isDirect and scope when SPDX uses inverse *_DEPENDENCY_OF relationship types', async () => {
+      // SPDX inverse types: "A DEV_DEPENDENCY_OF B" means B depends on A (the edge is B→A).
+      // The extractor must flip the direction so BFS and scope propagation work correctly.
+      const sbomWithInverseRels = {
+        spdxVersion: 'SPDX-2.3',
+        dataLicense: 'CC0-1.0',
+        SPDXID: 'SPDXRef-DOCUMENT',
+        name: 'test-sbom',
+        documentNamespace: 'https://example.com/test',
+        creationInfo: { created: '2024-01-01T00:00:00Z', creators: ['Tool: cdxgen'] },
+        packages: [
+          {
+            SPDXID: 'SPDXRef-Package-myapp',
+            name: 'myapp',
+            versionInfo: '1.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'MIT',
+            licenseDeclared: 'MIT',
+            copyrightText: 'NOASSERTION',
+          },
+          {
+            SPDXID: 'SPDXRef-Package-guzzle',
+            name: 'guzzlehttp/guzzle',
+            versionInfo: '7.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'MIT',
+            licenseDeclared: 'MIT',
+            copyrightText: 'NOASSERTION',
+            externalRefs: [{ referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: 'pkg:composer/guzzlehttp/guzzle@7.0.0' }],
+          },
+          {
+            SPDXID: 'SPDXRef-Package-phpunit',
+            name: 'phpunit/phpunit',
+            versionInfo: '10.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'BSD-3-Clause',
+            licenseDeclared: 'BSD-3-Clause',
+            copyrightText: 'NOASSERTION',
+            externalRefs: [{ referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: 'pkg:composer/phpunit/phpunit@10.0.0' }],
+          },
+          {
+            SPDXID: 'SPDXRef-Package-php-timer',
+            name: 'phpunit/php-timer',
+            versionInfo: '6.0.0',
+            downloadLocation: 'NOASSERTION',
+            filesAnalyzed: false,
+            licenseConcluded: 'BSD-3-Clause',
+            licenseDeclared: 'BSD-3-Clause',
+            copyrightText: 'NOASSERTION',
+            externalRefs: [{ referenceCategory: 'PACKAGE-MANAGER', referenceType: 'purl', referenceLocator: 'pkg:composer/phpunit/php-timer@6.0.0' }],
+          },
+        ],
+        relationships: [
+          { spdxElementId: 'SPDXRef-DOCUMENT', relationshipType: 'DESCRIBES', relatedSpdxElement: 'SPDXRef-Package-myapp' },
+          // Inverse types: child is spdxElementId, parent is relatedSpdxElement
+          { spdxElementId: 'SPDXRef-Package-guzzle', relationshipType: 'RUNTIME_DEPENDENCY_OF', relatedSpdxElement: 'SPDXRef-Package-myapp' },
+          { spdxElementId: 'SPDXRef-Package-phpunit', relationshipType: 'DEV_DEPENDENCY_OF', relatedSpdxElement: 'SPDXRef-Package-myapp' },
+          { spdxElementId: 'SPDXRef-Package-php-timer', relationshipType: 'DEV_DEPENDENCY_OF', relatedSpdxElement: 'SPDXRef-Package-phpunit' },
+        ],
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 4, componentsUpdated: 0, relationshipsCreated: 4
+      })
+
+      await service.processSBOM({
+        sbom: sbomWithInverseRels,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'spdx',
+        userId: 'user-1'
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+      expect(persistCall.componentUsage.get('SPDXRef-Package-guzzle')).toMatchObject({ isDirect: true, scope: 'runtime' })
+      expect(persistCall.componentUsage.get('SPDXRef-Package-phpunit')).toMatchObject({ isDirect: true, scope: 'dev' })
+      // php-timer is only a dep of phpunit, so it is transitive
+      expect(persistCall.componentUsage.get('SPDXRef-Package-php-timer')).toMatchObject({ isDirect: false })
+    })
+
     it('should not throw when a dependency purl has a malformed encoded name segment', async () => {
       const sbomWithMalformedPurlName = {
         ...validCycloneDxSbom,
