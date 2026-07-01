@@ -42,6 +42,16 @@ export interface ComponentDependencyTree {
   systemExists: boolean
 }
 
+export interface LinkSuggestion {
+  purl: string
+  name: string
+  version: string
+  packageManager: string | null
+  purlName: string
+  suggestedTechnologies: string[]
+  hasExactMatch: boolean
+}
+
 export interface ComponentEOLCandidate {
   name: string
   version: string
@@ -363,6 +373,33 @@ export class ComponentRepository extends BaseRepository {
       maxDepth: filters.maxDepth,
       systemExists: record.get('systemExists') as boolean
     }
+  }
+
+  async getLinkSuggestions(skip: number, limit: number): Promise<{ data: LinkSuggestion[]; total: number }> {
+    const countQuery = await loadQuery('components/link-suggestions-count.cypher')
+    const dataQuery = await loadQuery('components/link-suggestions.cypher')
+
+    const { records: countRecords } = await this.executeQuery(countQuery, {})
+    const total = countRecords.length > 0 ? countRecords[0]!.get('total').toNumber() : 0
+
+    const { records } = await this.executeQuery(dataQuery, { skip, limit })
+    return {
+      data: records.map(record => ({
+        purl: record.get('purl') as string,
+        name: record.get('name') as string,
+        version: record.get('version') as string,
+        packageManager: record.get('packageManager') as string | null,
+        purlName: record.get('purlName') as string,
+        suggestedTechnologies: (record.get('suggestedTechnologies') as string[]).filter(Boolean),
+        hasExactMatch: record.get('hasExactMatch') as boolean
+      })),
+      total
+    }
+  }
+
+  async dismissLink(purl: string): Promise<void> {
+    const query = await loadQuery('components/dismiss-link.cypher')
+    await this.executeQuery(query, { purl })
   }
 
   async findEOLCandidates(): Promise<ComponentEOLCandidate[]> {

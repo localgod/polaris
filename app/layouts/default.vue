@@ -325,6 +325,11 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
       to: '/users'
     })
     items.push({
+      label: 'Component Links',
+      icon: 'i-lucide-link',
+      to: '/admin/component-links'
+    })
+    items.push({
       label: 'Impersonate User',
       icon: 'i-lucide-eye',
       onSelect: () => openImpersonateModal()
