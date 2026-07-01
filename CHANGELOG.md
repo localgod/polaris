@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.48] - 2026-07-01
+
+## What's Changed
+
+- feat: guided PURL-to-Technology matching queue for SBOM governance @localgod (#727)
+
+## 🔧 Maintenance
+
+- chore: release v0.6.47 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#726)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.47...v0.6.48
+
 ## [0.6.47] - 2026-07-01
 
 ## What's Changed
