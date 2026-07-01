@@ -177,10 +177,6 @@ function isNotFoundError(error: unknown): boolean {
   return error instanceof GitHubApiError && error.status === 404
 }
 
-function isGitHubApiError(error: unknown, status: number): boolean {
-  return error instanceof GitHubApiError && error.status === status
-}
-
 /**
  * Fetch repository metadata from the GitHub API.
  */
@@ -331,6 +327,6 @@ export async function cloneRepository(repoUrl: string, targetDir: string, token:
     if (stderr.includes('Authentication failed') || stderr.includes('could not read Username')) {
       throw new GitHubApiError(401, 'Unauthorized', `GitHub authentication failed for ${owner}/${repo} — check your GitHub token scope`)
     }
-    throw new Error(`git clone failed for ${owner}/${repo}: ${stderr || String(error)}`)
+    throw new Error(`git clone failed for ${owner}/${repo}: ${stderr || String(error)}`, { cause: error })
   }
 }
