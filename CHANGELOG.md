@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.47] - 2026-07-01
+
+## What's Changed
+
+- fix(sbom): correctly mark isDirect for Composer and other SPDX SBOMs (#722) @localgod (#725)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.46...v0.6.47
+
 ## [0.6.29] - 2026-06-23
 
 ## What's Changed
