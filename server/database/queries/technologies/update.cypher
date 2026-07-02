@@ -6,15 +6,15 @@ SET t.type = $type,
     t.vendor = $vendor,
     t.lastReviewed = CASE WHEN $lastReviewed IS NOT NULL THEN date($lastReviewed) ELSE t.lastReviewed END
 
-// Update ownership
+// Update stewardship
 WITH t
-OPTIONAL MATCH (t)<-[oldOwns:OWNS]-(oldTeam:Team)
-DELETE oldOwns
+OPTIONAL MATCH (t)<-[oldSteward:STEWARDED_BY]-(oldTeam:Team)
+DELETE oldSteward
 
 WITH t
 OPTIONAL MATCH (newTeam:Team {name: $ownerTeam})
 FOREACH (_ IN CASE WHEN newTeam IS NOT NULL THEN [1] ELSE [] END |
-  MERGE (newTeam)-[:OWNS]->(t)
+  MERGE (newTeam)-[:STEWARDED_BY]->(t)
 )
 
 // Audit log

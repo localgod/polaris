@@ -89,6 +89,7 @@ const emit = defineEmits<{
 }>()
 
 const { status } = useAuth()
+const { isSuperuser } = useEffectiveRole()
 
 const PM_COLORS: Record<string, string> = {
   npm: '#cb3837', yarn: '#2c8ebb', maven: '#c71a36', gradle: '#02303a',
@@ -173,19 +174,11 @@ function versionActions(component: GroupedComponentVersion) {
 
   const groups = [group]
 
-  if (!component.technologyName && status.value === 'authenticated') {
-    const query: Record<string, string> = {
-      name: component.name,
-      componentName: component.name
-    }
-    if (component.group) query.componentGroup = component.group
-    if (component.packageManager) query.componentPackageManager = component.packageManager
-    if (component.type) query.componentType = component.type
-
+  if (!component.technologyName && status.value === 'authenticated' && isSuperuser.value) {
     groups.push([{
       label: 'Create Technology',
       icon: 'i-lucide-plus',
-      onSelect: () => navigateTo({ path: '/technologies/new', query })
+      onSelect: () => navigateTo({ path: '/admin/component-links', query: { component: component.name } })
     }])
   }
 

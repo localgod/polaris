@@ -31,145 +31,87 @@
       "responsibilityArea": "platform"
     }
   ],
-  "technologies": [
-    {
-      "name": "Angular",
-      "type": "framework",
-      "domain": "framework",
-      "vendor": "Google",
-      "lastReviewed": "2025-09-15"
-    },
+  "platforms": [
     {
       "name": "Node.js",
       "type": "platform",
       "domain": "foundational-runtime",
-      "vendor": "OpenJS Foundation",
-      "lastReviewed": "2025-10-01"
+      "vendor": "OpenJS Foundation"
     },
     {
       "name": "PostgreSQL",
       "type": "platform",
       "domain": "data-platform",
-      "vendor": "PostgreSQL Global Development Group",
-      "lastReviewed": "2025-10-01"
+      "vendor": "PostgreSQL Global Development Group"
     },
     {
       "name": "Neo4j",
       "type": "platform",
       "domain": "data-platform",
-      "vendor": "Neo4j Inc.",
-      "lastReviewed": "2025-10-01"
+      "vendor": "Neo4j Inc."
     },
     {
       "name": "MongoDB",
       "type": "platform",
       "domain": "data-platform",
-      "vendor": "MongoDB Inc.",
-      "lastReviewed": "2025-09-20"
+      "vendor": "MongoDB Inc."
     },
     {
       "name": "Docker",
       "type": "container",
       "domain": "infrastructure",
-      "vendor": "Docker Inc.",
-      "lastReviewed": "2025-10-01"
+      "vendor": "Docker Inc."
     },
     {
       "name": "MySQL",
       "type": "platform",
       "domain": "data-platform",
-      "vendor": "Oracle",
-      "lastReviewed": "2025-09-01"
+      "vendor": "Oracle"
     },
     {
       "name": "Redis",
       "type": "platform",
       "domain": "data-platform",
-      "vendor": "Redis Ltd.",
-      "lastReviewed": "2025-10-01"
-    }
-  ],
-  "versions": [
-    {
-      "technologyName": "Node.js",
-      "version": "20.11.0",
-      "releaseDate": "2024-01-09",
-      "eolDate": "2026-04-30",
-      "approved": true,
-      "notes": "LTS version"
-    },
-    {
-      "technologyName": "PostgreSQL",
-      "version": "16.1",
-      "releaseDate": "2023-11-09",
-      "eolDate": "2028-11-09",
-      "approved": true,
-      "notes": "Latest stable version"
-    },
-    {
-      "technologyName": "Neo4j",
-      "version": "5.26.13",
-      "releaseDate": "2024-10-01",
-      "eolDate": "2027-10-01",
-      "approved": true,
-      "notes": "Community edition"
+      "vendor": "Redis Ltd."
     }
   ],
   "relationships": {
-    "technology_versions": [
+    "team_platforms": [
       {
-        "technology": "Node.js",
-        "version": "20.11.0"
-      },
-      {
-        "technology": "PostgreSQL",
-        "version": "16.1"
-      },
-      {
-        "technology": "Neo4j",
-        "version": "5.26.13"
-      }
-    ],
-    "team_technologies": [
-      {
-        "team": "Frontend Platform",
-        "technology": "Angular"
+        "team": "Backend Platform",
+        "platform": "Node.js"
       },
       {
         "team": "Backend Platform",
-        "technology": "Node.js"
-      },
-      {
-        "team": "Backend Platform",
-        "technology": "Redis"
+        "platform": "Redis"
       },
       {
         "team": "Data Platform",
-        "technology": "PostgreSQL"
+        "platform": "PostgreSQL"
       },
       {
         "team": "Data Platform",
-        "technology": "Neo4j"
+        "platform": "Neo4j"
       },
       {
         "team": "Data Platform",
-        "technology": "MongoDB"
+        "platform": "MongoDB"
       },
       {
         "team": "Data Platform",
-        "technology": "MySQL"
+        "platform": "MySQL"
       },
       {
         "team": "DevOps",
-        "technology": "Docker"
+        "platform": "Docker"
       },
       {
         "team": "Platform Team",
-        "technology": "Node.js"
+        "platform": "Node.js"
       },
       {
         "team": "Platform Team",
-        "technology": "Neo4j"
+        "platform": "Neo4j"
       }
     ]
   },
@@ -199,20 +141,10 @@
     ]
   },
   "approvals": {
-    "team_technology_approvals": [
-      {
-        "team": "Frontend Platform",
-        "technology": "Angular",
-        "time": "migrate",
-        "approvedAt": "2023-06-01",
-        "deprecatedAt": "2024-06-01",
-        "migrationTarget": "React",
-        "notes": "Legacy projects only, migrate to React",
-        "approvedBy": "Tech Lead"
-      },
+    "team_platform_approvals": [
       {
         "team": "Backend Platform",
-        "technology": "Node.js",
+        "platform": "Node.js",
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Primary backend runtime - strategic investment",
@@ -220,7 +152,7 @@
       },
       {
         "team": "Backend Platform",
-        "technology": "Redis",
+        "platform": "Redis",
         "time": "invest",
         "approvedAt": "2024-03-01",
         "notes": "Caching and session storage",
@@ -228,7 +160,7 @@
       },
       {
         "team": "Data Platform",
-        "technology": "PostgreSQL",
+        "platform": "PostgreSQL",
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Primary relational database - strategic investment",
@@ -236,7 +168,7 @@
       },
       {
         "team": "Data Platform",
-        "technology": "Neo4j",
+        "platform": "Neo4j",
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Graph database for relationship-heavy data",
@@ -244,7 +176,7 @@
       },
       {
         "team": "Data Platform",
-        "technology": "MongoDB",
+        "platform": "MongoDB",
         "time": "tolerate",
         "approvedAt": "2024-06-01",
         "notes": "Tolerated for specific document storage use cases",
@@ -252,7 +184,7 @@
       },
       {
         "team": "Data Platform",
-        "technology": "MySQL",
+        "platform": "MySQL",
         "time": "tolerate",
         "approvedAt": "2024-09-01",
         "notes": "Tolerated for legacy system compatibility",
@@ -260,7 +192,7 @@
       },
       {
         "team": "DevOps",
-        "technology": "Docker",
+        "platform": "Docker",
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Standard containerization platform",
@@ -268,7 +200,7 @@
       },
       {
         "team": "Platform Team",
-        "technology": "Node.js",
+        "platform": "Node.js",
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Runtime for TypeScript projects",
@@ -276,7 +208,7 @@
       },
       {
         "team": "Platform Team",
-        "technology": "Neo4j",
+        "platform": "Neo4j",
         "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Graph database for Polaris technology catalog",

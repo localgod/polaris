@@ -36,14 +36,13 @@ export interface UpdateTechnologyParams {
   realUserId?: string | null
 }
 
-export interface CreateTechnologyParams {
+export interface CreateTechnologyFromComponentParams {
   name: string
   type: string
   domain: string | null
   vendor: string | null
   ownerTeam: string | null
-  componentName: string | null
-  componentPackageManager: string | null
+  componentName: string
   userId: string
   realUserId?: string | null
 }
@@ -106,11 +105,11 @@ export class TechnologyRepository extends BaseRepository {
    * 
    * @returns Array of technologies
    */
-  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Technology[]; total: number }> {
+  async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: Technology[]; total: number }> {
     const query = await loadQuery('technologies/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, technologySortConfig)
     const finalQuery = injectOrderBy(query, orderBy)
-    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+    const { records } = await this.executeQuery(finalQuery, { limit, offset, search: search?.trim() || null })
 
     const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
     return { data: records.map(record => this.mapToTechnology(record)), total }
@@ -145,15 +144,19 @@ export class TechnologyRepository extends BaseRepository {
   }
 
   /**
-   * Create a new technology, optionally linking a source component
+   * Create a new technology by claiming every currently-unlinked Component
+   * sharing `componentName` — a Technology can never exist without at least
+   * one linked Component. Zero matching (unlinked) components means zero
+   * returned records, which the caller treats as "component not found."
    */
-  async create(params: CreateTechnologyParams): Promise<string> {
-    const query = await loadQuery('technologies/create.cypher')
+  async createFromComponent(params: CreateTechnologyFromComponentParams): Promise<string> {
+    const query = await loadQuery('technologies/create-from-component.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       type: params.type,
       domain: params.domain || null,
       vendor: params.vendor || null,
+      componentName: params.componentName,
     }))
     const { records } = await this.executeQuery(query, {
       name: params.name,
@@ -161,15 +164,14 @@ export class TechnologyRepository extends BaseRepository {
       domain: params.domain || null,
       vendor: params.vendor || null,
       ownerTeam: params.ownerTeam || null,
-      componentName: params.componentName || null,
-      componentPackageManager: params.componentPackageManager || null,
+      componentName: params.componentName,
       userId: params.userId,
       realUserId: params.realUserId ?? null,
       changes,
     })
 
     if (records.length === 0) {
-      throw new Error('Failed to create technology')
+      throw createError({ statusCode: 404, message: `No unlinked component named '${params.componentName}' found` })
     }
 
     return records[0]!.get('name')

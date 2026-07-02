@@ -7,8 +7,13 @@ import { technologyService } from '../services/singletons'
  *   post:
  *     tags:
  *       - Technologies
- *     summary: Create a new technology
- *     description: Creates a new technology entry, optionally linking it to a source component
+ *     summary: Create a new technology from an unlinked component
+ *     description: |
+ *       Creates a new technology by claiming an existing, currently-unlinked Component —
+ *       a Technology can never exist without at least one linked Component. All Component
+ *       nodes sharing `componentName` that aren't already linked to a Technology are
+ *       linked in the same operation. For technology that can never be observed by SBOM
+ *       scanning (databases, cloud services, etc.), use POST /platforms instead.
  *     requestBody:
  *       required: true
  *       content:
@@ -18,6 +23,7 @@ import { technologyService } from '../services/singletons'
  *             required:
  *               - name
  *               - type
+ *               - componentName
  *             properties:
  *               name:
  *                 type: string
@@ -34,14 +40,14 @@ import { technologyService } from '../services/singletons'
  *                 type: string
  *               componentName:
  *                 type: string
- *                 description: Component name — all versions with this name and packageManager will be linked
- *               componentPackageManager:
- *                 type: string
+ *                 description: Name of an existing, unlinked Component — all currently-unlinked versions sharing this name are linked
  *     responses:
  *       201:
  *         description: Technology created
  *       400:
  *         description: Missing required fields
+ *       404:
+ *         description: No unlinked component with the given name was found
  *       409:
  *         description: Technology already exists
  *       422:
@@ -54,8 +60,7 @@ interface CreateTechnologyRequest {
   domain?: string
   vendor?: string
   ownerTeam?: string
-  componentName?: string
-  componentPackageManager?: string
+  componentName: string
 }
 
 interface CreateTechnologyResponse {
@@ -68,7 +73,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateTechn
   const body = await readBody<CreateTechnologyRequest>(event)
 
   try {
-    const name = await technologyService.create({ ...body, userId: user.id, realUserId })
+    const name = await technologyService.createFromComponent({ ...body, userId: user.id, realUserId })
 
     setResponseStatus(event, 201)
     return {

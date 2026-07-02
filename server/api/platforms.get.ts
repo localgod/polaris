@@ -1,14 +1,14 @@
-import type { ApiResponse, Technology } from '~~/types/api'
-import { technologyService } from '../services/singletons'
+import type { ApiResponse, Platform } from '~~/types/api'
+import { platformService } from '../services/singletons'
 
 /**
  * @openapi
- * /technologies:
+ * /platforms:
  *   get:
  *     tags:
- *       - Technologies
- *     summary: List all technologies
- *     description: Retrieves a list of all technologies with their versions and approvals
+ *       - Platforms
+ *     summary: List all platforms
+ *     description: Retrieves a list of manually-declared platforms (infrastructure/services not observable via SBOM scanning) with their approvals
  *     parameters:
  *       - in: query
  *         name: limit
@@ -22,14 +22,9 @@ import { technologyService } from '../services/singletons'
  *           type: integer
  *           default: 0
  *         description: Pagination offset
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Case-insensitive substring match on technology name
  *     responses:
  *       200:
- *         description: Successfully retrieved technologies
+ *         description: Successfully retrieved platforms
  *         content:
  *           application/json:
  *             schema:
@@ -40,18 +35,14 @@ import { technologyService } from '../services/singletons'
  *                     data:
  *                       type: array
  *                       items:
- *                         $ref: '#/components/schemas/Technology'
+ *                         $ref: '#/components/schemas/Platform'
  *                     total:
  *                       type: integer
- *                       description: Total number of technologies
+ *                       description: Total number of platforms
  *       500:
- *         description: Failed to fetch technologies
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiErrorResponse'
+ *         description: Failed to fetch platforms
  */
-export default defineEventHandler(async (event): Promise<ApiResponse<Technology>> => {
+export default defineEventHandler(async (event): Promise<ApiResponse<Platform>> => {
   try {
     const query = getQuery(event)
     const rawLimit = query.limit ? parseInt(query.limit as string, 10) : 50
@@ -64,14 +55,13 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Technology>
     const limit = Math.min(Math.max(1, rawLimit), 200)
     const offset = Math.max(0, rawOffset)
 
-    const result = await technologyService.findAll(
+    const result = await platformService.findAll(
       {
         sortBy: query.sortBy as string | undefined,
         sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
       },
       limit,
-      offset,
-      query.search as string | undefined
+      offset
     )
 
     return {
@@ -81,7 +71,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Technology>
       total: result.total
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch technologies'
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch platforms'
     return {
       success: false,
       error: errorMessage,
