@@ -58,6 +58,14 @@ If you need to rebuild the dev container:
 
 Note: All services use `network_mode: host`, so the app connects to Neo4j via `bolt://localhost:7687`. Host networking requires a Linux host — it is not supported on Docker Desktop for macOS or Windows. This devcontainer is intended for use with Ona (Linux-based cloud environments) where host networking is required for the Ona agent to communicate with the container.
 
+### Host Browser Access (Linux)
+
+When using this devcontainer on Linux with `network_mode: host`:
+- Prefer `http://127.0.0.1:3000` for the Nuxt dev server from the host browser.
+- VS Code may also forward port `3000` for host browser access, depending on your environment.
+
+If `http://localhost:3000` hangs while `http://127.0.0.1:3000` works, the host machine is likely resolving `localhost` to IPv6 loopback (`::1`) while the reachable forwarded endpoint is bound on IPv4 (`127.0.0.1`). In that case, use `http://127.0.0.1:3000`.
+
 ## Manual Service Management
 
 If you need to manually manage the Neo4j service:

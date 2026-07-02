@@ -14,7 +14,7 @@
 	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "sudo chown -R node:node /workspaces/polaris/node_modules && npm install",
+	"postCreateCommand": "bash /workspaces/polaris/.devcontainer/scripts/post-create.sh",
 
 	// Run as node user to avoid permission issues
 	"remoteUser": "node",
@@ -25,5 +25,27 @@
 	// Ensure node_modules has proper permissions
 	"containerEnv": {
 		"npm_config_cache": "/tmp/.npm"
+	},
+
+	// Forward the dev server port so the host browser can reach it reliably.
+	// On Linux host-network setups, prefer http://127.0.0.1:3000 if localhost
+	// resolves inconsistently in the browser.
+	"forwardPorts": [
+		3000
+	],
+	"portsAttributes": {
+		"3000": {
+			"label": "Nuxt dev server",
+			"protocol": "http",
+			"requireLocalPort": true
+		}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"Anthropic.claude-code",
+				"Vue.volar"
+			]
+		}
 	}
 }

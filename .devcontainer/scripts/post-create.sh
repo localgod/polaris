@@ -49,7 +49,7 @@ npm install -g @alanse/mcp-neo4j-server --quiet
 echo "✅ npm global tools installed"
 
 # ── Claude Code user-level settings ─────────────────────────────────────────
-# Registers the local-model MCP server (Qwen 2.5 7B via Docker Model Runner).
+# Registers MCP servers: local-model, code-review-graph, mcp-neo4j-server
 # Only written if missing — avoids overwriting permissions accumulated during sessions.
 CLAUDE_SETTINGS="/home/node/.claude/settings.json"
 if [ ! -f "$CLAUDE_SETTINGS" ]; then
@@ -62,6 +62,13 @@ if [ ! -f "$CLAUDE_SETTINGS" ]; then
     "local-model": {
       "command": "node",
       "args": ["/workspaces/polaris/.claude/mcp/local-model-server.js"]
+    },
+    "code-review-graph": {
+      "command": "code-review-graph",
+      "args": ["mcp"]
+    },
+    "mcp-neo4j-server": {
+      "command": "mcp-neo4j-server"
     }
   }
 }
@@ -69,6 +76,40 @@ EOF
     echo "✅ Claude Code user settings written"
 else
     echo "✅ Claude Code user settings already exist"
+    # Ensure MCP servers are registered (merge with existing settings)
+    echo "⚙️  Updating MCP server registrations..."
+    python3 << 'PYEOF'
+import json
+import os
+
+settings_path = "/home/node/.claude/settings.json"
+with open(settings_path, 'r') as f:
+    settings = json.load(f)
+
+mcp_servers = {
+    "local-model": {
+        "command": "node",
+        "args": ["/workspaces/polaris/.claude/mcp/local-model-server.js"]
+    },
+    "code-review-graph": {
+        "command": "code-review-graph",
+        "args": ["mcp"]
+    },
+    "mcp-neo4j-server": {
+        "command": "mcp-neo4j-server"
+    }
+}
+
+if "mcpServers" not in settings:
+    settings["mcpServers"] = {}
+
+settings["mcpServers"].update(mcp_servers)
+
+with open(settings_path, 'w') as f:
+    json.dump(settings, f, indent=2)
+
+print("✅ MCP servers registered")
+PYEOF
 fi
 
 # ── code-review-graph knowledge graph ────────────────────────────────────────

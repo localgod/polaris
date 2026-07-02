@@ -32,8 +32,8 @@ export default defineEventHandler(async (event) => {
   await requireSuperuser(event)
 
   const query = getQuery(event)
-  const skip = Math.max(0, parseInt(String(query.skip ?? '0'), 10) || 0)
-  const limit = Math.min(200, Math.max(1, parseInt(String(query.limit ?? '50'), 10) || 50))
+  const skip = Math.max(0, Math.floor(Number(query.skip ?? '0')) || 0)
+  const limit = Math.min(200, Math.max(1, Math.floor(Number(query.limit ?? '50')) || 50))
 
   const result = await componentService.getLinkSuggestions(skip, limit)
 

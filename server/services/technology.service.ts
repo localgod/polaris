@@ -323,6 +323,25 @@ export class TechnologyService {
   }
 
   /**
+   * Link all components with a given name to a technology.
+   *
+   * After linking, refreshes Team→Technology USES edges for every system
+   * that uses the components so that compliance and version-constraint queries
+   * reflect the new relationship immediately.
+   */
+  async linkComponentByName(input: { technologyName: string; componentName: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; count: number }> {
+    const exists = await this.techRepo.exists(input.technologyName)
+    if (!exists) {
+      throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
+    }
+    const result = await this.techRepo.linkComponentsByName(input)
+    for (const systemName of result.affectedSystems) {
+      await this.sbomRepo.upsertTeamUsesTechnology(systemName)
+    }
+    return { technologyName: result.technologyName, name: result.name, count: result.count }
+  }
+
+  /**
    * Set or update a team's TIME approval for a technology
    */
   async setApproval(input: SetApprovalInput): Promise<{ time: string; team: string }> {

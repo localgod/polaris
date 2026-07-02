@@ -6,7 +6,7 @@
       >
         <template #description>
           <template v-if="systemFilter">
-            Direct components in system: <strong>{{ systemFilter }}</strong>
+            {{ showDirectOnly ? 'Direct' : 'All' }} components in system: <strong>{{ systemFilter }}</strong>
             <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
           </template>
           <template v-else-if="lifecycleRiskFilter">
@@ -42,11 +42,19 @@
             icon="i-lucide-search"
             class="max-w-sm"
           />
-          <USwitch
-            v-model="showDevDependencies"
-            label="Show dev dependencies"
-            size="sm"
-          />
+          <div class="flex flex-wrap items-center gap-4">
+            <USwitch
+              v-if="systemFilter"
+              v-model="showDirectOnly"
+              label="Direct only"
+              size="sm"
+            />
+            <USwitch
+              v-model="showDevDependencies"
+              label="Show dev dependencies"
+              size="sm"
+            />
+          </div>
         </div>
 
         <UTable
@@ -269,6 +277,15 @@ const showDevDependencies = computed({
   set: value => { showDevDependenciesCookie.value = value ? 'true' : 'false' }
 })
 
+const showDirectOnlyCookie = useCookie<'true' | 'false'>('polaris-components-show-direct-only', {
+  default: () => 'true',
+  sameSite: 'lax'
+})
+const showDirectOnly = computed({
+  get: () => showDirectOnlyCookie.value === 'true',
+  set: value => { showDirectOnlyCookie.value = value ? 'true' : 'false' }
+})
+
 const selectedComponent = ref<GroupedComponent | null>(null)
 const versionsModalOpen = ref(false)
 
@@ -284,7 +301,7 @@ const searchInput = ref('')
 const debouncedSearch = ref('')
 
 // Reset page when any filter changes
-watch([debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, sorting], () => { page.value = 1 })
+watch([debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, showDirectOnly, sorting], () => { page.value = 1 })
 
 const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
 watch(searchInput, updateSearch)
@@ -292,6 +309,9 @@ watch(searchInput, updateSearch)
 const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
 const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
 const includeDev = computed(() => showDevDependencies.value ? undefined : 'false')
+// Global list (no system): always direct-only to keep result count manageable.
+// System list: respect the user toggle; default is to show all components.
+const direct = computed(() => (!systemFilter.value || showDirectOnly.value) ? 'true' : undefined)
 const offset = computed(() => (page.value - 1) * pageSize)
 
 // Pass individual refs/computeds as query values so Nuxt tracks each one
@@ -305,7 +325,7 @@ const { data, pending, error } = await useFetch<ApiResponse<GroupedComponent>>('
     license: licenseFilter,
     system: systemFilter,
     lifecycleRisk: computed(() => lifecycleRiskFilter.value ? 'true' : undefined),
-    direct: 'true',
+    direct,
     includeDev,
     sortBy,
     sortOrder,

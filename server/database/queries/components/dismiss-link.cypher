@@ -1,3 +1,3 @@
-MATCH (c:Component {purl: $purl})
+MATCH (c:Component {name: $componentName})
 SET c.linkDismissedAt = datetime()
-RETURN c.purl AS purl
+RETURN count(c) AS dismissed

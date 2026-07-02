@@ -90,37 +90,20 @@
           </div>
         </UCard>
 
+        <!-- Version Risk -->
         <UCard>
           <template #header>
-            <div class="flex items-center justify-between gap-3">
-              <h2 class="text-lg font-semibold">Lifecycle Visibility</h2>
-              <UBadge :color="getEolColor(tech.lifecycleSummary?.status)" variant="subtle">
-                {{ getEolLabel(tech.lifecycleSummary?.status) }}
-              </UBadge>
-            </div>
+            <h2 class="text-lg font-semibold">Version Risk</h2>
           </template>
-          <div class="space-y-4">
-            <p class="text-sm text-(--ui-text-muted)">
-              Third-party lifecycle data is read from endoflife.date. Stored governance EOL dates remain separate in the versions table.
-            </p>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Unsupported</span>
-                <p class="text-xl font-semibold text-(--ui-color-error-500)">{{ tech.lifecycleSummary?.unsupportedCount || 0 }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Approaching</span>
-                <p class="text-xl font-semibold text-(--ui-color-warning-500)">{{ tech.lifecycleSummary?.approachingCount || 0 }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Active</span>
-                <p class="text-xl font-semibold text-(--ui-color-success-500)">{{ tech.lifecycleSummary?.activeCount || 0 }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Unknown</span>
-                <p class="text-xl font-semibold">{{ tech.lifecycleSummary?.unknownCount || 0 }}</p>
-              </div>
-            </div>
+          <UTable
+            v-if="versionRiskData && versionRiskData.length > 0"
+            v-model:sorting="versionRiskSorting"
+            :data="versionRiskData"
+            :columns="versionRiskColumns"
+            class="flex-1"
+          />
+          <div v-else class="text-center text-(--ui-text-muted) py-8">
+            No versions found.
           </div>
         </UCard>
 
@@ -322,6 +305,7 @@ function pmColor(pm: string | null | undefined): string {
 const { getSortableHeader } = useSortableTable()
 const approvalSorting = ref([])
 const versionSorting = ref([])
+const versionRiskSorting = ref([])
 const componentSorting = ref([])
 
 const route = useRoute()
@@ -557,6 +541,25 @@ function getVersionViolation(version: string): ConstraintRef | null {
   return null
 }
 
+function getComponentsForVersion(version: string): number {
+  return tech.value?.components?.filter(c => c.version === version).length ?? 0
+}
+
+function getViolationCountForVersion(version: string): number {
+  if (!tech.value?.constraints) return 0
+  const cleaned = semver.coerce(version)
+  if (!cleaned) return 0
+  let count = 0
+  for (const vc of tech.value.constraints) {
+    if (vc.status === 'active' && vc.versionRange) {
+      if (!semver.satisfies(cleaned, vc.versionRange)) {
+        count++
+      }
+    }
+  }
+  return count
+}
+
 const componentColumns: TableColumn<ComponentRef>[] = [
   {
     accessorKey: 'name',
@@ -597,6 +600,61 @@ const componentColumns: TableColumn<ComponentRef>[] = [
   }
 ]
 
+const versionRiskColumns: TableColumn<VersionDetail>[] = [
+  {
+    accessorKey: 'version',
+    header: ({ column }) => getSortableHeader(column, 'Version'),
+    cell: ({ row }) => h('code', {}, row.getValue('version') as string)
+  },
+  {
+    id: 'components',
+    header: 'Components Using',
+    cell: ({ row }) => getComponentsForVersion(row.getValue('version') as string).toString()
+  },
+  {
+    id: 'lifecycle',
+    header: 'Lifecycle',
+    cell: ({ row }) => {
+      const status = row.original.lifecycle?.status
+      return h(resolveComponent('UBadge'), { color: getEolColor(status), variant: 'subtle' }, () => getEolLabel(status))
+    }
+  },
+  {
+    id: 'violations',
+    header: 'Violations',
+    cell: ({ row }) => {
+      const count = getViolationCountForVersion(row.getValue('version') as string)
+      if (count === 0) return '—'
+      return h(resolveComponent('UBadge'), { color: 'error', variant: 'subtle' }, () => count.toString())
+    }
+  },
+  {
+    id: 'risk',
+    header: 'Risk',
+    meta: { class: { th: 'w-12' } },
+    cell: ({ row }) => {
+      const violationCount = getViolationCountForVersion(row.getValue('version') as string)
+      const lifecycle = row.original.lifecycle?.status
+
+      let icon = 'i-lucide-check'
+      let color = 'text-(--ui-success)'
+
+      if (violationCount > 0) {
+        icon = 'i-lucide-alert-circle'
+        color = 'text-(--ui-error)'
+      } else if (lifecycle === 'approaching_eol') {
+        icon = 'i-lucide-alert-triangle'
+        color = 'text-(--ui-warning)'
+      } else if (lifecycle === 'unsupported') {
+        icon = 'i-lucide-x-circle'
+        color = 'text-(--ui-error)'
+      }
+
+      return h(resolveComponent('UIcon'), { name: icon, class: `${color} size-5` })
+    }
+  }
+]
+
 const { data, pending, error, refresh } = await useFetch<TechnologyResponse>(() => `/api/technologies/${encodeURIComponent(route.params.name as string)}`)
 
 const tech = computed(() => data.value?.data || null)
@@ -610,6 +668,31 @@ const versionRows = computed<VersionDetail[]>(() => {
 })
 
 const distinctVersionCount = computed(() => tech.value?.versions?.length ?? 0)
+
+const versionRiskData = computed<VersionDetail[]>(() => {
+  // If technology has explicit versions, use those
+  if (versionRows.value.length > 0) {
+    return versionRows.value
+  }
+
+  // Otherwise, extract unique versions from components
+  const componentVersionMap = new Map<string, VersionDetail>()
+  for (const component of tech.value?.components || []) {
+    if (!componentVersionMap.has(component.version)) {
+      componentVersionMap.set(component.version, {
+        version: component.version,
+        releaseDate: null,
+        eolDate: null,
+        approved: null,
+        notes: null,
+        lifecycle: null
+      })
+    }
+  }
+  return Array.from(componentVersionMap.values()).sort((a, b) =>
+    a.version.localeCompare(b.version, undefined, { numeric: true })
+  )
+})
 
 const timeCategory = computed(() => {
   const approval = tech.value?.technologyApprovals?.[0]

@@ -287,7 +287,7 @@ async function dismissItem(item: LinkSuggestion) {
   try {
     await $fetch('/api/components/dismiss-link', {
       method: 'POST',
-      body: { purl: item.purl }
+      body: { componentName: item.name }
     })
     await refresh()
   } catch (err: unknown) {

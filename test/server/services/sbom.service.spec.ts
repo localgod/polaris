@@ -1019,6 +1019,186 @@ describe('SBOMService', () => {
       expect(SBOMRepository.prototype.upsertTeamUsesTechnology).toHaveBeenCalledWith('test-system')
     })
 
+    it('should mark direct deps correctly when composer root uses vendor/name purl but projectName is bare repo name', async () => {
+      // Regression test for: cdxgen generates metadata.component.name = "karla" (GitHub repo name)
+      // but composer.json sets "name": "localgod/karla", so the dependency graph entry uses
+      // "pkg:composer/localgod/karla@1.0.0" as the ref.  The name lookup must match the bare
+      // root name "karla" against the last segment of "localgod/karla".
+      const composerCdxSbom = {
+        bomFormat: 'CycloneDX',
+        specVersion: '1.4',
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'karla',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/karla@1.0.0',
+            purl: 'pkg:application/karla@1.0.0',
+          }
+        },
+        components: [
+          {
+            type: 'library',
+            name: 'phpunit',
+            version: '10.5.60',
+            'bom-ref': 'pkg:composer/phpunit/phpunit@10.5.60',
+            purl: 'pkg:composer/phpunit/phpunit@10.5.60',
+            scope: 'required',
+          },
+          {
+            type: 'library',
+            name: 'console',
+            version: '6.0.0',
+            'bom-ref': 'pkg:composer/symfony/console@6.0.0',
+            purl: 'pkg:composer/symfony/console@6.0.0',
+            scope: 'required',
+          },
+          {
+            type: 'library',
+            name: 'php-timer',
+            version: '6.0.0',
+            'bom-ref': 'pkg:composer/phpunit/php-timer@6.0.0',
+            purl: 'pkg:composer/phpunit/php-timer@6.0.0',
+            scope: 'required',
+          },
+          // The composer root itself — should be excluded, not persisted as a component
+          {
+            type: 'library',
+            name: 'karla',
+            version: '1.0.0',
+            'bom-ref': 'pkg:composer/localgod/karla@1.0.0',
+            purl: 'pkg:composer/localgod/karla@1.0.0',
+          },
+        ],
+        dependencies: [
+          // Application root — empty dependsOn (cdxgen often leaves this empty)
+          { ref: 'pkg:application/karla@1.0.0', dependsOn: [] },
+          // Composer root — carries the actual direct deps
+          { ref: 'pkg:composer/localgod/karla@1.0.0', dependsOn: ['pkg:composer/phpunit/phpunit@10.5.60', 'pkg:composer/symfony/console@6.0.0'] },
+          { ref: 'pkg:composer/phpunit/phpunit@10.5.60', dependsOn: ['pkg:composer/phpunit/php-timer@6.0.0'] },
+          { ref: 'pkg:composer/symfony/console@6.0.0', dependsOn: [] },
+          { ref: 'pkg:composer/phpunit/php-timer@6.0.0', dependsOn: [] },
+        ],
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 3, componentsUpdated: 0, relationshipsCreated: 3
+      })
+
+      await service.processSBOM({
+        sbom: composerCdxSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1',
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+
+      // The composer root (localgod/karla) must not appear as a dependency component
+      expect(persistCall.components.some(c => c.purl === 'pkg:composer/localgod/karla@1.0.0')).toBe(false)
+
+      // Direct composer deps must be marked isDirect: true
+      expect(persistCall.componentUsage.get('pkg:composer/phpunit/phpunit@10.5.60')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:composer/symfony/console@6.0.0')).toMatchObject({ isDirect: true })
+
+      // Transitive dep (php-timer is only required by phpunit)
+      expect(persistCall.componentUsage.get('pkg:composer/phpunit/php-timer@6.0.0')).toMatchObject({ isDirect: false })
+    })
+
+    it('should mark direct deps from every ecosystem root when a repo has multiple manifests (e.g. composer.json + package.json)', async () => {
+      // Regression test for: the "karla" repo has both composer.json ("localgod/karla")
+      // for the PHP library and package.json ("karla") for its npm-based docs site.
+      // cdxgen emits a dependency-graph entry for each. Picking only the entry with the
+      // most dependsOn (the old behavior) silently dropped the other ecosystem's direct
+      // deps entirely — resolveRootDirectDeps must merge across ecosystems.
+      const multiEcosystemSbom = {
+        bomFormat: 'CycloneDX',
+        specVersion: '1.4',
+        metadata: {
+          component: {
+            type: 'application',
+            name: 'karla',
+            version: '1.0.0',
+            'bom-ref': 'pkg:application/karla@1.0.0',
+          }
+        },
+        components: [
+          { type: 'library', name: 'phpunit', version: '10.5.60', 'bom-ref': 'pkg:composer/phpunit/phpunit@10.5.60', purl: 'pkg:composer/phpunit/phpunit@10.5.60' },
+          { type: 'library', name: 'vuepress', version: '2.0.0', 'bom-ref': 'pkg:npm/vuepress@2.0.0', purl: 'pkg:npm/vuepress@2.0.0' },
+        ],
+        dependencies: [
+          { ref: 'pkg:application/karla@1.0.0', dependsOn: [] },
+          // Composer root — 1 direct dep
+          { ref: 'pkg:composer/localgod/karla@1.0.0', dependsOn: ['pkg:composer/phpunit/phpunit@10.5.60'] },
+          // npm root — has more dependsOn entries than the composer root
+          { ref: 'pkg:npm/karla@1.0.0', dependsOn: ['pkg:npm/vuepress@2.0.0'] },
+          { ref: 'pkg:composer/phpunit/phpunit@10.5.60', dependsOn: [] },
+          { ref: 'pkg:npm/vuepress@2.0.0', dependsOn: [] },
+        ],
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 2, componentsUpdated: 0, relationshipsCreated: 2
+      })
+
+      await service.processSBOM({
+        sbom: multiEcosystemSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1',
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+
+      expect(persistCall.componentUsage.get('pkg:composer/phpunit/phpunit@10.5.60')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:npm/vuepress@2.0.0')).toMatchObject({ isDirect: true })
+    })
+
+    it('should mark GitHub Actions components as direct even though they have no root manifest', async () => {
+      // Regression test for: the dependency graph section on a system's page couldn't
+      // expand the "github" group node. cdxgen has no root-manifest concept for GitHub
+      // Actions — a workflow file references each action directly, with no dependsOn
+      // tree — so resolveRootDirectDeps never finds a "github" root and these components
+      // fell through to the generic isDirect: false default. Every "github" ecosystem
+      // component is a direct usage by definition.
+      const githubActionsSbom = {
+        ...validCycloneDxSbom,
+        components: [
+          ...validCycloneDxSbom.components,
+          {
+            type: 'application',
+            name: 'actions/checkout',
+            version: 'v4',
+            purl: 'pkg:github/actions/checkout@v4',
+            'bom-ref': 'pkg:github/actions/checkout@v4',
+          },
+          {
+            type: 'application',
+            name: 'actions/setup-node',
+            version: 'v4',
+            purl: 'pkg:github/actions/setup-node@v4',
+            'bom-ref': 'pkg:github/actions/setup-node@v4',
+          },
+        ],
+      }
+
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 3, componentsUpdated: 0, relationshipsCreated: 3
+      })
+
+      await service.processSBOM({
+        sbom: githubActionsSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1',
+      })
+
+      const persistCall = vi.mocked(SBOMRepository.prototype.persistSBOM).mock.calls[0][0]
+
+      expect(persistCall.componentUsage.get('pkg:github/actions/checkout@v4')).toMatchObject({ isDirect: true })
+      expect(persistCall.componentUsage.get('pkg:github/actions/setup-node@v4')).toMatchObject({ isDirect: true })
+    })
+
     it('should upsert Team→USES→Technology edges before updating last scan timestamp', async () => {
       const callOrder: string[] = []
       vi.mocked(SBOMRepository.prototype.upsertTeamUsesTechnology).mockImplementation(async () => { callOrder.push('upsert') })

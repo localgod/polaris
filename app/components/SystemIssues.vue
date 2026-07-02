@@ -16,13 +16,10 @@
           <UBadge v-if="visibleHealthIssues.length" color="warning" variant="subtle">
             {{ visibleHealthIssues.length }} health {{ visibleHealthIssues.length === 1 ? 'issue' : 'issues' }}
           </UBadge>
-          <UButton
-            :icon="showTransitive ? 'i-lucide-git-branch' : 'i-lucide-git-branch'"
-            :label="showTransitive ? 'All dependencies' : 'Direct only'"
-            :variant="showTransitive ? 'solid' : 'outline'"
-            color="neutral"
-            size="xs"
-            @click="showTransitive = !showTransitive"
+          <USwitch
+            v-model="showDirectOnly"
+            label="Direct only"
+            size="sm"
           />
         </div>
       </div>
@@ -43,7 +40,7 @@
       variant="subtle"
       icon="i-lucide-info"
       title="Issues exist in transitive dependencies only"
-      description="Switch to 'All dependencies' above to see them."
+      description="Turn off 'Direct only' above to see them."
     />
 
     <UTabs v-else :items="tabItems" class="-mt-1">
@@ -75,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, resolveComponent, computed } from 'vue'
+import { h, resolveComponent, computed, ref } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import { encodeComponentKey } from '~~/utils/component-identity'
 
@@ -116,16 +113,16 @@ const props = defineProps<{ issues: SystemIssues }>()
 const UBadge = resolveComponent('UBadge')
 const NuxtLink = resolveComponent('NuxtLink')
 
-const showTransitive = ref(false)
+const showDirectOnly = ref(true)
 
 const visibleVulnerabilities = computed(() =>
-  showTransitive.value ? props.issues.vulnerabilities : props.issues.vulnerabilities.filter(r => r.isDirect)
+  showDirectOnly.value ? props.issues.vulnerabilities.filter(r => r.isDirect) : props.issues.vulnerabilities
 )
 const visibleLicenseIssues = computed(() =>
-  showTransitive.value ? props.issues.licenseIssues : props.issues.licenseIssues.filter(r => r.isDirect)
+  showDirectOnly.value ? props.issues.licenseIssues.filter(r => r.isDirect) : props.issues.licenseIssues
 )
 const visibleHealthIssues = computed(() =>
-  showTransitive.value ? props.issues.healthIssues : props.issues.healthIssues.filter(r => r.isDirect)
+  showDirectOnly.value ? props.issues.healthIssues.filter(r => r.isDirect) : props.issues.healthIssues
 )
 
 const totalIssues = computed(() =>

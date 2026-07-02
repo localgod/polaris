@@ -286,6 +286,22 @@ export class TechnologyRepository extends BaseRepository {
     }
   }
 
+  async linkComponentsByName(params: { technologyName: string; componentName: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; count: number; affectedSystems: string[] }> {
+    const query = await loadQuery('technologies/link-components-by-name.cypher')
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
+
+    if (records.length === 0) {
+      throw createError({ statusCode: 404, message: `No components with name '${params.componentName}' found` })
+    }
+
+    return {
+      technologyName: records[0]!.get('technologyName'),
+      name: records[0]!.get('name'),
+      count: records[0]!.get('count').toNumber(),
+      affectedSystems: (records[0]!.get('affectedSystems') as string[]).filter(Boolean)
+    }
+  }
+
   /**
    * Create or update a team's APPROVES relationship on a technology
    */

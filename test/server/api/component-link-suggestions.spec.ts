@@ -26,7 +26,6 @@ const superuser = { id: 'admin-1', email: 'admin@example.com', role: 'superuser'
 const mockSuggestion = {
   purl: 'pkg:npm/react@18.2.0',
   name: 'react',
-  version: '18.2.0',
   packageManager: 'npm',
   purlName: 'react',
   suggestedTechnologies: ['React'],
@@ -83,19 +82,19 @@ describe('GET /api/components/link-suggestions', () => {
 })
 
 describe('POST /api/components/dismiss-link', () => {
-  it('should dismiss a component by purl and return 204', async () => {
+  it('should dismiss a component by componentName and return 204', async () => {
     vi.mocked(componentService.dismissLink).mockResolvedValue(undefined)
 
     const result = await dismissLinkHandler(mockEvent({
       method: 'POST',
-      body: { purl: 'pkg:npm/react@18.2.0' }
+      body: { componentName: 'react' }
     }))
 
     expect(result).toBeNull()
-    expect(componentService.dismissLink).toHaveBeenCalledWith('pkg:npm/react@18.2.0')
+    expect(componentService.dismissLink).toHaveBeenCalledWith('react')
   })
 
-  it('should return 400 when purl is missing', async () => {
+  it('should return 400 when componentName is missing', async () => {
     await expect(
       dismissLinkHandler(mockEvent({ method: 'POST', body: {} }))
     ).rejects.toMatchObject({ statusCode: 400 })
@@ -105,7 +104,7 @@ describe('POST /api/components/dismiss-link', () => {
     mockRequireSuperuser.mockRejectedValue(Object.assign(new Error('Forbidden'), { statusCode: 403 }))
 
     await expect(
-      dismissLinkHandler(mockEvent({ method: 'POST', body: { purl: 'pkg:npm/react@18.2.0' } }))
+      dismissLinkHandler(mockEvent({ method: 'POST', body: { componentName: 'react' } }))
     ).rejects.toMatchObject({ statusCode: 403 })
   })
 })

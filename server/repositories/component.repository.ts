@@ -387,7 +387,6 @@ export class ComponentRepository extends BaseRepository {
       data: records.map(record => ({
         purl: record.get('purl') as string,
         name: record.get('name') as string,
-        version: record.get('version') as string,
         packageManager: record.get('packageManager') as string | null,
         purlName: record.get('purlName') as string,
         suggestedTechnologies: (record.get('suggestedTechnologies') as string[]).filter(Boolean),
@@ -397,9 +396,9 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
-  async dismissLink(purl: string): Promise<void> {
+  async dismissLink(componentName: string): Promise<void> {
     const query = await loadQuery('components/dismiss-link.cypher')
-    await this.executeQuery(query, { purl })
+    await this.executeQuery(query, { componentName })
   }
 
   async findEOLCandidates(): Promise<ComponentEOLCandidate[]> {

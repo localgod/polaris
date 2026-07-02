@@ -59,6 +59,12 @@ const SCOPE_PRIORITY: Record<string, number> = {
   dev: 1,
 }
 
+// Ecosystems that have no root-manifest concept for cdxgen to model a
+// dependency tree from — every component is referenced directly (e.g. a
+// GitHub Actions workflow file lists each action it uses with no nesting).
+// Components in these ecosystems are always direct usages.
+const NO_ROOT_MANIFEST_ECOSYSTEMS = new Set(['github'])
+
 /**
  * Service for SBOM processing and persistence
  * 
@@ -265,8 +271,14 @@ export class SBOMService {
    *
    * Strategy:
    * 1. Exact match on `rootBomRef` — use it if `dependsOn` is non-empty.
-   * 2. Fallback: find the dependency entry whose purl name segment matches
-   *    `rootName` and has the most `dependsOn` entries.
+   * 2. Fallback: find dependency entries whose purl name segment matches
+   *    `rootName`, grouped by ecosystem (npm/composer/pypi/...). A repo can
+   *    have multiple genuine root manifests across ecosystems (e.g. a PHP
+   *    library's composer.json plus an npm package.json for its docs site) —
+   *    each contributes its own direct deps. Within a single ecosystem,
+   *    cdxgen sometimes emits the same manifest twice under different
+   *    casing/purl-type; those are duplicates of one root, so we keep only
+   *    the fullest entry per ecosystem.
    */
   private resolveRootDirectDeps(
     rootBomRef: string | null,
@@ -282,11 +294,26 @@ export class SBOMService {
 
     const normalizedRootName = rootName.toLowerCase()
 
-    const candidates = dependencies
-      .filter(d => this.nameFromPackageRef(d.ref) === normalizedRootName && d.dependsOn.length > 0)
-      .sort((a, b) => b.dependsOn.length - a.dependsOn.length)
+    const candidates = dependencies.filter(d => {
+      const n = this.nameFromPackageRef(d.ref)
+      // Exact name match, or vendor-namespaced match (e.g. "localgod/karla" matches root "karla").
+      return n !== null && (n === normalizedRootName || n.endsWith('/' + normalizedRootName)) && d.dependsOn.length > 0
+    })
 
-    return candidates[0]?.dependsOn ?? []
+    const bestPerEcosystem = new Map<string, ComponentDependency>()
+    for (const candidate of candidates) {
+      const ecosystem = this.ecosystemFromPackageRef(candidate.ref)
+      const current = bestPerEcosystem.get(ecosystem)
+      if (!current || candidate.dependsOn.length > current.dependsOn.length) {
+        bestPerEcosystem.set(ecosystem, candidate)
+      }
+    }
+
+    return [...new Set([...bestPerEcosystem.values()].flatMap(c => c.dependsOn))]
+  }
+
+  private ecosystemFromPackageRef(ref: string): string {
+    return ref.match(/^pkg:([^/]+)\//)?.[1]?.toLowerCase() ?? ''
   }
 
   private nameFromPackageRef(ref: string | null): string | null {
@@ -324,8 +351,11 @@ export class SBOMService {
       return true
     }
 
-    return this.nameFromPackageRef(component.bomRef) === normalizedRootName
-      || this.nameFromPackageRef(component.purl) === normalizedRootName
+    const bomRefName = this.nameFromPackageRef(component.bomRef)
+    const purlName = this.nameFromPackageRef(component.purl)
+    // Also match vendor-namespaced names (e.g. "localgod/karla" matches root "karla").
+    return (bomRefName !== null && (bomRefName === normalizedRootName || bomRefName.endsWith('/' + normalizedRootName)))
+      || (purlName !== null && (purlName === normalizedRootName || purlName.endsWith('/' + normalizedRootName)))
   }
 
   /**
@@ -479,10 +509,14 @@ export class SBOMService {
     bfs(optionalSeeds, 'optional')
     bfs(devSeeds, 'dev')
 
-    // Any component with a bomRef not yet classified: scope=null, isDirect=false
+    // Any component with a bomRef not yet classified: scope=null, isDirect=false.
+    // Exception: ecosystems with no root-manifest concept (e.g. GitHub Actions,
+    // which a workflow file references directly with no dependsOn tree) are
+    // always direct usages — there's no manifest for resolveRootDirectDeps to match.
     for (const comp of components) {
       if (comp.bomRef && !usage.has(comp.bomRef)) {
-        usage.set(comp.bomRef, { bomRef: comp.bomRef, scope: null, isDirect: false })
+        const isDirect = NO_ROOT_MANIFEST_ECOSYSTEMS.has(this.ecosystemFromPackageRef(comp.bomRef))
+        usage.set(comp.bomRef, { bomRef: comp.bomRef, scope: isDirect ? comp.scope ?? null : null, isDirect })
       }
     }
 

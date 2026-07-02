@@ -16,19 +16,10 @@
     </UAlert>
 
     <template v-else-if="data?.data">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <UPageHeader
-          :title="data.data.name"
-          :description="data.data.domain"
-          :links="[{ label: 'Back to Systems', to: '/systems', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
-        />
-        <div class="flex flex-col items-end gap-1 shrink-0">
-          <span class="text-xs text-(--ui-text-muted)">Business Criticality</span>
-          <UBadge :color="getCriticalityColor(data.data.businessCriticality)" variant="subtle" size="lg">
-            {{ data.data.businessCriticality }}
-          </UBadge>
-        </div>
-      </div>
+      <UPageHeader
+        :title="data.data.name"
+        :links="[{ label: 'Back to Systems', to: '/systems', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+      />
 
       <UCard>
         <template #header>

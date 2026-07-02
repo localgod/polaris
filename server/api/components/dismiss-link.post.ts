@@ -7,7 +7,7 @@ import { componentService } from '../../services/singletons'
  *     tags:
  *       - Components
  *     summary: Dismiss a component from the link suggestions queue
- *     description: Marks a component as intentionally not linked to a Technology. Superuser only.
+ *     description: Marks a component (all versions) as intentionally not linked to a Technology. Superuser only.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -17,16 +17,16 @@ import { componentService } from '../../services/singletons'
  *           schema:
  *             type: object
  *             required:
- *               - purl
+ *               - componentName
  *             properties:
- *               purl:
+ *               componentName:
  *                 type: string
- *                 description: The package URL of the component to dismiss
+ *                 description: The component name to dismiss (all versions)
  *     responses:
  *       204:
  *         description: Component dismissed from queue
  *       400:
- *         description: Missing purl
+ *         description: Missing componentName
  *       403:
  *         description: Superuser access required
  */
@@ -34,11 +34,11 @@ export default defineEventHandler(async (event) => {
   await requireSuperuser(event)
 
   const body = await readBody(event)
-  if (!body?.purl) {
-    throw createError({ statusCode: 400, message: 'purl is required' })
+  if (!body?.componentName) {
+    throw createError({ statusCode: 400, message: 'componentName is required' })
   }
 
-  await componentService.dismissLink(body.purl)
+  await componentService.dismissLink(body.componentName)
   setResponseStatus(event, 204)
   return null
 })

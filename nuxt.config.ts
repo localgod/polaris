@@ -71,6 +71,9 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    optimizeDeps: {
+      include: ['@vue/devtools-core', '@vue/devtools-kit', '@vueuse/core']
+    },
     server: {
       allowedHosts: ['.gitpod.dev', '.gitpod.io', 'localhost', '127.0.0.1']
     }

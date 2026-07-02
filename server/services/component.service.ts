@@ -82,8 +82,8 @@ export class ComponentService {
     return { data, count: data.length, total }
   }
 
-  async dismissLink(purl: string): Promise<void> {
-    await this.componentRepo.dismissLink(purl)
+  async dismissLink(componentName: string): Promise<void> {
+    await this.componentRepo.dismissLink(componentName)
   }
 
 }
