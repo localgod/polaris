@@ -437,7 +437,11 @@ async function createTechnologiesFromComponents(apiToken: string): Promise<void>
 
   const baseUrl = getApiBaseUrl()
 
-  // Step 1: Create technologies via the API (links components automatically)
+  // Step 1: Create technologies via the API. This claims an existing,
+  // currently-unlinked Component named ct.componentName -- if no such
+  // Component exists (e.g. this repo doesn't actually depend on it), the
+  // API 404s and the failure branch below skips it, which is correct: a
+  // Technology can never be created without real SBOM evidence.
   for (const ct of componentTechs) {
     try {
       const response = await fetch(`${baseUrl}/api/technologies`, {
@@ -452,8 +456,7 @@ async function createTechnologiesFromComponents(apiToken: string): Promise<void>
           domain: ct.technology.domain,
           vendor: ct.technology.vendor,
           ownerTeam: ct.ownerTeam,
-          componentName: ct.componentName,
-          componentPackageManager: ct.packageManager
+          componentName: ct.componentName
         })
       })
 
@@ -542,7 +545,7 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
   console.log('\n🌟 GitHub SBOM Seeding\n')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
   
-  // Seed fixtures first (teams, infrastructure technologies, policies, approvals)
+  // Seed fixtures first (teams, Platforms for non-SBOM-observable infrastructure)
   // SBOM-discoverable technologies (React, Vue, etc.) are created later from components
   // This must run before ensureTechnicalUserExists because --clear deletes all non-Migration nodes
   await seedFixtures(options.clear)

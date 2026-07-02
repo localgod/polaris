@@ -7,7 +7,7 @@ import postHandler from '../../../server/api/technologies.post'
 import { technologyService } from '../../../server/services/singletons'
 
 vi.mock('../../../server/services/singletons', () => ({
-  technologyService: { findAll: vi.fn(), create: vi.fn() }
+  technologyService: { findAll: vi.fn(), createFromComponent: vi.fn() }
 }))
 
 const { mockRequireAuth, mockGetImpersonatorId } = vi.hoisted(() => ({
@@ -27,7 +27,7 @@ const mockTech = {
 }
 
 const mockUser = { id: 'user-1', email: 'user@example.com', role: 'user' as const, teams: [] }
-const validBody = { name: 'React', type: 'library' }
+const validBody = { name: 'React', type: 'library', componentName: 'react' }
 
 const feature = await loadFeature('./test/server/api/technologies.feature')
 
@@ -59,7 +59,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       getResult = await getHandler(mockEvent())
     })
     Then('the service should be called with limit 50 and offset 0', () => {
-      expect(technologyService.findAll).toHaveBeenCalledWith(expect.any(Object), 50, 0)
+      expect(technologyService.findAll).toHaveBeenCalledWith(expect.any(Object), 50, 0, undefined)
     })
   })
 
@@ -69,7 +69,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       getResult = await getHandler(mockEvent({ query: { limit: '500' } }))
     })
     Then('the service should be called with limit 200 and offset 0', () => {
-      expect(technologyService.findAll).toHaveBeenCalledWith(expect.any(Object), 200, 0)
+      expect(technologyService.findAll).toHaveBeenCalledWith(expect.any(Object), 200, 0, undefined)
     })
   })
 
@@ -79,7 +79,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       getResult = await getHandler(mockEvent({ query: { limit: '-5' } }))
     })
     Then('the service should be called with limit 1 and offset 0', () => {
-      expect(technologyService.findAll).toHaveBeenCalledWith(expect.any(Object), 1, 0)
+      expect(technologyService.findAll).toHaveBeenCalledWith(expect.any(Object), 1, 0, undefined)
     })
   })
 
@@ -98,7 +98,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
     })
     Then('the service should be called with sortBy "name" and sortOrder "desc"', () => {
       expect(technologyService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({ sortBy: 'name', sortOrder: 'desc' }), 50, 0
+        expect.objectContaining({ sortBy: 'name', sortOrder: 'desc' }), 50, 0, undefined
       )
     })
   })
@@ -115,7 +115,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   Scenario('Successfully create a new technology', ({ Given, When, Then, And }) => {
     Given('I am authenticated', () => { mockRequireAuth.mockResolvedValue(mockUser) })
     When('I request POST "/api/technologies" with valid technology data', async () => {
-      vi.mocked(technologyService.create).mockResolvedValue('React')
+      vi.mocked(technologyService.createFromComponent).mockResolvedValue('React')
       postResult = await postHandler(mockEvent({ method: 'POST', body: validBody }))
     })
     Then('the response should be successful', () => { expect(postResult.success).toBe(true) })
@@ -139,7 +139,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   Scenario('Conflict returns 409', ({ Given, When, Then }) => {
     Given('I am authenticated', () => { mockRequireAuth.mockResolvedValue(mockUser) })
     When('I request POST "/api/technologies" with a duplicate technology name', async () => {
-      vi.mocked(technologyService.create).mockRejectedValue(
+      vi.mocked(technologyService.createFromComponent).mockRejectedValue(
         createError({ statusCode: 409, message: 'Technology already exists' })
       )
       caughtError = await postHandler(mockEvent({ method: 'POST', body: validBody })).catch(e => e)
@@ -152,7 +152,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   Scenario('Unexpected service error returns 500', ({ Given, When, Then }) => {
     Given('I am authenticated', () => { mockRequireAuth.mockResolvedValue(mockUser) })
     When('I request POST "/api/technologies" and the service throws an unexpected error', async () => {
-      vi.mocked(technologyService.create).mockRejectedValue(new Error('unexpected'))
+      vi.mocked(technologyService.createFromComponent).mockRejectedValue(new Error('unexpected'))
       caughtError = await postHandler(mockEvent({ method: 'POST', body: validBody })).catch(e => e)
     })
     Then('the request should be rejected with status 500', () => {

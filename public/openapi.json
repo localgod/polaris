@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "0.6.14",
+    "version": "0.6.47",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",
@@ -1229,8 +1229,8 @@
         "tags": [
           "Technologies"
         ],
-        "summary": "Create a new technology",
-        "description": "Creates a new technology entry, optionally linking it to a source component",
+        "summary": "Create a new technology from an unlinked component",
+        "description": "Creates a new technology by claiming an existing, currently-unlinked Component —\na Technology can never exist without at least one linked Component. All Component\nnodes sharing `componentName` that aren't already linked to a Technology are\nlinked in the same operation. For technology that can never be observed by SBOM\nscanning (databases, cloud services, etc.), use POST /platforms instead.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -1239,7 +1239,8 @@
                 "type": "object",
                 "required": [
                   "name",
-                  "type"
+                  "type",
+                  "componentName"
                 ],
                 "properties": {
                   "name": {
@@ -1285,10 +1286,7 @@
                   },
                   "componentName": {
                     "type": "string",
-                    "description": "Component name — all versions with this name and packageManager will be linked"
-                  },
-                  "componentPackageManager": {
-                    "type": "string"
+                    "description": "Name of an existing, unlinked Component — all currently-unlinked versions sharing this name are linked"
                   }
                 }
               }
@@ -1301,6 +1299,9 @@
           },
           "400": {
             "description": "Missing required fields"
+          },
+          "404": {
+            "description": "No unlinked component with the given name was found"
           },
           "409": {
             "description": "Technology already exists"
@@ -1334,6 +1335,14 @@
               "default": 0
             },
             "description": "Pagination offset"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on technology name"
           }
         ],
         "responses": {
@@ -1994,6 +2003,155 @@
         }
       }
     },
+    "/platforms": {
+      "post": {
+        "tags": [
+          "Platforms"
+        ],
+        "summary": "Create a new platform",
+        "description": "Creates a manually-declared platform entry — infrastructure or services (e.g. PostgreSQL, Kubernetes)\nthat can never be observed by SBOM scanning. Unlike Technology, a Platform carries no evidence\nrequirement, so creation is deliberately restricted to superusers.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "type"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique platform name"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "application",
+                      "framework",
+                      "library",
+                      "container",
+                      "platform",
+                      "operating-system",
+                      "device",
+                      "device-driver",
+                      "firmware",
+                      "file",
+                      "machine-learning-model",
+                      "data"
+                    ]
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "foundational-runtime",
+                      "framework",
+                      "data-platform",
+                      "integration-platform",
+                      "security-identity",
+                      "infrastructure",
+                      "observability",
+                      "developer-tooling",
+                      "other"
+                    ]
+                  },
+                  "vendor": {
+                    "type": "string"
+                  },
+                  "stewardTeam": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Platform created"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "409": {
+            "description": "Platform already exists"
+          },
+          "422": {
+            "description": "Invalid field values"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Platforms"
+        ],
+        "summary": "List all platforms",
+        "description": "Retrieves a list of manually-declared platforms (infrastructure/services not observable via SBOM scanning) with their approvals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved platforms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Platform"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "description": "Total number of platforms"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch platforms"
+          }
+        }
+      }
+    },
     "/licenses": {
       "get": {
         "tags": [
@@ -2610,33 +2768,6 @@
         }
       }
     },
-    "/users/{id}": {
-      "get": {
-        "tags": [
-          "Users"
-        ],
-        "summary": "Get user details",
-        "description": "Returns full user details including teams, tokens (technical users), and recent audit activity. Superuser only.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User details"
-          },
-          "404": {
-            "description": "User not found"
-          }
-        }
-      }
-    },
     "/users": {
       "get": {
         "tags": [
@@ -2716,6 +2847,116 @@
           },
           "500": {
             "description": "Failed to fetch users"
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user details",
+        "description": "Returns full user details including teams, tokens (technical users), and recent audit activity. Superuser only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/technologies/radar": {
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Get technologies shaped for the radar visualization",
+        "description": "Returns all technologies with a resolved TIME value for the radar view. When `team` is provided each technology is placed in the ring matching that team's TIME approval. Without `team` the dominant TIME value across all approvals is used (majority vote; ties broken by severity). Technologies with no applicable approval are marked 'unclassified'.\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "team",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Filter TIME values by this team name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved radar data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "domain": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "timeValue": {
+                                "type": "string",
+                                "enum": [
+                                  "invest",
+                                  "tolerate",
+                                  "migrate",
+                                  "eliminate",
+                                  "unclassified"
+                                ]
+                              },
+                              "approvalCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch radar data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -2973,96 +3214,13 @@
         }
       }
     },
-    "/technologies/radar": {
-      "get": {
-        "tags": [
-          "Technologies"
-        ],
-        "summary": "Get technologies shaped for the radar visualization",
-        "description": "Returns all technologies with a resolved TIME value for the radar view. When `team` is provided each technology is placed in the ring matching that team's TIME approval. Without `team` the dominant TIME value across all approvals is used (majority vote; ties broken by severity). Technologies with no applicable approval are marked 'unclassified'.\n",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "team",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "Filter TIME values by this team name"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved radar data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "type": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "domain": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "timeValue": {
-                                "type": "string",
-                                "enum": [
-                                  "invest",
-                                  "tolerate",
-                                  "migrate",
-                                  "eliminate",
-                                  "unclassified"
-                                ]
-                              },
-                              "approvalCount": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to fetch radar data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/technologies/{name}/components": {
       "post": {
         "tags": [
           "Technologies"
         ],
         "summary": "Link a component to a technology",
-        "description": "Creates an IS_VERSION_OF relationship between a component and a technology.",
+        "description": "Creates an IS_VERSION_OF relationship between a component and a technology. Accepts either `purl` (PURL-based, preferred for SBOM-sourced components) or `componentName` + `componentVersion` (legacy, name+version match). When `purl` is provided the call requires superuser access and also refreshes Team→Technology USES edges for all affected systems.\n",
         "security": [
           {
             "bearerAuth": []
@@ -3084,18 +3242,32 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "componentName",
-                  "componentVersion"
-                ],
-                "properties": {
-                  "componentName": {
-                    "type": "string"
+                "oneOf": [
+                  {
+                    "required": [
+                      "purl"
+                    ],
+                    "properties": {
+                      "purl": {
+                        "type": "string"
+                      }
+                    }
                   },
-                  "componentVersion": {
-                    "type": "string"
+                  {
+                    "required": [
+                      "componentName",
+                      "componentVersion"
+                    ],
+                    "properties": {
+                      "componentName": {
+                        "type": "string"
+                      },
+                      "componentVersion": {
+                        "type": "string"
+                      }
+                    }
                   }
-                }
+                ]
               }
             }
           }
@@ -3106,6 +3278,9 @@
           },
           "400": {
             "description": "Missing required fields"
+          },
+          "403": {
+            "description": "Superuser access required (purl path only)"
           },
           "404": {
             "description": "Technology not found"
@@ -4043,6 +4218,34 @@
         }
       }
     },
+    "/api/systems/{name}/issues": {
+      "get": {
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Get active issues for a system",
+        "description": "Returns components in the system that have known vulnerabilities,\ndisallowed licenses, or health problems (EOL, deprecated, stale maintenance).\n",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "System name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issue lists returned"
+          },
+          "404": {
+            "description": "System not found"
+          }
+        }
+      }
+    },
     "/systems/{name}/graph": {
       "get": {
         "tags": [
@@ -4066,6 +4269,243 @@
           },
           "404": {
             "description": "System not found"
+          }
+        }
+      }
+    },
+    "/platforms/{name}": {
+      "put": {
+        "tags": [
+          "Platforms"
+        ],
+        "summary": "Update a platform",
+        "description": "Updates a platform's properties and stewardship. Requires superuser role or membership in the platform's steward team.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Platform name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "application",
+                      "framework",
+                      "library",
+                      "container",
+                      "platform",
+                      "operating-system",
+                      "device",
+                      "device-driver",
+                      "firmware",
+                      "file",
+                      "machine-learning-model",
+                      "data"
+                    ]
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "foundational-runtime",
+                      "framework",
+                      "data-platform",
+                      "integration-platform",
+                      "security-identity",
+                      "infrastructure",
+                      "observability",
+                      "developer-tooling",
+                      "other"
+                    ]
+                  },
+                  "vendor": {
+                    "type": "string"
+                  },
+                  "stewardTeam": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Platform updated"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Platform not found"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Platforms"
+        ],
+        "summary": "Get platform details",
+        "description": "Retrieves detailed information about a specific platform, including its steward team and TIME approvals.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Platform name (e.g., \"PostgreSQL\", \"Kubernetes\")"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Platform details retrieved successfully"
+          },
+          "400": {
+            "description": "Platform name is required"
+          },
+          "404": {
+            "description": "Platform not found"
+          },
+          "500": {
+            "description": "Failed to fetch platform"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Platforms"
+        ],
+        "summary": "Delete a platform",
+        "description": "Deletes a platform and all its relationships. Requires superuser role or membership in the platform's steward team.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Platform name"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Platform deleted"
+          },
+          "400": {
+            "description": "Platform name is required"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - user is not a superuser and does not belong to the steward team"
+          },
+          "404": {
+            "description": "Platform not found"
+          }
+        }
+      }
+    },
+    "/platforms/{name}/approvals": {
+      "post": {
+        "tags": [
+          "Platforms"
+        ],
+        "summary": "Set a team's TIME approval for a platform",
+        "description": "Creates or updates a team's APPROVES relationship on a platform. The user must be a member of the specified team or a superuser.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Platform name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "teamName",
+                  "time"
+                ],
+                "properties": {
+                  "teamName": {
+                    "type": "string"
+                  },
+                  "time": {
+                    "type": "string",
+                    "enum": [
+                      "tolerate",
+                      "invest",
+                      "migrate",
+                      "eliminate"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approval set"
+          },
+          "400": {
+            "description": "Missing required fields"
+          },
+          "403": {
+            "description": "User is not a member of the specified team"
+          },
+          "404": {
+            "description": "Platform not found"
+          },
+          "422": {
+            "description": "Invalid TIME value"
           }
         }
       }
@@ -4152,103 +4592,6 @@
           },
           "404": {
             "description": "Token not found or not owned by the current user"
-          }
-        }
-      }
-    },
-    "/licenses/{id}": {
-      "get": {
-        "tags": [
-          "Licenses",
-          "License Compliance"
-        ],
-        "summary": "Get license details",
-        "description": "Retrieves detailed information about a specific license including\nusage statistics and full license text from the SPDX license list.\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "License ID (SPDX identifier)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved license",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "spdxId": {
-                                "type": "string"
-                              },
-                              "osiApproved": {
-                                "type": "boolean"
-                              },
-                              "url": {
-                                "type": "string"
-                              },
-                              "category": {
-                                "type": "string"
-                              },
-                              "licenseText": {
-                                "type": "string"
-                              },
-                              "deprecated": {
-                                "type": "boolean"
-                              },
-                              "componentCount": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "License not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to fetch license",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -4438,6 +4781,103 @@
         }
       }
     },
+    "/licenses/{id}": {
+      "get": {
+        "tags": [
+          "Licenses",
+          "License Compliance"
+        ],
+        "summary": "Get license details",
+        "description": "Retrieves detailed information about a specific license including\nusage statistics and full license text from the SPDX license list.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "License ID (SPDX identifier)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "spdxId": {
+                                "type": "string"
+                              },
+                              "osiApproved": {
+                                "type": "boolean"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "licenseText": {
+                                "type": "string"
+                              },
+                              "deprecated": {
+                                "type": "boolean"
+                              },
+                              "componentCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "License not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/licenses/{id}/components": {
       "get": {
         "tags": [
@@ -4521,115 +4961,43 @@
         }
       }
     },
-    "/components/{key}": {
+    "/components/link-suggestions": {
       "get": {
         "tags": [
           "Components"
         ],
-        "summary": "Get component details",
-        "description": "Retrieves a single component by its encoded component identity key.",
+        "summary": "Get pending PURL-to-Technology link suggestions",
+        "description": "Returns unlinked, non-dismissed components with fuzzy Technology name suggestions. Superuser only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "in": "path",
-            "name": "key",
-            "required": true,
+            "in": "query",
+            "name": "skip",
             "schema": {
-              "type": "string"
-            },
-            "description": "Encoded component identity from the components list."
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Component details retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "allOf": [
-                            {
-                              "$ref": "#/components/schemas/Component"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "systems": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "scope": {
-                                        "type": "string",
-                                        "nullable": true,
-                                        "enum": [
-                                          "required",
-                                          "optional",
-                                          "excluded",
-                                          "dev",
-                                          "test",
-                                          "runtime",
-                                          "provided"
-                                        ]
-                                      },
-                                      "isDirect": {
-                                        "type": "boolean",
-                                        "nullable": true
-                                      }
-                                    }
-                                  }
-                                },
-                                "directDependencies": {
-                                  "type": "array",
-                                  "items": {
-                                    "$ref": "#/components/schemas/ComponentDirectDependency"
-                                  }
-                                },
-                                "eol": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "packageMetadata": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "maintenanceHealth": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "securityScorecard": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "vulnerabilities": {
-                                  "type": "object",
-                                  "nullable": true
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
+            "description": "Link suggestions returned"
           },
-          "400": {
-            "description": "Component key is missing or invalid"
-          },
-          "404": {
-            "description": "Component not found"
+          "403": {
+            "description": "Superuser access required"
           }
         }
       }
@@ -4899,6 +5267,50 @@
         }
       }
     },
+    "/components/dismiss-link": {
+      "post": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Dismiss a component from the link suggestions queue",
+        "description": "Marks a component (all versions) as intentionally not linked to a Technology. Superuser only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "componentName"
+                ],
+                "properties": {
+                  "componentName": {
+                    "type": "string",
+                    "description": "The component name to dismiss (all versions)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Component dismissed from queue"
+          },
+          "400": {
+            "description": "Missing componentName"
+          },
+          "403": {
+            "description": "Superuser access required"
+          }
+        }
+      }
+    },
     "/components/description": {
       "get": {
         "tags": [
@@ -4953,6 +5365,119 @@
           },
           "400": {
             "description": "Missing required parameters"
+          }
+        }
+      }
+    },
+    "/components/{key}": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Get component details",
+        "description": "Retrieves a single component by its encoded component identity key.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Encoded component identity from the components list."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Component details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/Component"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "systems": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "scope": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                          "required",
+                                          "optional",
+                                          "excluded",
+                                          "dev",
+                                          "test",
+                                          "runtime",
+                                          "provided"
+                                        ]
+                                      },
+                                      "isDirect": {
+                                        "type": "boolean",
+                                        "nullable": true
+                                      }
+                                    }
+                                  }
+                                },
+                                "directDependencies": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/ComponentDirectDependency"
+                                  }
+                                },
+                                "eol": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "packageMetadata": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "maintenanceHealth": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "securityScorecard": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "vulnerabilities": {
+                                  "type": "object",
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Component key is missing or invalid"
+          },
+          "404": {
+            "description": "Component not found"
           }
         }
       }

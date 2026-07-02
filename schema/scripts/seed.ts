@@ -25,29 +25,25 @@ interface FixtureData {
     email: string
     responsibilityArea: string
   }>
-  technologies: Array<{
+  // Manually-declared, non-SBOM-observable technology (databases, runtimes,
+  // container tooling) -- npm run seed never has real Component data
+  // available (that only exists after `npm run seed:github` scans real
+  // repos), so nothing it creates can honestly be an evidence-backed
+  // Technology. Real Technology fixtures live in component_technologies
+  // below, seeded separately by seed-github.ts once Components exist.
+  platforms: Array<{
     name: string
     type: string
     domain?: string
     vendor: string
-    lastReviewed: string
-  }>
-  versions: Array<{
-    technologyName: string
-    version: string
-    releaseDate: string
-    eolDate: string
-    approved: boolean
-    notes: string
   }>
   relationships: {
-    technology_versions: Array<{ technology: string; version: string }>
-    team_technologies: Array<{ team: string; technology: string }>
+    team_platforms: Array<{ team: string; platform: string }>
   }
   approvals: {
-    team_technology_approvals: Array<{
+    team_platform_approvals: Array<{
       team: string
-      technology: string
+      platform: string
       time: string
       approvedAt?: string
       deprecatedAt?: string
@@ -71,14 +67,14 @@ async function clearData(driver: neo4j.Driver) {
   const session = driver.session()
   try {
     console.log('🗑️  Clearing existing fixture data...')
-    
+
     // Delete all relationships and nodes except Migration nodes
     await session.run(`
       MATCH (n)
       WHERE NOT n:Migration
       DETACH DELETE n
     `)
-    
+
     console.log('✅ Existing data cleared')
   } finally {
     await session.close()
@@ -89,7 +85,7 @@ async function seedTeams(driver: neo4j.Driver, teams: FixtureData['teams']) {
   const session = driver.session()
   try {
     console.log('👥 Seeding teams...')
-    
+
     for (const team of teams) {
       await session.run(
         `
@@ -100,56 +96,31 @@ async function seedTeams(driver: neo4j.Driver, teams: FixtureData['teams']) {
         team
       )
     }
-    
+
     console.log(`✅ Seeded ${teams.length} teams`)
   } finally {
     await session.close()
   }
 }
 
-async function seedTechnologies(driver: neo4j.Driver, technologies: FixtureData['technologies']) {
+async function seedPlatforms(driver: neo4j.Driver, platforms: FixtureData['platforms']) {
   const session = driver.session()
   try {
-    console.log('🔧 Seeding technologies...')
-    
-    for (const tech of technologies) {
-      await session.run(
-        `
-        MERGE (t:Technology {name: $name})
-        SET t.type = $type,
-            t.domain = $domain,
-            t.vendor = $vendor,
-            t.lastReviewed = date($lastReviewed)
-        `,
-        tech
-      )
-    }
-    
-    console.log(`✅ Seeded ${technologies.length} technologies`)
-  } finally {
-    await session.close()
-  }
-}
+    console.log('🔧 Seeding platforms...')
 
-async function seedVersions(driver: neo4j.Driver, versions: FixtureData['versions']) {
-  const session = driver.session()
-  try {
-    console.log('📦 Seeding versions...')
-    
-    for (const version of versions) {
+    for (const platform of platforms) {
       await session.run(
         `
-        MERGE (v:Version {technologyName: $technologyName, version: $version})
-        SET v.releaseDate = date($releaseDate),
-            v.eolDate = date($eolDate),
-            v.approved = $approved,
-            v.notes = $notes
+        MERGE (p:Platform {name: $name})
+        SET p.type = $type,
+            p.domain = $domain,
+            p.vendor = $vendor
         `,
-        version
+        platform
       )
     }
-    
-    console.log(`✅ Seeded ${versions.length} versions`)
+
+    console.log(`✅ Seeded ${platforms.length} platforms`)
   } finally {
     await session.close()
   }
@@ -159,33 +130,20 @@ async function seedRelationships(driver: neo4j.Driver, relationships: FixtureDat
   const session = driver.session()
   try {
     console.log('🔗 Creating relationships...')
-    
-    // Technology -> Version
-    for (const rel of relationships.technology_versions) {
-      await session.run(
-        `
-        MATCH (t:Technology {name: $technology})
-        MATCH (v:Version {technologyName: $technology, version: $version})
-        MERGE (t)-[:HAS_VERSION]->(v)
-        `,
-        rel
-      )
-    }
-    console.log(`✅ Created ${relationships.technology_versions.length} technology-version relationships`)
-    
-    // Team -> Technology (stewardship)
-    for (const rel of relationships.team_technologies) {
+
+    // Team -> Platform (stewardship)
+    for (const rel of relationships.team_platforms) {
       await session.run(
         `
         MATCH (team:Team {name: $team})
-        MATCH (tech:Technology {name: $technology})
-        MERGE (team)-[:STEWARDED_BY]->(tech)
+        MATCH (platform:Platform {name: $platform})
+        MERGE (team)-[:STEWARDED_BY]->(platform)
         `,
         rel
       )
     }
-    console.log(`✅ Created ${relationships.team_technologies.length} team stewardship relationships`)
-    
+    console.log(`✅ Created ${relationships.team_platforms.length} team stewardship relationships`)
+
   } finally {
     await session.close()
   }
@@ -195,14 +153,14 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
   const session = driver.session()
   try {
     console.log('✅ Seeding team approvals...')
-    
-    // Team -> Technology approvals
-    for (const approval of approvals.team_technology_approvals) {
+
+    // Team -> Platform approvals
+    for (const approval of approvals.team_platform_approvals) {
       await session.run(
         `
         MATCH (team:Team {name: $team})
-        MATCH (tech:Technology {name: $technology})
-        MERGE (team)-[a:APPROVES]->(tech)
+        MATCH (platform:Platform {name: $platform})
+        MERGE (team)-[a:APPROVES]->(platform)
         SET a.time = $time,
             a.approvedAt = CASE WHEN $approvedAt IS NOT NULL THEN datetime($approvedAt) ELSE datetime() END,
             a.deprecatedAt = CASE WHEN $deprecatedAt IS NOT NULL THEN datetime($deprecatedAt) ELSE null END,
@@ -213,7 +171,7 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
         `,
         {
           team: approval.team,
-          technology: approval.technology,
+          platform: approval.platform,
           time: approval.time,
           approvedAt: approval.approvedAt || null,
           deprecatedAt: approval.deprecatedAt || null,
@@ -224,8 +182,8 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
         }
       )
     }
-    console.log(`✅ Created ${approvals.team_technology_approvals.length} team-technology approvals`)
-    
+    console.log(`✅ Created ${approvals.team_platform_approvals.length} team-platform approvals`)
+
   } finally {
     await session.close()
   }
@@ -233,59 +191,57 @@ async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['appro
 
 async function seed(options: { clear?: boolean } = {}) {
   const driver = await getDriver()
-  
+
   try {
     // Load fixture data
     const fixturesPath = join(process.cwd(), 'schema/fixtures/tech-catalog.json')
     const fixtureData: FixtureData = JSON.parse(readFileSync(fixturesPath, 'utf-8'))
-    
+
     console.log('\n🌱 Starting database seeding...\n')
-    
+
     // Clear existing data if requested
     if (options.clear) {
       await clearData(driver)
       console.log('')
     }
-    
+
     // Seed nodes
     await seedTeams(driver, fixtureData.teams)
-    await seedTechnologies(driver, fixtureData.technologies)
-    await seedVersions(driver, fixtureData.versions)
+    await seedPlatforms(driver, fixtureData.platforms)
     // Seed relationships
     await seedRelationships(driver, fixtureData.relationships)
-    
+
     console.log('')
-    
+
     // Seed approvals
     await seedApprovals(driver, fixtureData.approvals)
-    
+
     console.log('\n✅ Database seeding completed successfully!\n')
-    
+
     // Print summary
     const session = driver.session()
     try {
       const result = await session.run(`
         MATCH (t:Team) WITH count(t) as teams
-        MATCH (tech:Technology) WITH teams, count(tech) as technologies
-        MATCH (v:Version) WITH teams, technologies, count(v) as versions
-        RETURN teams, technologies, versions
+        MATCH (p:Platform) WITH teams, count(p) as platforms
+        RETURN teams, platforms
       `)
-      
+
       if (result.records.length > 0) {
         const record = result.records[0]
         console.log('📊 Summary:')
         console.log(`   Teams: ${record.get('teams')}`)
-        console.log(`   Technologies: ${record.get('technologies')}`)
-        console.log(`   Versions: ${record.get('versions')}`)
+        console.log(`   Platforms: ${record.get('platforms')}`)
         console.log('')
-        console.log('💡 To add systems, repositories, and components, run:')
+        console.log('💡 To add systems, repositories, components, and evidence-backed')
+        console.log('   Technologies (React, Vue, etc.), run:')
         console.log('   npm run seed:github')
         console.log('')
       }
     } finally {
       await session.close()
     }
-    
+
   } catch (error) {
     console.error('\n❌ Error:', error instanceof Error ? error.message : error)
     process.exit(1)

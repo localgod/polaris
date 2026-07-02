@@ -47,7 +47,7 @@ describe('TechnologyRepository', () => {
       await seed(ctx.driver, `
         CREATE (t:Technology { name: $name, type: 'platform', domain: 'data-platform', vendor: 'Neo4j Inc.' })
         CREATE (team:Team { name: $team })
-        CREATE (team)-[:OWNS]->(t)
+        CREATE (team)-[:STEWARDED_BY]->(t)
       `, { name: `${PREFIX}Neo4j`, team: `${PREFIX}Platform` })
 
       const tech = await repo.findByName(`${PREFIX}Neo4j`)
@@ -56,6 +56,72 @@ describe('TechnologyRepository', () => {
       expect(tech!.name).toBe(`${PREFIX}Neo4j`)
       expect(tech!.type).toBe('platform')
       expect(tech!.domain).toBe('data-platform')
+      expect(tech!.ownerTeamName).toBe(`${PREFIX}Platform`)
+    })
+  })
+
+  describe('createFromComponent()', () => {
+    it('should create a Technology and link every unlinked Component sharing componentName', async () => {
+      if (!ctx.neo4jAvailable) return
+      const componentName = `${PREFIX}react`
+      await seed(ctx.driver, `
+        CREATE (:Component { purl: $purl1, name: $componentName, version: '18.2.0', packageManager: 'npm' })
+        CREATE (:Component { purl: $purl2, name: $componentName, version: '17.0.0', packageManager: 'npm' })
+      `, { purl1: `pkg:npm/${componentName}@18.2.0`, purl2: `pkg:npm/${componentName}@17.0.0`, componentName })
+
+      const name = await repo.createFromComponent({
+        name: `${PREFIX}React`,
+        type: 'framework',
+        domain: 'framework',
+        vendor: 'Meta',
+        ownerTeam: null,
+        componentName,
+        userId: 'test-user'
+      })
+
+      expect(name).toBe(`${PREFIX}React`)
+
+      const { records } = await session.run(
+        `MATCH (c:Component {name: $componentName})-[:IS_VERSION_OF]->(t:Technology {name: $name}) RETURN count(c) AS linked`,
+        { componentName, name: `${PREFIX}React` }
+      )
+      expect(records[0]!.get('linked').toNumber()).toBe(2)
+    })
+
+    it('should throw when no unlinked component matches componentName', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      await expect(repo.createFromComponent({
+        name: `${PREFIX}Ghost`,
+        type: 'framework',
+        domain: null,
+        vendor: null,
+        ownerTeam: null,
+        componentName: `${PREFIX}nonexistent`,
+        userId: 'test-user'
+      })).rejects.toMatchObject({ statusCode: 404 })
+
+      expect(await repo.exists(`${PREFIX}Ghost`)).toBe(false)
+    })
+
+    it('should throw when the only matching component is already linked to another Technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      const componentName = `${PREFIX}vue`
+      await seed(ctx.driver, `
+        CREATE (c:Component { purl: $purl, name: $componentName, version: '3.4.0', packageManager: 'npm' })
+        CREATE (existing:Technology { name: $existingTech, type: 'framework' })
+        CREATE (c)-[:IS_VERSION_OF]->(existing)
+      `, { purl: `pkg:npm/${componentName}@3.4.0`, componentName, existingTech: `${PREFIX}Vue` })
+
+      await expect(repo.createFromComponent({
+        name: `${PREFIX}VueDuplicate`,
+        type: 'framework',
+        domain: null,
+        vendor: null,
+        ownerTeam: null,
+        componentName,
+        userId: 'test-user'
+      })).rejects.toMatchObject({ statusCode: 404 })
     })
   })
 

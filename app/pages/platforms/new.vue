@@ -1,17 +1,25 @@
 <template>
   <div class="max-w-3xl mx-auto space-y-6">
     <UPageHeader
-      title="Create New Technology"
-      description="Add a new technology to the catalog"
-      :links="[{ label: 'Back to Technologies', to: '/technologies', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+      title="Create New Platform"
+      description="Manually declare infrastructure or a service that SBOM scanning can never observe"
+      :links="[{ label: 'Back to Platforms', to: '/platforms', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+    />
+
+    <UAlert
+      color="info"
+      variant="subtle"
+      icon="i-lucide-info"
+      title="Superuser only"
+      description="Platforms carry no evidence requirement, unlike Technologies which must be linked to a Component discovered by an SBOM scan — creating one is deliberately restricted."
     />
 
     <UCard>
       <form class="space-y-5" @submit.prevent="handleSubmit">
-        <UFormField label="Technology Name" required>
+        <UFormField label="Platform Name" required>
           <UInput
             v-model="formData.name"
-            placeholder="e.g., React"
+            placeholder="e.g., PostgreSQL"
             :color="fieldErrors.name ? 'error' : undefined"
             @blur="validateField('name')"
           />
@@ -39,13 +47,13 @@
         <UFormField label="Vendor">
           <UInput
             v-model="formData.vendor"
-            placeholder="e.g., Meta, Google"
+            placeholder="e.g., AWS, MongoDB Inc."
           />
         </UFormField>
 
-        <UFormField label="Owner Team">
+        <UFormField label="Steward Team">
           <USelect
-            v-model="formData.ownerTeam"
+            v-model="formData.stewardTeam"
             :items="teamItems"
             placeholder="Select a team (optional)"
           />
@@ -53,15 +61,6 @@
             <span class="text-(--ui-color-error-500)">Failed to load teams</span>
           </template>
         </UFormField>
-
-        <UAlert
-          v-if="fromComponent"
-          color="info"
-          variant="subtle"
-          icon="i-lucide-link"
-          title="Linked Component"
-          :description="`This technology will be linked to component: ${fromComponent}`"
-        />
 
         <UAlert
           v-if="errorMessage"
@@ -83,12 +82,12 @@
           <UButton
             type="submit"
             :loading="isSubmitting"
-            :label="isSubmitting ? 'Saving...' : 'Save Technology'"
+            :label="isSubmitting ? 'Saving...' : 'Save Platform'"
             color="primary"
           />
           <UButton
             label="Cancel"
-            to="/technologies"
+            to="/platforms"
             variant="outline"
           />
         </div>
@@ -106,23 +105,12 @@ interface TeamsResponse {
   count: number
 }
 
-const route = useRoute()
-
 const formData = ref({
-  name: (route.query.name as string) || '',
-  type: (route.query.componentType as string) || '',
+  name: '',
+  type: '',
   domain: '',
   vendor: '',
-  ownerTeam: '',
-  componentName: (route.query.componentName as string) || '',
-  componentPackageManager: (route.query.componentPackageManager as string) || ''
-})
-
-const fromComponent = computed(() => {
-  if (!formData.value.componentName) return null
-  const group = route.query.componentGroup as string | undefined
-  const name = formData.value.componentName
-  return group ? `${group}/${name}` : name
+  stewardTeam: ''
 })
 
 const isSubmitting = ref(false)
@@ -166,7 +154,7 @@ function validateField(field: string) {
   switch (field) {
     case 'name':
       if (!formData.value.name) {
-        fieldErrors.value.name = 'Technology name is required'
+        fieldErrors.value.name = 'Platform name is required'
       } else {
         delete fieldErrors.value.name
       }
@@ -180,29 +168,29 @@ async function handleSubmit() {
   successMessage.value = ''
 
   try {
-    const response = await $fetch<{ success: boolean; error?: string }>('/api/technologies', {
+    const response = await $fetch<{ success: boolean; error?: string }>('/api/platforms', {
       method: 'POST',
       body: {
         name: formData.value.name,
         type: formData.value.type,
         domain: formData.value.domain || undefined,
         vendor: formData.value.vendor || undefined,
-        ownerTeam: formData.value.ownerTeam || undefined,
-        componentName: formData.value.componentName || undefined,
-        componentPackageManager: formData.value.componentPackageManager || undefined
+        stewardTeam: formData.value.stewardTeam || undefined
       }
     })
 
     if (response.success) {
-      successMessage.value = 'Technology created successfully!'
-      setTimeout(() => navigateTo(`/technologies/${encodeURIComponent(formData.value.name)}`), 1500)
+      successMessage.value = 'Platform created successfully!'
+      setTimeout(() => navigateTo(`/platforms/${encodeURIComponent(formData.value.name)}`), 1500)
     } else {
-      errorMessage.value = response.error || 'Failed to create technology'
+      errorMessage.value = response.error || 'Failed to create platform'
     }
   } catch (error: unknown) {
     const err = error as { statusCode?: number; data?: { message?: string; error?: string }; message?: string }
-    if (err.statusCode === 409) {
-      errorMessage.value = err.data?.message || 'A technology with this name already exists'
+    if (err.statusCode === 403) {
+      errorMessage.value = err.data?.message || 'Superuser access required to create a platform'
+    } else if (err.statusCode === 409) {
+      errorMessage.value = err.data?.message || 'A platform with this name already exists'
     } else if (err.statusCode === 422) {
       errorMessage.value = err.data?.message || 'Invalid input data. Please check your entries.'
     } else if (err.statusCode === 400) {
@@ -215,5 +203,5 @@ async function handleSubmit() {
   }
 }
 
-useHead({ title: 'Create Technology - Polaris' })
+useHead({ title: 'Create Platform - Polaris' })
 </script>

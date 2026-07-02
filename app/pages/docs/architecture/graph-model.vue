@@ -101,7 +101,8 @@ import { ref, onMounted } from 'vue'
 
 // --- Core Nodes ---
 const coreNodes = [
-  { icon: 'i-lucide-settings', title: 'Technology', description: 'Approved technologies with versions and metadata' },
+  { icon: 'i-lucide-settings', title: 'Technology', description: 'Approved technologies, requires at least one linked Component as evidence of real usage' },
+  { icon: 'i-lucide-server', title: 'Platform', description: 'Manually-declared infrastructure/services SBOM scanning can never observe (databases, cloud services) — superuser-only' },
   { icon: 'i-lucide-cpu', title: 'System', description: 'Deployable applications and services' },
   { icon: 'i-lucide-box', title: 'Component', description: 'SBOM entries (libraries, packages)' },
   { icon: 'i-lucide-users', title: 'Team', description: 'Organizational teams' },
@@ -115,9 +116,11 @@ const coreNodes = [
 // --- Key Relationships ---
 const keyRelationships = [
   { label: 'STEWARDED_BY', description: 'Team stewards Technology', detail: 'Technical governance responsibility' },
+  { label: 'STEWARDED_BY', description: 'Team stewards Platform', detail: 'Same stewardship model as Technology, for manually-declared infrastructure' },
   { label: 'OWNS', description: 'Team owns System', detail: 'Operational ownership' },
   { label: 'USES', description: 'Team uses Technology', detail: 'Actual technology usage by a team' },
   { label: 'APPROVES', description: 'Team approves Technology or Version', detail: 'TIME framework approval' },
+  { label: 'APPROVES', description: 'Team approves Platform', detail: 'TIME framework approval, same shape as Technology' },
   { label: 'MAINTAINS', description: 'Team maintains Repository', detail: 'Repository maintenance responsibility' },
   { label: 'HAS_VERSION', description: 'Technology has Version', detail: 'Version tracking per technology' },
   { label: 'IS_VERSION_OF', description: 'Component is version of Technology', detail: 'Component to technology mapping' },
@@ -137,6 +140,7 @@ const queryExamples = [
   { title: 'Track all changes made by a specific user' },
   { title: 'Find all direct runtime dependencies of a system' },
   { title: 'Find all systems that use a component at runtime vs. dev-only' },
+  { title: 'Find all Platforms with no recorded team approval' },
 ]
 
 useHead({ title: 'Graph Model - Polaris' })
@@ -147,6 +151,7 @@ const diagram = `graph TB
     Team[(Team)]
     User[(User)]
     Technology[(Technology)]
+    Platform[(Platform)]
     Version[(Version)]
     Component[(Component)]
     System[(System)]
@@ -155,9 +160,11 @@ const diagram = `graph TB
     AuditLog[(Audit Log)]
 
     Team -->|STEWARDED_BY| Technology
+    Team -->|STEWARDED_BY| Platform
     Team -->|OWNS| System
     Team -->|USES| Technology
     Team -->|APPROVES| Technology
+    Team -->|APPROVES| Platform
     Team -->|APPROVES| Version
     Team -->|MAINTAINS| Repository
     Team -->|ENFORCES| VersionConstraint
@@ -178,6 +185,7 @@ const diagram = `graph TB
 
     AuditLog -->|PERFORMED_BY| User
     AuditLog -->|AUDITS| Technology
+    AuditLog -->|AUDITS| Platform
     AuditLog -->|AUDITS| Team
     AuditLog -->|AUDITS| VersionConstraint
     AuditLog -->|AUDITS| System
@@ -186,7 +194,7 @@ const diagram = `graph TB
     classDef coreNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef auditNode fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
 
-    class Team,User,Technology,Version,Component,System,Repository,VersionConstraint coreNode
+    class Team,User,Technology,Platform,Version,Component,System,Repository,VersionConstraint coreNode
     class AuditLog auditNode`
 
 onMounted(async () => {

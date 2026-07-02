@@ -1,5 +1,9 @@
 MATCH (t:Technology {name: $name})
-OPTIONAL MATCH (team:Team)-[:OWNS]->(t)
+// Pin a single steward team before the other OPTIONAL MATCHes so a
+// Technology with more than one steward doesn't multiply into duplicate
+// rows below (ownerTeamName/ownerTeamEmail are single fields, not lists).
+OPTIONAL MATCH (stewardTeam:Team)-[:STEWARDED_BY]->(t)
+WITH t, collect(DISTINCT stewardTeam)[0] as team
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
 OPTIONAL MATCH (c:Component)-[:IS_VERSION_OF]->(t)
 OPTIONAL MATCH (sys:System)-[:USES]->(c)

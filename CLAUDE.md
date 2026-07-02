@@ -68,9 +68,11 @@ Nitro scheduled tasks run at fixed intervals (see `nuxt.config.ts`): `health-ref
 
 ### Graph Data Model
 
-Key node labels: `Technology`, `Version`, `Component`, `System`, `Team`, `Policy`, `VersionConstraint`, `AuditLog`, `ImportJob`, `HealthSnapshot`
+Key node labels: `Technology`, `Platform`, `Version`, `Component`, `System`, `Team`, `Policy`, `VersionConstraint`, `AuditLog`, `ImportJob`, `HealthSnapshot`
 
-Key relationships: `OWNS` (Team→Technology/System), `APPROVES` (Team→Technology, carries TIME framework attributes), `HAS_VERSION` (Technology→Version), `IS_VERSION_OF` (Component→Technology), `USES` (System→Component, carries `isDirect`), `DEPENDS_ON` (Component→Component), `GOVERNS` (VersionConstraint→Technology)
+A `Technology` can never exist without at least one linked `Component` (an SBOM-observed dependency) — it can only be created by claiming an existing, unlinked `Component` via `POST /api/technologies` or the `/admin/component-links` queue. `Platform` is the deliberate, superuser-only exception for infrastructure/services SBOM scanning can never see (databases, cloud services, container runtimes) — it carries the same stewardship/TIME-approval shape but no Component requirement. See `docs/architecture/decisions/0004-technology-requires-component.md`.
+
+Key relationships: `STEWARDED_BY` (Team→Technology/Platform, technical governance), `OWNS` (Team→System, operational ownership), `APPROVES` (Team→Technology/Platform, carries TIME framework attributes), `HAS_VERSION` (Technology→Version), `IS_VERSION_OF` (Component→Technology), `USES` (System→Component, carries `isDirect`), `DEPENDS_ON` (Component→Component), `GOVERNS` (VersionConstraint→Technology)
 
 Neo4j Community Edition is in use — there is no separate test database. Tests isolate data with a `test_` / `test-` name prefix; the global setup cleans these nodes before and after the suite.
 
