@@ -237,30 +237,27 @@ export async function getUserTeams(event: H3Event): Promise<string[]> {
 }
 
 /**
- * Validate that a resource belongs to one of the user's teams
- * Used for checking if user can modify systems, technologies, etc.
+ * Validate that a system belongs to one of the user's teams.
+ *
+ * Technology/Platform ownership checks are inlined at their call sites
+ * instead (they compare against findOwnerTeam()/findStewardTeam()) rather
+ * than going through this helper.
  */
 export async function validateTeamOwnership(
   event: H3Event,
-  resourceType: 'System' | 'Technology',
+  resourceType: 'System',
   resourceName: string
 ): Promise<void> {
   const user = await requireAuthorization(event)
-  
+
   // Superusers can modify anything
   if (user.role === 'superuser') {
     return
   }
-  
+
   const teamNames = user.teams?.map(team => team.name) || []
   const teamRepo = new TeamRepository()
-  let hasAccess = false
-
-  if (resourceType === 'System') {
-    hasAccess = await teamRepo.ownsSystem(teamNames, resourceName)
-  } else if (resourceType === 'Technology') {
-    hasAccess = await teamRepo.stewardsTechnology(teamNames, resourceName)
-  }
+  const hasAccess = await teamRepo.ownsSystem(teamNames, resourceName)
 
   if (!hasAccess) {
     throw createError({

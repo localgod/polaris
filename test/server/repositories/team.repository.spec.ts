@@ -134,6 +134,49 @@ describe('TeamRepository', () => {
     })
   })
 
+  describe('create() and update()', () => {
+    it('should create team and write audit entry', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const name = await repo.create({
+        name: `${PREFIX}created`,
+        email: 'created@example.com',
+        responsibilityArea: 'Platform',
+        userId: 'user-1',
+      })
+
+      expect(name).toBe(`${PREFIX}created`)
+      const audit = await session.run(
+        `MATCH (a:AuditLog {entityType: 'Team', entityId: $name, operation: 'CREATE'}) RETURN count(a) AS c`,
+        { name }
+      )
+      expect(audit.records[0]!.get('c').toNumber()).toBe(1)
+    })
+
+    it('should update existing team and return updated name', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `CREATE (:Team { name: $name, email: null, responsibilityArea: null })`, { name: `${PREFIX}updatable` })
+
+      const updatedName = await repo.update({
+        name: `${PREFIX}updatable`,
+        newName: `${PREFIX}renamed`,
+        email: 'renamed@example.com',
+        responsibilityArea: 'Security',
+        changedFields: ['name', 'email', 'responsibilityArea'],
+        changes: {
+          name: { before: `${PREFIX}updatable`, after: `${PREFIX}renamed` },
+          email: { before: null, after: 'renamed@example.com' },
+          responsibilityArea: { before: null, after: 'Security' },
+        },
+        userId: 'user-1',
+      })
+
+      expect(updatedName).toBe(`${PREFIX}renamed`)
+      expect(await repo.exists(`${PREFIX}renamed`)).toBe(true)
+      expect(await repo.exists(`${PREFIX}updatable`)).toBe(false)
+    })
+  })
+
   describe('findAllNames()', () => {
     it('should return all team names', async () => {
       if (!ctx.neo4jAvailable) return
@@ -145,6 +188,106 @@ describe('TeamRepository', () => {
       const names = await repo.findAllNames()
       expect(names).toContain(`${PREFIX}names-a`)
       expect(names).toContain(`${PREFIX}names-b`)
+    })
+  })
+
+  describe('findApprovals()', () => {
+    it('should return technology and version approvals', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (team:Team { name: $team })
+        CREATE (tech:Technology { name: $tech, type: 'library', vendor: 'ACME' })
+        CREATE (ver:Version { version: '1.0.0' })
+        CREATE (tech)-[:HAS_VERSION]->(ver)
+        CREATE (team)-[:APPROVES { time: 'tolerate', notes: 'ok' }]->(tech)
+        CREATE (team)-[:APPROVES { time: 'invest' }]->(ver)
+      `, { team: `${PREFIX}approver`, tech: `${PREFIX}tech` })
+
+      const result = await repo.findApprovals(`${PREFIX}approver`)
+
+      expect(result.team).toBe(`${PREFIX}approver`)
+      expect(result.technologyApprovals.some(a => a.technology === `${PREFIX}tech`)).toBe(true)
+      expect(result.versionApprovals.some(a => a.version === '1.0.0')).toBe(true)
+    })
+
+    it('should throw when team does not exist', async () => {
+      if (!ctx.neo4jAvailable) return
+      await expect(repo.findApprovals(`${PREFIX}missing`)).rejects.toThrow()
+    })
+  })
+
+  describe('findConstraints()', () => {
+    it('should return both enforced and subject constraints', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (team:Team { name: $team })
+        CREATE (enforcer:Team { name: $enforcer })
+        CREATE (p1:VersionConstraint { name: $p1, ruleType: 'version_range', severity: 'warning', scope: 'team', status: 'active' })
+        CREATE (p2:VersionConstraint { name: $p2, ruleType: 'version_range', severity: 'error', scope: 'team', status: 'active' })
+        CREATE (team)-[:ENFORCES]->(p1)
+        CREATE (team)-[:SUBJECT_TO]->(p2)
+        CREATE (enforcer)-[:ENFORCES]->(p2)
+      `, { team: `${PREFIX}policy-team`, enforcer: `${PREFIX}enforcer`, p1: `${PREFIX}policy-1`, p2: `${PREFIX}policy-2` })
+
+      const result = await repo.findConstraints(`${PREFIX}policy-team`)
+
+      expect(result.enforcedCount).toBe(1)
+      expect(result.subjectToCount).toBe(1)
+      expect(result.subjectTo[0]?.enforcedBy).toBe(`${PREFIX}enforcer`)
+    })
+  })
+
+  describe('findUsage()', () => {
+    it('should derive compliance summary from usage and approvals', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (team:Team { name: $team })
+        CREATE (t1:Technology { name: $t1, type: 'library', domain: 'app' })
+        CREATE (t2:Technology { name: $t2, type: 'library', domain: 'app' })
+        CREATE (team)-[:USES { systemCount: 3 }]->(t1)
+        CREATE (team)-[:USES { systemCount: 1 }]->(t2)
+        CREATE (team)-[:APPROVES { time: 'tolerate' }]->(t1)
+      `, { team: `${PREFIX}usage-team`, t1: `${PREFIX}tech-approved`, t2: `${PREFIX}tech-unapproved` })
+
+      const result = await repo.findUsage(`${PREFIX}usage-team`)
+
+      expect(result.summary.totalTechnologies).toBe(2)
+      expect(result.summary.compliant).toBe(1)
+      expect(result.summary.unapproved).toBe(1)
+    })
+  })
+
+  describe('checkApproval()', () => {
+    it('should return default eliminate when no explicit approval exists', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Team { name: $team })
+        CREATE (:Technology { name: $tech, type: 'library' })
+      `, { team: `${PREFIX}default-team`, tech: `${PREFIX}default-tech` })
+
+      const result = await repo.checkApproval(`${PREFIX}default-team`, `${PREFIX}default-tech`)
+
+      expect(result).not.toBeNull()
+      expect(result!.approval.level).toBe('default')
+      expect(result!.approval.time).toBe('eliminate')
+    })
+
+    it('should prioritize version-level approval over technology-level', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (team:Team { name: $team })
+        CREATE (tech:Technology { name: $tech, type: 'library' })
+        CREATE (v:Version { version: '1.2.3' })
+        CREATE (tech)-[:HAS_VERSION]->(v)
+        CREATE (team)-[:APPROVES { time: 'migrate' }]->(tech)
+        CREATE (team)-[:APPROVES { time: 'tolerate' }]->(v)
+      `, { team: `${PREFIX}priority-team`, tech: `${PREFIX}priority-tech` })
+
+      const result = await repo.checkApproval(`${PREFIX}priority-team`, `${PREFIX}priority-tech`, '1.2.3')
+
+      expect(result).not.toBeNull()
+      expect(result!.approval.level).toBe('version')
+      expect(result!.approval.time).toBe('tolerate')
     })
   })
 

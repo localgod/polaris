@@ -276,6 +276,11 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
       to: '/technologies'
     },
     {
+      label: 'Platforms',
+      icon: 'i-lucide-server',
+      to: '/platforms'
+    },
+    {
       label: 'Systems',
       icon: 'i-lucide-cpu',
       to: '/systems'

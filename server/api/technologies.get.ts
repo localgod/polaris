@@ -22,6 +22,11 @@ import { technologyService } from '../services/singletons'
  *           type: integer
  *           default: 0
  *         description: Pagination offset
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive substring match on technology name
  *     responses:
  *       200:
  *         description: Successfully retrieved technologies
@@ -65,7 +70,8 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Technology>
         sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
       },
       limit,
-      offset
+      offset,
+      query.search as string | undefined
     )
 
     return {

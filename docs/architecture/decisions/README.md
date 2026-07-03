@@ -58,6 +58,7 @@ Examples:
 - [ADR-0001: Use Neo4j for Graph Database](0001-use-neo4j-for-graph-database.md) - Accepted
 - [ADR-0002: Implement Service Layer Pattern](0002-implement-service-layer-pattern.md) - Accepted
 - [ADR-0003: Exclude CVE and Vulnerability Management](0003-exclude-cve-vulnerability-management.md) - Accepted
+- [ADR-0004: Technology Requires a Component](0004-technology-requires-component.md) - Accepted
 
 ## References
 

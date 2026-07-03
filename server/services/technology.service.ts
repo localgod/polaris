@@ -1,4 +1,4 @@
-import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
+import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyFromComponentParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
 import { SBOMRepository } from '../repositories/sbom.repository'
 import type { EOLStatus, EOLStatusValue, Technology, ComponentType, TechnologyDomain, TimeValue, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
@@ -31,14 +31,13 @@ export interface SetApprovalInput {
   realUserId?: string | null
 }
 
-export interface CreateTechnologyInput {
+export interface CreateTechnologyFromComponentInput {
   name: string
   type: string
   domain?: string
   vendor?: string
   ownerTeam?: string
-  componentName?: string
-  componentPackageManager?: string
+  componentName: string
   userId: string
   realUserId?: string | null
 }
@@ -70,8 +69,8 @@ export class TechnologyService {
    * 
    * @returns Array of technologies with count
    */
-  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Technology[]; count: number; total: number }> {
-    const { data, total } = await this.techRepo.findAll(sort, limit, offset)
+  async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: Technology[]; count: number; total: number }> {
+    const { data, total } = await this.techRepo.findAll(sort, limit, offset, search)
     return { data, count: data.length, total }
   }
 
@@ -140,16 +139,26 @@ export class TechnologyService {
   }
 
   /**
-   * Create a new technology, optionally linking a source component
-   * 
+   * Create a new technology by claiming an existing, currently-unlinked
+   * Component. A Technology can never exist without at least one linked
+   * Component — see docs/architecture/decisions/0004-technology-requires-component.md.
+   * Manually-declared, non-SBOM-observable technology belongs in Platform instead.
+   *
    * @param input - Technology creation input
    * @returns Created technology name
    */
-  async create(input: CreateTechnologyInput): Promise<string> {
+  async createFromComponent(input: CreateTechnologyFromComponentInput): Promise<string> {
     if (!input.name || !input.type) {
       throw createError({
         statusCode: 400,
         message: 'Name and type are required'
+      })
+    }
+
+    if (!input.componentName?.trim()) {
+      throw createError({
+        statusCode: 400,
+        message: 'componentName is required — a Technology must be created from an existing, unlinked Component'
       })
     }
 
@@ -175,19 +184,18 @@ export class TechnologyService {
       })
     }
 
-    const params: CreateTechnologyParams = {
+    const params: CreateTechnologyFromComponentParams = {
       name: input.name,
       type: input.type,
       domain: input.domain?.trim() || null,
       vendor: input.vendor?.trim() || null,
       ownerTeam: input.ownerTeam?.trim() || null,
-      componentName: input.componentName?.trim() || null,
-      componentPackageManager: input.componentPackageManager?.trim() || null,
+      componentName: input.componentName.trim(),
       userId: input.userId,
       realUserId: input.realUserId ?? null
     }
 
-    return await this.techRepo.create(params)
+    return await this.techRepo.createFromComponent(params)
   }
 
   /**

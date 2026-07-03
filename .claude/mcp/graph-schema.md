@@ -2,7 +2,8 @@
 
 ## Nodes
 
-**Technology** `name, type, vendor, domain, lastReviewed:DATE`
+**Technology** `name, type, vendor, domain, lastReviewed:DATE` — requires >=1 linked Component (via IS_VERSION_OF); can only be created by claiming an existing, unlinked Component
+**Platform** `name, type, vendor, domain` — manually-declared, non-SBOM-observable technology (databases, cloud services); superuser-only to create, no Component relationship
 **Version** `version, technologyName, approved:BOOL, releaseDate:DATE, eolDate:DATE, notes`
 **System** `name, environment, businessCriticality, domain`
 **Team** `name, responsibilityArea, email`
@@ -24,11 +25,13 @@
 
 ```
 (Team)-[:OWNS]->(System)
-(Team)-[:OWNS]->(Technology)
 (Team)-[:APPROVES {time, approvedAt:DATETIME, approvedBy, deprecatedAt:DATETIME, migrationTarget, notes}]->(Technology)
+(Team)-[:APPROVES {time, approvedAt:DATETIME, approvedBy, deprecatedAt:DATETIME, migrationTarget, notes}]->(Platform)
 (Team)-[:STEWARDED_BY]->(Technology)
+(Team)-[:STEWARDED_BY]->(Platform)
 (Team)-[:MAINTAINS {since:DATETIME}]->(Repository)
 (Technology)-[:HAS_VERSION]->(Version)
+(Component)-[:IS_VERSION_OF]->(Technology)
 (System)-[:USES {isDirect:BOOL, scope, addedAt}]->(Component)
 (System)-[:HAS_SOURCE_IN {addedAt:DATETIME}]->(Repository)
 (Component)-[:DEPENDS_ON {addedAt, lastSeenAt}]->(Component)
@@ -45,8 +48,9 @@
 
 ## Key facts
 
-- `APPROVES.time` is the TIME framework value: one of `invest`, `hold`, `tolerate`, `exit`
+- `APPROVES.time` is the TIME framework value: one of `invest`, `tolerate`, `migrate`, `eliminate`
 - `USES.isDirect` — true if the component is a direct dependency of the system (not transitive)
 - `Component.purl` is the unique identifier (Package URL format)
 - `HealthSnapshot` is 1:1 with Component — always use `HAS_HEALTH_SNAPSHOT` to join
-- Counts (2026-06): 3,250 Components, 14 Systems, 8 Technologies, 6 Teams, 82 Advisories
+- A `Technology` can never exist without >=1 `Component` linked via `IS_VERSION_OF` — Neo4j Community Edition can't enforce this as a DB constraint, so it's enforced only in `TechnologyService.createFromComponent()`. `Platform` is the manually-declared escape valve for non-SBOM-observable technology; see `docs/architecture/decisions/0004-technology-requires-component.md`.
+- Counts (2026-06, pre-dates the Technology/Platform split): 3,250 Components, 14 Systems, 8 Technologies, 6 Teams, 82 Advisories

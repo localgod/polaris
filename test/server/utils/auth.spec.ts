@@ -1,14 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockEvent } from '../../fixtures/h3-event'
-import { getRealUser } from '../../../server/utils/auth'
-import { tokenService } from '../../../server/services/singletons'
+import {
+  getCurrentUser,
+  getImpersonatorId,
+  getRealUser,
+  getUserTeams,
+  isMemberOfTeam,
+  canManageTeam,
+  requireAuth,
+  requireAuthorization,
+  requireSuperuser,
+  requireTeamAccess,
+  requireTeamMembership,
+  validateTeamOwnership,
+} from '../../../server/utils/auth'
+import { tokenService, userService } from '../../../server/services/singletons'
 import { getServerSession } from '#auth'
+import { UserRepository } from '../../../server/repositories/user.repository'
+import { TeamRepository } from '../../../server/repositories/team.repository'
 
 // Mock the singletons so resolveToken is fully controlled
 vi.mock('../../../server/services/singletons', () => ({
   tokenService: { resolveToken: vi.fn() },
   userService: { getAuthData: vi.fn() },
 }))
+
+vi.mock('../../../server/repositories/user.repository')
+vi.mock('../../../server/repositories/team.repository')
 
 // Mock #auth so getServerSession is controllable
 vi.mock('#auth', () => ({
@@ -130,5 +148,166 @@ describe('getRealUser — Bearer token extraction', () => {
 
       expect(user).toBeNull()
     })
+  })
+})
+
+describe('getCurrentUser()', () => {
+  it('returns real user when no impersonation cookie is set', async () => {
+    const sessionUser = { id: 'u1', email: 'a@example.com', role: 'user' as const, teams: [] }
+    vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+
+    const user = await getCurrentUser(mockEvent())
+
+    expect(user).toEqual(sessionUser)
+    expect(userService.getAuthData).not.toHaveBeenCalled()
+  })
+
+  it('returns real user when user is not superuser even with impersonation cookie', async () => {
+    const sessionUser = { id: 'u1', email: 'a@example.com', role: 'user' as const, teams: [] }
+    vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+
+    const user = await getCurrentUser(mockEvent({ headers: { cookie: 'polaris-impersonate=target-user' } }))
+
+    expect(user).toEqual(sessionUser)
+    expect(userService.getAuthData).not.toHaveBeenCalled()
+  })
+
+  it('returns impersonated user when superuser has impersonation cookie', async () => {
+    const sessionUser = { id: 'admin', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
+    vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+    vi.mocked(userService.getAuthData).mockResolvedValue({
+      email: 'imp@example.com',
+      role: 'user',
+      teams: [{ name: 'Platform' }],
+    })
+
+    const user = await getCurrentUser(mockEvent({ headers: { cookie: 'polaris-impersonate=target-user' } }))
+
+    expect(user).toEqual({
+      id: 'target-user',
+      email: 'imp@example.com',
+      role: 'user',
+      teams: [{ name: 'Platform' }],
+    })
+  })
+
+  it('falls back to real user when impersonated user lookup fails', async () => {
+    const sessionUser = { id: 'admin', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
+    vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+    vi.mocked(userService.getAuthData).mockRejectedValue(new Error('lookup failed'))
+
+    const user = await getCurrentUser(mockEvent({ headers: { cookie: 'polaris-impersonate=target-user' } }))
+
+    expect(user).toEqual(sessionUser)
+  })
+})
+
+describe('getImpersonatorId()', () => {
+  it('returns null when not impersonating', async () => {
+    const sessionUser = { id: 'admin', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
+    vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+
+    await expect(getImpersonatorId(mockEvent())).resolves.toBeNull()
+  })
+
+  it('returns real user id when impersonating', async () => {
+    const sessionUser = { id: 'admin', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
+    vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+    vi.mocked(userService.getAuthData).mockResolvedValue({ email: 'imp@example.com', role: 'user', teams: [] })
+
+    await expect(
+      getImpersonatorId(mockEvent({ headers: { cookie: 'polaris-impersonate=target-user' } }))
+    ).resolves.toBe('admin')
+  })
+})
+
+describe('authorization helpers', () => {
+  it('requireAuth throws 401 when no user exists', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(null)
+
+    await expect(requireAuth(mockEvent())).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('requireSuperuser throws for non-superuser', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'u1', email: 'a@example.com', role: 'user', teams: [] },
+      expires: ''
+    })
+
+    await expect(requireSuperuser(mockEvent())).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('requireTeamMembership throws when user has no teams', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'u1', email: 'a@example.com', role: 'user', teams: [] },
+      expires: ''
+    })
+
+    await expect(requireTeamMembership(mockEvent())).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('requireAuthorization allows superusers', async () => {
+    const sessionUser = { id: 'admin', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
+    vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+
+    await expect(requireAuthorization(mockEvent())).resolves.toEqual(sessionUser)
+  })
+
+  it('requireAuthorization throws for regular users without teams', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'u1', email: 'a@example.com', role: 'user', teams: [] },
+      expires: ''
+    })
+
+    await expect(requireAuthorization(mockEvent())).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('isMemberOfTeam returns true for matching team', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'u1', email: 'a@example.com', role: 'user', teams: [{ name: 'Platform' }] },
+      expires: ''
+    })
+
+    await expect(isMemberOfTeam(mockEvent(), 'Platform')).resolves.toBe(true)
+  })
+
+  it('canManageTeam uses repository for non-superusers', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'u1', email: 'a@example.com', role: 'user', teams: [] },
+      expires: ''
+    })
+    vi.mocked(UserRepository.prototype.canManageTeam).mockResolvedValue(true)
+
+    await expect(canManageTeam(mockEvent(), 'Platform')).resolves.toBe(true)
+    expect(UserRepository.prototype.canManageTeam).toHaveBeenCalledWith('u1', 'Platform')
+  })
+
+  it('requireTeamAccess throws when user is not a member of target team', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'u1', email: 'a@example.com', role: 'user', teams: [{ name: 'Other' }] },
+      expires: ''
+    })
+
+    await expect(requireTeamAccess(mockEvent(), 'Platform')).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('getUserTeams returns all team names for superusers', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'admin', email: 'admin@example.com', role: 'superuser', teams: [] },
+      expires: ''
+    })
+    vi.mocked(TeamRepository.prototype.findAllNames).mockResolvedValue(['Platform', 'Security'])
+
+    await expect(getUserTeams(mockEvent())).resolves.toEqual(['Platform', 'Security'])
+  })
+
+  it('validateTeamOwnership throws when resource is not owned by user teams', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'u1', email: 'a@example.com', role: 'user', teams: [{ name: 'Platform' }] },
+      expires: ''
+    })
+    vi.mocked(TeamRepository.prototype.ownsSystem).mockResolvedValue(false)
+
+    await expect(validateTeamOwnership(mockEvent(), 'System', 'orders-api')).rejects.toMatchObject({ statusCode: 403 })
   })
 })

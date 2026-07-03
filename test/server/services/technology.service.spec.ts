@@ -111,50 +111,73 @@ describe('TechnologyService', () => {
     })
   })
 
-  describe('create() — optional field coercion', () => {
+  describe('createFromComponent() — a Technology always requires a Component', () => {
     beforeEach(() => {
       vi.mocked(TechnologyRepository.prototype.exists).mockResolvedValue(false)
-      vi.mocked(TechnologyRepository.prototype.create).mockResolvedValue('React')
+      vi.mocked(TechnologyRepository.prototype.createFromComponent).mockResolvedValue('React')
+    })
+
+    it('should reject when componentName is missing', async () => {
+      await expect(service.createFromComponent({ name: 'React', type: 'framework', componentName: '', userId: 'u1' }))
+        .rejects.toMatchObject({ statusCode: 400 })
+      expect(TechnologyRepository.prototype.createFromComponent).not.toHaveBeenCalled()
+    })
+
+    it('should reject when componentName is whitespace-only', async () => {
+      await expect(service.createFromComponent({ name: 'React', type: 'framework', componentName: '   ', userId: 'u1' }))
+        .rejects.toMatchObject({ statusCode: 400 })
+      expect(TechnologyRepository.prototype.createFromComponent).not.toHaveBeenCalled()
+    })
+
+    it('should propagate a 404 when the repository finds no unlinked matching component', async () => {
+      vi.mocked(TechnologyRepository.prototype.createFromComponent).mockRejectedValue(
+        Object.assign(new Error("No unlinked component named 'react' found"), { statusCode: 404 })
+      )
+
+      await expect(service.createFromComponent({ name: 'React', type: 'framework', componentName: 'react', userId: 'u1' }))
+        .rejects.toMatchObject({ statusCode: 404 })
     })
 
     it('should pass a provided string value through unchanged', async () => {
-      await service.create({ name: 'React', type: 'framework', vendor: 'Meta', userId: 'u1' })
+      await service.createFromComponent({ name: 'React', type: 'framework', vendor: 'Meta', componentName: 'react', userId: 'u1' })
 
-      const params = vi.mocked(TechnologyRepository.prototype.create).mock.calls[0][0]
+      const params = vi.mocked(TechnologyRepository.prototype.createFromComponent).mock.calls[0][0]
       expect(params.vendor).toBe('Meta')
+      expect(params.componentName).toBe('react')
     })
 
     it('should coerce undefined optional fields to null', async () => {
-      await service.create({ name: 'React', type: 'framework', userId: 'u1' })
+      await service.createFromComponent({ name: 'React', type: 'framework', componentName: 'react', userId: 'u1' })
 
-      const params = vi.mocked(TechnologyRepository.prototype.create).mock.calls[0][0]
+      const params = vi.mocked(TechnologyRepository.prototype.createFromComponent).mock.calls[0][0]
       expect(params.domain).toBeNull()
       expect(params.vendor).toBeNull()
       expect(params.ownerTeam).toBeNull()
     })
 
     it('should coerce empty string optional fields to null', async () => {
-      await service.create({ name: 'React', type: 'framework', domain: '', vendor: '', ownerTeam: '', userId: 'u1' })
+      await service.createFromComponent({ name: 'React', type: 'framework', domain: '', vendor: '', ownerTeam: '', componentName: 'react', userId: 'u1' })
 
-      const params = vi.mocked(TechnologyRepository.prototype.create).mock.calls[0][0]
+      const params = vi.mocked(TechnologyRepository.prototype.createFromComponent).mock.calls[0][0]
       expect(params.domain).toBeNull()
       expect(params.vendor).toBeNull()
       expect(params.ownerTeam).toBeNull()
     })
 
     it('should coerce whitespace-only optional fields to null', async () => {
-      await service.create({ name: 'React', type: 'framework', vendor: '  ', ownerTeam: '  ', userId: 'u1' })
+      await service.createFromComponent({ name: 'React', type: 'framework', vendor: '  ', ownerTeam: '  ', componentName: 'react', userId: 'u1' })
 
-      const params = vi.mocked(TechnologyRepository.prototype.create).mock.calls[0][0]
+      const params = vi.mocked(TechnologyRepository.prototype.createFromComponent).mock.calls[0][0]
       expect(params.vendor).toBeNull()
       expect(params.ownerTeam).toBeNull()
     })
 
-    it('should trim whitespace from optional fields that have real content', async () => {
-      await service.create({ name: 'React', type: 'framework', vendor: '  Meta  ', userId: 'u1' })
+    it('should trim whitespace from optional fields and componentName', async () => {
+      await service.createFromComponent({ name: 'React', type: 'framework', vendor: '  Meta  ', componentName: '  react  ', userId: 'u1' })
 
-      const params = vi.mocked(TechnologyRepository.prototype.create).mock.calls[0][0]
+      const params = vi.mocked(TechnologyRepository.prototype.createFromComponent).mock.calls[0][0]
       expect(params.vendor).toBe('Meta')
+      expect(params.componentName).toBe('react')
     })
   })
 

@@ -467,6 +467,20 @@ export interface Technology {
   approvals: TechnologyApproval[]
 }
 
+/**
+ * A manually-declared, non-SBOM-observable technology (databases, cloud
+ * services, container runtimes) — the deliberate "no evidence required"
+ * counterpart to Technology, which requires a linked Component.
+ */
+export interface Platform {
+  name: string
+  type: ComponentType | null
+  domain: TechnologyDomain | null
+  vendor: string | null
+  stewardTeamName: string | null
+  approvals: TechnologyApproval[]
+}
+
 export interface TechnologyApproval {
   team?: string
   time?: TimeValue

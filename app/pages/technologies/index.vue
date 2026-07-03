@@ -25,10 +25,11 @@
           />
         </UButtonGroup>
         <UButton
-          v-if="session?.user"
+          v-if="isSuperuser"
           size="sm"
           label="+ Create Technology"
-          to="/technologies/new"
+          icon="i-lucide-link"
+          to="/admin/component-links"
         />
       </div>
     </div>
