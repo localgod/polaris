@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.50] - 2026-07-03
+
+## What's Changed
+
+- feat(technology)!: require Technology to have a linked Component; add Platform for infrastructure @localgod (#730)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.49...v0.6.50
+
 ## [0.6.47] - 2026-07-01
 
 ## What's Changed
