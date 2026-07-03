@@ -45,33 +45,24 @@
         <template #header>
           <h2 class="text-lg font-semibold">Basic Information</h2>
         </template>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <span class="text-sm text-(--ui-text-muted)">Type</span>
-            <p class="font-medium">{{ platform.type || '—' }}</p>
-          </div>
-          <div>
-            <span class="text-sm text-(--ui-text-muted)">Domain</span>
-            <p class="font-medium">{{ platform.domain || '—' }}</p>
-          </div>
-          <div>
-            <span class="text-sm text-(--ui-text-muted)">Vendor</span>
-            <p class="font-medium">{{ platform.vendor || '—' }}</p>
-          </div>
-          <div>
-            <span class="text-sm text-(--ui-text-muted)">Steward Team</span>
-            <p class="font-medium">
-              <NuxtLink v-if="platform.stewardTeamName" :to="`/teams/${encodeURIComponent(platform.stewardTeamName)}`" class="hover:underline">
-                {{ platform.stewardTeamName }}
+        <EntityDescriptionList :items="basicInfoItems">
+          <template #stewardTeam="{ item }">
+            <p class="font-medium mt-0.5">
+              <NuxtLink v-if="item.value" :to="`/teams/${encodeURIComponent(String(item.value))}`" class="hover:underline">
+                {{ item.value }}
               </NuxtLink>
               <span v-else>—</span>
             </p>
-          </div>
-        </div>
+          </template>
+        </EntityDescriptionList>
       </UCard>
 
       <!-- Platform Approvals -->
-      <UCard>
+      <PaginatedTable
+        v-model:sorting="approvalSorting"
+        :data="platform.approvals ?? []"
+        :columns="approvalColumns"
+      >
         <template #header>
           <div class="flex justify-between items-center">
             <h2 class="text-lg font-semibold">Approvals ({{ platform.approvals?.length || 0 }})</h2>
@@ -85,17 +76,12 @@
             />
           </div>
         </template>
-        <UTable
-          v-if="platform.approvals && platform.approvals.length > 0"
-          v-model:sorting="approvalSorting"
-          :data="platform.approvals"
-          :columns="approvalColumns"
-          class="flex-1"
-        />
-        <div v-else class="text-center text-(--ui-text-muted) py-8">
-          No approvals yet.
-        </div>
-      </UCard>
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-8">
+            No approvals yet.
+          </div>
+        </template>
+      </PaginatedTable>
 
       <!-- Set TIME Category Modal -->
       <UModal v-model:open="approvalModalOpen">
@@ -202,26 +188,9 @@ interface PlatformResponse {
   data: PlatformDetailData
 }
 
-function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    invest: 'success',
-    tolerate: 'warning',
-    migrate: 'warning',
-    eliminate: 'error'
-  }
-  return colors[category?.toLowerCase()] || 'neutral'
-}
-
 function formatDate(dateString: string): string {
   if (!dateString) return '—'
   return new Date(dateString).toLocaleDateString()
-}
-
-function getEnvironmentColor(environment: string | null | undefined): 'error' | 'warning' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'neutral'> = {
-    prod: 'error', staging: 'warning', test: 'neutral', dev: 'neutral'
-  }
-  return colors[environment || ''] || 'neutral'
 }
 
 const approvalColumns: TableColumn<TechnologyApproval>[] = [
@@ -282,6 +251,13 @@ const timeCategory = computed(() => {
   const approval = platform.value?.approvals?.[0]
   return approval?.time || null
 })
+
+const basicInfoItems = computed(() => [
+  { key: 'type', label: 'Type', value: platform.value?.type },
+  { key: 'domain', label: 'Domain', value: platform.value?.domain },
+  { key: 'vendor', label: 'Vendor', value: platform.value?.vendor },
+  { key: 'stewardTeam', label: 'Steward Team', value: platform.value?.stewardTeamName }
+])
 
 // Approval modal state
 const approvalModalOpen = ref(false)

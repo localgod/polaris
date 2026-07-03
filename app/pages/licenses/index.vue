@@ -15,32 +15,22 @@
     />
 
     <template v-else>
-      <UCard>
-        <UTable
-          v-model:sorting="sorting"
-          :manual-sorting="true"
-          :data="licenses"
-          :columns="columns"
-          :loading="pending"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-12">
-              No licenses found.
-            </div>
-          </template>
-        </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UCard>
+      <PaginatedTable
+        v-model:sorting="sorting"
+        v-model:page="page"
+        :manual-sorting="true"
+        :data="licenses"
+        :columns="columns"
+        :loading="pending"
+        :total="total"
+        :page-size="pageSize"
+      >
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-12">
+            No licenses found.
+          </div>
+        </template>
+      </PaginatedTable>
     </template>
   </div>
 </template>
@@ -48,6 +38,7 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { ApiResponse } from '~~/types/api'
 
 const { getSortableHeader } = useSortableTable()
 const { isSuperuser: isSuperuserRef } = useEffectiveRole()
@@ -61,25 +52,6 @@ interface License {
   allowed: boolean
   componentCount: number
   url: string | null
-}
-
-interface LicenseResponse {
-  success: boolean
-  data: License[]
-  count: number
-  total?: number
-}
-
-function getCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    permissive: 'success',
-    'weak-copyleft': 'warning',
-    copyleft: 'warning',
-    'strong-copyleft': 'error',
-    proprietary: 'error',
-    'public-domain': 'success'
-  }
-  return colors[category?.toLowerCase()] || 'neutral'
 }
 
 const columns: TableColumn<License>[] = [
@@ -165,26 +137,14 @@ const columns: TableColumn<License>[] = [
   }
 ]
 
-const sorting = ref([])
-watch(sorting, () => { page.value = 1 })
-const page = ref(1)
-const pageSize = 20
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
 
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
+const { data, pending, error } = await useFetch<ApiResponse<License>>('/api/licenses', {
+  query: { limit: pageSize, offset, sortBy, sortOrder }
 })
 
-const { data, pending, error } = await useFetch<LicenseResponse>('/api/licenses', {
-  query: queryParams
-})
-
-const licenses = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || data.value?.count || 0)
+const licenses = useApiData(data)
+const total = useApiCount(data)
 
 async function toggleAllowed(license: License) {
   try {

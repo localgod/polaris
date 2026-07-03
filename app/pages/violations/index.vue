@@ -23,60 +23,51 @@
 
     <template v-else>
       <!-- Summary -->
-      <div v-if="summary" class="grid grid-cols-4 gap-4">
-        <UCard v-for="(count, level) in summary" :key="level">
-          <div class="text-center">
-            <p class="text-2xl font-bold">{{ count }}</p>
-            <p class="text-sm text-(--ui-text-muted) capitalize">{{ level }}</p>
+      <EntityStatStrip v-if="summary" :items="summaryStats" />
+
+      <PaginatedTable
+        :data="violations"
+        :columns="columns"
+        :loading="pending"
+      >
+        <template #header>
+          <div class="flex flex-wrap items-center gap-2">
+            <USelect
+              v-model="severityFilter"
+              :items="severityItems"
+              placeholder="All severities"
+              class="w-40"
+            />
+            <UInput
+              v-model="teamFilter"
+              placeholder="Filter by team..."
+              icon="i-lucide-search"
+              class="max-w-xs"
+            />
+            <UInput
+              v-model="technologyFilter"
+              placeholder="Filter by technology..."
+              icon="i-lucide-search"
+              class="max-w-xs"
+            />
+            <UButton
+              v-if="severityFilter || teamFilter || technologyFilter"
+              label="Clear"
+              variant="ghost"
+              color="neutral"
+              icon="i-lucide-x"
+              @click="clearFilters"
+            />
           </div>
-        </UCard>
-      </div>
-
-      <UCard>
-        <div class="flex flex-wrap items-center gap-2 pb-4 border-b border-(--ui-border) mb-4">
-          <USelect
-            v-model="severityFilter"
-            :items="severityItems"
-            placeholder="All severities"
-            class="w-40"
-          />
-          <UInput
-            v-model="teamFilter"
-            placeholder="Filter by team..."
-            icon="i-lucide-search"
-            class="max-w-xs"
-          />
-          <UInput
-            v-model="technologyFilter"
-            placeholder="Filter by technology..."
-            icon="i-lucide-search"
-            class="max-w-xs"
-          />
-          <UButton
-            v-if="severityFilter || teamFilter || technologyFilter"
-            label="Clear"
-            variant="ghost"
-            color="neutral"
-            icon="i-lucide-x"
-            @click="clearFilters"
-          />
-        </div>
-
-        <UTable
-          :data="violations"
-          :columns="columns"
-          :loading="pending"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center py-8">
-              <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
-              <h3 class="mt-4">No Version Violations!</h3>
-              <p class="text-(--ui-text-muted) mt-2">All components are within allowed version ranges.</p>
-            </div>
-          </template>
-        </UTable>
-      </UCard>
+        </template>
+        <template #empty>
+          <div class="text-center py-8">
+            <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
+            <h3 class="mt-4">No Version Violations!</h3>
+            <p class="text-(--ui-text-muted) mt-2">All components are within allowed version ranges.</p>
+          </div>
+        </template>
+      </PaginatedTable>
     </template>
   </div>
 </template>
@@ -84,6 +75,7 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { ApiResponse } from '~~/types/api'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -104,43 +96,19 @@ interface Violation {
   }
 }
 
-interface ViolationsResponse {
-  success: boolean
-  data: Violation[]
-  count: number
-  summary: {
-    critical: number
-    error: number
-    warning: number
-    info: number
-  }
+interface ViolationsSummary {
+  critical: number
+  error: number
+  warning: number
+  info: number
 }
+
+type ViolationsResponse = ApiResponse<Violation> & { summary?: ViolationsSummary }
 
 const { getSortableHeader } = useSortableTable()
 
 const UBadge = resolveComponent('UBadge')
 const NuxtLink = resolveComponent('NuxtLink')
-
-function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error', error: 'error', warning: 'warning', info: 'neutral'
-  }
-  return colors[severity] || 'neutral'
-}
-
-function getCriticalityColor(criticality: string | null): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error', high: 'warning', medium: 'success', low: 'neutral'
-  }
-  return colors[criticality || ''] || 'neutral'
-}
-
-function getEnvironmentColor(environment: string | null): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    prod: 'error', staging: 'warning', test: 'neutral', dev: 'neutral'
-  }
-  return colors[environment || ''] || 'neutral'
-}
 
 const severityItems = ['critical', 'error', 'warning', 'info']
 
@@ -166,8 +134,14 @@ const { data, pending, error } = await useFetch<ViolationsResponse>('/api/versio
   query: queryParams
 })
 
-const violations = computed(() => data.value?.data || [])
+const violations = useApiData(data)
 const summary = computed(() => data.value?.summary)
+const summaryStats = computed(() =>
+  Object.entries(summary.value ?? {}).map(([level, count]) => ({
+    label: level.charAt(0).toUpperCase() + level.slice(1),
+    value: count
+  }))
+)
 
 const columns: TableColumn<Violation>[] = [
   {

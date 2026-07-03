@@ -20,7 +20,7 @@
         <UPageHeader
           :title="license.name || license.id"
           :description="license.name ? license.id : undefined"
-          :links="[{ label: 'Back to Licenses', to: '/licenses', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+          :links="headerLinks"
         />
         <div class="flex gap-2 flex-shrink-0">
           <UBadge v-if="license.category" :color="getCategoryColor(license.category)" variant="subtle">
@@ -39,44 +39,6 @@
             Disallowed
           </UBadge>
         </div>
-      </div>
-
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Components</p>
-            <p class="text-2xl font-bold mt-1">{{ license.componentCount || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Category</p>
-            <p class="text-2xl font-bold mt-1">{{ license.category || '—' }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">OSI Approved</p>
-            <p class="text-2xl font-bold mt-1">{{ license.osiApproved ? 'Yes' : 'No' }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">SPDX URL</p>
-            <p class="text-sm font-medium mt-1 truncate">
-              <a
-                v-if="license.url"
-                :href="license.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="hover:underline"
-              >
-                View on SPDX
-              </a>
-              <span v-else class="text-(--ui-text-muted)">—</span>
-            </p>
-          </div>
-        </UCard>
       </div>
 
       <!-- License Text -->
@@ -99,34 +61,23 @@
       </UCard>
 
       <!-- Components Table -->
-      <UCard>
+      <PaginatedTable
+        v-model:page="componentPage"
+        :data="components"
+        :columns="componentColumns"
+        :loading="componentsPending"
+        :total="componentsTotal"
+        :page-size="componentPageSize"
+      >
         <template #header>
-          <h3 class="text-lg font-semibold">Components Using This License</h3>
+          <h3 class="text-lg font-semibold">Components Using This License ({{ license.componentCount || 0 }})</h3>
         </template>
-
-        <UTable
-          :data="components"
-          :columns="componentColumns"
-          :loading="componentsPending"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-12">
-              No components found using this license.
-            </div>
-          </template>
-        </UTable>
-
-        <div v-if="componentsTotal > componentPageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="componentPage"
-            :total="componentsTotal"
-            :items-per-page="componentPageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UCard>
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-12">
+            No components found using this license.
+          </div>
+        </template>
+      </PaginatedTable>
     </template>
   </div>
 </template>
@@ -134,6 +85,7 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { ApiResponse } from '~~/types/api'
 
 const route = useRoute()
 
@@ -166,25 +118,6 @@ interface LicenseResponse {
   data: LicenseDetail[]
 }
 
-interface ComponentsResponse {
-  success: boolean
-  data: LicenseComponent[]
-  count: number
-  total: number
-}
-
-function getCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    permissive: 'success',
-    'weak-copyleft': 'warning',
-    copyleft: 'warning',
-    'strong-copyleft': 'error',
-    proprietary: 'error',
-    'public-domain': 'success'
-  }
-  return colors[category?.toLowerCase()] || 'neutral'
-}
-
 const showLicenseText = ref(true)
 
 // License detail
@@ -194,22 +127,26 @@ const { data, pending, error } = await useFetch<LicenseResponse>(
 
 const license = computed(() => data.value?.data?.[0] || null)
 
+const headerLinks = computed(() => {
+  const links: { label: string; to: string; icon: string; variant: 'outline'; target?: '_blank' }[] = [
+    { label: 'Back to Licenses', to: '/licenses', icon: 'i-lucide-arrow-left', variant: 'outline' }
+  ]
+  if (license.value?.url) {
+    links.push({ label: 'View on SPDX', to: license.value.url, icon: 'i-lucide-external-link', variant: 'outline', target: '_blank' })
+  }
+  return links
+})
+
 // Components pagination
-const componentPage = ref(1)
-const componentPageSize = 20
+const { page: componentPage, pageSize: componentPageSize, offset: componentOffset } = usePaginatedSorting()
 
-const componentQueryParams = computed(() => ({
-  limit: componentPageSize,
-  offset: (componentPage.value - 1) * componentPageSize
-}))
-
-const { data: componentsData, pending: componentsPending } = await useFetch<ComponentsResponse>(
+const { data: componentsData, pending: componentsPending } = await useFetch<ApiResponse<LicenseComponent>>(
   () => `/api/licenses/${encodeURIComponent(route.params.id as string)}/components`,
-  { query: componentQueryParams }
+  { query: { limit: componentPageSize, offset: componentOffset } }
 )
 
-const components = computed(() => componentsData.value?.data || [])
-const componentsTotal = computed(() => componentsData.value?.total || 0)
+const components = useApiData(componentsData)
+const componentsTotal = useApiCount(componentsData)
 
 const componentColumns: TableColumn<LicenseComponent>[] = [
   {

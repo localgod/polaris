@@ -1,3 +1,9 @@
 export default defineAppConfig({
-  ui: {}
+  ui: {
+    card: {
+      slots: {
+        body: 'p-4 sm:p-4'
+      }
+    }
+  }
 })

@@ -31,86 +31,27 @@
           <UBadge v-if="timeCategory" :color="getTimeCategoryColor(timeCategory)" variant="subtle">
             {{ timeCategory }}
           </UBadge>
+          <UBadge :color="getEolColor(tech.lifecycleSummary?.status)" variant="subtle">
+            {{ getEolLabel(tech.lifecycleSummary?.status) }}
+          </UBadge>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Versions</p>
-            <p class="text-2xl font-bold mt-1">{{ distinctVersionCount }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Components</p>
-            <p class="text-2xl font-bold mt-1">{{ tech.components?.length || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Systems</p>
-            <p class="text-2xl font-bold mt-1">{{ tech.systems?.length || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Lifecycle</p>
-            <p class="mt-2">
-              <UBadge :color="getEolColor(tech.lifecycleSummary?.status)" variant="subtle">
-                {{ getEolLabel(tech.lifecycleSummary?.status) }}
-              </UBadge>
-            </p>
-          </div>
-        </UCard>
-      </div>
+      <EntityStatStrip :items="statItems" />
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Basic Information</h2>
-          </template>
-          <div class="space-y-3">
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Type</span>
-              <p class="font-medium">{{ tech.type || '—' }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Domain</span>
-              <p class="font-medium">{{ tech.domain || '—' }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Vendor</span>
-              <p class="font-medium">{{ tech.vendor || '—' }}</p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Last Reviewed</span>
-              <p class="font-medium">{{ tech.lastReviewed ? formatDate(tech.lastReviewed) : '—' }}</p>
-            </div>
-          </div>
-        </UCard>
-
-        <!-- Version Risk -->
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Version Risk</h2>
-          </template>
-          <UTable
-            v-if="versionRiskData && versionRiskData.length > 0"
-            v-model:sorting="versionRiskSorting"
-            :data="versionRiskData"
-            :columns="versionRiskColumns"
-            class="flex-1"
-          />
-          <div v-else class="text-center text-(--ui-text-muted) py-8">
-            No versions found.
-          </div>
-        </UCard>
-
-      </div>
+      <UCard>
+        <template #header>
+          <h2 class="text-lg font-semibold">Basic Information</h2>
+        </template>
+        <EntityDescriptionList :items="basicInfoItems" />
+      </UCard>
 
       <!-- Technology Approvals -->
-      <UCard>
+      <PaginatedTable
+        v-model:sorting="approvalSorting"
+        :data="tech.technologyApprovals ?? []"
+        :columns="approvalColumns"
+      >
         <template #header>
           <div class="flex justify-between items-center">
             <h2 class="text-lg font-semibold">Approvals ({{ tech.technologyApprovals?.length || 0 }})</h2>
@@ -124,17 +65,12 @@
             />
           </div>
         </template>
-        <UTable
-          v-if="tech.technologyApprovals && tech.technologyApprovals.length > 0"
-          v-model:sorting="approvalSorting"
-          :data="tech.technologyApprovals"
-          :columns="approvalColumns"
-          class="flex-1"
-        />
-        <div v-else class="text-center text-(--ui-text-muted) py-8">
-          No approvals yet.
-        </div>
-      </UCard>
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-8">
+            No approvals yet.
+          </div>
+        </template>
+      </PaginatedTable>
 
       <!-- Set TIME Category Modal -->
       <UModal v-model:open="approvalModalOpen">
@@ -208,27 +144,62 @@
         </template>
       </UModal>
 
-      <!-- Versions -->
-      <UCard v-if="tech.versions && tech.versions.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Versions ({{ tech.versions.length }})</h2>
-        </template>
-        <UTable v-model:sorting="versionSorting" :data="versionRows" :columns="versionColumns" class="flex-1" />
-      </UCard>
+      <!-- Version Risk, Versions, Components, Version Constraints — kept in one card:
+           version rows carry live violation warnings cross-referenced against
+           Components and Version Constraints (see getVersionViolation), so these
+           stay visible together rather than split behind tabs. -->
+      <UCard>
+        <div class="divide-y divide-(--ui-border)">
+          <div class="first:pt-0 last:pb-0 py-6">
+            <h3 class="text-base font-semibold mb-3">Version Risk</h3>
+            <UTable
+              v-if="versionRiskData && versionRiskData.length > 0"
+              v-model:sorting="versionRiskSorting"
+              :data="versionRiskData"
+              :columns="versionRiskColumns"
+              class="flex-1"
+            />
+            <div v-else class="text-center text-(--ui-text-muted) py-8">
+              No versions found.
+            </div>
+          </div>
 
-      <!-- Components -->
-      <UCard v-if="tech.components && tech.components.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Components ({{ tech.components.length }})</h2>
-        </template>
-        <UTable v-model:sorting="componentSorting" :data="tech.components" :columns="componentColumns" class="flex-1" />
+          <div v-if="tech.versions && tech.versions.length > 0" class="first:pt-0 last:pb-0 py-6">
+            <h3 class="text-base font-semibold mb-3">Versions ({{ tech.versions.length }})</h3>
+            <UTable v-model:sorting="versionSorting" :data="versionRows" :columns="versionColumns" class="flex-1" />
+          </div>
+
+          <div v-if="tech.components && tech.components.length > 0" class="first:pt-0 last:pb-0 py-6">
+            <h3 class="text-base font-semibold mb-3">Components ({{ tech.components.length }})</h3>
+            <UTable v-model:sorting="componentSorting" :data="tech.components" :columns="componentColumns" class="flex-1" />
+          </div>
+
+          <div v-if="tech.constraints && tech.constraints.length > 0" class="first:pt-0 last:pb-0 py-6">
+            <h3 class="text-base font-semibold mb-3">Version Constraints ({{ tech.constraints.length }})</h3>
+            <div class="flex flex-wrap gap-2">
+              <UButton
+                v-for="vc in tech.constraints"
+                :key="vc.name"
+                :label="vc.name"
+                :to="`/version-constraints/${encodeURIComponent(vc.name)}`"
+                variant="subtle"
+                color="neutral"
+                size="sm"
+              >
+                <template #trailing>
+                  <UBadge :color="getSeverityColor(vc.severity)" variant="subtle" size="xs">
+                    {{ vc.severity }}
+                  </UBadge>
+                </template>
+              </UButton>
+            </div>
+          </div>
+        </div>
       </UCard>
 
       <!-- Systems -->
-      <UCard v-if="tech.systems && tech.systems.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Systems ({{ tech.systems.length }})</h2>
-        </template>
+      <div v-if="tech.systems && tech.systems.length > 0">
+        <h2 class="text-lg font-semibold mb-3">Systems ({{ tech.systems.length }})</h2>
         <div class="flex flex-wrap gap-2">
           <UButton
             v-for="system in tech.systems"
@@ -240,31 +211,7 @@
             size="sm"
           />
         </div>
-      </UCard>
-
-      <!-- Version Constraints -->
-      <UCard v-if="tech.constraints && tech.constraints.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Version Constraints ({{ tech.constraints.length }})</h2>
-        </template>
-        <div class="flex flex-wrap gap-2">
-          <UButton
-            v-for="vc in tech.constraints"
-            :key="vc.name"
-            :label="vc.name"
-            :to="`/version-constraints/${encodeURIComponent(vc.name)}`"
-            variant="subtle"
-            color="neutral"
-            size="sm"
-          >
-            <template #trailing>
-              <UBadge :color="getSeverityColor(vc.severity)" variant="subtle" size="xs">
-                {{ vc.severity }}
-              </UBadge>
-            </template>
-          </UButton>
-        </div>
-      </UCard>
+      </div>
     </template>
   </div>
 </template>
@@ -360,26 +307,6 @@ interface TechnologyResponse {
   data: TechnologyDetailData
 }
 
-function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    invest: 'success',
-    tolerate: 'warning',
-    migrate: 'warning',
-    eliminate: 'error'
-  }
-  return colors[category?.toLowerCase()] || 'neutral'
-}
-
-function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error',
-    error: 'error',
-    warning: 'warning',
-    info: 'neutral'
-  }
-  return colors[severity?.toLowerCase()] || 'neutral'
-}
-
 function getEolColor(status?: EOLStatusValue): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<EOLStatusValue, 'success' | 'warning' | 'error' | 'neutral'> = {
     active: 'success',
@@ -469,13 +396,6 @@ const versionColumns: TableColumn<VersionDetail>[] = [
     }
   }
 ]
-
-function getEnvironmentColor(environment: string | null | undefined): 'error' | 'warning' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'neutral'> = {
-    prod: 'error', staging: 'warning', test: 'neutral', dev: 'neutral'
-  }
-  return colors[environment || ''] || 'neutral'
-}
 
 const approvalColumns: TableColumn<TechnologyApproval>[] = [
   {
@@ -698,6 +618,19 @@ const timeCategory = computed(() => {
   const approval = tech.value?.technologyApprovals?.[0]
   return approval?.time || null
 })
+
+const statItems = computed(() => [
+  { label: 'Versions', value: distinctVersionCount.value },
+  { label: 'Components', value: tech.value?.components?.length || 0 },
+  { label: 'Systems', value: tech.value?.systems?.length || 0 }
+])
+
+const basicInfoItems = computed(() => [
+  { key: 'type', label: 'Type', value: tech.value?.type },
+  { key: 'domain', label: 'Domain', value: tech.value?.domain },
+  { key: 'vendor', label: 'Vendor', value: tech.value?.vendor },
+  { key: 'lastReviewed', label: 'Last Reviewed', value: tech.value?.lastReviewed ? formatDate(tech.value.lastReviewed) : null }
+])
 
 // Approval modal state
 const approvalModalOpen = ref(false)

@@ -31,32 +31,23 @@
     />
 
     <!-- Users Table -->
-    <UCard v-else>
-      <UTable
-        v-model:sorting="sorting"
-          :manual-sorting="true"
-        :data="users"
-        :columns="columns"
-        :loading="pending"
-        class="flex-1"
-      >
-        <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
-            No users found.
-          </div>
-        </template>
-      </UTable>
-
-      <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-        <UPagination
-          v-model:page="page"
-          :total="total"
-          :items-per-page="pageSize"
-          :sibling-count="1"
-          show-edges
-        />
-      </div>
-    </UCard>
+    <PaginatedTable
+      v-else
+      v-model:sorting="sorting"
+      v-model:page="page"
+      :manual-sorting="true"
+      :data="users"
+      :columns="columns"
+      :loading="pending"
+      :total="total"
+      :page-size="pageSize"
+    >
+      <template #empty>
+        <div class="text-center text-(--ui-text-muted) py-12">
+          No users found.
+        </div>
+      </template>
+    </PaginatedTable>
 
     <!-- Manage Teams Modal -->
     <UModal v-model:open="assignModalOpen" title="Manage Team Memberships" description="Toggle team memberships for this user.">
@@ -283,6 +274,7 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { ApiResponse } from '~~/types/api'
 
 const { getSortableHeader } = useSortableTable()
 const toast = useToast()
@@ -306,13 +298,6 @@ interface User {
   status?: string
   githubUsername?: string
   inviteToken?: string
-}
-
-interface UsersResponse {
-  success: boolean
-  data: User[]
-  count: number
-  total?: number
 }
 
 interface Team {
@@ -733,26 +718,14 @@ const columns: TableColumn<User>[] = [
   }
 ]
 
-const sorting = ref([])
-watch(sorting, () => { page.value = 1 })
-const page = ref(1)
-const pageSize = 20
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
 
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
+const { data, pending, error } = await useFetch<ApiResponse<User>>('/api/users', {
+  query: { limit: pageSize, offset, sortBy, sortOrder }
 })
 
-const { data, pending, error } = await useFetch<UsersResponse>('/api/users', {
-  query: queryParams
-})
-
-const users = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || data.value?.count || 0)
+const users = useApiData(data)
+const total = useApiCount(data)
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString()

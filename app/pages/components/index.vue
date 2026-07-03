@@ -34,55 +34,46 @@
     />
 
     <template v-else>
-      <UCard>
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-(--ui-border) mb-4">
-          <UInput
-            v-model="searchInput"
-            placeholder="Filter by name..."
-            icon="i-lucide-search"
-            class="max-w-sm"
-          />
-          <div class="flex flex-wrap items-center gap-4">
-            <USwitch
-              v-if="systemFilter"
-              v-model="showDirectOnly"
-              label="Direct only"
-              size="sm"
+      <PaginatedTable
+        v-model:sorting="sorting"
+        v-model:page="page"
+        :data="components"
+        :columns="columns"
+        :loading="pending"
+        :manual-sorting="true"
+        :on-select="openGroupedComponent"
+        :total="total"
+        :page-size="pageSize"
+      >
+        <template #header>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <UInput
+              v-model="searchInput"
+              placeholder="Filter by name..."
+              icon="i-lucide-search"
+              class="max-w-sm"
             />
-            <USwitch
-              v-model="showDevDependencies"
-              label="Show dev dependencies"
-              size="sm"
-            />
-          </div>
-        </div>
-
-        <UTable
-          v-model:sorting="sorting"
-          :data="components"
-          :columns="columns"
-          :loading="pending"
-          :manual-sorting="true"
-          :on-select="openGroupedComponent"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-12">
-              No components found.
+            <div class="flex flex-wrap items-center gap-4">
+              <USwitch
+                v-if="systemFilter"
+                v-model="showDirectOnly"
+                label="Direct only"
+                size="sm"
+              />
+              <USwitch
+                v-model="showDevDependencies"
+                label="Show dev dependencies"
+                size="sm"
+              />
             </div>
-          </template>
-        </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UCard>
+          </div>
+        </template>
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-12">
+            No components found.
+          </div>
+        </template>
+      </PaginatedTable>
 
       <ComponentVersionsModal
         v-model:open="versionsModalOpen"
@@ -262,8 +253,6 @@ const columns: TableColumn<GroupedComponent>[] = [
   }
 ]
 
-const sorting = ref([])
-
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 const systemFilter = computed(() => route.query.system as string | undefined)
@@ -294,25 +283,20 @@ function openGroupedComponent(_event: Event | null, row: { original: GroupedComp
   versionsModalOpen.value = true
 }
 
-const page = ref(1)
-const pageSize = 20
-
 const searchInput = ref('')
 const debouncedSearch = ref('')
-
-// Reset page when any filter changes
-watch([debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, showDirectOnly, sorting], () => { page.value = 1 })
 
 const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
 watch(searchInput, updateSearch)
 
-const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
-const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
+  resetOn: [debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, showDirectOnly]
+})
+
 const includeDev = computed(() => showDevDependencies.value ? undefined : 'false')
 // Global list (no system): always direct-only to keep result count manageable.
 // System list: respect the user toggle; default is to show all components.
 const direct = computed(() => (!systemFilter.value || showDirectOnly.value) ? 'true' : undefined)
-const offset = computed(() => (page.value - 1) * pageSize)
 
 // Pass individual refs/computeds as query values so Nuxt tracks each one
 // as a reactive dependency for the fetch key — passing a computed object
@@ -332,8 +316,8 @@ const { data, pending, error } = await useFetch<ApiResponse<GroupedComponent>>('
   },
 })
 
-const components = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || data.value?.count || 0)
+const components = useApiData(data)
+const total = useApiCount(data)
 
 useHead({ title: 'Components - Polaris' })
 </script>

@@ -4,6 +4,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { computed, defineComponent, ref, unref, watch } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ComponentsPage from '../../../../app/pages/components/index.vue'
+import { usePaginatedSorting } from '../../../../app/composables/usePaginatedSorting'
+import { useApiCount, useApiData } from '../../../../app/composables/useApiData'
 
 describe('components index page', () => {
   beforeEach(() => {
@@ -27,6 +29,9 @@ describe('components index page', () => {
     vi.stubGlobal('useSortableTable', () => ({
       getSortableHeader: () => 'sortable'
     }))
+    vi.stubGlobal('usePaginatedSorting', usePaginatedSorting)
+    vi.stubGlobal('useApiData', useApiData)
+    vi.stubGlobal('useApiCount', useApiCount)
 
     mount(defineComponent({
       components: { ComponentsPage },
@@ -46,7 +51,8 @@ describe('components index page', () => {
           UPagination: true,
           USwitch: true,
           UTable: { props: ['data'], template: '<div><slot name="empty" /></div>' },
-          UTooltip: { template: '<span><slot /><slot name="content" /></span>' }
+          UTooltip: { template: '<span><slot /><slot name="content" /></span>' },
+          PaginatedTable: { template: '<section><slot name="header" /><slot name="empty" /></section>' }
         }
       }
     })

@@ -32,71 +32,22 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Details</h2>
-          </template>
-          <div class="space-y-3">
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Scope</span>
-              <p class="font-medium">
-                {{ data.data.scope }}
-                <span v-if="data.data.subjectTeam"> — {{ data.data.subjectTeam }}</span>
-              </p>
-            </div>
-            <div v-if="data.data.versionRange">
-              <span class="text-sm text-(--ui-text-muted)">Version Range</span>
-              <p class="font-medium"><code>{{ data.data.versionRange }}</code></p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Severity</span>
-              <p class="font-medium">
-                <UBadge :color="getSeverityColor(data.data.severity)" variant="subtle">
-                  {{ data.data.severity }}
-                </UBadge>
-              </p>
-            </div>
-            <div>
-              <span class="text-sm text-(--ui-text-muted)">Status</span>
-              <p class="font-medium">{{ data.data.status }}</p>
-            </div>
-          </div>
-        </UCard>
-
-        <UCard v-if="data.data.subjectTeams && data.data.subjectTeams.length > 0">
-          <template #header>
-            <h2 class="text-lg font-semibold">Subject Teams ({{ data.data.subjectTeams.length }})</h2>
-          </template>
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-for="team in data.data.subjectTeams"
-              :key="team"
-              :label="team"
-              :to="`/teams/${encodeURIComponent(team)}`"
-              variant="subtle"
-              color="neutral"
-              size="sm"
-            />
-          </div>
-        </UCard>
-      </div>
-
-      <UCard v-if="data.data.governedTechnologies && data.data.governedTechnologies.length > 0">
+      <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold">Governed Technologies ({{ data.data.governedTechnologies.length }})</h2>
+          <h2 class="text-lg font-semibold">Details</h2>
         </template>
-        <div class="flex flex-wrap gap-2">
-          <UButton
-            v-for="tech in data.data.governedTechnologies"
-            :key="tech"
-            :label="tech"
-            :to="`/technologies/${encodeURIComponent(tech)}`"
-            variant="subtle"
-            color="neutral"
-            size="sm"
-          />
-        </div>
+        <EntityDescriptionList :items="detailsItems">
+          <template #versionRange="{ item }">
+            <p class="font-medium mt-0.5"><code>{{ item.value }}</code></p>
+          </template>
+          <template #severity="{ item }">
+            <p class="font-medium mt-0.5">
+              <UBadge :color="getSeverityColor(String(item.value))" variant="subtle">
+                {{ item.value }}
+              </UBadge>
+            </p>
+          </template>
+        </EntityDescriptionList>
       </UCard>
     </template>
   </div>
@@ -131,12 +82,32 @@ function getStatusColor(status: string): 'success' | 'warning' | 'error' | 'neut
   return colors[status?.toLowerCase()] || 'neutral'
 }
 
-function getSeverityColor(severity: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    critical: 'error', error: 'error', warning: 'warning', info: 'neutral'
-  }
-  return colors[severity?.toLowerCase()] || 'neutral'
-}
+const detailsItems = computed(() => {
+  const vc = data.value?.data
+  if (!vc) return []
+  return [
+    { key: 'scope', label: 'Scope', value: vc.subjectTeam ? `${vc.scope} — ${vc.subjectTeam}` : vc.scope },
+    ...(vc.versionRange ? [{ key: 'versionRange', label: 'Version Range', value: vc.versionRange }] : []),
+    { key: 'severity', label: 'Severity', value: vc.severity },
+    { key: 'status', label: 'Status', value: vc.status },
+    ...(vc.subjectTeams?.length
+      ? [{
+          key: 'subjectTeams',
+          label: `Subject Teams (${vc.subjectTeams.length})`,
+          tags: vc.subjectTeams.map(team => ({ label: team, to: `/teams/${encodeURIComponent(team)}` })),
+          span: 2 as const
+        }]
+      : []),
+    ...(vc.governedTechnologies?.length
+      ? [{
+          key: 'governedTechnologies',
+          label: `Governed Technologies (${vc.governedTechnologies.length})`,
+          tags: vc.governedTechnologies.map(tech => ({ label: tech, to: `/technologies/${encodeURIComponent(tech)}` })),
+          span: 2 as const
+        }]
+      : [])
+  ]
+})
 
 useHead({
   title: computed(() => data.value?.data ? `${data.value.data.name} - Polaris` : 'Version Constraint - Polaris')

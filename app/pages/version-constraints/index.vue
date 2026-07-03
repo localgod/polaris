@@ -22,32 +22,22 @@
     />
 
     <template v-else>
-      <UCard>
-        <UTable
-          v-model:sorting="sorting"
-          :manual-sorting="true"
-          :data="constraints"
-          :columns="columns"
-          :loading="pending"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-12">
-              No version constraints found.
-            </div>
-          </template>
-        </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UCard>
+      <PaginatedTable
+        v-model:sorting="sorting"
+        v-model:page="page"
+        :manual-sorting="true"
+        :data="constraints"
+        :columns="columns"
+        :loading="pending"
+        :total="total"
+        :page-size="pageSize"
+      >
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-12">
+            No version constraints found.
+          </div>
+        </template>
+      </PaginatedTable>
     </template>
 
     <!-- Create Modal -->
@@ -183,6 +173,7 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { ApiResponse } from '~~/types/api'
 
 const { data: session } = useAuth()
 const { isSuperuser } = useEffectiveRole()
@@ -202,13 +193,6 @@ interface VersionConstraint {
   technologyCount: number
 }
 
-interface ApiResponse {
-  success: boolean
-  data: VersionConstraint[]
-  count: number
-  total?: number
-}
-
 const userTeams = computed(() =>
   (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
 )
@@ -219,13 +203,6 @@ function canEdit(vc: VersionConstraint): boolean {
     return userTeams.value.includes(vc.subjectTeam)
   }
   return false
-}
-
-function getSeverityColor(severity: string): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error', error: 'error', warning: 'warning', info: 'neutral'
-  }
-  return colors[severity] || 'neutral'
 }
 
 const columns: TableColumn<VersionConstraint>[] = [
@@ -319,26 +296,14 @@ const columns: TableColumn<VersionConstraint>[] = [
   }
 ]
 
-const sorting = ref([])
-watch(sorting, () => { page.value = 1 })
-const page = ref(1)
-const pageSize = 20
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
 
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = { limit: pageSize, offset: (page.value - 1) * pageSize }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
+const { data, pending, error } = await useFetch<ApiResponse<VersionConstraint>>('/api/version-constraints', {
+  query: { limit: pageSize, offset, sortBy, sortOrder }
 })
 
-const { data, pending, error } = await useFetch<ApiResponse>('/api/version-constraints', {
-  query: queryParams
-})
-
-const constraints = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || data.value?.count || 0)
+const constraints = useApiData(data)
+const total = useApiCount(data)
 
 // Create modal
 const showCreateModal = ref(false)
