@@ -104,6 +104,8 @@ A local Qwen 2.5 7B model runs via Docker Model Runner and is available as a set
 | ---- | -------------- |
 | `run_tests` | `npm test` via Bash — returns a diagnosis, not raw output |
 | `run_lint` | `npm run lint` via Bash — returns grouped issues |
+| `run_mdlint` | `npm run mdlint` via Bash — returns grouped issues |
+| `generate_docs` | `npm run docs:api` via Bash — reports what changed or diagnoses the failure |
 | `draft_commit_message` | Writing commit messages manually — pass `git diff HEAD` |
 | `create_pr_body` | Writing PR descriptions manually — pass `git diff main...HEAD` |
 | `draft_cypher` | Writing Cypher queries from scratch — describe what you need in plain English |

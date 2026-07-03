@@ -73,8 +73,8 @@ export class UserService {
    * 
    * @returns Array of user summaries
    */
-  async findAllSummary(sort?: SortParams): Promise<UserSummary[]> {
-    return await this.userRepo.findAllSummary(sort)
+  async findAllSummary(sort?: SortParams, search?: string): Promise<UserSummary[]> {
+    return await this.userRepo.findAllSummary(sort, search)
   }
 
   /**

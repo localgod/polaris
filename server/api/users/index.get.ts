@@ -23,6 +23,22 @@ import { userService } from '../../services/singletons'
  *           type: integer
  *           default: 0
  *         description: Pagination offset
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive search on user email or name
  *     responses:
  *       200:
  *         description: Successfully retrieved users
@@ -64,7 +80,7 @@ export default defineEventHandler(async (event) => {
     const allUsers = await userService.findAllSummary({
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
-    })
+    }, query.search as string | undefined)
     const total = allUsers.length
     const paginatedUsers = allUsers.slice(offset, offset + limit)
     

@@ -77,8 +77,8 @@ export class ComponentService {
     return await this.componentRepo.findDependencies(identity, filters)
   }
 
-  async getLinkSuggestions(skip: number, limit: number): Promise<{ data: LinkSuggestion[]; count: number; total: number }> {
-    const { data, total } = await this.componentRepo.getLinkSuggestions(skip, limit)
+  async getLinkSuggestions(skip: number, limit: number, search?: string): Promise<{ data: LinkSuggestion[]; count: number; total: number }> {
+    const { data, total } = await this.componentRepo.getLinkSuggestions(skip, limit, search)
     return { data, count: data.length, total }
   }
 

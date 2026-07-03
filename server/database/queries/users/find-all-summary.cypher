@@ -1,4 +1,5 @@
 MATCH (u:User)
+WHERE $search IS NULL OR toLower(u.email) CONTAINS toLower($search) OR toLower(u.name) CONTAINS toLower($search)
 OPTIONAL MATCH (u)-[:MEMBER_OF]->(t:Team)
 WITH u, count(t) as teamCount
 RETURN u.id as id,

@@ -291,5 +291,63 @@ No preamble. Bullet list.`;
   }
 );
 
+// 9. Run markdown lint and summarize
+server.tool(
+  "run_mdlint",
+  "Run markdownlint and return a grouped summary of issues. Prefer this over running npm run mdlint manually.",
+  {
+    fix: z.boolean().optional().describe("Auto-fix fixable issues before summarizing (default: false)"),
+    path: z.string().optional().describe("Limit lint to a specific file or directory (default: **/*.md)"),
+  },
+  async ({ fix = false, path }) => {
+    const args = [path ?? "**/*.md", "--ignore", "node_modules"];
+    if (fix) args.push("--fix");
+    const { stdout, stderr, exitCode } = await runCommand("npx", ["markdownlint", ...args]);
+    const raw = (stdout + "\n" + stderr).trim();
+
+    if (exitCode === 0) return text("No markdown lint errors.");
+
+    const system = `${POLARIS_CONTEXT}
+
+Analyze markdownlint output and produce a grouped, actionable summary:
+- Group violations by rule (e.g. "MD012 × 3 in docs/") with counts
+- For each group, list affected files and line numbers
+- Note which groups are auto-fixable with --fix
+- End with the fastest resolution path
+
+No preamble. Bullet list.`;
+
+    return text(await callModel(system, `markdownlint output:\n${raw.slice(-6000)}`));
+  }
+);
+
+// 10. Generate OpenAPI docs
+server.tool(
+  "generate_docs",
+  "Generate the OpenAPI docs (public/openapi.json) and report whether anything changed, or diagnose the failure. Prefer this over running npm run docs:api manually.",
+  {},
+  async () => {
+    const { stdout, stderr, exitCode } = await runCommand("npm", ["run", "docs:api"]);
+    const raw = (stdout + "\n" + stderr).trim();
+
+    if (exitCode === 0) {
+      const diff = await runCommand("git", ["diff", "--stat", "--", "public/openapi.json"]);
+      const changed = diff.stdout.trim();
+      return text(changed ? `OpenAPI docs generated — changed:\n${changed}` : "OpenAPI docs generated — no changes.");
+    }
+
+    const system = `${POLARIS_CONTEXT}
+
+Analyze the error output from generating OpenAPI docs (server/scripts/generate-openapi.ts) and:
+- State the root cause in one sentence (e.g. bad route/schema definition, missing import, type error)
+- Point to the specific file/line if visible in the output
+- Suggest the fix
+
+No preamble. Bullet list.`;
+
+    return text(await callModel(system, `Output:\n${raw.slice(-8000)}`));
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);

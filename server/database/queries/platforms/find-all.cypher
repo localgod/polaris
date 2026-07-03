@@ -1,4 +1,5 @@
 MATCH (p:Platform)
+WHERE $search IS NULL OR toLower(p.name) CONTAINS toLower($search)
 // Pin a single, deterministic steward team (alphabetically first) before
 // the other OPTIONAL MATCH so a Platform with more than one steward doesn't
 // multiply into duplicate rows and inflate `total` below (same class of bug

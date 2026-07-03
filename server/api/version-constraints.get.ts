@@ -16,7 +16,9 @@ export default defineEventHandler(async (event) => {
     const status = query.status as string | undefined
 
     const result = await versionConstraintService.findAll({
-      scope, status, limit, offset,
+      scope, status,
+      search: query.search as string | undefined,
+      limit, offset,
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
     })

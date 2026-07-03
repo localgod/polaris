@@ -42,6 +42,9 @@
       :total="total"
       :page-size="pageSize"
     >
+      <template #header>
+        <TableSearchHeader v-model="searchInput" />
+      </template>
       <template #empty>
         <div class="text-center text-(--ui-text-muted) py-12">
           No platforms found.
@@ -412,10 +415,22 @@ async function onSetTime(event: FormSubmitEvent<TimeSchema>) {
   }
 }
 
-const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
+const { searchInput, debouncedSearch } = useTableSearch()
 
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
+  resetOn: [debouncedSearch]
+})
+
+// Pass individual refs/computeds as query values so each one is tracked
+// as a reactive dependency — wrapping the query in computed() causes hydration issues
 const { data, pending, error } = await useFetch<ApiResponse<Platform>>('/api/platforms', {
-  query: { limit: pageSize, offset, sortBy, sortOrder }
+  query: {
+    limit: pageSize,
+    offset,
+    sortBy,
+    sortOrder,
+    search: debouncedSearch
+  }
 })
 
 const platforms = useApiData(data)

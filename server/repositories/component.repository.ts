@@ -375,14 +375,14 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
-  async getLinkSuggestions(skip: number, limit: number): Promise<{ data: LinkSuggestion[]; total: number }> {
+  async getLinkSuggestions(skip: number, limit: number, search?: string): Promise<{ data: LinkSuggestion[]; total: number }> {
     const countQuery = await loadQuery('components/link-suggestions-count.cypher')
     const dataQuery = await loadQuery('components/link-suggestions.cypher')
 
-    const { records: countRecords } = await this.executeQuery(countQuery, {})
+    const { records: countRecords } = await this.executeQuery(countQuery, { search: search || null })
     const total = countRecords.length > 0 ? countRecords[0]!.get('total').toNumber() : 0
 
-    const { records } = await this.executeQuery(dataQuery, { skip, limit })
+    const { records } = await this.executeQuery(dataQuery, { skip, limit, search: search || null })
     return {
       data: records.map(record => ({
         purl: record.get('purl') as string,

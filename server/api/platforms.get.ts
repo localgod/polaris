@@ -22,6 +22,22 @@ import { platformService } from '../services/singletons'
  *           type: integer
  *           default: 0
  *         description: Pagination offset
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive substring match on platform name
  *     responses:
  *       200:
  *         description: Successfully retrieved platforms
@@ -61,7 +77,8 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Platform>> 
         sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
       },
       limit,
-      offset
+      offset,
+      query.search as string | undefined
     )
 
     return {

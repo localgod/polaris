@@ -8,22 +8,24 @@
       />
       <div class="flex items-center gap-2">
         <!-- View mode toggle -->
-        <UButtonGroup size="sm">
+        <div class="flex gap-1 bg-(--ui-bg-elevated) rounded-md p-1">
           <UButton
             icon="i-lucide-table"
             :color="viewMode === 'table' ? 'primary' : 'neutral'"
-            :variant="viewMode === 'table' ? 'solid' : 'outline'"
+            :variant="viewMode === 'table' ? 'solid' : 'ghost'"
+            size="sm"
             aria-label="Table view"
             @click="viewMode = 'table'"
           />
           <UButton
             icon="i-lucide-radar"
             :color="viewMode === 'radar' ? 'primary' : 'neutral'"
-            :variant="viewMode === 'radar' ? 'solid' : 'outline'"
+            :variant="viewMode === 'radar' ? 'solid' : 'ghost'"
+            size="sm"
             aria-label="Radar view"
             @click="viewMode = 'radar'"
           />
-        </UButtonGroup>
+        </div>
         <UButton
           v-if="isSuperuser"
           size="sm"
@@ -56,6 +58,9 @@
         :total="total"
         :page-size="pageSize"
       >
+        <template #header>
+          <TableSearchHeader v-model="searchInput" />
+        </template>
         <template #empty>
           <div class="text-center text-(--ui-text-muted) py-12">
             No technologies found.
@@ -715,10 +720,22 @@ async function confirmLinkComponent() {
   }
 }
 
-const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
+const { searchInput, debouncedSearch } = useTableSearch()
 
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
+  resetOn: [debouncedSearch]
+})
+
+// Pass individual refs/computeds as query values so each one is tracked
+// as a reactive dependency — wrapping the query in computed() causes hydration issues
 const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/technologies', {
-  query: { limit: pageSize, offset, sortBy, sortOrder }
+  query: {
+    limit: pageSize,
+    offset,
+    sortBy,
+    sortOrder,
+    search: debouncedSearch
+  }
 })
 
 const technologies = useApiData(data)
