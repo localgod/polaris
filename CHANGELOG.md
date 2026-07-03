@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.51] - 2026-07-03
+
+## What's Changed
+
+- refactor: entity page density — consolidate table/description patterns @localgod (#732)
+
+## 🔧 Maintenance
+
+- chore: release v0.6.49 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#729)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.50...v0.6.51
+
 ## [0.6.49] - 2026-07-02
 
 ## What's Changed
