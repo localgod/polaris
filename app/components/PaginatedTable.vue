@@ -23,7 +23,7 @@
       <UPagination
         :page="page"
         :total="total!"
-        :items-per-page="pageSize!"
+        :items-per-page="pageSize ?? 20"
         :sibling-count="1"
         show-edges
         @update:page="(value: number) => emit('update:page', value)"
