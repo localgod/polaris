@@ -21,60 +21,43 @@
         :description="data.data.description"
         :links="[{ label: 'Back to Teams', to: '/teams', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
       />
+      <p v-if="data.data.responsibilityArea" class="text-sm text-(--ui-text-muted) -mt-4">
+        Responsibility: <span class="text-(--ui-text)">{{ data.data.responsibilityArea }}</span>
+      </p>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Technologies Owned</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.technologyCount || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Systems</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.systemCount || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Members</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.memberCount || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Responsibility</p>
-            <p class="text-2xl font-bold mt-1">{{ data.data.responsibilityArea || '—' }}</p>
-          </div>
-        </UCard>
-      </div>
+      <EntityStatStrip :items="statItems" />
 
-      <UCard v-if="data.data.members && data.data.members.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Members ({{ data.data.members.length }})</h2>
-        </template>
-        <UTable v-model:sorting="memberSorting" :data="data.data.members" :columns="memberColumns" class="flex-1" />
-      </UCard>
-
-      <UCard v-if="data.data.technologies && data.data.technologies.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Technologies ({{ data.data.technologies.length }})</h2>
-        </template>
-        <UTable v-model:sorting="technologySorting" :data="data.data.technologies" :columns="technologyColumns" class="flex-1" />
-      </UCard>
-
-      <UCard v-if="data.data.systems && data.data.systems.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Systems ({{ data.data.systems.length }})</h2>
-        </template>
-        <UTable v-model:sorting="systemSorting" :data="data.data.systems" :columns="systemColumns" class="flex-1" />
-      </UCard>
-
-      <UCard v-if="data.data.approvals && data.data.approvals.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Technology Approvals ({{ data.data.approvals.length }})</h2>
-        </template>
-        <UTable v-model:sorting="approvalSorting" :data="data.data.approvals" :columns="approvalColumns" class="flex-1" />
+      <UCard>
+        <UTabs :items="tabItems">
+          <template #members>
+            <UTable v-model:sorting="memberSorting" :data="data.data.members" :columns="memberColumns" class="mt-3">
+              <template #empty>
+                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No members.</p>
+              </template>
+            </UTable>
+          </template>
+          <template #technologies>
+            <UTable v-model:sorting="technologySorting" :data="data.data.technologies" :columns="technologyColumns" class="mt-3">
+              <template #empty>
+                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No technologies owned.</p>
+              </template>
+            </UTable>
+          </template>
+          <template #systems>
+            <UTable v-model:sorting="systemSorting" :data="data.data.systems" :columns="systemColumns" class="mt-3">
+              <template #empty>
+                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No systems.</p>
+              </template>
+            </UTable>
+          </template>
+          <template #approvals>
+            <UTable v-model:sorting="approvalSorting" :data="data.data.approvals" :columns="approvalColumns" class="mt-3">
+              <template #empty>
+                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No technology approvals yet.</p>
+              </template>
+            </UTable>
+          </template>
+        </UTabs>
       </UCard>
     </template>
   </div>
@@ -134,16 +117,6 @@ interface TeamDetail {
 interface TeamResponse {
   success: boolean
   data: TeamDetail
-}
-
-function getTimeCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    invest: 'success',
-    tolerate: 'warning',
-    migrate: 'warning',
-    eliminate: 'error'
-  }
-  return colors[category?.toLowerCase()] || 'neutral'
 }
 
 const memberColumns: TableColumn<Member>[] = [
@@ -254,6 +227,19 @@ const approvalColumns: TableColumn<Approval>[] = [
 ]
 
 const { data, pending, error } = await useFetch<TeamResponse>(() => `/api/teams/${encodeURIComponent(route.params.name as string)}`)
+
+const statItems = computed(() => [
+  { label: 'Technologies Owned', value: data.value?.data?.technologyCount || 0 },
+  { label: 'Systems', value: data.value?.data?.systemCount || 0 },
+  { label: 'Members', value: data.value?.data?.memberCount || 0 }
+])
+
+const tabItems = computed(() => [
+  { label: `Members (${data.value?.data?.members?.length ?? 0})`, slot: 'members' as const },
+  { label: `Technologies (${data.value?.data?.technologies?.length ?? 0})`, slot: 'technologies' as const },
+  { label: `Systems (${data.value?.data?.systems?.length ?? 0})`, slot: 'systems' as const },
+  { label: `Approvals (${data.value?.data?.approvals?.length ?? 0})`, slot: 'approvals' as const }
+])
 
 useHead({
   title: computed(() => data.value?.data ? `${data.value.data.name} - Polaris` : 'Team - Polaris')

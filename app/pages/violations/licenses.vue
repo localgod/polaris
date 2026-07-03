@@ -16,49 +16,39 @@
     />
 
     <template v-else>
-      <UCard>
-        <div class="flex items-center gap-2 pb-4 border-b border-(--ui-border) mb-4">
+      <PaginatedTable
+        v-model:sorting="sorting"
+        v-model:page="page"
+        :data="violations"
+        :columns="columns"
+        :loading="pending"
+        :manual-sorting="true"
+        :total="total"
+        :page-size="pageSize"
+      >
+        <template #header>
           <UInput
             v-model="searchInput"
             placeholder="Filter by component, license, system, or team..."
             icon="i-lucide-search"
             class="max-w-sm"
           />
-        </div>
-
-        <UTable
-          v-model:sorting="sorting"
-          :data="violations"
-          :columns="columns"
-          :loading="pending"
-          :manual-sorting="true"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center py-8">
-              <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
-              <h3 class="mt-4">No License Violations!</h3>
-              <p class="text-(--ui-text-muted) mt-2">All components use allowed licenses.</p>
-            </div>
-          </template>
-        </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UCard>
+        </template>
+        <template #empty>
+          <div class="text-center py-8">
+            <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
+            <h3 class="mt-4">No License Violations!</h3>
+            <p class="text-(--ui-text-muted) mt-2">All components use allowed licenses.</p>
+          </div>
+        </template>
+      </PaginatedTable>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, LicenseViolation } from '~~/types/api'
 
@@ -68,32 +58,6 @@ const { getSortableHeader } = useSortableTable()
 
 const UBadge = resolveComponent('UBadge')
 const NuxtLink = resolveComponent('NuxtLink')
-
-function getCategoryColor(category: string): 'success' | 'warning' | 'error' | 'neutral' {
-  const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
-    permissive: 'success',
-    'weak-copyleft': 'warning',
-    copyleft: 'warning',
-    'strong-copyleft': 'error',
-    proprietary: 'error',
-    'public-domain': 'success'
-  }
-  return colors[category?.toLowerCase()] || 'neutral'
-}
-
-function getCriticalityColor(criticality: string | null): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error', high: 'warning', medium: 'success', low: 'neutral'
-  }
-  return colors[criticality || ''] || 'neutral'
-}
-
-function getEnvironmentColor(environment: string | null): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    prod: 'error', staging: 'warning', test: 'neutral', dev: 'neutral'
-  }
-  return colors[environment || ''] || 'neutral'
-}
 
 const columns: TableColumn<LicenseViolation>[] = [
   {
@@ -161,50 +125,20 @@ const columns: TableColumn<LicenseViolation>[] = [
   }
 ]
 
-const sorting = ref<{ id: string; desc: boolean }[]>([])
-
-watch(sorting, () => { page.value = 1 })
-
-const page = ref(1)
-const pageSize = 20
-
 const searchInput = ref('')
 const debouncedSearch = ref('')
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-watch(searchInput, (value) => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    debouncedSearch.value = value
-    page.value = 1
-  }, 300)
-})
+const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
+watch(searchInput, updateSearch)
 
-onBeforeUnmount(() => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-})
-
-const queryParams = computed(() => {
-  const params: Record<string, string | number> = {
-    limit: pageSize,
-    offset: (page.value - 1) * pageSize
-  }
-  if (debouncedSearch.value) {
-    params.search = debouncedSearch.value
-  }
-  if (sorting.value.length) {
-    params.sortBy = sorting.value[0].id
-    params.sortOrder = sorting.value[0].desc ? 'desc' : 'asc'
-  }
-  return params
-})
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({ resetOn: [debouncedSearch] })
 
 const { data, pending, error } = await useFetch<ApiResponse<LicenseViolation>>('/api/licenses/violations', {
-  query: queryParams
+  query: { limit: pageSize, offset, sortBy, sortOrder, search: debouncedSearch }
 })
 
-const violations = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || 0)
+const violations = useApiData(data)
+const total = useApiCount(data)
 
 useHead({ title: 'License Violations - Polaris' })
 </script>

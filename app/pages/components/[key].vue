@@ -39,33 +39,12 @@
         <div class="space-y-6 xl:col-span-2">
           <UCard>
             <template #header>
-              <div>
-                <div>
-                  <h2 class="text-lg font-semibold">Overview</h2>
-                  <p class="text-sm text-(--ui-text-muted)">Canonical component data stored by Polaris.</p>
-                </div>
-              </div>
+              <h2 class="text-lg font-semibold">Overview</h2>
+              <p class="text-sm text-(--ui-text-muted)">Canonical component data stored by Polaris.</p>
             </template>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Version</span>
-                <p class="font-medium break-all">{{ component.version }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Package Manager</span>
-                <p class="font-medium">{{ component.packageManager || '—' }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Type</span>
-                <p class="font-medium">{{ component.type || '—' }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Systems</span>
-                <p class="font-medium">{{ component.systemCount }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Licenses</span>
+            <EntityDescriptionList :items="overviewItems">
+              <template #licenses="{ item }">
                 <div v-if="component.licenses.length > 0" class="mt-1 flex flex-wrap gap-2">
                   <UBadge
                     v-for="license in component.licenses"
@@ -76,23 +55,17 @@
                     {{ license.id || license.name }}
                   </UBadge>
                 </div>
-                <p v-else class="font-medium text-(--ui-text-muted)">No license information</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Direct Dependencies</span>
-                <p class="font-medium">{{ directDependencyCount }}</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">Technology</span>
-                <p v-if="component.technologyName" class="font-medium">
+                <p v-else class="font-medium text-(--ui-text-muted)">{{ item.value }}</p>
+              </template>
+              <template #technology="{ item }">
+                <p v-if="component.technologyName" class="font-medium mt-0.5">
                   <NuxtLink :to="`/technologies/${encodeURIComponent(component.technologyName)}`" class="hover:underline">
                     {{ component.technologyName }}
                   </NuxtLink>
                 </p>
-                <p v-else class="text-(--ui-text-muted)">Not linked</p>
-              </div>
-              <div>
-                <span class="text-sm text-(--ui-text-muted)">External Signals</span>
+                <p v-else class="text-(--ui-text-muted) mt-0.5">{{ item.value }}</p>
+              </template>
+              <template #externalSignals>
                 <div class="mt-1 flex flex-wrap gap-2">
                   <UBadge v-if="component.packageMetadata?.status === 'available'" color="success" variant="subtle">
                     {{ getPackageSourceLabel(component.packageMetadata.source.name) }}
@@ -108,164 +81,175 @@
                   </UBadge>
                   <span v-if="!hasExternalSignals" class="font-medium text-(--ui-text-muted)">None</span>
                 </div>
-              </div>
-            </div>
+              </template>
+              <template #purl="{ item }">
+                <p class="mt-0.5"><code class="break-all">{{ item.value }}</code></p>
+              </template>
+              <template #cpe="{ item }">
+                <p class="mt-0.5"><code class="break-all">{{ item.value }}</code></p>
+              </template>
+              <template #bomRef="{ item }">
+                <p class="mt-0.5"><code class="break-all">{{ item.value }}</code></p>
+              </template>
+              <template #references>
+                <div class="mt-1 space-y-2">
+                  <UButton
+                    v-if="component.homepage"
+                    :to="component.homepage"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    label="Homepage"
+                    icon="i-lucide-external-link"
+                    variant="outline"
+                    size="sm"
+                  />
+                  <div v-if="component.externalReferences.length > 0" class="flex flex-wrap gap-2">
+                    <UButton
+                      v-for="reference in component.externalReferences"
+                      :key="`${reference.type}:${reference.url}`"
+                      :to="reference.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      :label="reference.type"
+                      icon="i-lucide-external-link"
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              </template>
+            </EntityDescriptionList>
           </UCard>
 
-          <UCard v-if="component.purl || component.cpe || component.bomRef">
-            <template #header>
-              <h2 class="text-lg font-semibold">Identifiers</h2>
-            </template>
-            <div class="space-y-3">
-              <div v-if="component.purl">
-                <span class="text-sm text-(--ui-text-muted)">Package URL</span>
-                <p><code class="break-all">{{ component.purl }}</code></p>
-              </div>
-              <div v-if="component.cpe">
-                <span class="text-sm text-(--ui-text-muted)">CPE</span>
-                <p><code class="break-all">{{ component.cpe }}</code></p>
-              </div>
-              <div v-if="component.bomRef && component.bomRef !== component.purl">
-                <span class="text-sm text-(--ui-text-muted)">BOM Reference</span>
-                <p><code class="break-all">{{ component.bomRef }}</code></p>
-              </div>
-            </div>
-          </UCard>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-6">
-            <UCard>
-              <template #header>
-                <div class="flex items-center justify-between gap-3">
+          <UCard>
+            <div class="divide-y divide-(--ui-border)">
+              <div class="first:pt-0 last:pb-0 py-6">
+                <div class="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <h2 class="text-lg font-semibold">Maintenance</h2>
+                    <h3 class="text-base font-semibold">Maintenance</h3>
                     <p class="text-xs text-(--ui-text-muted)">Derived from available component and registry data</p>
                   </div>
                   <UBadge :color="getMaintenanceHealthColor(component.maintenanceHealth?.status)" variant="subtle">
                     {{ getMaintenanceHealthLabel(component.maintenanceHealth?.status) }}
                   </UBadge>
                 </div>
-              </template>
 
-              <div class="space-y-4">
-                <UAlert
-                  v-if="!component.maintenanceHealth || component.maintenanceHealth.status === 'unknown'"
-                  color="neutral"
-                  variant="subtle"
-                  icon="i-lucide-circle-help"
-                  title="Maintenance health unknown"
-                  :description="getMaintenanceReasonDescription(component.maintenanceHealth?.reasonCodes[0])"
-                />
+                <div class="space-y-4">
+                  <UAlert
+                    v-if="!component.maintenanceHealth || component.maintenanceHealth.status === 'unknown'"
+                    color="neutral"
+                    variant="subtle"
+                    icon="i-lucide-circle-help"
+                    title="Maintenance health unknown"
+                    :description="getMaintenanceReasonDescription(component.maintenanceHealth?.reasonCodes[0])"
+                  />
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">Confidence</span>
-                    <p class="font-medium">{{ getMaintenanceConfidenceLabel(component.maintenanceHealth?.confidence) }}</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">Confidence</span>
+                      <p class="font-medium">{{ getMaintenanceConfidenceLabel(component.maintenanceHealth?.confidence) }}</p>
+                    </div>
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">Version Age</span>
+                      <p class="font-medium">{{ formatAge(component.maintenanceHealth?.ageInDays) }}</p>
+                    </div>
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">Update Status</span>
+                      <p class="font-medium">{{ getMaintenanceUpdateLabel(component.maintenanceHealth?.updateType) }}</p>
+                    </div>
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">Recent Activity</span>
+                      <p class="font-medium">{{ formatNullableBoolean(component.maintenanceHealth?.recentActivity) }}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">Version Age</span>
-                    <p class="font-medium">{{ formatAge(component.maintenanceHealth?.ageInDays) }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">Update Status</span>
-                    <p class="font-medium">{{ getMaintenanceUpdateLabel(component.maintenanceHealth?.updateType) }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">Recent Activity</span>
-                    <p class="font-medium">{{ formatNullableBoolean(component.maintenanceHealth?.recentActivity) }}</p>
-                  </div>
-                </div>
 
-                <div v-if="component.maintenanceHealth?.reasonCodes.length">
-                  <span class="text-sm text-(--ui-text-muted)">Reasons</span>
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <UBadge
-                      v-for="reason in component.maintenanceHealth.reasonCodes.slice(0, 3)"
-                      :key="reason"
-                      color="neutral"
-                      variant="subtle"
-                    >
-                      {{ getMaintenanceReasonLabel(reason) }}
-                    </UBadge>
+                  <div v-if="component.maintenanceHealth?.reasonCodes.length">
+                    <span class="text-sm text-(--ui-text-muted)">Reasons</span>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <UBadge
+                        v-for="reason in component.maintenanceHealth.reasonCodes.slice(0, 3)"
+                        :key="reason"
+                        color="neutral"
+                        variant="subtle"
+                      >
+                        {{ getMaintenanceReasonLabel(reason) }}
+                      </UBadge>
+                    </div>
                   </div>
                 </div>
               </div>
-            </UCard>
 
-            <UCard>
-              <template #header>
-                <div class="flex items-center justify-between gap-3">
+              <div class="first:pt-0 last:pb-0 py-6">
+                <div class="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <h2 class="text-lg font-semibold">Lifecycle</h2>
+                    <h3 class="text-base font-semibold">Lifecycle</h3>
                     <p class="text-xs text-(--ui-text-muted)">Source: endoflife.date</p>
                   </div>
                   <UBadge :color="getEolColor(component.eol?.status)" variant="subtle">
                     {{ getEolLabel(component.eol?.status) }}
                   </UBadge>
                 </div>
-              </template>
 
-              <div class="space-y-4">
-                <UAlert
-                  v-if="!component.eol || component.eol.status === 'unknown'"
-                  color="neutral"
-                  variant="subtle"
-                  icon="i-lucide-circle-help"
-                  title="No lifecycle match available"
-                  :description="getEolUnknownDescription(component.eol?.reason)"
-                />
+                <div class="space-y-4">
+                  <UAlert
+                    v-if="!component.eol || component.eol.status === 'unknown'"
+                    color="neutral"
+                    variant="subtle"
+                    icon="i-lucide-circle-help"
+                    title="No lifecycle match available"
+                    :description="getEolUnknownDescription(component.eol?.reason)"
+                  />
 
-                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                  <div v-if="showLifecycleProduct">
-                    <span class="text-sm text-(--ui-text-muted)">Matched Product</span>
-                    <p class="font-medium">{{ lifecycleProductLabel }}</p>
+                  <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div v-if="showLifecycleProduct">
+                      <span class="text-sm text-(--ui-text-muted)">Matched Product</span>
+                      <p class="font-medium">{{ lifecycleProductLabel }}</p>
+                    </div>
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">Matched Cycle</span>
+                      <p class="font-medium">{{ component.eol.matchedCycle || '—' }}</p>
+                    </div>
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">End of Life</span>
+                      <p class="font-medium">{{ component.eol.eolDate ? formatDate(component.eol.eolDate) : '—' }}</p>
+                    </div>
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">Active Support Ends</span>
+                      <p class="font-medium">{{ component.eol.supportEndDate ? formatDate(component.eol.supportEndDate) : '—' }}</p>
+                    </div>
+                    <div>
+                      <span class="text-sm text-(--ui-text-muted)">LTS</span>
+                      <p class="font-medium">{{ component.eol.lts === null ? '—' : component.eol.lts ? 'Yes' : 'No' }}</p>
+                    </div>
+                    <div v-if="showEolLatestVersion">
+                      <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
+                      <p class="font-medium">{{ component.eol.latestVersion || '—' }}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">Matched Cycle</span>
-                    <p class="font-medium">{{ component.eol.matchedCycle || '—' }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">End of Life</span>
-                    <p class="font-medium">{{ component.eol.eolDate ? formatDate(component.eol.eolDate) : '—' }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">Active Support Ends</span>
-                    <p class="font-medium">{{ component.eol.supportEndDate ? formatDate(component.eol.supportEndDate) : '—' }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm text-(--ui-text-muted)">LTS</span>
-                    <p class="font-medium">{{ component.eol.lts === null ? '—' : component.eol.lts ? 'Yes' : 'No' }}</p>
-                  </div>
-                  <div v-if="showEolLatestVersion">
-                    <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
-                    <p class="font-medium">{{ component.eol.latestVersion || '—' }}</p>
-                  </div>
+
+                  <UButton
+                    v-if="component.eol?.source.url"
+                    :to="component.eol.source.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    label="Open endoflife.date"
+                    icon="i-lucide-external-link"
+                    variant="outline"
+                    size="sm"
+                  />
                 </div>
-
-                <UButton
-                  v-if="component.eol?.source.url"
-                  :to="component.eol.source.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  label="Open endoflife.date"
-                  icon="i-lucide-external-link"
-                  variant="outline"
-                  size="sm"
-                />
               </div>
-            </UCard>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-3">
+              <div class="first:pt-0 last:pb-0 py-6">
+                <div class="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h2 class="text-lg font-semibold">Registry</h2>
+                <h3 class="text-base font-semibold">Registry</h3>
                 <p class="text-xs text-(--ui-text-muted)">Source: {{ getPackageSourceLabel(component.packageMetadata?.source.name) }}</p>
               </div>
               <UBadge :color="getPackageMetadataColor(component.packageMetadata?.status)" variant="subtle">
                 {{ getPackageMetadataLabel(component.packageMetadata?.status) }}
               </UBadge>
-            </div>
-          </template>
+                </div>
 
           <div class="space-y-4">
             <UAlert
@@ -287,7 +271,7 @@
                 :description="component.packageMetadata.deprecatedReason || `${getPackageSourceLabel(component.packageMetadata.source.name)} reports this package version as deprecated.`"
               />
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <span class="text-sm text-(--ui-text-muted)">Ecosystem</span>
                   <p class="font-medium">{{ component.packageMetadata.system || '—' }}</p>
@@ -355,20 +339,18 @@
               size="sm"
             />
           </div>
-        </UCard>
+              </div>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-3">
+              <div class="first:pt-0 last:pb-0 py-6">
+                <div class="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h2 class="text-lg font-semibold">Known Vulnerabilities</h2>
+                <h3 class="text-base font-semibold">Known Vulnerabilities</h3>
                 <p class="text-xs text-(--ui-text-muted)">Source: OSV.dev</p>
               </div>
               <UBadge :color="getVulnerabilityColor(component.vulnerabilities?.status, vulnerabilityCount)" variant="subtle">
                 {{ getVulnerabilityLabel(component.vulnerabilities?.status, vulnerabilityCount) }}
               </UBadge>
-            </div>
-          </template>
+                </div>
 
           <div class="space-y-4">
             <UAlert
@@ -446,20 +428,18 @@
               size="sm"
             />
           </div>
-        </UCard>
+              </div>
 
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-3">
+              <div class="first:pt-0 last:pb-0 py-6">
+                <div class="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h2 class="text-lg font-semibold">Security</h2>
+                <h3 class="text-base font-semibold">Security</h3>
                 <p class="text-xs text-(--ui-text-muted)">Source: OpenSSF Scorecard</p>
               </div>
               <UBadge :color="getSecurityScorecardColor(component.securityScorecard?.score, component.securityScorecard?.status)" variant="subtle">
                 {{ getSecurityScorecardLabel(component.securityScorecard?.score, component.securityScorecard?.status) }}
               </UBadge>
-            </div>
-          </template>
+                </div>
 
           <div class="space-y-4">
             <UAlert
@@ -472,7 +452,7 @@
             />
 
             <template v-else>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <span class="text-sm text-(--ui-text-muted)">Repository</span>
                   <p class="font-medium break-all">
@@ -520,13 +500,12 @@
               size="sm"
             />
           </div>
-        </UCard>
-      </div>
+              </div>
+            </div>
+          </UCard>
 
-      <UCard v-if="component.systems.length > 0">
-        <template #header>
-          <h2 class="text-lg font-semibold">Systems ({{ component.systems.length }})</h2>
-        </template>
+      <div v-if="component.systems.length > 0">
+        <h2 class="text-lg font-semibold mb-3">Systems ({{ component.systems.length }})</h2>
         <div class="flex flex-wrap gap-2">
           <UButton
             v-for="system in component.systems"
@@ -544,43 +523,8 @@
             </template>
           </UButton>
         </div>
-      </UCard>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">References</h2>
-          </template>
-          <div class="space-y-2">
-            <UButton
-              v-if="component.homepage"
-              :to="component.homepage"
-              target="_blank"
-              rel="noopener noreferrer"
-              label="Homepage"
-              icon="i-lucide-external-link"
-              variant="outline"
-              size="sm"
-            />
-            <div v-if="component.externalReferences.length > 0" class="space-y-2">
-              <UButton
-                v-for="reference in component.externalReferences"
-                :key="`${reference.type}:${reference.url}`"
-                :to="reference.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                :label="reference.type"
-                icon="i-lucide-external-link"
-                variant="outline"
-                size="sm"
-              />
-            </div>
-            <p v-if="!component.homepage && component.externalReferences.length === 0" class="text-(--ui-text-muted)">
-              No references available.
-            </p>
-          </div>
-        </UCard>
       </div>
+
         </div>
 
         <div class="xl:col-span-1">
@@ -705,6 +649,25 @@ const hasExternalSignals = computed(() => Boolean(
   || component.value?.vulnerabilities?.status === 'available'
 ))
 const vulnerabilityCount = computed(() => component.value?.vulnerabilities?.vulnerabilities.length ?? 0)
+
+const overviewItems = computed(() => {
+  if (!component.value) return []
+  const c = component.value
+  return [
+    { key: 'version', label: 'Version', value: c.version },
+    { key: 'packageManager', label: 'Package Manager', value: c.packageManager },
+    { key: 'type', label: 'Type', value: c.type },
+    { key: 'systemCount', label: 'Systems', value: c.systemCount },
+    { key: 'licenses', label: 'Licenses', value: 'No license information' },
+    { key: 'directDependencies', label: 'Direct Dependencies', value: directDependencyCount.value },
+    { key: 'technology', label: 'Technology', value: 'Not linked' },
+    { key: 'externalSignals', label: 'External Signals', value: null },
+    ...(c.purl ? [{ key: 'purl', label: 'Package URL', value: c.purl, span: 2 as const }] : []),
+    ...(c.cpe ? [{ key: 'cpe', label: 'CPE', value: c.cpe, span: 2 as const }] : []),
+    ...(c.bomRef && c.bomRef !== c.purl ? [{ key: 'bomRef', label: 'BOM Reference', value: c.bomRef, span: 2 as const }] : []),
+    ...(c.homepage || c.externalReferences.length > 0 ? [{ key: 'references', label: 'References', value: null, span: 2 as const }] : [])
+  ]
+})
 
 function getEolColor(status?: EOLStatusValue): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<EOLStatusValue, 'success' | 'warning' | 'error' | 'neutral'> = {

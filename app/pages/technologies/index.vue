@@ -45,32 +45,23 @@
 
     <template v-else>
       <!-- Table view -->
-      <UCard v-if="viewMode === 'table'">
-        <UTable
-          v-model:sorting="sorting"
-          :manual-sorting="true"
-          :data="technologies"
-          :columns="columns"
-          :loading="pending"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-12">
-              No technologies found.
-            </div>
-          </template>
-        </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UCard>
+      <PaginatedTable
+        v-if="viewMode === 'table'"
+        v-model:sorting="sorting"
+        v-model:page="page"
+        :manual-sorting="true"
+        :data="technologies"
+        :columns="columns"
+        :loading="pending"
+        :total="total"
+        :page-size="pageSize"
+      >
+        <template #empty>
+          <div class="text-center text-(--ui-text-muted) py-12">
+            No technologies found.
+          </div>
+        </template>
+      </PaginatedTable>
 
       <!-- Radar view -->
       <template v-if="viewMode === 'radar'">
@@ -724,22 +715,14 @@ async function confirmLinkComponent() {
   }
 }
 
-const sorting = ref([])
-const page = ref(1)
-const pageSize = 20
-
-watch(sorting, () => { page.value = 1 })
-
-const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
-const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
-const offset = computed(() => (page.value - 1) * pageSize)
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
 
 const { data, pending, error } = await useFetch<ApiResponse<Technology>>('/api/technologies', {
   query: { limit: pageSize, offset, sortBy, sortOrder }
 })
 
-const technologies = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || data.value?.count || 0)
+const technologies = useApiData(data)
+const total = useApiCount(data)
 
 // ── View mode (declared after await so it's bound to the correct component instance) ──
 const LS_KEY = 'polaris:technologies:viewMode'

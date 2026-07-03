@@ -40,29 +40,21 @@
       @close="dismissError = ''"
     />
 
-    <UCard v-else>
-      <UTable
-        :data="suggestions"
-        :columns="columns"
-        :loading="pending"
-      >
-        <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
-            No unlinked components — all caught up!
-          </div>
-        </template>
-      </UTable>
-
-      <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-        <UPagination
-          v-model:page="page"
-          :total="total"
-          :items-per-page="pageSize"
-          :sibling-count="1"
-          show-edges
-        />
-      </div>
-    </UCard>
+    <PaginatedTable
+      v-else
+      v-model:page="page"
+      :data="suggestions"
+      :columns="columns"
+      :loading="pending"
+      :total="total"
+      :page-size="pageSize"
+    >
+      <template #empty>
+        <div class="text-center text-(--ui-text-muted) py-12">
+          No unlinked components — all caught up!
+        </div>
+      </template>
+    </PaginatedTable>
 
     <!-- Confirm link / create modal -->
     <UModal v-model:open="confirmModalOpen" :ui="{ footer: 'justify-end' }">
@@ -160,6 +152,7 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { ApiResponse } from '~~/types/api'
 
 interface LinkSuggestion {
   name: string
@@ -167,13 +160,6 @@ interface LinkSuggestion {
   purlName: string
   suggestedTechnologies: string[]
   hasExactMatch: boolean
-}
-
-interface SuggestionsResponse {
-  success: boolean
-  data: LinkSuggestion[]
-  count: number
-  total: number
 }
 
 interface TechnologiesResponse {
@@ -192,21 +178,15 @@ const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
 
-const page = ref(1)
-const pageSize = 50
+const { page, pageSize, offset } = usePaginatedSorting({ pageSize: 50 })
 
-const queryParams = computed(() => ({
-  skip: (page.value - 1) * pageSize,
-  limit: pageSize
-}))
-
-const { data, pending, error: fetchError, refresh } = await useFetch<SuggestionsResponse>(
+const { data, pending, error: fetchError, refresh } = await useFetch<ApiResponse<LinkSuggestion>>(
   '/api/components/link-suggestions',
-  { query: queryParams }
+  { query: { skip: offset, limit: pageSize } }
 )
 
-const suggestions = computed(() => data.value?.data ?? [])
-const total = computed(() => data.value?.total ?? 0)
+const suggestions = useApiData(data)
+const total = useApiCount(data)
 
 // Deep-link support: ComponentVersionsModal's "Create Technology" action
 // links here with ?component=<name> to jump straight into the confirm flow.

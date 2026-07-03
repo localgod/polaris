@@ -34,48 +34,20 @@
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Teams</p>
-            <p class="text-2xl font-bold mt-1">{{ user.teams?.length || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Can Manage</p>
-            <p class="text-2xl font-bold mt-1">{{ user.canManage?.length || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">API Tokens</p>
-            <p class="text-2xl font-bold mt-1">{{ user.tokens?.length || 0 }}</p>
-          </div>
-        </UCard>
-        <UCard>
-          <div class="text-center">
-            <p class="text-sm text-(--ui-text-muted)">Last Login</p>
-            <p class="text-sm font-medium mt-1">{{ user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : '—' }}</p>
-          </div>
-        </UCard>
-      </div>
+      <EntityStatStrip :items="statItems" />
 
-      <!-- Teams -->
-      <UCard v-if="user.teams?.length">
+      <!-- Account -->
+      <UCard>
         <template #header>
-          <h3 class="text-lg font-semibold">Team Memberships</h3>
+          <h3 class="text-lg font-semibold">Account</h3>
         </template>
-        <UTable :data="user.teams" :columns="teamColumns" />
+        <EntityDescriptionList :items="accountItems" />
       </UCard>
 
-      <!-- API Tokens (technical users only) -->
-      <UCard v-if="user.provider === 'technical'">
-        <template #header>
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold">API Tokens</h3>
+      <UCard>
+        <template v-if="user.provider === 'technical' && isSuperuser" #header>
+          <div class="flex justify-end">
             <UButton
-              v-if="isSuperuser"
               label="Generate Token"
               icon="i-lucide-key"
               size="sm"
@@ -83,21 +55,31 @@
             />
           </div>
         </template>
-        <UTable :data="user.tokens || []" :columns="tokenColumns">
-          <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-8">
-              No API tokens generated yet.
-            </div>
+        <UTabs :items="tabItems">
+          <template #teams>
+            <UTable :data="user.teams" :columns="teamColumns" class="mt-3">
+              <template #empty>
+                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No team memberships.</p>
+              </template>
+            </UTable>
           </template>
-        </UTable>
-      </UCard>
-
-      <!-- Recent Activity -->
-      <UCard v-if="user.recentActivity?.length">
-        <template #header>
-          <h3 class="text-lg font-semibold">Recent Activity</h3>
-        </template>
-        <UTable :data="user.recentActivity" :columns="activityColumns" />
+          <template v-if="user.provider === 'technical'" #tokens>
+            <UTable :data="user.tokens || []" :columns="tokenColumns" class="mt-3">
+              <template #empty>
+                <div class="text-center text-(--ui-text-muted) py-8">
+                  No API tokens generated yet.
+                </div>
+              </template>
+            </UTable>
+          </template>
+          <template #activity>
+            <UTable :data="user.recentActivity" :columns="activityColumns" class="mt-3">
+              <template #empty>
+                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No recent activity.</p>
+              </template>
+            </UTable>
+          </template>
+        </UTabs>
       </UCard>
 
       <!-- Generate Token Modal -->
@@ -217,6 +199,28 @@ const { data, pending, error, refresh } = await useFetch<UserResponse>(
 )
 
 const user = computed(() => data.value?.data || null)
+
+const statItems = computed(() => [
+  { label: 'Teams', value: user.value?.teams?.length || 0 },
+  { label: 'Can Manage', value: user.value?.canManage?.length || 0 },
+  { label: 'API Tokens', value: user.value?.tokens?.length || 0 }
+])
+
+const accountItems = computed(() => [
+  { key: 'lastLogin', label: 'Last Login', value: user.value?.lastLogin ? new Date(user.value.lastLogin).toLocaleDateString() : null },
+  { key: 'createdAt', label: 'Created', value: user.value?.createdAt ? new Date(user.value.createdAt).toLocaleDateString() : null }
+])
+
+const tabItems = computed(() => {
+  const items: { label: string; slot: 'teams' | 'tokens' | 'activity' }[] = [
+    { label: `Teams (${user.value?.teams?.length ?? 0})`, slot: 'teams' }
+  ]
+  if (user.value?.provider === 'technical') {
+    items.push({ label: `API Tokens (${user.value?.tokens?.length ?? 0})`, slot: 'tokens' })
+  }
+  items.push({ label: `Recent Activity (${user.value?.recentActivity?.length ?? 0})`, slot: 'activity' })
+  return items
+})
 
 // Team columns
 const teamColumns: TableColumn<UserTeam>[] = [

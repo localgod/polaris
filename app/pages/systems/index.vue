@@ -33,45 +33,34 @@
     />
 
     <template v-else>
-      <UCard>
-        <div class="pb-4 border-b border-(--ui-border) mb-4">
+      <PaginatedTable
+        v-model:sorting="sorting"
+        v-model:page="page"
+        :manual-sorting="true"
+        :data="systems"
+        :columns="columns"
+        :loading="pending"
+        :total="total"
+        :page-size="pageSize"
+      >
+        <template #header>
           <UInput
             v-model="searchInput"
             placeholder="Filter by name..."
             icon="i-lucide-search"
             class="max-w-sm"
           />
-        </div>
-
-        <UTable
-          v-model:sorting="sorting"
-          :manual-sorting="true"
-          :data="systems"
-          :columns="columns"
-          :loading="pending"
-          class="flex-1"
-        >
-          <template #empty>
-            <div class="text-center py-12">
-              <UIcon name="i-lucide-inbox" class="text-5xl text-(--ui-text-muted)" />
-              <h3 class="mt-4">No Systems Found</h3>
-              <p class="text-(--ui-text-muted) mt-2">
-                The database appears to be empty. Try running: <code>npm run seed</code>
-              </p>
-            </div>
-          </template>
-        </UTable>
-
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
-          <UPagination
-            v-model:page="page"
-            :total="total"
-            :items-per-page="pageSize"
-            :sibling-count="1"
-            show-edges
-          />
-        </div>
-      </UCard>
+        </template>
+        <template #empty>
+          <div class="text-center py-12">
+            <UIcon name="i-lucide-inbox" class="text-5xl text-(--ui-text-muted)" />
+            <h3 class="mt-4">No Systems Found</h3>
+            <p class="text-(--ui-text-muted) mt-2">
+              The database appears to be empty. Try running: <code>npm run seed</code>
+            </p>
+          </div>
+        </template>
+      </PaginatedTable>
     </template>
 
     <!-- Import from GitHub Modal -->
@@ -357,6 +346,7 @@ import { h } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import * as z from 'zod'
 import type { TableColumn, FormSubmitEvent } from '@nuxt/ui'
+import type { ApiResponse } from '~~/types/api'
 
 const { status } = useAuth()
 const { isSuperuser } = useEffectiveRole()
@@ -373,13 +363,6 @@ interface System {
 }
 
 const actionInProgress = ref<Set<string>>(new Set())
-
-interface SystemsResponse {
-  success: boolean
-  data: System[]
-  count: number
-  total?: number
-}
 
 async function triggerHealthRefresh(system: System) {
   if (actionInProgress.value.has(system.name)) return
@@ -436,16 +419,6 @@ async function triggerRescan(system: System) {
     next.delete(system.name)
     actionInProgress.value = next
   }
-}
-
-function getCriticalityColor(criticality: string): 'error' | 'warning' | 'success' | 'neutral' {
-  const colors: Record<string, 'error' | 'warning' | 'success' | 'neutral'> = {
-    critical: 'error',
-    high: 'warning',
-    medium: 'success',
-    low: 'neutral'
-  }
-  return colors[criticality] || 'neutral'
 }
 
 const columns: TableColumn<System>[] = [
@@ -515,28 +488,20 @@ const columns: TableColumn<System>[] = [
   }
 ]
 
-const sorting = ref([])
-const page = ref(1)
-const pageSize = 20
-
 const searchInput = ref('')
 const debouncedSearch = ref('')
-
-watch([debouncedSearch, sorting], () => { page.value = 1 })
 
 const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
 watch(searchInput, updateSearch)
 
-const sortBy = computed(() => sorting.value.length ? sorting.value[0].id : undefined)
-const sortOrder = computed(() => sorting.value.length ? (sorting.value[0].desc ? 'desc' : 'asc') : undefined)
-const offset = computed(() => (page.value - 1) * pageSize)
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({ resetOn: [debouncedSearch] })
 
-const { data, pending, error } = await useFetch<SystemsResponse>('/api/systems', {
+const { data, pending, error } = await useFetch<ApiResponse<System>>('/api/systems', {
   query: { limit: pageSize, offset, sortBy, sortOrder, search: debouncedSearch }
 })
 
-const systems = computed(() => data.value?.data || [])
-const total = computed(() => data.value?.total || data.value?.count || 0)
+const systems = useApiData(data)
+const total = useApiCount(data)
 
 // --- Import from GitHub ---
 
