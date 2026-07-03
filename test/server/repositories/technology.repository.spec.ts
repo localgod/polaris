@@ -171,4 +171,193 @@ describe('TechnologyRepository', () => {
       expect(result).toBeNull()
     })
   })
+
+  describe('findOwnerTeam()', () => {
+    it('should return null for unknown technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await expect(repo.findOwnerTeam(`${PREFIX}missing`)).resolves.toBeNull()
+    })
+
+    it('should return deterministic owner team when stewarded', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (a:Team { name: $a })
+        CREATE (b:Team { name: $b })
+        CREATE (b)-[:STEWARDED_BY]->(t)
+        CREATE (a)-[:STEWARDED_BY]->(t)
+      `, { tech: `${PREFIX}owner-tech`, a: `${PREFIX}A-Team`, b: `${PREFIX}B-Team` })
+
+      const result = await repo.findOwnerTeam(`${PREFIX}owner-tech`)
+      expect(result).toEqual({ name: `${PREFIX}owner-tech`, ownerTeam: `${PREFIX}A-Team` })
+    })
+  })
+
+  describe('findForRadar()', () => {
+    it('should include only approvals with both team and time', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library', domain: 'app' })
+        CREATE (good:Team { name: $goodTeam })
+        CREATE (bad:Team { name: $badTeam })
+        CREATE (good)-[:APPROVES { time: 'tolerate' }]->(t)
+        CREATE (bad)-[:APPROVES { notes: 'missing-time' }]->(t)
+      `, { tech: `${PREFIX}radar-tech`, goodTeam: `${PREFIX}good`, badTeam: `${PREFIX}bad` })
+
+      const rows = await repo.findForRadar()
+      const row = rows.find(r => r.name === `${PREFIX}radar-tech`)
+
+      expect(row).toBeDefined()
+      expect(row!.approvals).toEqual([{ team: `${PREFIX}good`, time: 'tolerate' }])
+    })
+  })
+
+  describe('update() and delete()', () => {
+    it('should update an existing technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Technology { name: $name, type: 'library', domain: null, vendor: null })
+      `, { name: `${PREFIX}update-tech` })
+
+      const updated = await repo.update({
+        name: `${PREFIX}update-tech`,
+        type: 'framework',
+        domain: 'frontend',
+        vendor: 'Vue',
+        ownerTeam: null,
+        lastReviewed: null,
+        userId: 'user-1',
+        realUserId: null,
+        changes: {
+          type: { before: 'library', after: 'framework' },
+        },
+      })
+
+      expect(updated).toBe(`${PREFIX}update-tech`)
+      const tech = await repo.findByName(`${PREFIX}update-tech`)
+      expect(tech!.type).toBe('framework')
+    })
+
+    it('should throw 404 when updating missing technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await expect(repo.update({
+        name: `${PREFIX}missing-tech`,
+        type: 'library',
+        domain: null,
+        vendor: null,
+        ownerTeam: null,
+        lastReviewed: null,
+        userId: 'user-1',
+        realUserId: null,
+        changes: {},
+      })).rejects.toMatchObject({ statusCode: 404 })
+    })
+
+    it('should delete technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `CREATE (:Technology { name: $name, type: 'library' })`, { name: `${PREFIX}delete-tech` })
+
+      await repo.delete(`${PREFIX}delete-tech`, 'user-1', {})
+      await expect(repo.exists(`${PREFIX}delete-tech`)).resolves.toBe(false)
+    })
+  })
+
+  describe('link operations', () => {
+    it('linkComponent should connect named component version', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Technology { name: $tech, type: 'library' })
+        CREATE (:Component { name: $comp, version: '1.2.3' })
+      `, { tech: `${PREFIX}link-tech`, comp: `${PREFIX}link-comp` })
+
+      const result = await repo.linkComponent({
+        technologyName: `${PREFIX}link-tech`,
+        componentName: `${PREFIX}link-comp`,
+        componentVersion: '1.2.3',
+        userId: 'user-1',
+      })
+
+      expect(result.componentVersion).toBe('1.2.3')
+    })
+
+    it('linkComponentByPurl should return affected systems', async () => {
+      if (!ctx.neo4jAvailable) return
+      const purl = `pkg:npm/${PREFIX}purl-comp@2.0.0`
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c:Component { name: $comp, version: '2.0.0', purl: $purl })
+        CREATE (s:System { name: $sys })
+        CREATE (s)-[:USES]->(c)
+      `, { tech: `${PREFIX}purl-tech`, comp: `${PREFIX}purl-comp`, purl, sys: `${PREFIX}sys` })
+
+      const result = await repo.linkComponentByPurl({
+        technologyName: `${PREFIX}purl-tech`,
+        purl,
+        userId: 'user-1',
+      })
+
+      expect(result.purl).toBe(purl)
+      expect(result.affectedSystems).toContain(`${PREFIX}sys`)
+    })
+
+    it('linkComponentsByName should link all matching components', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c1:Component { name: $comp, version: '1.0.0' })
+        CREATE (c2:Component { name: $comp, version: '2.0.0' })
+        CREATE (s:System { name: $sys1 })-[:USES]->(c1)
+        CREATE (s2:System { name: $sys2 })-[:USES]->(c2)
+      `, {
+        tech: `${PREFIX}bulk-tech`,
+        comp: `${PREFIX}bulk-comp`,
+        sys1: `${PREFIX}sys-1`,
+        sys2: `${PREFIX}sys-2`,
+      })
+
+      const result = await repo.linkComponentsByName({
+        technologyName: `${PREFIX}bulk-tech`,
+        componentName: `${PREFIX}bulk-comp`,
+        userId: 'user-1',
+      })
+
+      expect(result.count).toBeGreaterThanOrEqual(1)
+      expect(result.affectedSystems.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  describe('upsertApproval()', () => {
+    it('should create and then update approval for same environment', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Technology { name: $tech, type: 'library' })
+        CREATE (:Team { name: $team })
+      `, { tech: `${PREFIX}approve-tech`, team: `${PREFIX}approve-team` })
+
+      const created = await repo.upsertApproval({
+        technologyName: `${PREFIX}approve-tech`,
+        teamName: `${PREFIX}approve-team`,
+        time: 'invest',
+        notes: 'initial',
+        environment: 'prod',
+        userId: 'user-1',
+        realUserId: null,
+        changes: { time: { before: null, after: 'invest' } },
+      })
+
+      const updated = await repo.upsertApproval({
+        technologyName: `${PREFIX}approve-tech`,
+        teamName: `${PREFIX}approve-team`,
+        time: 'tolerate',
+        notes: 'updated',
+        environment: 'prod',
+        userId: 'user-1',
+        realUserId: null,
+        changes: { time: { before: 'invest', after: 'tolerate' } },
+      })
+
+      expect(created.time).toBe('invest')
+      expect(updated.time).toBe('tolerate')
+    })
+  })
 })

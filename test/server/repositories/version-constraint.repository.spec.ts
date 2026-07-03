@@ -94,4 +94,108 @@ describe('VersionConstraintRepository', () => {
       expect(await repo.exists(`${PREFIX}to-delete`)).toBe(false)
     })
   })
+
+  describe('getCreator()', () => {
+    it('should return null when creator is missing', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:VersionConstraint { name: $name, severity: 'warning', status: 'active', versionRange: '>=1.0.0' })
+      `, { name: `${PREFIX}no-creator` })
+
+      await expect(repo.getCreator(`${PREFIX}no-creator`)).resolves.toBeNull()
+    })
+
+    it('should return creator id when present', async () => {
+      if (!ctx.neo4jAvailable) return
+      await repo.create({
+        name: `${PREFIX}creator-vc`,
+        severity: 'warning',
+        versionRange: '>=1.0.0',
+        userId: 'creator-user',
+      })
+
+      await expect(repo.getCreator(`${PREFIX}creator-vc`)).resolves.toBe('creator-user')
+    })
+  })
+
+  describe('findViolations()', () => {
+    it('should return violations and support directOnly/depScope filters', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (team:Team { name: $team })
+        CREATE (sys:System { name: $sys })
+        CREATE (compDirect:Component { name: $comp1, version: '1.0.0' })
+        CREATE (compTransitive:Component { name: $comp2, version: '2.0.0' })
+        CREATE (tech:Technology { name: $tech, type: 'library' })
+        CREATE (vc:VersionConstraint { name: $vc, severity: 'critical', status: 'active', versionRange: '>=3.0.0' })
+        CREATE (team)-[:OWNS]->(sys)
+        CREATE (sys)-[:USES { isDirect: true, scope: 'runtime' }]->(compDirect)
+        CREATE (sys)-[:USES { isDirect: false, scope: 'dev' }]->(compTransitive)
+        CREATE (compDirect)-[:IS_VERSION_OF]->(tech)
+        CREATE (compTransitive)-[:IS_VERSION_OF]->(tech)
+        CREATE (team)-[:SUBJECT_TO]->(vc)
+        CREATE (vc)-[:GOVERNS]->(tech)
+      `, {
+        team: `${PREFIX}team`,
+        sys: `${PREFIX}system`,
+        comp1: `${PREFIX}comp-direct`,
+        comp2: `${PREFIX}comp-transitive`,
+        tech: `${PREFIX}tech`,
+        vc: `${PREFIX}vc-filter`,
+      })
+
+      const all = await repo.findViolations({ team: `${PREFIX}team` })
+      const directOnly = await repo.findViolations({ team: `${PREFIX}team`, directOnly: true })
+      const runtimeOnly = await repo.findViolations({ team: `${PREFIX}team`, depScope: 'runtime' })
+
+      expect(all.length).toBeGreaterThanOrEqual(2)
+      expect(directOnly.some(v => v.component === `${PREFIX}comp-direct`)).toBe(true)
+      expect(directOnly.some(v => v.component === `${PREFIX}comp-transitive`)).toBe(false)
+      expect(runtimeOnly.every(v => v.component === `${PREFIX}comp-direct`)).toBe(true)
+    })
+  })
+
+  describe('update()', () => {
+    it('should update fields and relink scope/governs relationships', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:Team { name: $subjectTeam })
+        CREATE (:Team { name: $otherTeam })
+        CREATE (:Technology { name: $tech })
+      `, {
+        subjectTeam: `${PREFIX}subject`,
+        otherTeam: `${PREFIX}other`,
+        tech: `${PREFIX}tech`,
+      })
+
+      await repo.create({
+        name: `${PREFIX}to-update`,
+        severity: 'warning',
+        scope: 'organization',
+        versionRange: '>=1.0.0',
+        userId: 'test-user',
+      })
+
+      const updated = await repo.update(`${PREFIX}to-update`, {
+        description: 'updated desc',
+        severity: 'error',
+        scope: 'team',
+        subjectTeam: `${PREFIX}subject`,
+        versionRange: '>=2.0.0',
+        governsTechnology: `${PREFIX}tech`,
+        userId: 'test-user',
+      })
+
+      expect(updated.severity).toBe('error')
+      expect(updated.scope).toBe('team')
+      expect(updated.versionRange).toBe('>=2.0.0')
+      expect(updated.governedTechnologies).toContain(`${PREFIX}tech`)
+
+      const subjectCount = await session.run(
+        `MATCH (:Team {name: $team})-[:SUBJECT_TO]->(:VersionConstraint {name: $name}) RETURN count(*) AS c`,
+        { team: `${PREFIX}subject`, name: `${PREFIX}to-update` }
+      )
+      expect(subjectCount.records[0]!.get('c').toNumber()).toBe(1)
+    })
+  })
 })
