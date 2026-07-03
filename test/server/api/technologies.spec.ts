@@ -10,13 +10,13 @@ vi.mock('../../../server/services/singletons', () => ({
   technologyService: { findAll: vi.fn(), createFromComponent: vi.fn() }
 }))
 
-const { mockRequireAuth, mockGetImpersonatorId } = vi.hoisted(() => ({
-  mockRequireAuth: vi.fn(),
+const { mockRequireSuperuser, mockGetImpersonatorId } = vi.hoisted(() => ({
+  mockRequireSuperuser: vi.fn(),
   mockGetImpersonatorId: vi.fn().mockResolvedValue(null)
 }))
 
 beforeAll(() => {
-  vi.stubGlobal('requireAuth', mockRequireAuth)
+  vi.stubGlobal('requireSuperuser', mockRequireSuperuser)
   vi.stubGlobal('getImpersonatorId', mockGetImpersonatorId)
 })
 
@@ -26,7 +26,7 @@ const mockTech = {
   constraintCount: 0, versions: [], approvals: []
 }
 
-const mockUser = { id: 'user-1', email: 'user@example.com', role: 'user' as const, teams: [] }
+const mockSuperuser = { id: 'admin-1', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
 const validBody = { name: 'React', type: 'library', componentName: 'react' }
 
 const feature = await loadFeature('./test/server/api/technologies.feature')
@@ -113,7 +113,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Successfully create a new technology', ({ Given, When, Then, And }) => {
-    Given('I am authenticated', () => { mockRequireAuth.mockResolvedValue(mockUser) })
+    Given('I am a superuser', () => { mockRequireSuperuser.mockResolvedValue(mockSuperuser) })
     When('I request POST "/api/technologies" with valid technology data', async () => {
       vi.mocked(technologyService.createFromComponent).mockResolvedValue('React')
       postResult = await postHandler(mockEvent({ method: 'POST', body: validBody }))
@@ -126,7 +126,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
 
   Scenario('Unauthenticated request is rejected', ({ Given, When, Then }) => {
     Given('I am not authenticated', () => {
-      mockRequireAuth.mockRejectedValue(createError({ statusCode: 401, message: 'Unauthorized' }))
+      mockRequireSuperuser.mockRejectedValue(createError({ statusCode: 401, message: 'Unauthorized' }))
     })
     When('I request POST "/api/technologies" with valid technology data', async () => {
       caughtError = await postHandler(mockEvent({ method: 'POST', body: validBody })).catch(e => e)
@@ -136,8 +136,20 @@ describeFeature(feature, ({ Background, Scenario }) => {
     })
   })
 
+  Scenario('Authenticated non-superuser request is rejected', ({ Given, When, Then }) => {
+    Given('I am authenticated but not a superuser', () => {
+      mockRequireSuperuser.mockRejectedValue(createError({ statusCode: 403, message: 'Superuser access required' }))
+    })
+    When('I request POST "/api/technologies" with valid technology data', async () => {
+      caughtError = await postHandler(mockEvent({ method: 'POST', body: validBody })).catch(e => e)
+    })
+    Then('the request should be rejected with status 403', () => {
+      expect(caughtError).toMatchObject({ statusCode: 403 })
+    })
+  })
+
   Scenario('Conflict returns 409', ({ Given, When, Then }) => {
-    Given('I am authenticated', () => { mockRequireAuth.mockResolvedValue(mockUser) })
+    Given('I am a superuser', () => { mockRequireSuperuser.mockResolvedValue(mockSuperuser) })
     When('I request POST "/api/technologies" with a duplicate technology name', async () => {
       vi.mocked(technologyService.createFromComponent).mockRejectedValue(
         createError({ statusCode: 409, message: 'Technology already exists' })
@@ -150,7 +162,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
   })
 
   Scenario('Unexpected service error returns 500', ({ Given, When, Then }) => {
-    Given('I am authenticated', () => { mockRequireAuth.mockResolvedValue(mockUser) })
+    Given('I am a superuser', () => { mockRequireSuperuser.mockResolvedValue(mockSuperuser) })
     When('I request POST "/api/technologies" and the service throws an unexpected error', async () => {
       vi.mocked(technologyService.createFromComponent).mockRejectedValue(new Error('unexpected'))
       caughtError = await postHandler(mockEvent({ method: 'POST', body: validBody })).catch(e => e)

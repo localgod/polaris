@@ -1,5 +1,13 @@
 MATCH (p:Platform)
-OPTIONAL MATCH (team:Team)-[:STEWARDED_BY]->(p)
+// Pin a single, deterministic steward team (alphabetically first) before
+// the other OPTIONAL MATCH so a Platform with more than one steward doesn't
+// multiply into duplicate rows and inflate `total` below (same class of bug
+// fixed for Technology). The ORDER BY before collect() is required --
+// Cypher's collect() has no guaranteed order otherwise.
+OPTIONAL MATCH (stewardTeam:Team)-[:STEWARDED_BY]->(p)
+WITH p, stewardTeam
+ORDER BY stewardTeam.name
+WITH p, collect(stewardTeam)[0] as team
 OPTIONAL MATCH (approvalTeam:Team)-[approval:APPROVES]->(p)
 WITH p,
      team,

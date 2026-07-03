@@ -1,9 +1,14 @@
 MATCH (t:Technology {name: $name})
-// Pin a single steward team before the other OPTIONAL MATCHes so a
-// Technology with more than one steward doesn't multiply into duplicate
-// rows below (ownerTeamName/ownerTeamEmail are single fields, not lists).
+// Pin a single, deterministic steward team (alphabetically first) before
+// the other OPTIONAL MATCHes so a Technology with more than one steward
+// doesn't multiply into duplicate rows below (ownerTeamName/ownerTeamEmail
+// are single fields, not lists). The ORDER BY before collect() is required
+// -- Cypher's collect() has no guaranteed order otherwise, so picking [0]
+// without it can return a different team on every execution.
 OPTIONAL MATCH (stewardTeam:Team)-[:STEWARDED_BY]->(t)
-WITH t, collect(DISTINCT stewardTeam)[0] as team
+WITH t, stewardTeam
+ORDER BY stewardTeam.name
+WITH t, collect(stewardTeam)[0] as team
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
 OPTIONAL MATCH (c:Component)-[:IS_VERSION_OF]->(t)
 OPTIONAL MATCH (sys:System)-[:USES]->(c)

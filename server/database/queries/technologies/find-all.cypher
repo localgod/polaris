@@ -1,10 +1,15 @@
 MATCH (t:Technology)
 WHERE $search IS NULL OR toLower(t.name) CONTAINS toLower($search)
-// Pin a single steward team before the other OPTIONAL MATCHes so a
-// Technology with more than one steward doesn't multiply into duplicate
-// rows below (ownerTeamName is a single field, not a list).
+// Pin a single, deterministic steward team (alphabetically first) before
+// the other OPTIONAL MATCHes so a Technology with more than one steward
+// doesn't multiply into duplicate rows below (ownerTeamName is a single
+// field, not a list). The ORDER BY before collect() is required -- Cypher's
+// collect() has no guaranteed order otherwise, so picking [0] without it
+// can return a different team on every execution.
 OPTIONAL MATCH (stewardTeam:Team)-[:STEWARDED_BY]->(t)
-WITH t, collect(DISTINCT stewardTeam)[0] as team
+WITH t, stewardTeam
+ORDER BY stewardTeam.name
+WITH t, collect(stewardTeam)[0] as team
 OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
 OPTIONAL MATCH (comp:Component)-[:IS_VERSION_OF]->(t)
 OPTIONAL MATCH (pol:VersionConstraint)-[:GOVERNS]->(t)

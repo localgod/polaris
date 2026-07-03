@@ -14,6 +14,13 @@ import { technologyService } from '../services/singletons'
  *       nodes sharing `componentName` that aren't already linked to a Technology are
  *       linked in the same operation. For technology that can never be observed by SBOM
  *       scanning (databases, cloud services, etc.), use POST /platforms instead.
+ *
+ *       Superuser only — this mirrors the gate already on linking a component to an
+ *       *existing* technology (POST /technologies/{name}/components), so creating a new
+ *       one isn't a lower bar than linking to one. The intended entry point is the
+ *       guided component-links queue (/admin/component-links), not this endpoint directly.
+ *     security:
+ *       - sessionAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -46,6 +53,8 @@ import { technologyService } from '../services/singletons'
  *         description: Technology created
  *       400:
  *         description: Missing required fields
+ *       403:
+ *         description: Superuser access required
  *       404:
  *         description: No unlinked component with the given name was found
  *       409:
@@ -68,7 +77,7 @@ interface CreateTechnologyResponse {
 }
 
 export default defineEventHandler(async (event): Promise<ApiResponse<CreateTechnologyResponse>> => {
-  const user = await requireAuth(event)
+  const user = await requireSuperuser(event)
   const realUserId = await getImpersonatorId(event)
   const body = await readBody<CreateTechnologyRequest>(event)
 

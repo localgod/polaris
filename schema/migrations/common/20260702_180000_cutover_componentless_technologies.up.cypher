@@ -10,8 +10,13 @@
 //   - infra-flavored ones (type/domain suggesting non-SBOM-observable
 //     infrastructure -- the exact pattern SBOM scanning can never surface,
 //     e.g. databases, container runtimes) convert to Platform, preserving
-//     name/type/domain/vendor, stewardship (OWNS -> STEWARDED_BY), and TIME
-//     approvals.
+//     name/type/domain/vendor, stewardship, and TIME approvals. Stewardship
+//     is read from *either* OWNS or STEWARDED_BY -- this codebase had both
+//     in use for Technology at different points (create.cypher wrote OWNS,
+//     seed-github.ts wrote STEWARDED_BY) before this same change set made
+//     STEWARDED_BY canonical, so existing data may carry either. All
+//     matched steward edges are carried over as STEWARDED_BY on the new
+//     Platform node.
 //   - everything else is deleted. An AuditLog captures the full node
 //     properties before removal for traceability -- deletion is not
 //     reversible; see .down.cypher.
@@ -33,9 +38,9 @@ CREATE (p:Platform {
   vendor: t.vendor
 })
 WITH t, p
-OPTIONAL MATCH (stewardTeam:Team)-[:OWNS]->(t)
+OPTIONAL MATCH (stewardTeam:Team)-[:OWNS|STEWARDED_BY]->(t)
 FOREACH (_ IN CASE WHEN stewardTeam IS NOT NULL THEN [1] ELSE [] END |
-  CREATE (stewardTeam)-[:STEWARDED_BY]->(p)
+  MERGE (stewardTeam)-[:STEWARDED_BY]->(p)
 )
 WITH t, p
 OPTIONAL MATCH (approvalTeam:Team)-[a:APPROVES]->(t)

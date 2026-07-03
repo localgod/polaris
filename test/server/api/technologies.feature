@@ -41,9 +41,12 @@ Feature: Technologies API
     And the response error should be "DB error"
 
   # POST /api/technologies
+  # Creation is superuser-only — it mirrors the existing gate on linking a
+  # component to an *existing* technology, so creating a new one isn't a
+  # lower bar than linking to one.
 
   Scenario: Successfully create a new technology
-    Given I am authenticated
+    Given I am a superuser
     When I request POST "/api/technologies" with valid technology data
     Then the response should be successful
     And the response data should contain the created technology name
@@ -53,12 +56,17 @@ Feature: Technologies API
     When I request POST "/api/technologies" with valid technology data
     Then the request should be rejected with status 401
 
+  Scenario: Authenticated non-superuser request is rejected
+    Given I am authenticated but not a superuser
+    When I request POST "/api/technologies" with valid technology data
+    Then the request should be rejected with status 403
+
   Scenario: Conflict returns 409
-    Given I am authenticated
+    Given I am a superuser
     When I request POST "/api/technologies" with a duplicate technology name
     Then the request should be rejected with status 409
 
   Scenario: Unexpected service error returns 500
-    Given I am authenticated
+    Given I am a superuser
     When I request POST "/api/technologies" and the service throws an unexpected error
     Then the request should be rejected with status 500
