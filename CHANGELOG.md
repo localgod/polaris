@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.54] - 2026-07-04
+
+## What's Changed
+
+- perf: lazy-load technologies page modals and defer render-blocking CSS @localgod (#738)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.53...v0.6.54
+
 ## [0.6.52] - 2026-07-04
 
 ## What's Changed
