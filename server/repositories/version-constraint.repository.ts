@@ -21,6 +21,7 @@ export interface ViolationFilters {
 export interface VersionConstraintFilters {
   scope?: string
   status?: string
+  search?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
   limit?: number
@@ -115,6 +116,11 @@ export class VersionConstraintRepository extends BaseRepository {
 
     const conditions: string[] = []
     const params: Record<string, unknown> = { limit, offset }
+
+    if (filters.search) {
+      conditions.push('toLower(vc.name) CONTAINS toLower($search)')
+      params.search = filters.search
+    }
 
     if (filters.scope) {
       conditions.push('vc.scope = $scope')

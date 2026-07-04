@@ -127,11 +127,11 @@ export class TeamRepository extends BaseRepository {
    * 
    * @returns Array of teams
    */
-  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Team[]; total: number }> {
+  async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: Team[]; total: number }> {
     const query = await loadQuery('teams/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, teamSortConfig)
     const finalQuery = injectOrderBy(query, orderBy)
-    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+    const { records } = await this.executeQuery(finalQuery, { limit, offset, search: search || null })
 
     const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
     return { data: records.map(record => this.mapToTeam(record)), total }

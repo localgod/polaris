@@ -1,4 +1,5 @@
 import { versionConstraintService } from '../services/singletons'
+import { parseSearchParam } from '../utils/query-params'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -16,7 +17,9 @@ export default defineEventHandler(async (event) => {
     const status = query.status as string | undefined
 
     const result = await versionConstraintService.findAll({
-      scope, status, limit, offset,
+      scope, status,
+      search: parseSearchParam(query.search),
+      limit, offset,
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const
     })

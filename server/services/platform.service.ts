@@ -66,8 +66,8 @@ export class PlatformService {
   /**
    * Get all platforms with their approvals
    */
-  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Platform[]; count: number; total: number }> {
-    const { data, total } = await this.platformRepo.findAll(sort, limit, offset)
+  async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: Platform[]; count: number; total: number }> {
+    const { data, total } = await this.platformRepo.findAll(sort, limit, offset, search)
     return { data, count: data.length, total }
   }
 

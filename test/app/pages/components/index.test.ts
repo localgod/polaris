@@ -29,6 +29,10 @@ describe('components index page', () => {
     vi.stubGlobal('useSortableTable', () => ({
       getSortableHeader: () => 'sortable'
     }))
+    vi.stubGlobal('useTableSearch', () => ({
+      searchInput: ref(''),
+      debouncedSearch: ref('')
+    }))
     vi.stubGlobal('usePaginatedSorting', usePaginatedSorting)
     vi.stubGlobal('useApiData', useApiData)
     vi.stubGlobal('useApiCount', useApiCount)
@@ -52,7 +56,8 @@ describe('components index page', () => {
           USwitch: true,
           UTable: { props: ['data'], template: '<div><slot name="empty" /></div>' },
           UTooltip: { template: '<span><slot /><slot name="content" /></span>' },
-          PaginatedTable: { template: '<section><slot name="header" /><slot name="empty" /></section>' }
+          PaginatedTable: { template: '<section><slot name="header" /><slot name="empty" /></section>' },
+          TableSearchHeader: { template: '<div><slot /></div>' }
         }
       }
     })

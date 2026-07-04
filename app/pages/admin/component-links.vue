@@ -49,6 +49,9 @@
       :total="total"
       :page-size="pageSize"
     >
+      <template #header>
+        <TableSearchHeader v-model="searchInput" />
+      </template>
       <template #empty>
         <div class="text-center text-(--ui-text-muted) py-12">
           No unlinked components — all caught up!
@@ -178,11 +181,15 @@ const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
 
-const { page, pageSize, offset } = usePaginatedSorting({ pageSize: 50 })
+const { searchInput, debouncedSearch } = useTableSearch()
 
+const { page, pageSize, offset } = usePaginatedSorting({ pageSize: 50, resetOn: [debouncedSearch] })
+
+// Pass individual refs/computeds as query values so each one is tracked
+// as a reactive dependency — wrapping the query in computed() causes hydration issues
 const { data, pending, error: fetchError, refresh } = await useFetch<ApiResponse<LinkSuggestion>>(
   '/api/components/link-suggestions',
-  { query: { skip: offset, limit: pageSize } }
+  { query: { skip: offset, limit: pageSize, search: debouncedSearch } }
 )
 
 const suggestions = useApiData(data)

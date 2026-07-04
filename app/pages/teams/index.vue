@@ -33,6 +33,9 @@
         :total="total"
         :page-size="pageSize"
       >
+        <template #header>
+          <TableSearchHeader v-model="searchInput" />
+        </template>
         <template #empty>
           <div class="text-center text-(--ui-text-muted) py-12">
             No teams found.
@@ -282,10 +285,22 @@ const columns = computed(() => {
   return baseColumns
 })
 
-const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
+const { searchInput, debouncedSearch } = useTableSearch()
 
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
+  resetOn: [debouncedSearch]
+})
+
+// Pass individual refs/computeds as query values so each one is tracked
+// as a reactive dependency — wrapping the query in computed() causes hydration issues
 const { data, pending, error } = await useFetch<ApiResponse<Team>>('/api/teams', {
-  query: { limit: pageSize, offset, sortBy, sortOrder }
+  query: {
+    limit: pageSize,
+    offset,
+    sortBy,
+    sortOrder,
+    search: debouncedSearch
+  }
 })
 
 const teams = useApiData(data)

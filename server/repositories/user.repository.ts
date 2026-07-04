@@ -138,11 +138,11 @@ export class UserRepository extends BaseRepository {
    * 
    * @returns Array of user summaries
    */
-  async findAllSummary(sort?: SortParams): Promise<UserSummary[]> {
+  async findAllSummary(sort?: SortParams, search?: string): Promise<UserSummary[]> {
     let query = await loadQuery('users/find-all-summary.cypher')
     const orderBy = buildOrderByClause(sort || {}, userSortConfig)
     query = query.replace(/ORDER BY .+$/, `ORDER BY ${orderBy}`)
-    const { records } = await this.executeQuery(query)
+    const { records } = await this.executeQuery(query, { search: search || null })
     
     return records.map(record => this.mapToUserSummary(record))
   }

@@ -1,4 +1,5 @@
 MATCH (t:Team)
+WHERE $search IS NULL OR toLower(t.name) CONTAINS toLower($search)
 OPTIONAL MATCH (t)-[:STEWARDED_BY]->(tech:Technology)
 OPTIONAL MATCH (t)-[:OWNS]->(sys:System)
 OPTIONAL MATCH (u:User)-[:MEMBER_OF]->(t)

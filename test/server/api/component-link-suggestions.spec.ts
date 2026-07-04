@@ -55,7 +55,7 @@ describe('GET /api/components/link-suggestions', () => {
 
     await linkSuggestionsHandler(mockEvent({ query: { skip: '50', limit: '25' } }))
 
-    expect(componentService.getLinkSuggestions).toHaveBeenCalledWith(50, 25)
+    expect(componentService.getLinkSuggestions).toHaveBeenCalledWith(50, 25, undefined)
   })
 
   it('should clamp limit to 200 maximum', async () => {
@@ -63,7 +63,7 @@ describe('GET /api/components/link-suggestions', () => {
 
     await linkSuggestionsHandler(mockEvent({ query: { limit: '999' } }))
 
-    expect(componentService.getLinkSuggestions).toHaveBeenCalledWith(0, 200)
+    expect(componentService.getLinkSuggestions).toHaveBeenCalledWith(0, 200, undefined)
   })
 
   it('should clamp skip to 0 minimum', async () => {
@@ -71,7 +71,7 @@ describe('GET /api/components/link-suggestions', () => {
 
     await linkSuggestionsHandler(mockEvent({ query: { skip: '-10' } }))
 
-    expect(componentService.getLinkSuggestions).toHaveBeenCalledWith(0, 50)
+    expect(componentService.getLinkSuggestions).toHaveBeenCalledWith(0, 50, undefined)
   })
 
   it('should enforce superuser access', async () => {

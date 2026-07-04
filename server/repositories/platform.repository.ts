@@ -57,11 +57,11 @@ export interface PlatformDetail extends Platform {
  * docs/architecture/decisions/0004-technology-requires-component.md.
  */
 export class PlatformRepository extends BaseRepository {
-  async findAll(sort?: SortParams, limit = 50, offset = 0): Promise<{ data: Platform[]; total: number }> {
+  async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: Platform[]; total: number }> {
     const query = await loadQuery('platforms/find-all.cypher')
     const orderBy = buildOrderByClause(sort || {}, platformSortConfig)
     const finalQuery = injectOrderBy(query, orderBy)
-    const { records } = await this.executeQuery(finalQuery, { limit, offset })
+    const { records } = await this.executeQuery(finalQuery, { limit, offset, search: search || null })
 
     const total = records.length > 0 ? records[0]!.get('total').toNumber() : 0
     return { data: records.map(record => this.mapToPlatform(record)), total }

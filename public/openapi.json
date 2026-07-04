@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "0.6.47",
+    "version": "0.6.49",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",
@@ -1230,7 +1230,12 @@
           "Technologies"
         ],
         "summary": "Create a new technology from an unlinked component",
-        "description": "Creates a new technology by claiming an existing, currently-unlinked Component —\na Technology can never exist without at least one linked Component. All Component\nnodes sharing `componentName` that aren't already linked to a Technology are\nlinked in the same operation. For technology that can never be observed by SBOM\nscanning (databases, cloud services, etc.), use POST /platforms instead.\n",
+        "description": "Creates a new technology by claiming an existing, currently-unlinked Component —\na Technology can never exist without at least one linked Component. All Component\nnodes sharing `componentName` that aren't already linked to a Technology are\nlinked in the same operation. For technology that can never be observed by SBOM\nscanning (databases, cloud services, etc.), use POST /platforms instead.\n\nSuperuser only — this mirrors the gate already on linking a component to an\n*existing* technology (POST /technologies/{name}/components), so creating a new\none isn't a lower bar than linking to one. The intended entry point is the\nguided component-links queue (/admin/component-links), not this endpoint directly.\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1299,6 +1304,9 @@
           },
           "400": {
             "description": "Missing required fields"
+          },
+          "403": {
+            "description": "Superuser access required"
           },
           "404": {
             "description": "No unlinked component with the given name was found"
@@ -1466,6 +1474,34 @@
               "default": 0
             },
             "description": "Pagination offset"
+          },
+          {
+            "in": "query",
+            "name": "sortBy",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Field to sort by"
+          },
+          {
+            "in": "query",
+            "name": "sortOrder",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "Sort order"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on team name"
           }
         ],
         "responses": {
@@ -2114,6 +2150,34 @@
               "default": 0
             },
             "description": "Pagination offset"
+          },
+          {
+            "in": "query",
+            "name": "sortBy",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Field to sort by"
+          },
+          {
+            "in": "query",
+            "name": "sortOrder",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "Sort order"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on platform name"
           }
         ],
         "responses": {
@@ -2798,6 +2862,34 @@
               "default": 0
             },
             "description": "Pagination offset"
+          },
+          {
+            "in": "query",
+            "name": "sortBy",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Field to sort by"
+          },
+          {
+            "in": "query",
+            "name": "sortOrder",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "Sort order"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive search on user email or name"
           }
         ],
         "responses": {
@@ -4990,6 +5082,14 @@
               "default": 50,
               "maximum": 200
             }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on component name"
           }
         ],
         "responses": {

@@ -46,14 +46,8 @@
         :page-size="pageSize"
       >
         <template #header>
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <UInput
-              v-model="searchInput"
-              placeholder="Filter by name..."
-              icon="i-lucide-search"
-              class="max-w-sm"
-            />
-            <div class="flex flex-wrap items-center gap-4">
+          <TableSearchHeader v-model="searchInput">
+            <template #filters>
               <USwitch
                 v-if="systemFilter"
                 v-model="showDirectOnly"
@@ -65,8 +59,8 @@
                 label="Show dev dependencies"
                 size="sm"
               />
-            </div>
-          </div>
+            </template>
+          </TableSearchHeader>
         </template>
         <template #empty>
           <div class="text-center text-(--ui-text-muted) py-12">
@@ -86,7 +80,6 @@
 
 <script setup lang="ts">
 import { h, resolveComponent, defineComponent, ref } from 'vue'
-import { useDebounceFn } from '@vueuse/core'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, GroupedComponent } from '~~/types/api'
 
@@ -283,14 +276,13 @@ function openGroupedComponent(_event: Event | null, row: { original: GroupedComp
   versionsModalOpen.value = true
 }
 
-const searchInput = ref('')
-const debouncedSearch = ref('')
+// Initialize search first, before using in resetOn
+const { searchInput, debouncedSearch } = useTableSearch()
 
-const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
-watch(searchInput, updateSearch)
-
+// Now we can safely reference debouncedSearch in resetOn
+const resetOnDeps = [debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, showDirectOnly]
 const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
-  resetOn: [debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, showDirectOnly]
+  resetOn: resetOnDeps
 })
 
 const includeDev = computed(() => showDevDependencies.value ? undefined : 'false')
