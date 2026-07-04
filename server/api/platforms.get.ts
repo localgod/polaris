@@ -1,5 +1,6 @@
 import type { ApiResponse, Platform } from '~~/types/api'
 import { platformService } from '../services/singletons'
+import { parseSearchParam } from '../utils/query-params'
 
 /**
  * @openapi
@@ -78,7 +79,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Platform>> 
       },
       limit,
       offset,
-      query.search as string | undefined
+      parseSearchParam(query.search)
     )
 
     return {

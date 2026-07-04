@@ -1,5 +1,6 @@
 import type { ApiResponse, Team } from '~~/types/api'
 import { teamService } from '../services/singletons'
+import { parseSearchParam } from '../utils/query-params'
 
 /**
  * @openapi
@@ -82,7 +83,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<Team>> => {
       },
       limit,
       offset,
-      query.search as string | undefined
+      parseSearchParam(query.search)
     )
 
     return {

@@ -1,4 +1,5 @@
 import { userService } from '../../services/singletons'
+import { parseSearchParam } from '../../utils/query-params'
 
 /**
  * @openapi
@@ -80,7 +81,7 @@ export default defineEventHandler(async (event) => {
     const allUsers = await userService.findAllSummary({
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' : 'asc'
-    }, query.search as string | undefined)
+    }, parseSearchParam(query.search))
     const total = allUsers.length
     const paginatedUsers = allUsers.slice(offset, offset + limit)
     

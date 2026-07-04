@@ -1,4 +1,5 @@
 import { componentService } from '../../services/singletons'
+import { parseSearchParam } from '../../utils/query-params'
 
 /**
  * @openapi
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
   const skip = Math.max(0, Math.floor(Number(query.skip ?? '0')) || 0)
   const limit = Math.min(200, Math.max(1, Math.floor(Number(query.limit ?? '50')) || 50))
 
-  const result = await componentService.getLinkSuggestions(skip, limit, query.search as string | undefined)
+  const result = await componentService.getLinkSuggestions(skip, limit, parseSearchParam(query.search))
 
   return {
     success: true,
