@@ -247,10 +247,51 @@ async function listRepositoriesForOwner(
 }
 
 /**
+ * List the token's own repositories via GET /user/repos, which — unlike
+ * GET /users/{username}/repos — is scoped to the authenticated account and
+ * includes private repos. There is no owner path segment: GitHub infers the
+ * account from the bearer token.
+ */
+async function listAuthenticatedUserRepositories(
+  filters: GitHubOrgRepositoryFilters = {},
+  token: string
+): Promise<GitHubOrgRepository[]> {
+  const nameRegex = compileNamePattern(filters.namePattern)
+  const repos: GitHubOrgRepository[] = []
+  const perPage = 100
+
+  for (let page = 1; ; page++) {
+    const url = `https://api.github.com/user/repos?affiliation=owner&visibility=all&sort=full_name&per_page=${perPage}&page=${page}`
+    const response = await fetchGitHub(url, 'authenticated user repositories', token)
+    const data = await response.json() as GitHubOrgRepository[]
+
+    repos.push(...data.filter(repo => matchesOrgRepositoryFilters(repo, filters, nameRegex)))
+
+    if (data.length < perPage) break
+  }
+
+  return repos
+}
+
+/** Fetch the login of the account a token belongs to, or null if it can't be resolved. */
+async function getAuthenticatedLogin(token: string): Promise<string | null> {
+  try {
+    const response = await fetchGitHub('https://api.github.com/user', 'authenticated user', token)
+    const data = await response.json() as { login?: string }
+    return data.login || null
+  } catch {
+    return null
+  }
+}
+
+/**
  * List repositories for a GitHub organization or user, following pagination.
  * Organization listing is attempted first so authenticated tokens can include
- * private organization repositories. If no organization exists, falls back to
- * the public user repositories endpoint.
+ * private organization repositories. If no organization exists and the owner
+ * is the token's own account, the authenticated /user/repos endpoint is used
+ * so private repos are included; otherwise falls back to the public user
+ * repositories endpoint (GET /users/{username}/repos only ever returns public
+ * repos, regardless of the caller's token or scopes).
  */
 export async function listGitHubOwnerRepositories(
   ownerInput: string,
@@ -263,6 +304,13 @@ export async function listGitHubOwnerRepositories(
     return await listRepositoriesForOwner(owner, 'organization', filters, token)
   } catch (error: unknown) {
     if (!isNotFoundError(error)) throw error
+  }
+
+  if (token) {
+    const login = await getAuthenticatedLogin(token)
+    if (login && login.toLowerCase() === owner.toLowerCase()) {
+      return await listAuthenticatedUserRepositories(filters, token)
+    }
   }
 
   return await listRepositoriesForOwner(owner, 'user', filters, token)

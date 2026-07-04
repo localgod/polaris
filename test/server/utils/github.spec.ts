@@ -106,6 +106,37 @@ describe('GitHub utilities', () => {
       expect(result).toHaveLength(1)
       expect(result[0].full_name).toBe('localgod/polaris')
     })
+
+    it('uses the authenticated /user/repos endpoint (including private repos) when the owner is the token\'s own account', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, statusText: 'Not Found' }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ login: 'localgod' }), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify([
+          repo('polaris', { full_name: 'localgod/polaris', html_url: 'https://github.com/localgod/polaris' }),
+          repo('secret-project', { full_name: 'localgod/secret-project', html_url: 'https://github.com/localgod/secret-project', private: true })
+        ]), { status: 200 }))
+      vi.stubGlobal('fetch', fetchMock)
+
+      const result = await listGitHubOwnerRepositories('localgod', {}, 'user-token-abc')
+
+      expect(fetchMock).toHaveBeenNthCalledWith(1, expect.stringContaining('/orgs/localgod/repos?type=all'), expect.any(Object))
+      expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://api.github.com/user', expect.any(Object))
+      expect(fetchMock).toHaveBeenNthCalledWith(3, expect.stringContaining('/user/repos?affiliation=owner&visibility=all'), expect.any(Object))
+      expect(result.map(r => r.full_name)).toEqual(['localgod/polaris', 'localgod/secret-project'])
+    })
+
+    it('falls back to the public user endpoint when the token belongs to a different account', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, statusText: 'Not Found' }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ login: 'someone-else' }), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify([repo('polaris', { full_name: 'localgod/polaris', html_url: 'https://github.com/localgod/polaris' })]), { status: 200 }))
+      vi.stubGlobal('fetch', fetchMock)
+
+      const result = await listGitHubOwnerRepositories('localgod', {}, 'user-token-abc')
+
+      expect(fetchMock).toHaveBeenNthCalledWith(3, expect.stringContaining('/users/localgod/repos?type=owner'), expect.any(Object))
+      expect(result[0].full_name).toBe('localgod/polaris')
+    })
   })
 
   describe('cloneRepository()', () => {

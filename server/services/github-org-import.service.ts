@@ -101,7 +101,7 @@ export class GitHubOrgImportService {
     try {
       const repositories = input.repositories && input.repositories.length > 0
         ? input.repositories
-        : (await listGitHubOwnerRepositories(input.organization, input.filters || {})).map(repo => ({
+        : (await listGitHubOwnerRepositories(input.organization, input.filters || {}, input.githubToken)).map(repo => ({
             repositoryFullName: repo.full_name,
             repositoryUrl: repo.html_url
           }))
