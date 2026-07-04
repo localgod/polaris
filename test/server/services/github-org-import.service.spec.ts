@@ -117,10 +117,45 @@ describe('GitHubOrgImportService', () => {
     expect(repo.createItems).toHaveBeenCalledWith('job-1', [
       { repositoryFullName: 'acme/repo-a', repositoryUrl: 'https://github.com/acme/repo-a', ownerTeam: null, systemName: null }
     ])
+    expect(listGitHubOwnerRepositories).toHaveBeenCalledWith('acme', {}, undefined)
     expect(repo.markItemFinished).toHaveBeenCalledWith('job-1', 'acme/repo-a', 'skipped', {
       message: 'Dry run only'
     })
     expect(repo.markCompleted).toHaveBeenCalledWith('job-1')
+  })
+
+  it('forwards the requesting user\'s githubToken when resolving repositories to import', async () => {
+    const repo = createRepoMocks()
+    vi.mocked(listGitHubOwnerRepositories).mockResolvedValue([
+      {
+        name: 'repo-a',
+        full_name: 'acme/repo-a',
+        html_url: 'https://github.com/acme/repo-a',
+        description: null,
+        default_branch: 'main',
+        language: 'TypeScript',
+        private: true,
+        fork: false,
+        archived: false,
+        topics: []
+      }
+    ])
+
+    const service = new GitHubOrgImportService(
+      repo as never,
+      { import: vi.fn() } as never,
+      { create: vi.fn() } as never
+    )
+
+    await service.process('job-1', {
+      organization: 'acme',
+      ownerTeam: 'Platform',
+      dryRun: true,
+      userId: 'user-1',
+      githubToken: 'user-token-abc'
+    })
+
+    expect(listGitHubOwnerRepositories).toHaveBeenCalledWith('acme', {}, 'user-token-abc')
   })
 
   it('previews repositories for an owner without creating a job', async () => {
