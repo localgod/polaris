@@ -279,7 +279,8 @@ async function getAuthenticatedLogin(token: string): Promise<string | null> {
     const response = await fetchGitHub('https://api.github.com/user', 'authenticated user', token)
     const data = await response.json() as { login?: string }
     return data.login || null
-  } catch {
+  } catch (error: unknown) {
+    logger.warn({ err: error }, 'Failed to resolve authenticated GitHub login')
     return null
   }
 }
