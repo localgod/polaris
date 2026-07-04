@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.52] - 2026-07-04
+
+## What's Changed
+
+- Add shared search box across entity list pages @localgod (#734)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.51...v0.6.52
+
 ## [0.6.49] - 2026-07-02
 
 ## What's Changed
