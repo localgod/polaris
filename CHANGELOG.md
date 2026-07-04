@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.53] - 2026-07-04
+
+## What's Changed
+
+- Fix GitHub import missing private repos for own account @localgod (#736)
+
+## 🔧 Maintenance
+
+- chore: release v0.6.52 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#735)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.52...v0.6.53
+
 ## [0.6.52] - 2026-07-04
 
 ## What's Changed
