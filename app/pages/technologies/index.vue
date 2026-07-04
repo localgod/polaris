@@ -85,197 +85,48 @@
       </template>
     </template>
 
-    <!-- Edit Technology Modal -->
-    <UModal v-model:open="editModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Edit Technology: {{ editTechName }}</h3>
-      </template>
-      <template #body>
-        <UForm id="edit-tech-form" :schema="editSchema" :state="editState" class="space-y-4" @submit="onEdit">
-          <UFormField name="type" label="Type" required>
-            <USelect v-model="editState.type" :items="typeOptions" />
-          </UFormField>
-          <UFormField name="domain" label="Domain">
-            <USelect v-model="editState.domain" :items="domainOptions" placeholder="No domain" />
-          </UFormField>
-          <UFormField name="vendor" label="Vendor">
-            <UInput v-model="editState.vendor" placeholder="e.g. Google, Microsoft" />
-          </UFormField>
-          <UFormField name="ownerTeam" label="Owner Team">
-            <USelect v-model="editState.ownerTeam" :items="teamOptions" placeholder="No owner team" />
-          </UFormField>
-          <UFormField name="lastReviewed" label="Last Reviewed">
-            <UInput v-model="editState.lastReviewed" type="date" />
-          </UFormField>
-          <UAlert v-if="editError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="editError" />
-        </UForm>
-      </template>
-      <template #footer="{ close }">
-        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
-        <UButton type="submit" form="edit-tech-form" :loading="editLoading" label="Save" />
-      </template>
-    </UModal>
+    <AsyncEditTechnologyModal
+      v-if="editModalOpen"
+      v-model:open="editModalOpen"
+      :tech="editTech"
+      :team-options="teamOptions"
+      @saved="refreshNuxtData()"
+    />
 
-    <!-- Create Version Constraint Modal -->
-    <UModal v-model:open="vcModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Create Version Constraint for {{ vcTechName }}</h3>
-      </template>
-      <template #body>
-        <UForm id="vc-form" :schema="vcSchema" :state="vcState" class="space-y-4" @submit="onCreateVC">
-          <UFormField name="name" label="Name" required>
-            <UInput v-model="vcState.name" />
-          </UFormField>
-          <UFormField name="description" label="Description">
-            <UInput v-model="vcState.description" placeholder="What does this constraint enforce?" />
-          </UFormField>
-          <UFormField name="severity" label="Severity" required>
-            <USelect v-model="vcState.severity" :items="vcSeverityOptions" />
-          </UFormField>
-          <UFormField name="versionRange" label="Version Range" required>
-            <UInput v-model="vcState.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
-          </UFormField>
-          <div class="grid grid-cols-2 gap-4">
-            <UFormField name="scope" label="Scope" required>
-              <USelect v-model="vcState.scope" :items="isSuperuser ? ['organization', 'team'] : ['team']" />
-            </UFormField>
-            <UFormField v-if="vcState.scope === 'team'" name="subjectTeam" label="Team" required>
-              <USelect v-model="vcState.subjectTeam" :items="isSuperuser ? teamOptions : userTeams" placeholder="Select team" />
-            </UFormField>
-          </div>
-          <UAlert v-if="vcError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="vcError" />
-        </UForm>
-      </template>
-      <template #footer="{ close }">
-        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
-        <UButton type="submit" form="vc-form" :loading="vcLoading" label="Create" />
-      </template>
-    </UModal>
+    <AsyncCreateVersionConstraintModal
+      v-if="vcModalOpen"
+      v-model:open="vcModalOpen"
+      :tech="vcTech"
+      :team-options="teamOptions"
+    />
 
-    <!-- Delete Technology Modal -->
-    <UModal v-model:open="deleteModalOpen">
-      <template #header>
-        <h3 class="text-lg font-semibold">Delete Technology</h3>
-      </template>
-      <template #body>
-        <p>
-          Are you sure you want to delete <strong>{{ deleteTarget }}</strong>?
-          This will remove the technology and all its relationships.
-        </p>
-        <UAlert
-          v-if="deleteError"
-          color="error"
-          variant="subtle"
-          icon="i-lucide-alert-circle"
-          :description="deleteError"
-          class="mt-4"
-        />
-      </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="deleteModalOpen = false" />
-          <UButton
-            label="Delete"
-            color="error"
-            :loading="deleteLoading"
-            @click="confirmDelete"
-          />
-        </div>
-      </template>
-    </UModal>
+    <AsyncDeleteTechnologyModal
+      v-if="deleteModalOpen"
+      v-model:open="deleteModalOpen"
+      :tech-name="deleteTechName"
+      @deleted="refreshNuxtData()"
+    />
 
-    <!-- Set TIME Modal -->
-    <UModal v-model:open="timeModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Set TIME: {{ timeModalTech?.name }}</h3>
-      </template>
-      <template #body>
-        <UForm id="time-form" :schema="timeSchema" :state="timeState" class="space-y-4" @submit="onSetTime">
-          <UFormField name="teamName" label="Team" required>
-            <UInput v-if="timeTeamReadonly" :model-value="timeState.teamName" disabled />
-            <USelect v-else v-model="timeState.teamName" :items="timeTeamOptions" placeholder="Select team" />
-          </UFormField>
-          <UFormField name="time" label="TIME Value" required>
-            <USelect v-model="timeState.time" :items="timeOptions" placeholder="Select TIME value" />
-          </UFormField>
-          <UFormField name="notes" label="Notes">
-            <UTextarea v-model="timeState.notes" placeholder="Optional notes" />
-          </UFormField>
-          <UAlert v-if="timeError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="timeError" />
-        </UForm>
-      </template>
-      <template #footer="{ close }">
-        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
-        <UButton type="submit" form="time-form" :loading="timeLoading" label="Save" />
-      </template>
-    </UModal>
+    <AsyncSetTimeModal
+      v-if="timeModalOpen"
+      v-model:open="timeModalOpen"
+      :tech="timeTech"
+      :team-options="teamOptions"
+      @saved="refreshNuxtData()"
+    />
 
-    <!-- Link Component Modal -->
-    <UModal v-model:open="linkModalOpen">
-      <template #header>
-        <h3 class="text-lg font-semibold">Link Component to {{ linkTechName }}</h3>
-      </template>
-      <template #body>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Search Components</label>
-            <UInput
-              v-model="linkSearch"
-              placeholder="Type at least 2 characters to search..."
-              icon="i-lucide-search"
-            />
-          </div>
-          <div v-if="linkSearching" class="text-sm text-(--ui-text-muted)">
-            Searching...
-          </div>
-          <div v-else-if="linkSearch.length >= 2 && linkSearchResults.length === 0" class="text-sm text-(--ui-text-muted)">
-            No components found.
-          </div>
-          <div v-if="linkSearchResults.length > 0" class="max-h-60 overflow-y-auto border border-(--ui-border) rounded-md divide-y divide-(--ui-border)">
-            <UButton
-              v-for="comp in linkSearchResults"
-              :key="`${comp.name}@${comp.version}`"
-              variant="ghost"
-              color="neutral"
-              class="w-full justify-start px-3 py-2"
-              :class="{ 'bg-(--ui-bg-elevated)': linkSelected?.name === comp.name && linkSelected?.version === comp.version }"
-              @click="linkSelected = { name: comp.name, version: comp.version }"
-            >
-              <span class="font-medium">{{ comp.name }}</span>
-              <code class="ml-2 text-sm">{{ comp.version }}</code>
-            </UButton>
-          </div>
-          <div v-if="linkSelected" class="text-sm">
-            Selected: <strong>{{ linkSelected.name }}</strong> <code>{{ linkSelected.version }}</code>
-          </div>
-          <UAlert
-            v-if="linkError"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-alert-circle"
-            :description="linkError"
-          />
-        </div>
-      </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="linkModalOpen = false" />
-          <UButton
-            :loading="linkLoading"
-            :label="linkLoading ? 'Linking...' : 'Link Component'"
-            :disabled="!linkSelected"
-            @click="confirmLinkComponent"
-          />
-        </div>
-      </template>
-    </UModal>
+    <AsyncLinkComponentModal
+      v-if="linkModalOpen"
+      v-model:open="linkModalOpen"
+      :tech-name="linkTechName"
+      @linked="refreshNuxtData()"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { defineAsyncComponent, h } from 'vue'
-import * as z from 'zod'
-import type { TableColumn, FormSubmitEvent } from '@nuxt/ui'
+import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Technology } from '~~/types/api'
 import type { RadarTechnology } from '~~/server/services/technology.service'
 
@@ -284,6 +135,11 @@ const { data: session } = useAuth()
 const { isSuperuser } = useEffectiveRole()
 
 const AsyncTechnologyRadar = defineAsyncComponent(() => import('../../components/TechnologyRadar.vue'))
+const AsyncEditTechnologyModal = defineAsyncComponent(() => import('../../components/EditTechnologyModal.vue'))
+const AsyncCreateVersionConstraintModal = defineAsyncComponent(() => import('../../components/CreateVersionConstraintModal.vue'))
+const AsyncDeleteTechnologyModal = defineAsyncComponent(() => import('../../components/DeleteTechnologyModal.vue'))
+const AsyncSetTimeModal = defineAsyncComponent(() => import('../../components/SetTimeModal.vue'))
+const AsyncLinkComponentModal = defineAsyncComponent(() => import('../../components/LinkComponentModal.vue'))
 
 const userTeams = computed(() =>
   (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
@@ -392,332 +248,57 @@ const columns: TableColumn<Technology>[] = [
   }
 ]
 
-// Edit modal state
-const editSchema = z.object({
-  type: z.string().min(1, 'Type is required'),
-  domain: z.string().optional(),
-  vendor: z.string().optional(),
-  ownerTeam: z.string().optional(),
-  lastReviewed: z.string().optional()
-})
-type EditSchema = z.infer<typeof editSchema>
-
-const editModalOpen = ref(false)
-const editLoading = ref(false)
-const editError = ref('')
-const editTechName = ref('')
-const editState = reactive<Partial<EditSchema>>({
-  type: '',
-  domain: undefined,
-  vendor: '',
-  ownerTeam: undefined,
-  lastReviewed: ''
-})
-
-const typeOptions = [
-  'application', 'framework', 'library', 'container', 'platform',
-  'operating-system', 'device', 'device-driver', 'firmware',
-  'file', 'machine-learning-model', 'data'
-]
-
-const domainOptions = [
-  'foundational-runtime', 'framework', 'data-platform',
-  'integration-platform', 'security-identity', 'infrastructure',
-  'observability', 'developer-tooling', 'other'
-]
-
 interface TeamsResponse { success: boolean; data: { name: string }[]; count: number }
 const { data: teamsData } = useLazyFetch<TeamsResponse>('/api/teams', { key: 'tech-edit-teams' })
 const teamOptions = computed(() =>
   (teamsData.value?.data || []).map(t => t.name).sort()
 )
 
+const canSetTime = computed(() => isSuperuser.value || userTeams.value.length > 0)
+
+// Edit modal
+const editModalOpen = ref(false)
+const editTech = ref<Technology | null>(null)
+
 function openEditModal(tech: Technology) {
-  editTechName.value = tech.name
-  Object.assign(editState, {
-    type: tech.type || '',
-    domain: tech.domain || undefined,
-    vendor: tech.vendor || '',
-    ownerTeam: tech.ownerTeamName || undefined,
-    lastReviewed: tech.lastReviewed || ''
-  })
-  editError.value = ''
+  editTech.value = tech
   editModalOpen.value = true
 }
 
-async function onEdit(event: FormSubmitEvent<EditSchema>) {
-  editLoading.value = true
-  editError.value = ''
-
-  try {
-    await $fetch(`/api/technologies/${encodeURIComponent(editTechName.value)}`, {
-      method: 'PUT',
-      body: {
-        type: event.data.type,
-        domain: event.data.domain || null,
-        vendor: event.data.vendor || null,
-        ownerTeam: event.data.ownerTeam || null,
-        lastReviewed: event.data.lastReviewed || null
-      }
-    })
-    editModalOpen.value = false
-    await refreshNuxtData()
-  }
-  catch (err: unknown) {
-    const error = err as { data?: { message?: string }; message?: string }
-    editError.value = error.data?.message || error.message || 'Failed to update technology'
-  }
-  finally {
-    editLoading.value = false
-  }
-}
-
-// Create Version Constraint modal state
-const vcSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  severity: z.string().min(1, 'Severity is required'),
-  scope: z.string().min(1, 'Scope is required'),
-  subjectTeam: z.string().optional(),
-  versionRange: z.string().min(1, 'Version range is required')
-}).refine(data => data.scope !== 'team' || !!data.subjectTeam, {
-  message: 'Team is required when scope is team',
-  path: ['subjectTeam']
-})
-type VcSchema = z.infer<typeof vcSchema>
-
+// Create Version Constraint modal
 const vcModalOpen = ref(false)
-const vcLoading = ref(false)
-const vcError = ref('')
-const vcTechName = ref('')
-const vcState = reactive<Partial<VcSchema>>({
-  name: '',
-  description: '',
-  severity: 'error',
-  scope: 'team',
-  subjectTeam: undefined,
-  versionRange: ''
-})
-const vcSeverityOptions = ['critical', 'error', 'warning', 'info']
+const vcTech = ref<Technology | null>(null)
 
 function openCreateVCModal(tech: Technology) {
-  const defaultName = `${tech.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-version-constraint`
-  vcTechName.value = tech.name
-  Object.assign(vcState, {
-    name: defaultName,
-    description: '',
-    severity: 'error',
-    scope: isSuperuser.value ? 'organization' : 'team',
-    subjectTeam: isSuperuser.value ? undefined : (userTeams.value[0] || undefined),
-    versionRange: ''
-  })
-  vcError.value = ''
+  vcTech.value = tech
   vcModalOpen.value = true
 }
 
-async function onCreateVC(event: FormSubmitEvent<VcSchema>) {
-  vcLoading.value = true
-  vcError.value = ''
-
-  try {
-    await $fetch('/api/version-constraints', {
-      method: 'POST',
-      body: {
-        name: event.data.name,
-        description: event.data.description || undefined,
-        severity: event.data.severity,
-        scope: event.data.scope,
-        subjectTeam: event.data.scope === 'team' ? event.data.subjectTeam : undefined,
-        versionRange: event.data.versionRange,
-        governsTechnology: vcTechName.value
-      }
-    })
-    vcModalOpen.value = false
-  }
-  catch (err: unknown) {
-    const error = err as { data?: { message?: string }; message?: string }
-    vcError.value = error.data?.message || error.message || 'Failed to create version constraint'
-  }
-  finally {
-    vcLoading.value = false
-  }
-}
-
-// Delete modal state
+// Delete modal
 const deleteModalOpen = ref(false)
-const deleteTarget = ref('')
-const deleteLoading = ref(false)
-const deleteError = ref('')
+const deleteTechName = ref('')
 
 function openDeleteModal(name: string) {
-  deleteTarget.value = name
-  deleteError.value = ''
+  deleteTechName.value = name
   deleteModalOpen.value = true
 }
 
-async function confirmDelete() {
-  deleteLoading.value = true
-  deleteError.value = ''
-
-  try {
-    await $fetch(`/api/technologies/${encodeURIComponent(deleteTarget.value)}`, {
-      method: 'DELETE'
-    })
-    deleteModalOpen.value = false
-    await refreshNuxtData()
-  } catch (err: unknown) {
-    const error = err as { data?: { message?: string }; message?: string }
-    deleteError.value = error.data?.message || error.message || 'Failed to delete technology'
-  } finally {
-    deleteLoading.value = false
-  }
-}
-
-// Set TIME modal state
-const timeSchema = z.object({
-  teamName: z.string().min(1, 'Team is required'),
-  time: z.string().min(1, 'TIME value is required'),
-  notes: z.string().optional()
-})
-type TimeSchema = z.infer<typeof timeSchema>
-
+// Set TIME modal
 const timeModalOpen = ref(false)
-const timeLoading = ref(false)
-const timeError = ref('')
 const timeModalTech = ref<Technology | null>(null)
-const timeState = reactive<Partial<TimeSchema>>({
-  teamName: undefined,
-  time: undefined,
-  notes: ''
-})
-const timeOptions = ['invest', 'tolerate', 'migrate', 'eliminate']
-
-const canSetTime = computed(() => isSuperuser.value || userTeams.value.length > 0)
-
-const timeTeamOptions = computed(() =>
-  isSuperuser.value ? teamOptions.value : userTeams.value
-)
-
-const timeTeamReadonly = computed(() =>
-  !isSuperuser.value && userTeams.value.length === 1
-)
 
 function openTimeModal(tech: Technology) {
   timeModalTech.value = tech
-  const defaultTeam = isSuperuser.value
-    ? undefined
-    : (userTeams.value.length === 1 ? userTeams.value[0] : undefined)
-
-  const existingApproval = defaultTeam
-    ? tech.approvals?.find(a => a.team === defaultTeam)
-    : undefined
-
-  Object.assign(timeState, {
-    teamName: defaultTeam,
-    time: existingApproval?.time || undefined,
-    notes: existingApproval?.notes || ''
-  })
-  timeError.value = ''
   timeModalOpen.value = true
 }
 
-watch(() => timeState.teamName, (newTeam) => {
-  if (!newTeam || !timeModalTech.value) return
-  const existing = timeModalTech.value.approvals?.find(a => a.team === newTeam)
-  timeState.time = existing?.time || undefined
-  timeState.notes = existing?.notes || ''
-})
-
-async function onSetTime(event: FormSubmitEvent<TimeSchema>) {
-  if (!timeModalTech.value) return
-  timeLoading.value = true
-  timeError.value = ''
-
-  try {
-    await $fetch(`/api/technologies/${encodeURIComponent(timeModalTech.value.name)}/approvals`, {
-      method: 'POST',
-      body: {
-        teamName: event.data.teamName,
-        time: event.data.time,
-        notes: event.data.notes || undefined
-      }
-    })
-    timeModalOpen.value = false
-    await refreshNuxtData()
-  }
-  catch (err: unknown) {
-    const error = err as { data?: { message?: string }; message?: string }
-    timeError.value = error.data?.message || error.message || 'Failed to set TIME value'
-  }
-  finally {
-    timeLoading.value = false
-  }
-}
-
-// Link Component modal state
+// Link Component modal
 const linkModalOpen = ref(false)
-const linkLoading = ref(false)
-const linkError = ref('')
 const linkTechName = ref('')
-const linkSearch = ref('')
-const linkSearchResults = ref<{ name: string; version: string; purl?: string }[]>([])
-const linkSearching = ref(false)
-const linkSelected = ref<{ name: string; version: string } | null>(null)
 
 function openLinkComponentModal(tech: Technology) {
   linkTechName.value = tech.name
-  linkSearch.value = ''
-  linkSearchResults.value = []
-  linkSelected.value = null
-  linkError.value = ''
   linkModalOpen.value = true
-}
-
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
-watch(linkSearch, (val) => {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  linkSelected.value = null
-  if (!val || val.length < 2) {
-    linkSearchResults.value = []
-    return
-  }
-  searchTimeout = setTimeout(async () => {
-    linkSearching.value = true
-    try {
-      const res = await $fetch<{ data: { name: string; version: string; purl?: string; technologyName?: string }[] }>('/api/components', {
-        query: { search: val, limit: 20 }
-      })
-      // Only show components not already linked to a technology
-      linkSearchResults.value = (res.data || []).filter(c => !c.technologyName)
-    } catch {
-      linkSearchResults.value = []
-    } finally {
-      linkSearching.value = false
-    }
-  }, 300)
-})
-
-async function confirmLinkComponent() {
-  if (!linkSelected.value) return
-  linkLoading.value = true
-  linkError.value = ''
-
-  try {
-    await $fetch(`/api/technologies/${encodeURIComponent(linkTechName.value)}/components`, {
-      method: 'POST',
-      body: {
-        componentName: linkSelected.value.name,
-        componentVersion: linkSelected.value.version
-      }
-    })
-    linkModalOpen.value = false
-    await refreshNuxtData()
-  } catch (err: unknown) {
-    const error = err as { data?: { message?: string }; message?: string }
-    linkError.value = error.data?.message || error.message || 'Failed to link component'
-  } finally {
-    linkLoading.value = false
-  }
 }
 
 const { searchInput, debouncedSearch } = useTableSearch()
