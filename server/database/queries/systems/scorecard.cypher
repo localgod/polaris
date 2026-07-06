@@ -25,9 +25,13 @@ CALL {
     WHERE tech IS NOT NULL AND blanketApproval.environment IS NULL
   WITH tech, coalesce(envApproval.time, blanketApproval.time) AS resolvedTime
   WHERE tech IS NOT NULL
-  RETURN count(tech) AS usedTechnologyCount,
-         count(CASE WHEN resolvedTime IS NULL THEN 1 END) AS unclassifiedCount,
-         count(CASE WHEN resolvedTime = 'eliminate' THEN 1 END) AS eliminateCount
+  // DISTINCT guards against row multiplication if a team ever ends up with more
+  // than one matching APPROVES relationship for the same (team, tech, environment) —
+  // nothing at the database level prevents that (Neo4j Community Edition has no
+  // relationship-cardinality constraints; see ADR-0004).
+  RETURN count(DISTINCT tech) AS usedTechnologyCount,
+         count(DISTINCT CASE WHEN resolvedTime IS NULL THEN tech END) AS unclassifiedCount,
+         count(DISTINCT CASE WHEN resolvedTime = 'eliminate' THEN tech END) AS eliminateCount
 }
 
 CALL {

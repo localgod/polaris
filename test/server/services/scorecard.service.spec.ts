@@ -4,7 +4,7 @@ import { SystemRepository } from '../../../server/repositories/system.repository
 import { TeamRepository } from '../../../server/repositories/team.repository'
 import { VersionConstraintRepository } from '../../../server/repositories/version-constraint.repository'
 import type { System } from '../../../server/repositories/system.repository'
-import type { Team, TeamUsageResult } from '../../../server/repositories/team.repository'
+import type { Team, TeamUsageResult, TechnologyUsage } from '../../../server/repositories/team.repository'
 import type { Violation } from '../../../server/repositories/version-constraint.repository'
 import '../../fixtures/service-test-helper'
 
@@ -54,6 +54,20 @@ function freshDate(): string {
 
 function staleDate(): string {
   return new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+}
+
+function usageRow(complianceStatus: string, technology = 'tech'): TechnologyUsage {
+  return {
+    technology,
+    type: null,
+    domain: null,
+    vendor: null,
+    systemCount: 1,
+    firstUsed: null,
+    lastVerified: null,
+    approvalStatus: null,
+    complianceStatus
+  }
 }
 
 describe('ScorecardService', () => {
@@ -182,7 +196,12 @@ describe('ScorecardService', () => {
       })
       vi.mocked(TeamRepository.prototype.findUsage).mockResolvedValue({
         team: 'payments-team',
-        usage: [],
+        usage: [
+          usageRow('compliant', 'tech-1'),
+          usageRow('unapproved', 'tech-2'),
+          usageRow('unapproved', 'tech-3'),
+          usageRow('violation', 'tech-4')
+        ],
         summary: { totalTechnologies: 4, compliant: 1, unapproved: 2, violations: 1, migrationNeeded: 0 }
       })
       vi.mocked(VersionConstraintRepository.prototype.findViolations).mockResolvedValue([criticalViolation])
@@ -196,6 +215,29 @@ describe('ScorecardService', () => {
       expect(byId['no-license-violations']!.passed).toBe(false)
       expect(byId['no-critical-version-violations']!.passed).toBe(false)
       expect(byId['sbom-freshness']!.passed).toBe(false)
+    })
+
+    it('treats an "unknown" compliance status as unclassified for TIME coverage', async () => {
+      // An APPROVES relationship with a time value outside the recognized TIME enum
+      // maps to complianceStatus 'unknown' (teams/find-usage.cypher) — it is not
+      // counted in summary.unapproved, so coverage must be derived from usage.usage
+      // rather than relying on summary.unapproved alone.
+      vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam)
+      vi.mocked(TeamRepository.prototype.getScorecardRaw).mockResolvedValue({
+        systemScans: [{ system: 'checkout-api', lastSbomScanAt: freshDate() }],
+        licenseViolationCount: 0,
+      })
+      vi.mocked(TeamRepository.prototype.findUsage).mockResolvedValue({
+        team: 'payments-team',
+        usage: [usageRow('unknown', 'tech-1')],
+        summary: { totalTechnologies: 1, compliant: 0, unapproved: 0, violations: 0, migrationNeeded: 0 }
+      })
+      vi.mocked(VersionConstraintRepository.prototype.findViolations).mockResolvedValue([])
+
+      const result = await service.getTeamScorecard('payments-team')
+
+      const coverageCheck = result!.checks.find(check => check.id === 'time-classification-coverage')
+      expect(coverageCheck!.passed).toBe(false)
     })
   })
 })

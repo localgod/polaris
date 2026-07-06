@@ -62,12 +62,20 @@ export class ScorecardService {
       this.versionConstraintService.getViolations({ team: name, severity: 'critical' })
     ])
 
+    // usage.summary.unapproved only counts technologies with no APPROVES relationship
+    // at all — it misses complianceStatus 'unknown' (an APPROVES relationship exists
+    // but its `time` isn't one of the recognized TIME values). Coverage means "has a
+    // recognized TIME classification", so both cases count as unclassified.
+    const unclassifiedCount = usage.usage.filter(
+      u => u.complianceStatus === 'unapproved' || u.complianceStatus === 'unknown'
+    ).length
+
     const checks: ScorecardCheck[] = [
       this.teamSbomFreshnessCheck(raw.systemScans),
       this.eliminateViolationsCheck(usage.summary.violations, usage.summary.totalTechnologies),
       this.licenseViolationsCheck(raw.licenseViolationCount),
       this.criticalConstraintCheck(criticalViolations.summary.critical),
-      this.classificationCoverageCheck(usage.summary.unapproved, usage.summary.totalTechnologies)
+      this.classificationCoverageCheck(unclassifiedCount, usage.summary.totalTechnologies)
     ]
 
     return this.buildScorecard(checks)
