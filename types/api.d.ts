@@ -559,6 +559,26 @@ export interface LicenseViolation {
   licenseCategory: string | null
 }
 
+export type ScorecardCheckId =
+  | 'sbom-freshness'
+  | 'no-eliminate-violations'
+  | 'no-license-violations'
+  | 'no-critical-version-violations'
+  | 'time-classification-coverage'
+
+export interface ScorecardCheck {
+  id: ScorecardCheckId
+  label: string
+  passed: boolean
+  detail: string
+}
+
+export interface Scorecard {
+  score: number
+  maxScore: number
+  checks: ScorecardCheck[]
+}
+
 export interface ApiSuccessResponse<T> {
   success: true
   data: T[]

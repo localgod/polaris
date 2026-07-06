@@ -167,6 +167,11 @@ export class VersionConstraintRepository extends BaseRepository {
       params.technology = filters.technology
     }
 
+    if (filters.system) {
+      conditions.push('sys.name = $system')
+      params.system = filters.system
+    }
+
     const finalQuery = injectWhereConditions(query, conditions)
 
     const { records } = await this.executeQuery(finalQuery, params)
