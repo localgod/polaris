@@ -46,6 +46,14 @@ export interface GraphComponentRow {
   dependsOnPurls: string[]
 }
 
+export interface SystemScorecardRaw {
+  lastSbomScanAt: string | null
+  usedTechnologyCount: number
+  unclassifiedCount: number
+  eliminateCount: number
+  licenseViolationCount: number
+}
+
 export interface ComponentIssueRow {
   componentName: string
   componentVersion: string | null
@@ -289,6 +297,28 @@ export class SystemRepository extends BaseRepository {
       isDeprecated: (record.get('isDeprecated') as boolean) ?? false,
       maintenanceStatus: record.get('maintenanceStatus') as string | null,
     }))
+  }
+
+  /**
+   * Get raw signals for the compliance scorecard: SBOM freshness, TIME
+   * classification of used technologies, and disallowed-license usage.
+   *
+   * System-not-found must be checked by the caller before invoking this method.
+   *
+   * @param name - System name
+   * @returns Raw scorecard signals
+   */
+  async getScorecardRaw(name: string): Promise<SystemScorecardRaw> {
+    const query = await loadQuery('systems/scorecard.cypher')
+    const { records } = await this.executeQuery(query, { name })
+    const record = records[0]!
+    return {
+      lastSbomScanAt: record.get('lastSbomScanAt')?.toString() || null,
+      usedTechnologyCount: record.get('usedTechnologyCount')?.toNumber() || 0,
+      unclassifiedCount: record.get('unclassifiedCount')?.toNumber() || 0,
+      eliminateCount: record.get('eliminateCount')?.toNumber() || 0,
+      licenseViolationCount: record.get('licenseViolationCount')?.toNumber() || 0,
+    }
   }
 
   /**

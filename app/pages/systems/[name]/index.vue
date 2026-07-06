@@ -52,6 +52,8 @@
         </EntityDescriptionList>
       </UCard>
 
+      <ComplianceScorecard v-if="scorecardData?.data" :scorecard="scorecardData.data" />
+
       <SystemIssues v-if="issuesData?.data" :issues="issuesData.data" />
 
       <PaginatedTable
@@ -93,6 +95,7 @@
 <script setup lang="ts">
 import { defineAsyncComponent, h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { Scorecard } from '~~/types/api'
 
 const route = useRoute()
 const { getSortableHeader } = useSortableTable()
@@ -179,6 +182,11 @@ interface IssuesResponse {
   data: SystemIssues
 }
 
+interface ScorecardResponse {
+  success: boolean
+  data: Scorecard
+}
+
 interface Repository {
   name: string
   url: string
@@ -198,6 +206,10 @@ const { data: graphData } = useFetch<GraphResponse>(
 
 const { data: issuesData } = useFetch<IssuesResponse>(
   () => `/api/systems/${encodeURIComponent(route.params.name as string)}/issues`
+)
+
+const { data: scorecardData } = useFetch<ScorecardResponse>(
+  () => `/api/systems/${encodeURIComponent(route.params.name as string)}/scorecard`
 )
 
 const { data: reposData } = useFetch<RepositoriesResponse>(

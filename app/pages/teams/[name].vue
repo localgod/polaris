@@ -27,6 +27,8 @@
 
       <EntityStatStrip :items="statItems" />
 
+      <ComplianceScorecard v-if="scorecardData?.data" :scorecard="scorecardData.data" />
+
       <UCard>
         <UTabs :items="tabItems">
           <template #members>
@@ -66,6 +68,7 @@
 <script setup lang="ts">
 import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import type { Scorecard } from '~~/types/api'
 
 const { getSortableHeader } = useSortableTable()
 const memberSorting = ref([])
@@ -117,6 +120,11 @@ interface TeamDetail {
 interface TeamResponse {
   success: boolean
   data: TeamDetail
+}
+
+interface ScorecardResponse {
+  success: boolean
+  data: Scorecard
 }
 
 const memberColumns: TableColumn<Member>[] = [
@@ -227,6 +235,10 @@ const approvalColumns: TableColumn<Approval>[] = [
 ]
 
 const { data, pending, error } = await useFetch<TeamResponse>(() => `/api/teams/${encodeURIComponent(route.params.name as string)}`)
+
+const { data: scorecardData } = useFetch<ScorecardResponse>(
+  () => `/api/teams/${encodeURIComponent(route.params.name as string)}/scorecard`
+)
 
 const statItems = computed(() => [
   { label: 'Technologies Owned', value: data.value?.data?.technologyCount || 0 },

@@ -31,6 +31,7 @@ import { PackageMetadataService } from './package-metadata.service'
 import { SecurityScoreService } from './security-score.service'
 import { VulnerabilityService } from './vulnerability.service'
 import { HealthRefreshService } from './health-refresh.service'
+import { ScorecardService } from './scorecard.service'
 
 export const technologyService = new TechnologyService()
 export const platformService = new PlatformService()
@@ -53,3 +54,4 @@ export const packageMetadataService = new PackageMetadataService()
 export const securityScoreService = new SecurityScoreService()
 export const vulnerabilityService = new VulnerabilityService()
 export const healthRefreshService = new HealthRefreshService()
+export const scorecardService = new ScorecardService()

@@ -100,6 +100,11 @@ export interface TeamUsageResult {
   }
 }
 
+export interface TeamScorecardRaw {
+  systemScans: Array<{ system: string; lastSbomScanAt: string | null }>
+  licenseViolationCount: number
+}
+
 export interface ApprovalStatus {
   team: string
   technology: string
@@ -369,6 +374,30 @@ export class TeamRepository extends BaseRepository {
         violations: usage.filter(u => u.complianceStatus === 'violation').length,
         migrationNeeded: usage.filter(u => u.complianceStatus === 'migration-needed').length
       }
+    }
+  }
+
+  /**
+   * Get raw signals for the compliance scorecard that aren't already covered
+   * by findUsage(): SBOM freshness across owned systems, and disallowed-license
+   * usage across owned systems.
+   *
+   * Team-not-found must be checked by the caller before invoking this method.
+   *
+   * @param name - Team name
+   * @returns Raw scorecard signals
+   */
+  async getScorecardRaw(name: string): Promise<TeamScorecardRaw> {
+    const query = await loadQuery('teams/scorecard.cypher')
+    const { records } = await this.executeQuery(query, { name })
+    const record = records[0]!
+    const systemScans = (record.get('systemScans') as Array<{ system: string; lastSbomScanAt: unknown }>) ?? []
+    return {
+      systemScans: systemScans.map(scan => ({
+        system: scan.system,
+        lastSbomScanAt: scan.lastSbomScanAt == null ? null : String(scan.lastSbomScanAt)
+      })),
+      licenseViolationCount: record.get('licenseViolationCount')?.toNumber() || 0
     }
   }
 
