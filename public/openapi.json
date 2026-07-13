@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "0.6.52",
+    "version": "0.6.57",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",
@@ -819,6 +819,96 @@
           "description": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "VersionSprawlVersionBreakdown": {
+        "type": "object",
+        "required": [
+          "version",
+          "systemCount",
+          "systems"
+        ],
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "systemCount": {
+            "type": "integer"
+          },
+          "systems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "VersionSprawlDetection": {
+        "type": "object",
+        "required": [
+          "technologyName",
+          "versions",
+          "versionCount",
+          "versionRange",
+          "affectedSystemCount",
+          "versionBreakdown",
+          "sprawlScore",
+          "severity",
+          "recommendedVersion",
+          "hasEolVersion"
+        ],
+        "properties": {
+          "technologyName": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "versionCount": {
+            "type": "integer"
+          },
+          "versionRange": {
+            "type": "object",
+            "properties": {
+              "oldest": {
+                "type": "string"
+              },
+              "newest": {
+                "type": "string"
+              }
+            }
+          },
+          "affectedSystemCount": {
+            "type": "integer"
+          },
+          "versionBreakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionSprawlVersionBreakdown"
+            }
+          },
+          "sprawlScore": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "recommendedVersion": {
+            "type": "string"
+          },
+          "hasEolVersion": {
+            "type": "boolean"
           }
         }
       },
@@ -2828,6 +2918,81 @@
           },
           "404": {
             "description": "Team or technology not found"
+          }
+        }
+      }
+    },
+    "/version-sprawl/summary": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Get version sprawl counts by severity",
+        "description": "Returns counts of detected version sprawl groups by severity tier, for dashboard summary widgets.",
+        "responses": {
+          "200": {
+            "description": "Version sprawl summary retrieved successfully"
+          }
+        }
+      }
+    },
+    "/version-sprawl": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "List detected version sprawl",
+        "description": "Detects technologies with 2+ distinct versions in use as direct dependencies across systems, scored and ranked by sprawl severity (version count, affected system count, major-version spread, and EOL exposure). Transitive-only versions are excluded since a team cannot act on a version it doesn't declare itself.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "severity",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ]
+            },
+            "description": "Filter to a single severity tier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved version sprawl detections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/VersionSprawlDetection"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to detect version sprawl",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         }
       }

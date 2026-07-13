@@ -575,6 +575,40 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             description: { type: 'string', nullable: true }
           }
         },
+        VersionSprawlVersionBreakdown: {
+          type: 'object',
+          required: ['version', 'systemCount', 'systems'],
+          properties: {
+            version: { type: 'string' },
+            systemCount: { type: 'integer' },
+            systems: { type: 'array', items: { type: 'string' } }
+          }
+        },
+        VersionSprawlDetection: {
+          type: 'object',
+          required: ['technologyName', 'versions', 'versionCount', 'versionRange', 'affectedSystemCount', 'versionBreakdown', 'sprawlScore', 'severity', 'recommendedVersion', 'hasEolVersion'],
+          properties: {
+            technologyName: { type: 'string' },
+            versions: { type: 'array', items: { type: 'string' } },
+            versionCount: { type: 'integer' },
+            versionRange: {
+              type: 'object',
+              properties: {
+                oldest: { type: 'string' },
+                newest: { type: 'string' }
+              }
+            },
+            affectedSystemCount: { type: 'integer' },
+            versionBreakdown: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/VersionSprawlVersionBreakdown' }
+            },
+            sprawlScore: { type: 'integer', minimum: 0, maximum: 100 },
+            severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+            recommendedVersion: { type: 'string' },
+            hasEolVersion: { type: 'boolean' }
+          }
+        },
         Technology: {
           type: 'object',
           properties: {

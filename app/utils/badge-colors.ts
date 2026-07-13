@@ -56,3 +56,13 @@ const TIME_CATEGORY_COLORS: Record<string, BadgeColor> = {
 export function getTimeCategoryColor(value: string | null | undefined): BadgeColor {
   return TIME_CATEGORY_COLORS[value?.toLowerCase() ?? ''] ?? 'neutral'
 }
+
+const SPRAWL_SEVERITY_COLORS: Record<string, BadgeColor> = {
+  high: 'error',
+  medium: 'warning',
+  low: 'neutral'
+}
+
+export function getSprawlSeverityColor(value: string | null | undefined): BadgeColor {
+  return SPRAWL_SEVERITY_COLORS[value?.toLowerCase() ?? ''] ?? 'neutral'
+}

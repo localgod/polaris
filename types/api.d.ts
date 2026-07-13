@@ -255,6 +255,34 @@ export interface HealthDashboardSummary {
   }
 }
 
+export type VersionSprawlSeverity = 'high' | 'medium' | 'low'
+
+export interface VersionSprawlVersionBreakdown {
+  version: string
+  systemCount: number
+  systems: string[]
+}
+
+export interface VersionSprawlDetection {
+  technologyName: string
+  versions: string[]
+  versionCount: number
+  versionRange: { oldest: string; newest: string }
+  affectedSystemCount: number
+  versionBreakdown: VersionSprawlVersionBreakdown[]
+  sprawlScore: number
+  severity: VersionSprawlSeverity
+  recommendedVersion: string
+  hasEolVersion: boolean
+}
+
+export interface VersionSprawlSummary {
+  high: number
+  medium: number
+  low: number
+  total: number
+}
+
 export type MaintenanceHealthStatus = 'healthy' | 'stable' | 'aging' | 'stale' | 'unknown'
 
 export type MaintenanceHealthConfidence = 'high' | 'medium' | 'low'

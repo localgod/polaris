@@ -20,7 +20,7 @@
     </div>
 
     <!-- Statistics Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
       <UCard>
         <template #header>
           <div class="flex justify-between items-center">
@@ -121,6 +121,29 @@
           <div>
             <p class="text-sm text-(--ui-text-muted)">Systems</p>
             <p class="text-xl font-bold">{{ lifecycleStats.systems }}</p>
+          </div>
+        </div>
+      </UCard>
+
+      <UCard>
+        <template #header>
+          <div class="flex justify-between items-center">
+            <h3 class="font-semibold">Version Sprawl</h3>
+            <NuxtLink to="/version-sprawl" class="text-sm text-(--ui-color-primary-500)">View all →</NuxtLink>
+          </div>
+        </template>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p class="text-sm text-(--ui-text-muted)">High</p>
+            <p class="text-xl font-bold text-(--ui-color-error-500)">{{ sprawlStats.high }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-(--ui-text-muted)">Medium</p>
+            <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ sprawlStats.medium }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-(--ui-text-muted)">Low</p>
+            <p class="text-xl font-bold">{{ sprawlStats.low }}</p>
           </div>
         </div>
       </UCard>
@@ -267,7 +290,7 @@
 </template>
 
 <script setup lang="ts">
-import type { HealthDashboardSummary } from '~~/types/api'
+import type { HealthDashboardSummary, VersionSprawlSummary } from '~~/types/api'
 
 interface DashboardSummaryResponse {
   success: boolean
@@ -316,6 +339,14 @@ interface HealthSummaryApiResponse {
 
 const { data: healthSummaryData } = await useFetch<HealthSummaryApiResponse>('/api/health/summary')
 
+interface SprawlSummaryApiResponse {
+  success: boolean
+  data: VersionSprawlSummary
+  count: number
+}
+
+const { data: sprawlSummaryData } = await useFetch<SprawlSummaryApiResponse>('/api/version-sprawl/summary')
+
 const summary = computed(() => dashboardData.value?.data)
 
 const counts = computed(() => ({
@@ -361,6 +392,12 @@ const lifecycleStats = computed(() => ({
   unsupported: summary.value?.lifecycle.unsupported || 0,
   approaching: summary.value?.lifecycle.approaching || 0,
   systems: summary.value?.lifecycle.systems || 0
+}))
+
+const sprawlStats = computed(() => ({
+  high: sprawlSummaryData.value?.data.high || 0,
+  medium: sprawlSummaryData.value?.data.medium || 0,
+  low: sprawlSummaryData.value?.data.low || 0
 }))
 
 const emptyHealthSummary: HealthDashboardSummary = {
