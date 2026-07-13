@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.59] - 2026-07-13
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps-dev): bump typescript from 6.0.3 to 7.0.2 @[dependabot[bot]](https://github.com/apps/dependabot) (#749)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.58...v0.6.59
+
 ## [0.6.57] - 2026-07-06
 
 ## What's Changed
