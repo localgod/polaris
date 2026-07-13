@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.63] - 2026-07-13
+
+## What's Changed
+
+- Implement version sprawl detection and consolidation recommendations @localgod (#759)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.62...v0.6.63
+
 ## [0.6.57] - 2026-07-06
 
 ## What's Changed
