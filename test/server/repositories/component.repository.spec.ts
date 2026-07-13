@@ -895,4 +895,89 @@ describe('ComponentRepository', () => {
     })
   })
 
+  describe('findVersionSprawl()', () => {
+    it('groups by technology and reports per-version distinct direct-usage system counts', async () => {
+      if (!ctx.neo4jAvailable) return
+      const techName = `${PREFIX}sprawl-react`
+      await seed(ctx.driver, `
+        CREATE (tech:Technology { name: $techName })
+        CREATE (v1:Component { name: $techName, version: '16.8.0', packageManager: 'npm', purl: $p1 })
+        CREATE (v2:Component { name: $techName, version: '17.0.2', packageManager: 'npm', purl: $p2 })
+        CREATE (v3:Component { name: $techName, version: '18.3.1', packageManager: 'npm', purl: $p3 })
+        CREATE (v1)-[:IS_VERSION_OF]->(tech)
+        CREATE (v2)-[:IS_VERSION_OF]->(tech)
+        CREATE (v3)-[:IS_VERSION_OF]->(tech)
+        CREATE (sysA:System { name: $sysA })
+        CREATE (sysB:System { name: $sysB })
+        CREATE (sysC:System { name: $sysC })
+        CREATE (sysA)-[:USES { isDirect: true }]->(v1)
+        CREATE (sysB)-[:USES { isDirect: true }]->(v1)
+        CREATE (sysB)-[:USES { isDirect: true }]->(v2)
+        CREATE (sysC)-[:USES { isDirect: false }]->(v3)
+      `, {
+        techName,
+        p1: `pkg:npm/${techName}@16.8.0`,
+        p2: `pkg:npm/${techName}@17.0.2`,
+        p3: `pkg:npm/${techName}@18.3.1`,
+        sysA: `${PREFIX}sprawl-sys-a`,
+        sysB: `${PREFIX}sprawl-sys-b`,
+        sysC: `${PREFIX}sprawl-sys-c`
+      })
+
+      const results = await repo.findVersionSprawl(2)
+      const group = results.find(r => r.technologyName === techName)
+
+      expect(group).toBeDefined()
+      expect(group!.versionCount).toBe(2)
+      expect(new Set(group!.versions)).toEqual(new Set(['16.8.0', '17.0.2']))
+      expect(group!.affectedSystemCount).toBe(2)
+
+      const breakdownByVersion = Object.fromEntries(group!.versionBreakdown.map(vb => [vb.version, vb]))
+      expect(breakdownByVersion['16.8.0'].systemCount).toBe(2)
+      expect(breakdownByVersion['17.0.2'].systemCount).toBe(1)
+      expect(breakdownByVersion['18.3.1']).toBeUndefined()
+    })
+
+    it('excludes a technology whose multiple versions are only reachable transitively', async () => {
+      if (!ctx.neo4jAvailable) return
+      const techName = `${PREFIX}sprawl-transitive-only`
+      await seed(ctx.driver, `
+        CREATE (tech:Technology { name: $techName })
+        CREATE (v1:Component { name: $techName, version: '1.0.0', packageManager: 'npm', purl: $p1 })
+        CREATE (v2:Component { name: $techName, version: '2.0.0', packageManager: 'npm', purl: $p2 })
+        CREATE (v1)-[:IS_VERSION_OF]->(tech)
+        CREATE (v2)-[:IS_VERSION_OF]->(tech)
+        CREATE (sys:System { name: $sysName })
+        CREATE (sys)-[:USES { isDirect: false }]->(v1)
+        CREATE (sys)-[:USES { isDirect: false }]->(v2)
+      `, {
+        techName,
+        p1: `pkg:npm/${techName}@1.0.0`,
+        p2: `pkg:npm/${techName}@2.0.0`,
+        sysName: `${PREFIX}sprawl-transitive-sys`
+      })
+
+      const results = await repo.findVersionSprawl(2)
+
+      expect(results.find(r => r.technologyName === techName)).toBeUndefined()
+    })
+
+    it('excludes technologies below the minimum version threshold', async () => {
+      if (!ctx.neo4jAvailable) return
+      const techName = `${PREFIX}sprawl-single-version`
+      await seed(ctx.driver, `
+        CREATE (tech:Technology { name: $techName })
+        CREATE (v1:Component { name: $techName, version: '1.0.0', packageManager: 'npm', purl: $p1 })
+        CREATE (v1)-[:IS_VERSION_OF]->(tech)
+      `, {
+        techName,
+        p1: `pkg:npm/${techName}@1.0.0`
+      })
+
+      const results = await repo.findVersionSprawl(2)
+
+      expect(results.find(r => r.technologyName === techName)).toBeUndefined()
+    })
+  })
+
 })

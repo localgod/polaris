@@ -62,6 +62,20 @@ export interface ComponentEOLCandidate {
   systems: Array<{ name: string }>
 }
 
+export interface VersionSprawlVersionBreakdownRaw {
+  version: string
+  systemCount: number
+  systems: string[]
+}
+
+export interface VersionSprawlRaw {
+  technologyName: string
+  versions: string[]
+  versionCount: number
+  versionBreakdown: VersionSprawlVersionBreakdownRaw[]
+  affectedSystemCount: number
+}
+
 interface DependencyPathNode {
   elementId: string
   name: string
@@ -414,6 +428,26 @@ export class ComponentRepository extends BaseRepository {
       systems: ((record.get('systems') ?? []) as string[])
         .filter(Boolean)
         .map(name => ({ name }))
+    }))
+  }
+
+  async findVersionSprawl(minVersions = 2): Promise<VersionSprawlRaw[]> {
+    const query = await loadQuery('components/detect-version-sprawl.cypher')
+    const { records } = await this.executeQuery(query, { minVersions })
+    return records.map(record => ({
+      technologyName: record.get('technologyName'),
+      versions: record.get('versions') as string[],
+      versionCount: record.get('versionCount').toNumber(),
+      versionBreakdown: (record.get('versionBreakdown') as Array<{
+        version: string
+        systemCount: { toNumber(): number }
+        systems: string[]
+      }>).map(vb => ({
+        version: vb.version,
+        systemCount: vb.systemCount.toNumber(),
+        systems: vb.systems
+      })),
+      affectedSystemCount: record.get('affectedSystemCount').toNumber()
     }))
   }
 

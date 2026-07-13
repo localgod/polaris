@@ -304,6 +304,11 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
       label: 'Version Constraints',
       icon: 'i-lucide-file-text',
       to: '/version-constraints'
+    },
+    {
+      label: 'Version Sprawl',
+      icon: 'i-lucide-layers',
+      to: '/version-sprawl'
     }
   ]
 
