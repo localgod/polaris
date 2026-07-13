@@ -20,6 +20,36 @@ export interface Team {
   systemCount: number
   usedTechnologyCount?: number
   memberCount?: number
+  members?: TeamMember[]
+  systems?: TeamSystemRef[]
+  technologies?: TeamTechnologyRef[]
+  approvals?: TeamApprovalRef[]
+}
+
+export interface TeamMember {
+  name: string
+  email: string
+  role: 'Manager' | 'Member'
+}
+
+export interface TeamSystemRef {
+  name: string
+  businessCriticality: string | null
+  environment: string | null
+}
+
+export interface TeamTechnologyRef {
+  name: string
+  type: string | null
+  timeCategory: string | null
+  relationship: 'Steward' | 'User'
+}
+
+export interface TeamApprovalRef {
+  technologyName: string
+  timeCategory: string | null
+  approvedAt: string | null
+  approvedBy: string | null
 }
 
 export interface TechnologyApproval {
@@ -164,7 +194,16 @@ export class TeamRepository extends BaseRepository {
       technologyCount: this.toNumber(team.technologyCount),
       systemCount: this.toNumber(team.systemCount),
       usedTechnologyCount: this.toNumber(team.usedTechnologyCount),
-      memberCount: this.toNumber(team.memberCount)
+      memberCount: this.toNumber(team.memberCount),
+      members: (team.members as Array<{ name: string | null; email: string | null; isManager: boolean }>)
+        .filter(m => m.name)
+        .map(m => ({ name: m.name!, email: m.email!, role: m.isManager ? 'Manager' as const : 'Member' as const })),
+      systems: (team.systems as Array<{ name: string | null; businessCriticality: string | null; environment: string | null }>)
+        .filter(s => s.name)
+        .map(s => ({ name: s.name!, businessCriticality: s.businessCriticality, environment: s.environment })),
+      technologies: (team.stewardedTechnologies as Array<{ name: string | null; type: string | null; timeCategory: string | null }>)
+        .filter(t => t.name)
+        .map(t => ({ name: t.name!, type: t.type, timeCategory: t.timeCategory, relationship: 'Steward' as const }))
     }
   }
   

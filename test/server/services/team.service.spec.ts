@@ -33,6 +33,15 @@ describe('TeamService', () => {
   })
 
   describe('findByName()', () => {
+    beforeEach(() => {
+      vi.mocked(TeamRepository.prototype.findUsage).mockResolvedValue({
+        team: 'Platform', usage: [], summary: { totalTechnologies: 0, compliant: 0, unapproved: 0, violations: 0, migrationNeeded: 0 }
+      })
+      vi.mocked(TeamRepository.prototype.findApprovals).mockResolvedValue({
+        team: 'Platform', technologyApprovals: [], versionApprovals: []
+      })
+    })
+
     it('should return team when found', async () => {
       vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam)
 
@@ -46,6 +55,37 @@ describe('TeamService', () => {
       vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(null)
 
       expect(await service.findByName('nonexistent')).toBeNull()
+      expect(TeamRepository.prototype.findUsage).not.toHaveBeenCalled()
+    })
+
+    it('should merge used technologies (not already stewarded) and approvals into the team', async () => {
+      vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue({
+        ...mockTeam,
+        technologies: [{ name: 'React', type: 'framework', timeCategory: 'invest', relationship: 'Steward' }]
+      })
+      vi.mocked(TeamRepository.prototype.findUsage).mockResolvedValue({
+        team: 'Platform',
+        usage: [
+          { technology: 'React', type: 'framework', domain: null, vendor: null, systemCount: 2, firstUsed: null, lastVerified: null, approvalStatus: 'invest', complianceStatus: 'compliant' },
+          { technology: 'Node.js', type: 'runtime', domain: null, vendor: null, systemCount: 1, firstUsed: null, lastVerified: null, approvalStatus: null, complianceStatus: 'unapproved' }
+        ],
+        summary: { totalTechnologies: 2, compliant: 1, unapproved: 1, violations: 0, migrationNeeded: 0 }
+      })
+      vi.mocked(TeamRepository.prototype.findApprovals).mockResolvedValue({
+        team: 'Platform',
+        technologyApprovals: [{ technology: 'React', type: 'framework', vendor: null, time: 'invest', approvedAt: '2024-01-15', deprecatedAt: null, eolDate: null, migrationTarget: null, notes: null, approvedBy: 'jsf' }],
+        versionApprovals: []
+      })
+
+      const result = await service.findByName('Platform')
+
+      expect(result!.technologies).toEqual([
+        { name: 'React', type: 'framework', timeCategory: 'invest', relationship: 'Steward' },
+        { name: 'Node.js', type: 'runtime', timeCategory: null, relationship: 'User' }
+      ])
+      expect(result!.approvals).toEqual([
+        { technologyName: 'React', timeCategory: 'invest', approvedAt: '2024-01-15', approvedBy: 'jsf' }
+      ])
     })
   })
 
