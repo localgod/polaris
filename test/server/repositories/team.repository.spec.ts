@@ -85,6 +85,64 @@ describe('TeamRepository', () => {
       expect(team).not.toBeNull()
       expect(team!.name).toBe(`${PREFIX}platform`)
     })
+
+    it('should return empty members/systems/technologies for a team with none', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `CREATE (:Team { name: $n })`, { n: `${PREFIX}bare` })
+
+      const team = await repo.findByName(`${PREFIX}bare`)
+
+      expect(team!.members).toEqual([])
+      expect(team!.systems).toEqual([])
+      expect(team!.technologies).toEqual([])
+    })
+
+    it('should list members with role derived from CAN_MANAGE', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (u1:User { id: $u1, email: $e1, name: 'Regular Member', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (u2:User { id: $u2, email: $e2, name: 'Team Lead', role: 'user', provider: 'github', createdAt: datetime() })
+        CREATE (u1)-[:MEMBER_OF]->(t)
+        CREATE (u2)-[:MEMBER_OF]->(t)
+        CREATE (u2)-[:CAN_MANAGE]->(t)
+      `, {
+        team: `${PREFIX}staffed`,
+        u1: `${PREFIX}u1`, e1: `${PREFIX}u1@test.com`,
+        u2: `${PREFIX}u2`, e2: `${PREFIX}u2@test.com`
+      })
+
+      const team = await repo.findByName(`${PREFIX}staffed`)
+
+      expect(team!.members).toEqual(expect.arrayContaining([
+        { name: 'Regular Member', email: `${PREFIX}u1@test.com`, role: 'Member' },
+        { name: 'Team Lead', email: `${PREFIX}u2@test.com`, role: 'Manager' }
+      ]))
+      expect(team!.members).toHaveLength(2)
+    })
+
+    it('should list owned systems and stewarded technologies', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (s:System { name: $sys, businessCriticality: 'high', environment: 'prod' })
+        CREATE (tech:Technology { name: $tech, type: 'framework' })
+        CREATE (t)-[:OWNS]->(s)
+        CREATE (t)-[:STEWARDED_BY]->(tech)
+        CREATE (t)-[:APPROVES { time: 'invest' }]->(tech)
+      `, {
+        team: `${PREFIX}owner2`, sys: `${PREFIX}sys1`, tech: `${PREFIX}tech1`
+      })
+
+      const team = await repo.findByName(`${PREFIX}owner2`)
+
+      expect(team!.systems).toEqual([
+        { name: `${PREFIX}sys1`, businessCriticality: 'high', environment: 'prod' }
+      ])
+      expect(team!.technologies).toEqual([
+        { name: `${PREFIX}tech1`, type: 'framework', timeCategory: 'invest', relationship: 'Steward' }
+      ])
+    })
   })
 
   describe('exists()', () => {

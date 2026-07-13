@@ -519,6 +519,12 @@ export interface Team {
   responsibilityArea: string | null
   technologyCount: number
   systemCount: number
+  usedTechnologyCount?: number
+  memberCount?: number
+  members?: Array<{ name: string; email: string; role: 'Manager' | 'Member' }>
+  systems?: Array<{ name: string; businessCriticality: string | null; environment: string | null }>
+  technologies?: Array<{ name: string; type: string | null; timeCategory: string | null; relationship: 'Steward' | 'User' }>
+  approvals?: Array<{ technologyName: string; timeCategory: string | null; approvedAt: string | null; approvedBy: string | null }>
 }
 
 export interface VersionConstraint {

@@ -2,6 +2,7 @@ import { TeamRepository } from '../repositories/team.repository'
 import type { Team, TeamApprovalsResult, TeamConstraintsResult, TeamUsageResult, ApprovalStatus } from '../repositories/team.repository'
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
+import { toDateString } from '../utils/neo4j'
 
 /**
  * Service for team-related business logic
@@ -66,13 +67,44 @@ export class TeamService {
   }
 
   /**
-   * Get a team by name
-   * 
+   * Get a team by name, enriched with the technologies it uses (in addition
+   * to the ones it stewards) and its technology approvals — merged in from
+   * findUsage()/findApprovals() so the team detail page doesn't need to call
+   * three separate endpoints.
+   *
    * @param name - Team name
    * @returns Team or null if not found
    */
   async findByName(name: string): Promise<Team | null> {
-    return await this.teamRepo.findByName(name)
+    const team = await this.teamRepo.findByName(name)
+    if (!team) {
+      return null
+    }
+
+    const [usage, approvals] = await Promise.all([
+      this.teamRepo.findUsage(name),
+      this.teamRepo.findApprovals(name)
+    ])
+
+    const stewardedNames = new Set((team.technologies ?? []).map(t => t.name))
+    const usedTechnologies = usage.usage
+      .filter(u => !stewardedNames.has(u.technology))
+      .map(u => ({
+        name: u.technology,
+        type: u.type,
+        timeCategory: u.approvalStatus,
+        relationship: 'User' as const
+      }))
+
+    team.technologies = [...(team.technologies ?? []), ...usedTechnologies]
+    team.approvals = approvals.technologyApprovals.map(a => ({
+      technologyName: a.technology,
+      timeCategory: a.time,
+      approvedAt: toDateString(a.approvedAt),
+      approvedBy: a.approvedBy
+    }))
+
+    return team
   }
 
   /**
