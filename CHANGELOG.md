@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.61] - 2026-07-13
+
+## What's Changed
+
+- Fix team detail page showing empty Members/Technologies/Systems/Approvals tabs @localgod (#753)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.60...v0.6.61
+
 ## [0.6.57] - 2026-07-06
 
 ## What's Changed
