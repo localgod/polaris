@@ -110,7 +110,7 @@
     <AsyncSetTimeModal
       v-if="timeModalOpen"
       v-model:open="timeModalOpen"
-      :tech="timeTech"
+      :tech="timeModalTech"
       :team-options="teamOptions"
       @saved="refreshNuxtData()"
     />

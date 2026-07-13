@@ -96,9 +96,29 @@ Migration files go in `schema/migrations/common/` (all envs), `dev/`, or `prod/`
 
 `main` is protected — all changes go through PRs. Never push directly to `main`. See `AGENTS.md` for the full PR workflow.
 
-## MCP Tools: local-model
+## MCP Servers
 
-A local Qwen 2.5 7B model runs via Docker Model Runner and is available as a set of tools. Prefer these over doing the task manually:
+Five MCP servers are configured in `.mcp.json`:
+
+| Server | Purpose |
+| ------ | ------- |
+| `local-model` | Local Qwen 2.5 7B (Docker Model Runner) — offloads mechanical tasks (tests, lint, docs, commit/PR text, Cypher drafting, snippet review) so the main model doesn't burn context on raw tool output |
+| `code-review-graph` | Persistent Tree-sitter–derived knowledge graph of this repo — structural code search, impact analysis, and review context, cheaper and more accurate than Grep/Read for "who calls/imports/tests this" questions |
+| `neo4j` | Direct Bolt connection to the live application database (`bolt://localhost:7687`) — raw Cypher access for exploring or mutating actual `Technology`/`Component`/`Team`/... data, distinct from the code-review-graph's internal graph |
+| `playwright` | Official Microsoft Playwright MCP — drives a real (headless) browser via accessibility-tree snapshots for clicking, filling forms, and navigating. Default choice for verifying a UI change actually works end-to-end (e.g. a modal save button) instead of trusting a code read alone |
+| `chrome-devtools` | Google's Chrome DevTools MCP — same headless Chromium binary as `playwright` (reused from `~/.cache/ms-playwright` to avoid a second download), but exposes DevTools protocol tools: network request inspection, performance traces, console output. Reach for this over `playwright` when a task needs network/perf/console visibility (e.g. the LCP/chunk-loading investigation in issue #693), not just interaction |
+
+Both browser servers run headless/sandboxless (`--no-sandbox`) since the devcontainer has no display — this is standard practice for containerized browser automation, not a security relaxation of the app itself.
+
+### local-model
+
+**IMPORTANT: these are deferred MCP tools — always load their schema with
+`ToolSearch("select:run_tests,run_lint,run_mdlint")` (etc.) up front and use
+them. Do NOT run `npm test` / `npm run lint` / `npm run mdlint` via Bash;
+that is a fallback only, never the default.**
+
+| Tool | Use instead of |
+| ---- | -------------- |
 
 | Tool | Use instead of |
 | ---- | -------------- |
@@ -111,11 +131,19 @@ A local Qwen 2.5 7B model runs via Docker Model Runner and is available as a set
 | `draft_cypher` | Writing Cypher queries from scratch — describe what you need in plain English |
 | `review_snippet` | First-pass review before a deep dive — flags convention violations |
 | `summarize_code` | Reading an unfamiliar file line-by-line — get a quick overview first |
+| `ask_local_model` | General free-form question to offload from the main model |
 
-The Neo4j MCP (`execute_query`) gives direct Cypher access to the live database — use it to explore data or validate queries without writing a script.
+### neo4j
 
-<!-- code-review-graph MCP tools -->
-## MCP Tools: code-review-graph
+Direct Cypher access to the live application database (real data, not the code graph) — use it to explore or validate data without writing a throwaway script:
+
+| Tool | Use when |
+| ---- | -------- |
+| `execute_query` | Run an arbitrary read/write Cypher query against the live DB |
+| `create_node` | Create a single node (e.g. seeding/fixing data by hand) |
+| `create_relationship` | Create a single relationship between existing nodes |
+
+### code-review-graph
 
 **IMPORTANT: This project has a knowledge graph. ALWAYS use the
 code-review-graph MCP tools BEFORE using Grep/Glob/Read to explore
@@ -123,7 +151,7 @@ the codebase.** The graph is faster, cheaper (fewer tokens), and gives
 you structural context (callers, dependents, test coverage) that file
 scanning cannot.
 
-### When to use graph tools FIRST
+#### When to use graph tools FIRST
 
 - **Exploring code**: `semantic_search_nodes` or `query_graph` instead of Grep
 - **Understanding impact**: `get_impact_radius` instead of manually tracing imports
@@ -133,7 +161,7 @@ scanning cannot.
 
 Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 
-### Key Tools
+#### Core tools (day-to-day)
 
 | Tool | Use when |
 | ------ | ---------- |
@@ -142,13 +170,39 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 | `get_impact_radius` | Understanding blast radius of a change |
 | `get_affected_flows` | Finding which execution paths are impacted |
 | `query_graph` | Tracing callers, callees, imports, tests, dependencies |
+| `traverse_graph` | Multi-hop walk from a node (e.g. transitive dependents) |
 | `semantic_search_nodes` | Finding functions/classes by name or keyword |
 | `get_architecture_overview` | Understanding high-level codebase structure |
-| `refactor_tool` | Planning renames, finding dead code |
+| `refactor_tool` / `apply_refactor_tool` | Planning renames/dead-code removal, then applying it |
 
-### Workflow
+#### Architecture & discovery
+
+| Tool | Use when |
+| ---- | -------- |
+| `list_communities` / `get_community` | Grouping related files/modules into clusters |
+| `get_hub_nodes` / `get_bridge_nodes` | Finding highly-connected or cross-cutting code |
+| `get_surprising_connections` | Spotting unexpected couplings between distant modules |
+| `get_knowledge_gaps` | Finding under-documented/under-tested areas |
+| `get_suggested_questions` | Getting starter questions when new to the repo |
+| `get_minimal_context` | Smallest set of nodes needed to understand a symbol |
+| `find_large_functions` | Locating refactor candidates by size/complexity |
+| `list_flows` / `get_flow` | Listing and inspecting named execution flows |
+| `list_graph_stats` | Node/edge counts, languages, last build info |
+
+#### Docs & maintenance
+
+| Tool | Use when |
+| ---- | -------- |
+| `generate_wiki` / `get_wiki_page` / `get_docs_section` | Generating or reading repo wiki-style docs from the graph |
+| `build_or_update_graph` | Rebuilding the graph after switching branches (see warning below) |
+| `run_postprocess` | Re-running graph post-processing (communities, embeddings) after a build |
+| `embed_graph` | (Re)computing embeddings used by semantic search |
+| `list_repos` / `cross_repo_search` | Working across multiple graphed repos |
+
+#### Workflow
 
 1. The graph auto-updates on file changes (via hooks).
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.
+5. If the graph reports it was built on a different branch than the current one, run `build_or_update_graph` before trusting results.

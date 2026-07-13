@@ -19,6 +19,20 @@
         "NEO4J_USERNAME": "neo4j",
         "NEO4J_PASSWORD": "devpassword"
       }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--headless", "--no-sandbox", "--isolated"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y", "chrome-devtools-mcp@latest",
+        "--headless", "--isolated",
+        "--executablePath", "/home/node/.cache/ms-playwright/chromium-1228/chrome-linux/chrome",
+        "--chrome-arg=--no-sandbox",
+        "--no-usage-statistics", "--no-performance-crux"
+      ]
     }
   }
 }
