@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.64] - 2026-07-14
+
+## What's Changed
+
+- feat(audit): audit failed CRUD attempts and sensitive-data reads @localgod (#761)
+
+## 🔧 Maintenance
+
+- chore: release v0.6.63 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#760)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.63...v0.6.64
+
 ## [0.6.63] - 2026-07-13
 
 ## What's Changed
