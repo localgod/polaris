@@ -1,4 +1,5 @@
 import { licenseService } from '../../../services/singletons'
+import { auditFailedOperation } from '../../../utils/audit'
 
 interface AllowedUpdateRequest {
   licenseId?: string
@@ -130,6 +131,14 @@ export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> 
         } else {
           setResponseStatus(event, 500)
         }
+        await auditFailedOperation(event, {
+          operation: 'UPDATE',
+          entityType: 'License',
+          entityId: body.licenseId,
+          reason: errorMessage,
+          userId: user.id,
+          realUserId
+        })
         return {
           success: false,
           message: errorMessage
@@ -140,7 +149,7 @@ export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> 
     // Handle bulk license update
     if (body.licenseIds) {
       const result = await licenseService.bulkUpdateAllowedStatus(body.licenseIds, body.allowed, user.id, realUserId)
-      
+
       if (result.success) {
         setResponseStatus(event, 200)
         return {
@@ -152,6 +161,14 @@ export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> 
         // Check if any errors mention "not found"
         const hasNotFoundError = result.errors?.some(err => err.includes('not found'))
         setResponseStatus(event, hasNotFoundError ? 404 : 400)
+        await auditFailedOperation(event, {
+          operation: 'UPDATE',
+          entityType: 'License',
+          entityId: body.licenseIds.join(','),
+          reason: result.errors?.join('; ') || 'Failed to update some licenses',
+          userId: user.id,
+          realUserId
+        })
         return {
           success: false,
           message: 'Failed to update some licenses',
@@ -168,6 +185,14 @@ export default defineEventHandler(async (event): Promise<AllowedUpdateResponse> 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to update license allowed status'
     setResponseStatus(event, 500)
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'License',
+      entityId: 'unknown',
+      reason: errorMessage,
+      userId: user.id,
+      realUserId
+    })
     return {
       success: false,
       message: errorMessage

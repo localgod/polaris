@@ -1,4 +1,5 @@
 import { gitHubOrgImportService } from '../../../services/singletons'
+import { auditFailedOperation } from '../../../utils/audit'
 import { getServerSession } from '#auth'
 
 /**
@@ -127,11 +128,20 @@ export default defineEventHandler(async (event) => {
       data: job
     }
   } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'GitHub owner import failed'
+    await auditFailedOperation(event, {
+      operation: 'IMPORT',
+      entityType: 'ImportJob',
+      entityId: owner,
+      reason: message,
+      userId: user.id,
+      realUserId
+    })
+
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
 
-    const message = error instanceof Error ? error.message : 'GitHub owner import failed'
     throw createError({ statusCode: 422, statusMessage: message, message })
   }
 })

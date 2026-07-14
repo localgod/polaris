@@ -1,4 +1,5 @@
 import { userService } from '../../../../services/singletons'
+import { auditFailedOperation } from '../../../../utils/audit'
 
 /**
  * @openapi
@@ -128,6 +129,14 @@ export default defineEventHandler(async (event) => {
       data: user
     }
   } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'ASSIGN_TEAMS',
+      entityType: 'User',
+      entityId: userId,
+      reason: error instanceof Error ? error.message : 'User not found',
+      userId: currentUser.id,
+      realUserId
+    })
     throw createError({
       statusCode: 404,
       statusMessage: 'Not Found',

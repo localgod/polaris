@@ -1,5 +1,6 @@
 import type { ApiResponse } from '~~/types/api'
 import { teamService } from '../services/singletons'
+import { auditFailedOperation } from '../utils/audit'
 
 /**
  * @openapi
@@ -65,6 +66,15 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateTeamR
       count: 1
     }
   } catch (error: unknown) {
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'Team',
+      entityId: body?.name,
+      reason: error instanceof Error ? error.message : 'Failed to create team',
+      userId: user.id,
+      realUserId
+    })
+
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }

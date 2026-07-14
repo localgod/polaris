@@ -1,4 +1,5 @@
 import { versionConstraintService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 interface UpdateRequest {
   description?: string
@@ -20,49 +21,61 @@ export default defineEventHandler(async (event) => {
   }
   const name = decodeURIComponent(rawName)
 
-  const existing = await versionConstraintService.findByName(name)
-  if (!existing) {
-    throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })
-  }
-
-  let body: UpdateRequest
   try {
-    body = await readBody(event)
-  } catch {
-    throw createError({ statusCode: 400, message: 'Invalid JSON in request body' })
-  }
+    const existing = await versionConstraintService.findByName(name)
+    if (!existing) {
+      throw createError({ statusCode: 404, message: `Version constraint '${name}' not found` })
+    }
 
-  // Authorization: superuser can edit anything; team member can edit team-scoped constraints
-  if (user.role !== 'superuser') {
-    if (existing.scope !== 'team' || !existing.subjectTeam) {
-      throw createError({ statusCode: 403, message: 'Only superusers can edit organization-scoped version constraints' })
+    let body: UpdateRequest
+    try {
+      body = await readBody(event)
+    } catch {
+      throw createError({ statusCode: 400, message: 'Invalid JSON in request body' })
     }
-    const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
-    if (!userTeamNames.includes(existing.subjectTeam)) {
-      throw createError({ statusCode: 403, message: `You must be a member of team "${existing.subjectTeam}" to edit this version constraint` })
-    }
-    if (body.subjectTeam && body.subjectTeam !== existing.subjectTeam) {
-      if (!userTeamNames.includes(body.subjectTeam)) {
-        throw createError({ statusCode: 403, message: 'You must be a member of the target team to reassign this constraint' })
+
+    // Authorization: superuser can edit anything; team member can edit team-scoped constraints
+    if (user.role !== 'superuser') {
+      if (existing.scope !== 'team' || !existing.subjectTeam) {
+        throw createError({ statusCode: 403, message: 'Only superusers can edit organization-scoped version constraints' })
+      }
+      const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
+      if (!userTeamNames.includes(existing.subjectTeam)) {
+        throw createError({ statusCode: 403, message: `You must be a member of team "${existing.subjectTeam}" to edit this version constraint` })
+      }
+      if (body.subjectTeam && body.subjectTeam !== existing.subjectTeam) {
+        if (!userTeamNames.includes(body.subjectTeam)) {
+          throw createError({ statusCode: 403, message: 'You must be a member of the target team to reassign this constraint' })
+        }
       }
     }
+
+    if (user.role !== 'superuser' && body.scope === 'organization') {
+      throw createError({ statusCode: 403, message: 'Only superusers can set organization scope' })
+    }
+
+    const constraint = await versionConstraintService.update(name, {
+      description: body.description,
+      severity: body.severity,
+      scope: body.scope,
+      subjectTeam: body.subjectTeam,
+      versionRange: body.versionRange,
+      governsTechnology: body.governsTechnology,
+      status: body.status,
+      userId: user.id,
+      realUserId
+    })
+
+    return { success: true, message: 'Version constraint updated successfully', constraint }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'VersionConstraint',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to update version constraint',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
-
-  if (user.role !== 'superuser' && body.scope === 'organization') {
-    throw createError({ statusCode: 403, message: 'Only superusers can set organization scope' })
-  }
-
-  const constraint = await versionConstraintService.update(name, {
-    description: body.description,
-    severity: body.severity,
-    scope: body.scope,
-    subjectTeam: body.subjectTeam,
-    versionRange: body.versionRange,
-    governsTechnology: body.governsTechnology,
-    status: body.status,
-    userId: user.id,
-    realUserId
-  })
-
-  return { success: true, message: 'Version constraint updated successfully', constraint }
 })

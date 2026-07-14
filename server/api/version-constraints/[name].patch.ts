@@ -1,5 +1,6 @@
 import { versionConstraintService } from '../../services/singletons'
 import { VersionConstraintRepository } from '../../repositories/version-constraint.repository'
+import { auditFailedOperation } from '../../utils/audit'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
@@ -13,12 +14,24 @@ export default defineEventHandler(async (event) => {
 
   const name = decodeURIComponent(rawName)
 
-  if (user.role !== 'superuser') {
-    const repo = new VersionConstraintRepository()
-    const creator = await repo.getCreator(name)
-    if (creator !== user.id) {
-      throw createError({ statusCode: 403, message: 'Only superusers or the creator can update this version constraint' })
+  try {
+    if (user.role !== 'superuser') {
+      const repo = new VersionConstraintRepository()
+      const creator = await repo.getCreator(name)
+      if (creator !== user.id) {
+        throw createError({ statusCode: 403, message: 'Only superusers or the creator can update this version constraint' })
+      }
     }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'VersionConstraint',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to update version constraint',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
 
   let body: { status?: 'active' | 'draft' | 'archived'; reason?: string }
@@ -48,9 +61,25 @@ export default defineEventHandler(async (event) => {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       const httpError = error as { statusCode: number; message: string }
       setResponseStatus(event, httpError.statusCode)
+      await auditFailedOperation(event, {
+        operation: 'UPDATE',
+        entityType: 'VersionConstraint',
+        entityId: name,
+        reason: httpError.message,
+        userId: user.id,
+        realUserId
+      })
       return { success: false, error: httpError.statusCode === 404 ? 'not_found' : 'validation_error', message: httpError.message }
     }
     setResponseStatus(event, 500)
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'VersionConstraint',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Internal server error',
+      userId: user.id,
+      realUserId
+    })
     return { success: false, error: 'internal_error', message: error instanceof Error ? error.message : 'Internal server error' }
   }
 })

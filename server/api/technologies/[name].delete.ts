@@ -1,4 +1,5 @@
 import { technologyService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 /**
  * @openapi
@@ -44,28 +45,40 @@ export default defineEventHandler(async (event) => {
 
   const name = decodeURIComponent(rawName)
 
-  const tech = await technologyService.findOwnerTeam(name)
-  if (!tech) {
-    throw createError({
-      statusCode: 404,
-      message: `Technology '${name}' not found`
-    })
-  }
-
-  // Superusers can delete any technology
-  if (user.role !== 'superuser') {
-    // Regular users must belong to the owner team
-    const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
-    if (!tech.ownerTeam || !userTeamNames.includes(tech.ownerTeam)) {
+  try {
+    const tech = await technologyService.findOwnerTeam(name)
+    if (!tech) {
       throw createError({
-        statusCode: 403,
-        message: 'Access denied. You must be a superuser or a member of the technology\'s owner team to delete it.'
+        statusCode: 404,
+        message: `Technology '${name}' not found`
       })
     }
+
+    // Superusers can delete any technology
+    if (user.role !== 'superuser') {
+      // Regular users must belong to the owner team
+      const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
+      if (!tech.ownerTeam || !userTeamNames.includes(tech.ownerTeam)) {
+        throw createError({
+          statusCode: 403,
+          message: 'Access denied. You must be a superuser or a member of the technology\'s owner team to delete it.'
+        })
+      }
+    }
+
+    await technologyService.delete(name, user.id, realUserId)
+
+    setResponseStatus(event, 204)
+    return null
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'DELETE',
+      entityType: 'Technology',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to delete technology',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
-
-  await technologyService.delete(name, user.id, realUserId)
-
-  setResponseStatus(event, 204)
-  return null
 })

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "0.6.57",
+    "version": "0.6.63",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",

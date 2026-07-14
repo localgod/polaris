@@ -1,4 +1,5 @@
 import { componentService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 /**
  * @openapi
@@ -31,14 +32,27 @@ import { componentService } from '../../services/singletons'
  *         description: Superuser access required
  */
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const user = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const body = await readBody(event)
   if (!body?.componentName) {
     throw createError({ statusCode: 400, message: 'componentName is required' })
   }
 
-  await componentService.dismissLink(body.componentName)
-  setResponseStatus(event, 204)
-  return null
+  try {
+    await componentService.dismissLink(body.componentName)
+    setResponseStatus(event, 204)
+    return null
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'DISMISS_LINK',
+      entityType: 'Component',
+      entityId: body.componentName,
+      reason: error instanceof Error ? error.message : 'Failed to dismiss component link',
+      userId: user.id,
+      realUserId
+    })
+    throw error
+  }
 })

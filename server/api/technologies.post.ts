@@ -1,5 +1,6 @@
 import type { ApiResponse } from '~~/types/api'
 import { technologyService } from '../services/singletons'
+import { auditFailedOperation } from '../utils/audit'
 
 /**
  * @openapi
@@ -91,6 +92,15 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateTechn
       count: 1
     }
   } catch (error: unknown) {
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'Technology',
+      entityId: body.name,
+      reason: error instanceof Error ? error.message : 'Failed to create technology',
+      userId: user.id,
+      realUserId
+    })
+
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }

@@ -69,6 +69,7 @@
 import { buildAuditChanges } from '../../utils/audit-diff'
 import { VALID_CRITICALITIES, VALID_ENVIRONMENTS } from '../../services/system.service'
 import { loadQuery } from '../../utils/query-loader'
+import { auditFailedOperation } from '../../utils/audit'
 import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
@@ -87,91 +88,103 @@ export default defineEventHandler(async (event) => {
   const name = decodeURIComponent(rawName)
   
   await validateTeamOwnership(event, 'System', name)
-  
+
   const body = await readBody(event)
-  
-  // Validate ALL required fields for PUT (full replacement)
-  if (!body.domain || !body.ownerTeam || !body.businessCriticality || !body.environment) {
-    throw createError({
-      statusCode: 422,
-      message: 'All required fields must be provided for full update: domain, ownerTeam, businessCriticality, environment'
-    })
-  }
-  
-  // Validate businessCriticality
-  if (!VALID_CRITICALITIES.includes(body.businessCriticality as BusinessCriticality)) {
-    throw createError({
-      statusCode: 422,
-      message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
-    })
-  }
-  
-  // Validate environment
-  if (!VALID_ENVIRONMENTS.includes(body.environment as SystemEnvironment)) {
-    throw createError({
-      statusCode: 422,
-      message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
-    })
-  }
 
-  const driver = useDriver()
-  
-  // Check if new owner team exists
-  const checkTeamQuery = await loadQuery('systems/check-team-exists.cypher')
-  const { records: teamRecords } = await driver.executeQuery(checkTeamQuery, { ownerTeam: body.ownerTeam })
-  
-  if (teamRecords.length === 0) {
-    throw createError({
-      statusCode: 422,
-      message: `Team '${body.ownerTeam}' not found`
-    })
-  }
-  
-  // Fetch current state before writing so we can diff it
-  const getCurrentStateQuery = await loadQuery('systems/get-current-state-full.cypher')
-  const { records: currentRecords } = await driver.executeQuery(getCurrentStateQuery, { name })
+  try {
+    // Validate ALL required fields for PUT (full replacement)
+    if (!body.domain || !body.ownerTeam || !body.businessCriticality || !body.environment) {
+      throw createError({
+        statusCode: 422,
+        message: 'All required fields must be provided for full update: domain, ownerTeam, businessCriticality, environment'
+      })
+    }
 
-  if (currentRecords.length === 0) {
-    throw createError({
-      statusCode: 404,
-      message: `System '${name}' not found`
-    })
-  }
+    // Validate businessCriticality
+    if (!VALID_CRITICALITIES.includes(body.businessCriticality as BusinessCriticality)) {
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
+      })
+    }
 
-  const currentProps = currentRecords[0]!.get('props') as Record<string, unknown>
-  const incomingProps: Record<string, unknown> = {
-    domain: body.domain,
-    ownerTeam: body.ownerTeam,
-    businessCriticality: body.businessCriticality,
-    environment: body.environment,
-    description: body.description || null,
-  }
-  const allFields = ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description']
-  const changes = JSON.stringify(buildAuditChanges(currentProps, incomingProps, allFields))
+    // Validate environment
+    if (!VALID_ENVIRONMENTS.includes(body.environment as SystemEnvironment)) {
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
+      })
+    }
 
-  // Replace entire resource
-  const updateQuery = await loadQuery('systems/update-put.cypher')
-  const { records } = await driver.executeQuery(updateQuery, {
-    name,
-    domain: body.domain,
-    ownerTeam: body.ownerTeam,
-    businessCriticality: body.businessCriticality,
-    environment: body.environment,
-    description: body.description || null,
-    userId: user.id,
-    realUserId,
-    changes,
-  })
-  
-  if (records.length === 0) {
-    throw createError({
-      statusCode: 404,
-      message: `System '${name}' not found`
+    const driver = useDriver()
+
+    // Check if new owner team exists
+    const checkTeamQuery = await loadQuery('systems/check-team-exists.cypher')
+    const { records: teamRecords } = await driver.executeQuery(checkTeamQuery, { ownerTeam: body.ownerTeam })
+
+    if (teamRecords.length === 0) {
+      throw createError({
+        statusCode: 422,
+        message: `Team '${body.ownerTeam}' not found`
+      })
+    }
+
+    // Fetch current state before writing so we can diff it
+    const getCurrentStateQuery = await loadQuery('systems/get-current-state-full.cypher')
+    const { records: currentRecords } = await driver.executeQuery(getCurrentStateQuery, { name })
+
+    if (currentRecords.length === 0) {
+      throw createError({
+        statusCode: 404,
+        message: `System '${name}' not found`
+      })
+    }
+
+    const currentProps = currentRecords[0]!.get('props') as Record<string, unknown>
+    const incomingProps: Record<string, unknown> = {
+      domain: body.domain,
+      ownerTeam: body.ownerTeam,
+      businessCriticality: body.businessCriticality,
+      environment: body.environment,
+      description: body.description || null,
+    }
+    const allFields = ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description']
+    const changes = JSON.stringify(buildAuditChanges(currentProps, incomingProps, allFields))
+
+    // Replace entire resource
+    const updateQuery = await loadQuery('systems/update-put.cypher')
+    const { records } = await driver.executeQuery(updateQuery, {
+      name,
+      domain: body.domain,
+      ownerTeam: body.ownerTeam,
+      businessCriticality: body.businessCriticality,
+      environment: body.environment,
+      description: body.description || null,
+      userId: user.id,
+      realUserId,
+      changes,
     })
-  }
-  
-  return {
-    success: true,
-    data: records[0]!.get('system')
+
+    if (records.length === 0) {
+      throw createError({
+        statusCode: 404,
+        message: `System '${name}' not found`
+      })
+    }
+
+    return {
+      success: true,
+      data: records[0]!.get('system')
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'System',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to update system',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
 })

@@ -1,6 +1,7 @@
 import { getRealUser } from '../../../utils/auth'
 import { tokenService } from '../../../services/singletons'
 import { AuditLogRepository } from '../../../repositories/audit-log.repository'
+import { auditFailedOperation } from '../../../utils/audit'
 
 /**
  * @openapi
@@ -40,22 +41,34 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'tokenId is required' })
   }
 
-  // revokeToken enforces ownership via the userId match in the Cypher query.
-  const revoked = await tokenService.revokeToken(tokenId, user.id)
+  try {
+    // revokeToken enforces ownership via the userId match in the Cypher query.
+    const revoked = await tokenService.revokeToken(tokenId, user.id)
 
-  if (!revoked) {
-    throw createError({ statusCode: 404, message: 'Token not found' })
+    if (!revoked) {
+      throw createError({ statusCode: 404, message: 'Token not found' })
+    }
+
+    const auditRepo = new AuditLogRepository()
+    await auditRepo.create({
+      operation: 'DELETE',
+      entityType: 'ApiToken',
+      entityId: tokenId,
+      entityLabel: `Token ${tokenId} for user ${user.id}`,
+      userId: user.id,
+      realUserId: null
+    })
+
+    return { success: true, message: 'Token revoked' }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'DELETE',
+      entityType: 'ApiToken',
+      entityId: tokenId,
+      reason: error instanceof Error ? error.message : 'Failed to revoke token',
+      userId: user.id,
+      realUserId: null
+    })
+    throw error
   }
-
-  const auditRepo = new AuditLogRepository()
-  await auditRepo.create({
-    operation: 'DELETE',
-    entityType: 'ApiToken',
-    entityId: tokenId,
-    entityLabel: `Token ${tokenId} for user ${user.id}`,
-    userId: user.id,
-    realUserId: null
-  })
-
-  return { success: true, message: 'Token revoked' }
 })

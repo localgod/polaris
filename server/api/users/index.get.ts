@@ -1,5 +1,6 @@
 import { userService } from '../../services/singletons'
 import { parseSearchParam } from '../../utils/query-params'
+import { auditSensitiveRead } from '../../utils/audit'
 
 /**
  * @openapi
@@ -71,7 +72,8 @@ import { parseSearchParam } from '../../utils/query-params'
  *         description: Failed to fetch users
  */
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const currentUser = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   try {
     const query = getQuery(event)
@@ -84,7 +86,15 @@ export default defineEventHandler(async (event) => {
     }, parseSearchParam(query.search))
     const total = allUsers.length
     const paginatedUsers = allUsers.slice(offset, offset + limit)
-    
+
+    await auditSensitiveRead(event, {
+      entityType: 'User',
+      entityId: 'all',
+      reason: 'Listed users',
+      userId: currentUser.id,
+      realUserId
+    })
+
     return {
       success: true,
       data: paginatedUsers,

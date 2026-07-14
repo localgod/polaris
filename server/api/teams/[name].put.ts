@@ -1,4 +1,5 @@
 import { teamService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 /**
  * @openapi
@@ -59,17 +60,29 @@ export default defineEventHandler(async (event) => {
   const name = decodeURIComponent(rawName)
   const body = await readBody(event)
 
-  const updatedName = await teamService.update({
-    name,
-    newName: body?.name,
-    email: body?.email,
-    responsibilityArea: body?.responsibilityArea,
-    userId: user.id,
-    realUserId
-  })
+  try {
+    const updatedName = await teamService.update({
+      name,
+      newName: body?.name,
+      email: body?.email,
+      responsibilityArea: body?.responsibilityArea,
+      userId: user.id,
+      realUserId
+    })
 
-  return {
-    success: true,
-    data: { name: updatedName }
+    return {
+      success: true,
+      data: { name: updatedName }
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'Team',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to update team',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
 })

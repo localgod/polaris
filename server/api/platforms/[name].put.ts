@@ -1,4 +1,5 @@
 import { platformService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 /**
  * @openapi
@@ -65,36 +66,48 @@ export default defineEventHandler(async (event) => {
 
   const name = decodeURIComponent(rawName)
 
-  const platform = await platformService.findStewardTeam(name)
-  if (!platform) {
-    throw createError({
-      statusCode: 404,
-      message: `Platform '${name}' not found`
-    })
-  }
-
-  // Superusers can update any platform
-  if (user.role !== 'superuser') {
-    const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
-    if (!platform.stewardTeam || !userTeamNames.includes(platform.stewardTeam)) {
+  try {
+    const platform = await platformService.findStewardTeam(name)
+    if (!platform) {
       throw createError({
-        statusCode: 403,
-        message: 'Access denied. You must be a superuser or a member of the platform\'s steward team to update it.'
+        statusCode: 404,
+        message: `Platform '${name}' not found`
       })
     }
+
+    // Superusers can update any platform
+    if (user.role !== 'superuser') {
+      const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
+      if (!platform.stewardTeam || !userTeamNames.includes(platform.stewardTeam)) {
+        throw createError({
+          statusCode: 403,
+          message: 'Access denied. You must be a superuser or a member of the platform\'s steward team to update it.'
+        })
+      }
+    }
+
+    const body = await readBody(event)
+
+    const result = await platformService.update({
+      name,
+      type: body.type,
+      domain: body.domain,
+      vendor: body.vendor,
+      stewardTeam: body.stewardTeam,
+      userId: user.id,
+      realUserId
+    })
+
+    return { name: result }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'Platform',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to update platform',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
-
-  const body = await readBody(event)
-
-  const result = await platformService.update({
-    name,
-    type: body.type,
-    domain: body.domain,
-    vendor: body.vendor,
-    stewardTeam: body.stewardTeam,
-    userId: user.id,
-    realUserId
-  })
-
-  return { name: result }
 })

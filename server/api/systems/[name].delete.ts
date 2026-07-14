@@ -1,4 +1,5 @@
 import { systemService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 /**
  * @openapi
@@ -44,12 +45,24 @@ export default defineEventHandler(async (event) => {
   }
   
   const name = decodeURIComponent(rawName)
-  
-  // Validate that user's team owns this system
-  await validateTeamOwnership(event, 'System', name)
-  
-  await systemService.delete(name, user.id, realUserId)
-  
-  setResponseStatus(event, 204)
-  return null
+
+  try {
+    // Validate that user's team owns this system
+    await validateTeamOwnership(event, 'System', name)
+
+    await systemService.delete(name, user.id, realUserId)
+
+    setResponseStatus(event, 204)
+    return null
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'DELETE',
+      entityType: 'System',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to delete system',
+      userId: user.id,
+      realUserId
+    })
+    throw error
+  }
 })

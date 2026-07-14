@@ -1,4 +1,5 @@
 import { auditLogService } from '../services/singletons'
+import { auditSensitiveRead } from '../utils/audit'
 
 /**
  * @openapi
@@ -77,6 +78,7 @@ import { auditLogService } from '../services/singletons'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  const realUserId = await getImpersonatorId(event)
 
   const query = getQuery(event)
 
@@ -96,7 +98,20 @@ export default defineEventHandler(async (event) => {
 
   try {
     const result = await auditLogService.getAuditLogs(filters)
-    
+
+    // Only flag reads of someone else's (or the whole org's) audit trail —
+    // a user checking their own history is routine self-service, not a
+    // security-relevant "who's watching whom" event.
+    if (!filters.userId || filters.userId !== user.id) {
+      await auditSensitiveRead(event, {
+        entityType: 'AuditLog',
+        entityId: filters.userId || 'all',
+        reason: filters.userId ? `Viewed audit history for user ${filters.userId}` : 'Viewed organization-wide audit log',
+        userId: user.id,
+        realUserId
+      })
+    }
+
     return {
       success: true,
       data: result.data,

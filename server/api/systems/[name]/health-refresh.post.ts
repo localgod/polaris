@@ -1,7 +1,9 @@
 import { healthRefreshService } from '../../../services/singletons'
+import { auditFailedOperation } from '../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  await requireAuthorization(event)
+  const user = await requireAuthorization(event)
+  const realUserId = await getImpersonatorId(event)
 
   const rawName = getRouterParam(event, 'name')
 
@@ -11,7 +13,19 @@ export default defineEventHandler(async (event) => {
 
   const name = decodeURIComponent(rawName)
 
-  const jobId = await healthRefreshService.enqueueForSystem(name)
+  try {
+    const jobId = await healthRefreshService.enqueueForSystem(name)
 
-  return { success: true, data: { jobId } }
+    return { success: true, data: { jobId } }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'HEALTH_REFRESH',
+      entityType: 'System',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to enqueue health refresh',
+      userId: user.id,
+      realUserId
+    })
+    throw error
+  }
 })

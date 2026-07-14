@@ -1,6 +1,7 @@
 import { UserRepository } from '../../../../repositories/user.repository'
 import { tokenService } from '../../../../services/singletons'
 import { AuditLogRepository } from '../../../../repositories/audit-log.repository'
+import { auditFailedOperation } from '../../../../utils/audit'
 
 /**
  * @openapi
@@ -38,47 +39,58 @@ import { AuditLogRepository } from '../../../../repositories/audit-log.repositor
  *         description: User not found
  */
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const currentUser = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const userId = getRouterParam(event, 'userId')
   if (!userId) {
     throw createError({ statusCode: 400, message: 'userId is required' })
   }
 
-  const userRepo = new UserRepository()
-  const user = await userRepo.findById(userId)
+  try {
+    const userRepo = new UserRepository()
+    const user = await userRepo.findById(userId)
 
-  if (!user) {
-    throw createError({ statusCode: 404, message: 'User not found' })
-  }
+    if (!user) {
+      throw createError({ statusCode: 404, message: 'User not found' })
+    }
 
-  if (user.provider !== 'technical') {
-    throw createError({ statusCode: 400, message: 'Tokens can only be generated for technical users' })
-  }
+    if (user.provider !== 'technical') {
+      throw createError({ statusCode: 400, message: 'Tokens can only be generated for technical users' })
+    }
 
-  const body = await readBody(event) || {}
+    const body = await readBody(event) || {}
 
-  const result = await tokenService.createToken(userId, {
-    description: body.description || null,
-    expiresInDays: body.expiresInDays || undefined
-  })
+    const result = await tokenService.createToken(userId, {
+      description: body.description || null,
+      expiresInDays: body.expiresInDays || undefined
+    })
 
-  const currentUser = await getCurrentUser(event)
-  const realUserId = await getImpersonatorId(event)
-  const auditRepo = new AuditLogRepository()
-  await auditRepo.create({
-    operation: 'CREATE',
-    entityType: 'ApiToken',
-    entityId: result.id,
-    entityLabel: `Token for ${user.name || user.email}`,
-    changedFields: ['description', 'expiresAt'],
-    userId: currentUser.id,
-    realUserId
-  })
+    const auditRepo = new AuditLogRepository()
+    await auditRepo.create({
+      operation: 'CREATE',
+      entityType: 'ApiToken',
+      entityId: result.id,
+      entityLabel: `Token for ${user.name || user.email}`,
+      changedFields: ['description', 'expiresAt'],
+      userId: currentUser.id,
+      realUserId
+    })
 
-  setResponseStatus(event, 201)
-  return {
-    success: true,
-    data: result
+    setResponseStatus(event, 201)
+    return {
+      success: true,
+      data: result
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'ApiToken',
+      entityId: userId,
+      reason: error instanceof Error ? error.message : 'Failed to create token',
+      userId: currentUser.id,
+      realUserId
+    })
+    throw error
   }
 })
