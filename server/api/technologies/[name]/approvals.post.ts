@@ -1,4 +1,5 @@
 import { technologyService } from '../../../services/singletons'
+import { auditFailedOperation } from '../../../utils/audit'
 
 /**
  * @openapi
@@ -68,29 +69,41 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'teamName and time are required' })
   }
 
-  // Verify user is a member of the team or a superuser
-  if (user.role !== 'superuser') {
-    const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
-    if (!userTeamNames.includes(body.teamName)) {
-      throw createError({
-        statusCode: 403,
-        message: `You must be a member of '${body.teamName}' to set its TIME approval`
-      })
+  try {
+    // Verify user is a member of the team or a superuser
+    if (user.role !== 'superuser') {
+      const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
+      if (!userTeamNames.includes(body.teamName)) {
+        throw createError({
+          statusCode: 403,
+          message: `You must be a member of '${body.teamName}' to set its TIME approval`
+        })
+      }
     }
-  }
 
-  const result = await technologyService.setApproval({
-    technologyName,
-    teamName: body.teamName,
-    time: body.time,
-    environment: body.environment ?? null,
-    notes: body.notes,
-    userId: user.id,
-    realUserId
-  })
+    const result = await technologyService.setApproval({
+      technologyName,
+      teamName: body.teamName,
+      time: body.time,
+      environment: body.environment ?? null,
+      notes: body.notes,
+      userId: user.id,
+      realUserId
+    })
 
-  return {
-    success: true,
-    data: result
+    return {
+      success: true,
+      data: result
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'APPROVE',
+      entityType: 'Technology',
+      entityId: technologyName,
+      reason: error instanceof Error ? error.message : 'Failed to set technology approval',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
 })

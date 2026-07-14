@@ -1,6 +1,7 @@
 import { getRealUser } from '../../utils/auth'
 import { tokenService } from '../../services/singletons'
 import { AuditLogRepository } from '../../repositories/audit-log.repository'
+import { auditFailedOperation } from '../../utils/audit'
 
 const MAX_ACTIVE_TOKENS = 10
 
@@ -52,33 +53,45 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'description is required' })
   }
 
-  const activeCount = await tokenService.countActiveTokens(user.id)
-  if (activeCount >= MAX_ACTIVE_TOKENS) {
-    throw createError({
-      statusCode: 400,
-      message: `Maximum of ${MAX_ACTIVE_TOKENS} active tokens allowed. Revoke an existing token before creating a new one.`
+  try {
+    const activeCount = await tokenService.countActiveTokens(user.id)
+    if (activeCount >= MAX_ACTIVE_TOKENS) {
+      throw createError({
+        statusCode: 400,
+        message: `Maximum of ${MAX_ACTIVE_TOKENS} active tokens allowed. Revoke an existing token before creating a new one.`
+      })
+    }
+
+    const result = await tokenService.createToken(user.id, {
+      description,
+      expiresInDays: body.expiresInDays || undefined
     })
-  }
 
-  const result = await tokenService.createToken(user.id, {
-    description,
-    expiresInDays: body.expiresInDays || undefined
-  })
+    const auditRepo = new AuditLogRepository()
+    await auditRepo.create({
+      operation: 'CREATE',
+      entityType: 'ApiToken',
+      entityId: result.id,
+      entityLabel: `Token for ${user.email}`,
+      changedFields: ['description', 'expiresAt'],
+      userId: user.id,
+      realUserId: null
+    })
 
-  const auditRepo = new AuditLogRepository()
-  await auditRepo.create({
-    operation: 'CREATE',
-    entityType: 'ApiToken',
-    entityId: result.id,
-    entityLabel: `Token for ${user.email}`,
-    changedFields: ['description', 'expiresAt'],
-    userId: user.id,
-    realUserId: null
-  })
-
-  setResponseStatus(event, 201)
-  return {
-    success: true,
-    data: result
+    setResponseStatus(event, 201)
+    return {
+      success: true,
+      data: result
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'ApiToken',
+      entityId: user.id,
+      reason: error instanceof Error ? error.message : 'Failed to create token',
+      userId: user.id,
+      realUserId: null
+    })
+    throw error
   }
 })

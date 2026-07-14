@@ -1,5 +1,6 @@
 import type { ApiResponse } from '~~/types/api'
 import { platformService } from '../services/singletons'
+import { auditFailedOperation } from '../utils/audit'
 
 /**
  * @openapi
@@ -77,6 +78,15 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreatePlatf
       count: 1
     }
   } catch (error: unknown) {
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'Platform',
+      entityId: body.name,
+      reason: error instanceof Error ? error.message : 'Failed to create platform',
+      userId: user.id,
+      realUserId
+    })
+
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }

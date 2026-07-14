@@ -1,4 +1,5 @@
 import { versionConstraintService } from '../services/singletons'
+import { auditFailedOperation } from '../utils/audit'
 
 interface CreateRequest {
   name: string
@@ -76,6 +77,14 @@ export default defineEventHandler(async (event) => {
     if (error && typeof error === 'object' && 'statusCode' in error) {
       const httpError = error as { statusCode: number; message: string }
       setResponseStatus(event, httpError.statusCode)
+      await auditFailedOperation(event, {
+        operation: 'CREATE',
+        entityType: 'VersionConstraint',
+        entityId: body.name,
+        reason: httpError.message,
+        userId: user.id,
+        realUserId
+      })
       return {
         success: false,
         error: httpError.statusCode === 409 ? 'conflict' : 'validation_error',
@@ -85,6 +94,14 @@ export default defineEventHandler(async (event) => {
 
     event.context.logger.error({ err: error }, 'Version constraint creation error')
     setResponseStatus(event, 500)
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'VersionConstraint',
+      entityId: body.name,
+      reason: error instanceof Error ? error.message : 'Internal server error',
+      userId: user.id,
+      realUserId
+    })
     return { success: false, error: 'internal_error', message: error instanceof Error ? error.message : 'Internal server error' }
   }
 })

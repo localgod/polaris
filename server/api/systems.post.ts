@@ -1,5 +1,6 @@
 import type { ApiResponse } from '~~/types/api'
 import { systemService } from '../services/singletons'
+import { auditFailedOperation } from '../utils/audit'
 
 /**
  * @openapi
@@ -129,11 +130,20 @@ export default defineEventHandler(async (event): Promise<ApiResponse<CreateSyste
       count: 1
     }
   } catch (error: unknown) {
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'System',
+      entityId: body.name,
+      reason: error instanceof Error ? error.message : 'Failed to create system',
+      userId: user.id,
+      realUserId
+    })
+
     // Re-throw createError exceptions to preserve HTTP status codes
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
-    
+
     // Handle unexpected errors
     throw createError({
       statusCode: 500,

@@ -1,5 +1,6 @@
 import { gitHubImportService, systemService } from '../../../../services/singletons'
 import { getServerSession } from '#auth'
+import { auditFailedOperation } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
@@ -14,47 +15,58 @@ export default defineEventHandler(async (event) => {
 
   const name = decodeURIComponent(rawName)
 
-  const system = await systemService.findByName(name)
+  try {
+    const system = await systemService.findByName(name)
 
-  if (!system) {
-    throw createError({ statusCode: 404, message: `System '${name}' not found` })
-  }
+    if (!system) {
+      throw createError({ statusCode: 404, message: `System '${name}' not found` })
+    }
 
-  if (!system.ownerTeam) {
-    throw createError({ statusCode: 422, message: `System '${name}' has no owner team — cannot rescan` })
-  }
+    if (!system.ownerTeam) {
+      throw createError({ statusCode: 422, message: `System '${name}' has no owner team — cannot rescan` })
+    }
 
-  const { data: repositories } = await systemService.getRepositories(name)
+    const { data: repositories } = await systemService.getRepositories(name)
 
-  if (repositories.length === 0) {
-    throw createError({ statusCode: 422, message: `System '${name}' has no linked repositories — cannot rescan` })
-  }
+    if (repositories.length === 0) {
+      throw createError({ statusCode: 422, message: `System '${name}' has no linked repositories — cannot rescan` })
+    }
 
-  const results = await Promise.allSettled(
-    repositories.map(repo =>
-      gitHubImportService.import({
-        repositoryUrl: repo.url,
-        systemName: name,
-        ownerTeam: system.ownerTeam!,
-        userId: user.id,
-        githubToken
-      })
+    const results = await Promise.allSettled(
+      repositories.map(repo =>
+        gitHubImportService.import({
+          repositoryUrl: repo.url,
+          systemName: name,
+          ownerTeam: system.ownerTeam!,
+          userId: user.id,
+          githubToken
+        })
+      )
     )
-  )
 
-  const succeeded = results.filter(r => r.status === 'fulfilled').length
-  const failed = results.filter(r => r.status === 'rejected').length
+    const succeeded = results.filter(r => r.status === 'fulfilled').length
+    const failed = results.filter(r => r.status === 'rejected').length
 
-  const failures = results
-    .map((r, i) => r.status === 'rejected' ? { repository: repositories[i]!.url, error: r.reason instanceof Error ? r.reason.message : String(r.reason) } : null)
-    .filter(Boolean)
+    const failures = results
+      .map((r, i) => r.status === 'rejected' ? { repository: repositories[i]!.url, error: r.reason instanceof Error ? r.reason.message : String(r.reason) } : null)
+      .filter(Boolean)
 
-  if (failures.length > 0) {
-    event.context.logger?.warn({ failures }, 'Some repositories failed to rescan')
-  }
+    if (failures.length > 0) {
+      event.context.logger?.warn({ failures }, 'Some repositories failed to rescan')
+    }
 
-  return {
-    success: true,
-    data: { total: repositories.length, succeeded, failed, failures }
+    return {
+      success: true,
+      data: { total: repositories.length, succeeded, failed, failures }
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'RESCAN',
+      entityType: 'System',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to rescan system',
+      userId: user.id
+    })
+    throw error
   }
 })

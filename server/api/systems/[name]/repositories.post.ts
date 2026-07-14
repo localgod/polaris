@@ -1,4 +1,5 @@
 import { systemService } from '../../../services/singletons'
+import { auditFailedOperation } from '../../../utils/audit'
 
 /**
  * @openapi
@@ -100,30 +101,42 @@ export default defineEventHandler(async (event) => {
   await validateTeamOwnership(event, 'System', systemName)
   
   const body = await readBody<{ url: string; name?: string }>(event)
-  
-  // Validate URL
-  if (!body.url) {
-    throw createError({
-      statusCode: 400,
-      message: 'Repository URL is required'
-    })
-  }
-  
+
   try {
-    new URL(body.url)
-  } catch {
-    throw createError({
-      statusCode: 400,
-      message: 'Invalid repository URL'
+    // Validate URL
+    if (!body.url) {
+      throw createError({
+        statusCode: 400,
+        message: 'Repository URL is required'
+      })
+    }
+
+    try {
+      new URL(body.url)
+    } catch {
+      throw createError({
+        statusCode: 400,
+        message: 'Invalid repository URL'
+      })
+    }
+
+    const repository = await systemService.addRepository(systemName, body, user.id, realUserId)
+
+    setResponseStatus(event, 201)
+    return {
+      success: true,
+      data: repository,
+      message: `Repository registered for system ${systemName}`
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'ADD_REPOSITORY',
+      entityType: 'System',
+      entityId: systemName,
+      reason: error instanceof Error ? error.message : 'Failed to register repository',
+      userId: user.id,
+      realUserId
     })
-  }
-  
-  const repository = await systemService.addRepository(systemName, body, user.id, realUserId)
-  
-  setResponseStatus(event, 201)
-  return {
-    success: true,
-    data: repository,
-    message: `Repository registered for system ${systemName}`
+    throw error
   }
 })

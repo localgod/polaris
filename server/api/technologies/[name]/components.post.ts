@@ -1,4 +1,5 @@
 import { technologyService } from '../../../services/singletons'
+import { auditFailedOperation } from '../../../utils/audit'
 
 /**
  * @openapi
@@ -57,48 +58,65 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
 
-  // Handle PURL-based linking (single component) or component name (all versions)
-  if (body?.purl) {
-    const user = await requireSuperuser(event)
-    const realUserId = await getImpersonatorId(event)
+  let userId = 'anonymous'
+  let realUserId: string | null = null
 
-    // Check if purl looks like a PURL (starts with pkg:) or is a component name
-    if (body.purl.startsWith('pkg:')) {
-      // Full PURL - link specific component
-      const result = await technologyService.linkComponentByPurl({
-        technologyName,
-        purl: body.purl,
-        userId: user.id,
-        realUserId
-      })
-      return { success: true, data: result }
-    } else {
-      // Component name - link all versions of this component
-      const result = await technologyService.linkComponentByName({
-        technologyName,
-        componentName: body.purl,
-        userId: user.id,
-        realUserId
-      })
-      return { success: true, data: result }
+  try {
+    // Handle PURL-based linking (single component) or component name (all versions)
+    if (body?.purl) {
+      const user = await requireSuperuser(event)
+      realUserId = await getImpersonatorId(event)
+      userId = user.id
+
+      // Check if purl looks like a PURL (starts with pkg:) or is a component name
+      if (body.purl.startsWith('pkg:')) {
+        // Full PURL - link specific component
+        const result = await technologyService.linkComponentByPurl({
+          technologyName,
+          purl: body.purl,
+          userId: user.id,
+          realUserId
+        })
+        return { success: true, data: result }
+      } else {
+        // Component name - link all versions of this component
+        const result = await technologyService.linkComponentByName({
+          technologyName,
+          componentName: body.purl,
+          userId: user.id,
+          realUserId
+        })
+        return { success: true, data: result }
+      }
     }
+
+    const user = await requireAuth(event)
+    realUserId = await getImpersonatorId(event)
+    userId = user.id
+
+    if (!body?.componentName || !body?.componentVersion) {
+      throw createError({ statusCode: 400, message: 'componentName and componentVersion are required (or provide purl)' })
+    }
+
+    const result = await technologyService.linkComponent({
+      technologyName,
+      componentName: body.componentName,
+      componentVersion: body.componentVersion,
+      userId: user.id,
+      realUserId
+    })
+
+    return { success: true, data: result }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'LINK',
+      entityType: 'Technology',
+      entityId: technologyName,
+      reason: error instanceof Error ? error.message : 'Failed to link component',
+      userId,
+      realUserId
+    })
+    throw error
   }
-
-  const user = await requireAuth(event)
-  const realUserId = await getImpersonatorId(event)
-
-  if (!body?.componentName || !body?.componentVersion) {
-    throw createError({ statusCode: 400, message: 'componentName and componentVersion are required (or provide purl)' })
-  }
-
-  const result = await technologyService.linkComponent({
-    technologyName,
-    componentName: body.componentName,
-    componentVersion: body.componentVersion,
-    userId: user.id,
-    realUserId
-  })
-
-  return { success: true, data: result }
 })
 

@@ -1,6 +1,7 @@
 import { UserRepository } from '../../repositories/user.repository'
 import { tokenService } from '../../services/singletons'
 import { AuditLogRepository } from '../../repositories/audit-log.repository'
+import { auditSensitiveRead } from '../../utils/audit'
 
 /**
  * @openapi
@@ -23,7 +24,8 @@ import { AuditLogRepository } from '../../repositories/audit-log.repository'
  *         description: User not found
  */
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const currentUser = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {
@@ -46,6 +48,15 @@ export default defineEventHandler(async (event) => {
   // Get recent audit activity by this user
   const auditRepo = new AuditLogRepository()
   const auditLogs = await auditRepo.findAll({ userId: id, limit: 10, offset: 0 })
+
+  await auditSensitiveRead(event, {
+    entityType: 'User',
+    entityId: id,
+    entityLabel: user.name || user.email,
+    reason: 'Viewed user detail including tokens and audit activity',
+    userId: currentUser.id,
+    realUserId
+  })
 
   return {
     success: true,

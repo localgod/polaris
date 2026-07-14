@@ -1,5 +1,6 @@
 import { UserRepository } from '../../../../repositories/user.repository'
 import { AuditLogRepository } from '../../../../repositories/audit-log.repository'
+import { auditFailedOperation } from '../../../../utils/audit'
 
 /**
  * @openapi
@@ -24,37 +25,48 @@ import { AuditLogRepository } from '../../../../repositories/audit-log.repositor
  *         description: User not found
  */
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const currentUser = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const userId = getRouterParam(event, 'userId')
   if (!userId) {
     throw createError({ statusCode: 400, message: 'userId is required' })
   }
 
-  const userRepo = new UserRepository()
-  const user = await userRepo.findById(userId)
+  try {
+    const userRepo = new UserRepository()
+    const user = await userRepo.findById(userId)
 
-  if (!user) {
-    throw createError({ statusCode: 404, message: 'User not found' })
+    if (!user) {
+      throw createError({ statusCode: 404, message: 'User not found' })
+    }
+
+    if (user.provider !== 'technical') {
+      throw createError({ statusCode: 400, message: 'Only technical users can be deleted' })
+    }
+
+    await userRepo.deleteUser(userId)
+
+    const auditRepo = new AuditLogRepository()
+    await auditRepo.create({
+      operation: 'DELETE',
+      entityType: 'User',
+      entityId: userId,
+      entityLabel: user.name || user.email,
+      userId: currentUser.id,
+      realUserId
+    })
+
+    return { success: true, message: 'Technical user deleted' }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'DELETE',
+      entityType: 'User',
+      entityId: userId,
+      reason: error instanceof Error ? error.message : 'Failed to delete user',
+      userId: currentUser.id,
+      realUserId
+    })
+    throw error
   }
-
-  if (user.provider !== 'technical') {
-    throw createError({ statusCode: 400, message: 'Only technical users can be deleted' })
-  }
-
-  await userRepo.deleteUser(userId)
-
-  const currentUser = await getCurrentUser(event)
-  const realUserId = await getImpersonatorId(event)
-  const auditRepo = new AuditLogRepository()
-  await auditRepo.create({
-    operation: 'DELETE',
-    entityType: 'User',
-    entityId: userId,
-    entityLabel: user.name || user.email,
-    userId: currentUser.id,
-    realUserId
-  })
-
-  return { success: true, message: 'Technical user deleted' }
 })

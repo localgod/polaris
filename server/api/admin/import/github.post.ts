@@ -1,5 +1,6 @@
 import { gitHubImportService } from '../../../services/singletons'
 import { AuditLogRepository } from '../../../repositories/audit-log.repository'
+import { auditFailedOperation } from '../../../utils/audit'
 import { getServerSession } from '#auth'
 
 /**
@@ -109,12 +110,22 @@ export default defineEventHandler(async (event) => {
       data: result
     }
   } catch (error: unknown) {
+    const failureMessage = error instanceof Error ? error.message : 'Import failed'
+    await auditFailedOperation(event, {
+      operation: 'IMPORT',
+      entityType: 'System',
+      entityId: systemName || repositoryUrl,
+      reason: failureMessage,
+      userId: user.id,
+      realUserId
+    })
+
     // Re-throw HTTP errors (4xx/5xx already created via createError)
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
 
-    const message = error instanceof Error ? error.message : 'Import failed'
+    const message = failureMessage
     const stack = error instanceof Error ? error.stack : undefined
 
     // Log the full error so it appears in production server logs

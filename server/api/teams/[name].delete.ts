@@ -1,4 +1,5 @@
 import { teamService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 /**
  * @openapi
@@ -58,9 +59,21 @@ export default defineEventHandler(async (event) => {
   }
   
   const name = decodeURIComponent(rawName)
-  
-  await teamService.delete(name, user.id, realUserId)
-  
-  setResponseStatus(event, 204)
-  return null
+
+  try {
+    await teamService.delete(name, user.id, realUserId)
+
+    setResponseStatus(event, 204)
+    return null
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'DELETE',
+      entityType: 'Team',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to delete team',
+      userId: user.id,
+      realUserId
+    })
+    throw error
+  }
 })

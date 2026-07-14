@@ -1,5 +1,6 @@
 import { UserRepository } from '../../../repositories/user.repository'
 import { AuditLogRepository } from '../../../repositories/audit-log.repository'
+import { auditFailedOperation } from '../../../utils/audit'
 import { randomBytes } from 'crypto'
 
 /**
@@ -31,7 +32,8 @@ import { randomBytes } from 'crypto'
  *         description: Not authorized
  */
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  const currentUser = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const body = await readBody(event)
 
@@ -39,42 +41,52 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'name and email are required' })
   }
 
-  const userRepo = new UserRepository()
+  try {
+    const userRepo = new UserRepository()
 
-  // Check if email already exists
-  const existing = await userRepo.findAllSummary()
-  if (existing.some(u => u.email === body.email)) {
-    throw createError({ statusCode: 409, message: 'A user with this email already exists' })
-  }
+    // Check if email already exists
+    const existing = await userRepo.findAllSummary()
+    if (existing.some(u => u.email === body.email)) {
+      throw createError({ statusCode: 409, message: 'A user with this email already exists' })
+    }
 
-  const id = `technical_${randomBytes(12).toString('hex')}`
+    const id = `technical_${randomBytes(12).toString('hex')}`
 
-  await userRepo.createOrUpdateUser({
-    id,
-    email: body.email,
-    name: body.name,
-    provider: 'technical',
-    avatarUrl: null,
-    isSuperuser: false,
-    role: 'user'
-  })
+    await userRepo.createOrUpdateUser({
+      id,
+      email: body.email,
+      name: body.name,
+      provider: 'technical',
+      avatarUrl: null,
+      isSuperuser: false,
+      role: 'user'
+    })
 
-  const currentUser = await getCurrentUser(event)
-  const realUserId = await getImpersonatorId(event)
-  const auditRepo = new AuditLogRepository()
-  await auditRepo.create({
-    operation: 'CREATE',
-    entityType: 'User',
-    entityId: id,
-    entityLabel: body.name || body.email,
-    changedFields: ['name', 'email', 'provider'],
-    userId: currentUser.id,
-    realUserId
-  })
+    const auditRepo = new AuditLogRepository()
+    await auditRepo.create({
+      operation: 'CREATE',
+      entityType: 'User',
+      entityId: id,
+      entityLabel: body.name || body.email,
+      changedFields: ['name', 'email', 'provider'],
+      userId: currentUser.id,
+      realUserId
+    })
 
-  setResponseStatus(event, 201)
-  return {
-    success: true,
-    data: { id, name: body.name, email: body.email, provider: 'technical' }
+    setResponseStatus(event, 201)
+    return {
+      success: true,
+      data: { id, name: body.name, email: body.email, provider: 'technical' }
+    }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'CREATE',
+      entityType: 'User',
+      entityId: body.email,
+      reason: error instanceof Error ? error.message : 'Failed to create technical user',
+      userId: currentUser.id,
+      realUserId
+    })
+    throw error
   }
 })

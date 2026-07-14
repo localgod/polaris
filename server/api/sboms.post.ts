@@ -1,6 +1,7 @@
 import { getSbomValidator } from '../utils/sbom-validator'
 import { validateSbomRequest, type SbomRequest as ValidatorSbomRequest } from '../utils/sbom-request-validator'
 import { sbomService } from '../services/singletons'
+import { auditFailedOperation } from '../utils/audit'
 
 /**
  * @openapi
@@ -275,14 +276,23 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
   } catch (error) {
     // Handle specific errors
     if (error && typeof error === 'object' && 'statusCode' in error) {
-      const httpError = error as { 
+      const httpError = error as {
         statusCode: number
         message: string
         hint?: string
       }
-      
+
       setResponseStatus(event, httpError.statusCode)
-      
+
+      await auditFailedOperation(event, {
+        operation: 'IMPORT_SBOM',
+        entityType: 'System',
+        entityId: validatedBody.repositoryUrl,
+        reason: httpError.message,
+        userId: user.id,
+        realUserId
+      })
+
       // Repository not registered (404)
       if (httpError.statusCode === 404) {
         return {
@@ -292,7 +302,7 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
           hint: httpError.hint || 'Register the repository first using POST /api/systems/{systemName}/repositories'
         }
       }
-      
+
       // Repository not linked to system (409)
       if (httpError.statusCode === 409) {
         return {
@@ -301,7 +311,7 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
           message: httpError.message
         }
       }
-      
+
       // Other errors
       return {
         success: false,
@@ -313,6 +323,14 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
     // Internal error during processing
     event.context.logger.error({ err: error }, 'SBOM processing error')
     setResponseStatus(event, 500)
+    await auditFailedOperation(event, {
+      operation: 'IMPORT_SBOM',
+      entityType: 'System',
+      entityId: validatedBody.repositoryUrl,
+      reason: error instanceof Error ? error.message : 'Internal server error',
+      userId: user.id,
+      realUserId
+    })
     return {
       success: false,
       error: 'internal_error',

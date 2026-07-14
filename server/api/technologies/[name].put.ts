@@ -1,4 +1,5 @@
 import { technologyService } from '../../services/singletons'
+import { auditFailedOperation } from '../../utils/audit'
 
 /**
  * @openapi
@@ -68,37 +69,49 @@ export default defineEventHandler(async (event) => {
 
   const name = decodeURIComponent(rawName)
 
-  const tech = await technologyService.findOwnerTeam(name)
-  if (!tech) {
-    throw createError({
-      statusCode: 404,
-      message: `Technology '${name}' not found`
-    })
-  }
-
-  // Superusers can update any technology
-  if (user.role !== 'superuser') {
-    const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
-    if (!tech.ownerTeam || !userTeamNames.includes(tech.ownerTeam)) {
+  try {
+    const tech = await technologyService.findOwnerTeam(name)
+    if (!tech) {
       throw createError({
-        statusCode: 403,
-        message: 'Access denied. You must be a superuser or a member of the technology\'s owner team to update it.'
+        statusCode: 404,
+        message: `Technology '${name}' not found`
       })
     }
+
+    // Superusers can update any technology
+    if (user.role !== 'superuser') {
+      const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
+      if (!tech.ownerTeam || !userTeamNames.includes(tech.ownerTeam)) {
+        throw createError({
+          statusCode: 403,
+          message: 'Access denied. You must be a superuser or a member of the technology\'s owner team to update it.'
+        })
+      }
+    }
+
+    const body = await readBody(event)
+
+    const result = await technologyService.update({
+      name,
+      type: body.type,
+      domain: body.domain,
+      vendor: body.vendor,
+      ownerTeam: body.ownerTeam,
+      lastReviewed: body.lastReviewed,
+      userId: user.id,
+      realUserId
+    })
+
+    return { name: result }
+  } catch (error) {
+    await auditFailedOperation(event, {
+      operation: 'UPDATE',
+      entityType: 'Technology',
+      entityId: name,
+      reason: error instanceof Error ? error.message : 'Failed to update technology',
+      userId: user.id,
+      realUserId
+    })
+    throw error
   }
-
-  const body = await readBody(event)
-
-  const result = await technologyService.update({
-    name,
-    type: body.type,
-    domain: body.domain,
-    vendor: body.vendor,
-    ownerTeam: body.ownerTeam,
-    lastReviewed: body.lastReviewed,
-    userId: user.id,
-    realUserId
-  })
-
-  return { name: result }
 })

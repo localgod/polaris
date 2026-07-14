@@ -1,4 +1,5 @@
 import { userService } from '../../../services/singletons'
+import { auditSensitiveRead } from '../../../utils/audit'
 
 /**
  * @openapi
@@ -63,9 +64,18 @@ import { userService } from '../../../services/singletons'
  */
 export default defineEventHandler(async (event) => {
   // Require superuser access
-  await requireSuperuser(event)
+  const currentUser = await requireSuperuser(event)
+  const realUserId = await getImpersonatorId(event)
 
   const result = await userService.findAll()
+
+  await auditSensitiveRead(event, {
+    entityType: 'User',
+    entityId: 'all',
+    reason: 'Listed all users with team memberships',
+    userId: currentUser.id,
+    realUserId
+  })
 
   return {
     success: true,
