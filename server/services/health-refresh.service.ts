@@ -16,6 +16,7 @@ import {
   type HealthRefreshJobItem
 } from '../repositories/health-refresh.repository'
 import { calculateMaintenanceHealth } from '../utils/component-health'
+import { logger } from '../utils/logger'
 import { EOLService } from './eol.service'
 import { PackageMetadataService } from './package-metadata.service'
 import { SecurityScoreService } from './security-score.service'
@@ -95,7 +96,10 @@ export class HealthRefreshService {
   }
 
   async processJob(jobId: string, options: { batchSize?: number } = {}): Promise<void> {
+    const startedAt = Date.now()
     const batchSize = options.batchSize ?? 25
+    let processedCount = 0
+    let failedCount = 0
 
     while (true) {
       const items = await this.healthRepo.getPendingItems(jobId, batchSize)
@@ -105,14 +109,22 @@ export class HealthRefreshService {
         try {
           await this.processItem(jobId, item)
         } catch (error) {
+          failedCount++
           await this.healthRepo.markItemFinished(jobId, item.id, 'failed', {
             errorSummary: error instanceof Error ? error.message : String(error)
           })
         }
+        processedCount++
       }
     }
 
     await this.healthRepo.markJobCompletedIfDone(jobId)
+    logger.info({
+      jobId,
+      processedCount,
+      failedCount,
+      durationMs: Date.now() - startedAt
+    }, 'Health refresh job processed')
   }
 
   private async processItem(jobId: string, item: HealthRefreshJobItem): Promise<void> {

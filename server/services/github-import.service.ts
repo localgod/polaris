@@ -62,6 +62,7 @@ export class GitHubImportService {
    * 4. Run cdxgen on the clone and submit the SBOM
    */
   async import(input: GitHubImportInput): Promise<GitHubImportResult> {
+    const startedAt = Date.now()
     if (!input.githubToken) {
       throw new Error('GitHub authentication required — please sign in via GitHub to import repositories')
     }
@@ -97,6 +98,13 @@ export class GitHubImportService {
         rmSync(tempDir, { recursive: true, force: true })
       }
     }
+
+    logger.info({
+      repositoryUrl: repoUrl,
+      componentsAdded: sbomResult.componentsAdded,
+      componentsUpdated: sbomResult.componentsUpdated,
+      durationMs: Date.now() - startedAt
+    }, 'GitHub import workflow completed')
 
     return {
       systemName: input.systemName?.trim() || metadata.name,
@@ -158,6 +166,7 @@ export class GitHubImportService {
    */
   private async generateSBOM(repoDir: string, projectName: string): Promise<object | null> {
     logger.info({ projectName, repoDir }, 'Running cdxgen for GitHub import')
+    const startedAt = Date.now()
 
     try {
       const bom = await createBom(repoDir, {
@@ -166,11 +175,14 @@ export class GitHubImportService {
         projectVersion: '1.0.0',
         multiProject: true,
       })
+      const durationMs = Date.now() - startedAt
 
       if (!bom) {
-        logger.warn({ projectName }, 'cdxgen returned no BOM')
+        logger.warn({ projectName, durationMs }, 'cdxgen returned no BOM')
         return null
       }
+
+      logger.info({ projectName, durationMs }, 'cdxgen completed')
 
       if (typeof bom === 'string') {
         return JSON.parse(bom)
@@ -180,7 +192,7 @@ export class GitHubImportService {
 
       return bom as object
     } catch (err) {
-      logger.error({ err, projectName }, 'cdxgen threw during GitHub import')
+      logger.error({ err, projectName, durationMs: Date.now() - startedAt }, 'cdxgen threw during GitHub import')
       throw err
     }
   }

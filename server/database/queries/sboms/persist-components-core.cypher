@@ -47,9 +47,14 @@ MERGE (s)-[r:USES]->(c)
 ON CREATE SET r.addedAt = $timestamp, r.scope = comp.scope, r.isDirect = comp.isDirect, r._new = true
 ON MATCH SET r.lastSeenAt = $timestamp, r.scope = comp.scope, r.isDirect = comp.isDirect
 
-WITH isNew, r, (r._new IS NOT NULL) AS relIsNew
+WITH c, isNew, r, (r._new IS NOT NULL) AS relIsNew
 REMOVE r._new
 
-RETURN sum(CASE WHEN isNew THEN 1 ELSE 0 END) AS componentsAdded,
-       sum(CASE WHEN isNew THEN 0 ELSE 1 END) AS componentsUpdated,
-       sum(CASE WHEN relIsNew THEN 1 ELSE 0 END) AS relationshipsCreated
+// One row per input component (not aggregated) so the caller can tell which
+// specific components were newly added — needed for granular per-component
+// audit entries ("who introduced component X into system Y").
+RETURN c.name AS componentName,
+       c.version AS componentVersion,
+       c.purl AS componentPurl,
+       isNew,
+       relIsNew

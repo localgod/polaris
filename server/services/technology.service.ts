@@ -3,6 +3,7 @@ import { SBOMRepository } from '../repositories/sbom.repository'
 import type { EOLStatus, EOLStatusValue, Technology, ComponentType, TechnologyDomain, TimeValue, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
+import { logger } from '../utils/logger'
 import { EOLService } from './eol.service'
 
 const VALID_TYPES = [
@@ -195,7 +196,9 @@ export class TechnologyService {
       realUserId: input.realUserId ?? null
     }
 
-    return await this.techRepo.createFromComponent(params)
+    const name = await this.techRepo.createFromComponent(params)
+    logger.info({ name, type: input.type, componentName: params.componentName, userId: input.userId }, 'Technology created')
+    return name
   }
 
   /**
@@ -234,6 +237,7 @@ export class TechnologyService {
     })
 
     await this.techRepo.delete(name, userId, changes, realUserId)
+    logger.info({ name, userId }, 'Technology deleted')
   }
 
   /**
@@ -297,7 +301,9 @@ export class TechnologyService {
       realUserId: input.realUserId ?? null
     }
 
-    return await this.techRepo.update({ ...params, changes })
+    const name = await this.techRepo.update({ ...params, changes })
+    logger.info({ name, userId: input.userId }, 'Technology updated')
+    return name
   }
 
   /**
@@ -308,7 +314,9 @@ export class TechnologyService {
     if (!exists) {
       throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
     }
-    return await this.techRepo.linkComponent(input)
+    const result = await this.techRepo.linkComponent(input)
+    logger.info({ ...result, userId: input.userId }, 'Component linked to technology')
+    return result
   }
 
   /**
@@ -327,6 +335,13 @@ export class TechnologyService {
     for (const systemName of result.affectedSystems) {
       await this.sbomRepo.upsertTeamUsesTechnology(systemName)
     }
+    logger.info({
+      technologyName: result.technologyName,
+      name: result.name,
+      purl: result.purl,
+      affectedSystems: result.affectedSystems.length,
+      userId: input.userId
+    }, 'Component linked to technology by purl')
     return { technologyName: result.technologyName, name: result.name, purl: result.purl }
   }
 
@@ -346,6 +361,13 @@ export class TechnologyService {
     for (const systemName of result.affectedSystems) {
       await this.sbomRepo.upsertTeamUsesTechnology(systemName)
     }
+    logger.info({
+      technologyName: result.technologyName,
+      name: result.name,
+      count: result.count,
+      affectedSystems: result.affectedSystems.length,
+      userId: input.userId
+    }, 'Components linked to technology by name')
     return { technologyName: result.technologyName, name: result.name, count: result.count }
   }
 
@@ -400,7 +422,9 @@ export class TechnologyService {
       realUserId: input.realUserId ?? null
     }
 
-    return await this.techRepo.upsertApproval({ ...params, changes })
+    const result = await this.techRepo.upsertApproval({ ...params, changes })
+    logger.info({ technologyName: input.technologyName, teamName: input.teamName, time: input.time, userId: input.userId }, 'Technology approval set')
+    return result
   }
 
   /**

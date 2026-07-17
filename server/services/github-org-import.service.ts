@@ -96,6 +96,7 @@ export class GitHubOrgImportService {
   }
 
   async process(jobId: string, input: GitHubOrgImportInput): Promise<void> {
+    const startedAt = Date.now()
     await this.jobRepo.markRunning(jobId)
 
     try {
@@ -125,6 +126,12 @@ export class GitHubOrgImportService {
 
       await this.jobRepo.markCompleted(jobId)
       await this.createAuditLog(jobId, input)
+      logger.info({
+        jobId,
+        organization: input.organization,
+        repositoryCount: items.length,
+        durationMs: Date.now() - startedAt
+      }, 'GitHub org import job completed')
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'GitHub owner import failed'
       await this.jobRepo.markFailed(jobId, message)
@@ -146,6 +153,7 @@ export class GitHubOrgImportService {
     input: GitHubOrgImportInput
   ): Promise<void> {
     await this.jobRepo.markItemRunning(jobId, item.repositoryFullName)
+    const startedAt = Date.now()
 
     try {
       const result = await this.gitHubImportService.import({
@@ -167,6 +175,14 @@ export class GitHubOrgImportService {
         componentsUpdated: result.componentsUpdated,
         relationshipsCreated: result.relationshipsCreated
       })
+      logger.info({
+        jobId,
+        repository: item.repositoryFullName,
+        systemName: result.systemName,
+        componentsAdded: result.componentsAdded,
+        componentsUpdated: result.componentsUpdated,
+        durationMs: Date.now() - startedAt
+      }, 'GitHub repository imported')
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Import failed'
       await this.jobRepo.markItemFinished(jobId, item.repositoryFullName, 'failed', { message })

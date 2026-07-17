@@ -100,6 +100,8 @@ export class SBOMService {
    * @throws Error if repository not found or processing fails
    */
   async processSBOM(input: ProcessSBOMInput): Promise<ProcessSBOMResult> {
+    const startedAt = Date.now()
+
     // 1. Normalize repository URL
     const normalizedUrl = normalizeRepoUrl(input.repositoryUrl)
     
@@ -129,6 +131,7 @@ export class SBOMService {
     }
     
     // 4. Extract components and dependency relationships from SBOM
+    const extractionStartedAt = Date.now()
     const sbomData = input.sbom as Record<string, unknown>
     const { bomRef: rootBomRef, name: rootName } = this.extractRootBomRef(sbomData, input.format)
     const components = this.extractComponents(sbomData, input.format, rootBomRef, rootName)
@@ -152,9 +155,11 @@ export class SBOMService {
       dependencies,
       input.format === 'spdx' ? scopedEdges! : null,
     )
+    const extractionDurationMs = Date.now() - extractionStartedAt
 
     // 5. Persist to database
-    const result = await this.sbomRepo.persistSBOM({
+    const persistStartedAt = Date.now()
+    const { addedComponents, ...result } = await this.sbomRepo.persistSBOM({
       systemName: system.name,
       repositoryUrl: normalizedUrl,
       components,
@@ -163,15 +168,19 @@ export class SBOMService {
       format: input.format,
       timestamp: new Date()
     })
-    
+    const persistDurationMs = Date.now() - persistStartedAt
+
     // 6. Upsert (Team)-[:USES]->(Technology) edges so compliance violation
     //    queries have current data after every SBOM submission.
     await this.sbomRepo.upsertTeamUsesTechnology(system.name)
 
     // 7. Update repository last scan timestamp
     await this.sourceRepoRepo.updateLastScan(normalizedUrl)
-    
-    // 8. Audit log for SBOM import
+
+    // 8. Audit log for SBOM import: one summary entry, plus one entry per
+    // newly-added component so "who introduced component X" can be answered
+    // directly. Updated (already-tracked) components are intentionally not
+    // audited individually — see create-component-added-audit-logs.cypher.
     await this.sbomRepo.createAuditLog({
       systemName: system.name,
       userId: input.userId,
@@ -179,6 +188,12 @@ export class SBOMService {
       format: input.format,
       componentsAdded: result.componentsAdded,
       componentsUpdated: result.componentsUpdated
+    })
+    await this.sbomRepo.createComponentAddedAuditLogs({
+      systemName: system.name,
+      userId: input.userId,
+      realUserId: input.realUserId ?? null,
+      components: addedComponents
     })
 
     // Queue health refresh after import persistence is complete. External
@@ -188,7 +203,19 @@ export class SBOMService {
     } catch (error) {
       logger.error({ err: error, systemName: system.name }, 'Failed to enqueue post-import health refresh')
     }
-    
+
+    logger.info({
+      systemName: system.name,
+      repositoryUrl: normalizedUrl,
+      format: input.format,
+      componentsAdded: result.componentsAdded,
+      componentsUpdated: result.componentsUpdated,
+      relationshipsCreated: result.relationshipsCreated,
+      extractionDurationMs,
+      persistDurationMs,
+      totalDurationMs: Date.now() - startedAt
+    }, 'SBOM processed successfully')
+
     return {
       systemName: system.name,
       repositoryUrl: normalizedUrl,
