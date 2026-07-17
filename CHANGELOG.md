@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.65] - 2026-07-17
+
+## What's Changed
+
+- Add granular per-component SBOM audit entries and improve logging @localgod (#763)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.64...v0.6.65
+
 ## [0.6.63] - 2026-07-13
 
 ## What's Changed
