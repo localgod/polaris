@@ -118,4 +118,12 @@ export interface PersistSBOMResult {
   componentsAdded: number
   componentsUpdated: number
   relationshipsCreated: number
+  addedComponents: AddedComponent[]
+}
+
+/** Identity of a component newly created during SBOM persistence, used for granular per-component audit entries. */
+export interface AddedComponent {
+  name: string
+  version: string | null
+  purl: string | null
 }

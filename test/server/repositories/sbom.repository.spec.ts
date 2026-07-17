@@ -66,6 +66,93 @@ describe('SBOMRepository', () => {
 
       expect(check.records[0].get('count').toNumber()).toBeGreaterThanOrEqual(2)
     })
+
+    it('should report newly-added components in addedComponents, and none on a re-scan of the same components', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:System { name: $sys })
+        CREATE (:Repository { url: $url, name: $repoName })
+      `, { sys: `${PREFIX}added-system`, url: `https://github.com/${PREFIX}org/added-repo`, repoName: `${PREFIX}added-repo` })
+
+      const component = {
+        name: `${PREFIX}newlib`, version: '1.0.0',
+        purl: `pkg:npm/${PREFIX}newlib@1.0.0`, packageManager: 'npm',
+        cpe: null, bomRef: null, type: 'library', group: null, scope: null,
+        hashes: [], licenses: [], copyright: null, supplier: null,
+        author: null, publisher: null, homepage: null, description: null,
+        externalReferences: []
+      }
+
+      const firstScan = await repo.persistSBOM({
+        systemName: `${PREFIX}added-system`,
+        repositoryUrl: `https://github.com/${PREFIX}org/added-repo`,
+        format: 'cyclonedx',
+        timestamp: new Date(),
+        dependencies: [],
+        componentUsage: new Map(),
+        components: [component]
+      })
+
+      expect(firstScan.addedComponents).toEqual([
+        { name: component.name, version: component.version, purl: component.purl }
+      ])
+
+      const secondScan = await repo.persistSBOM({
+        systemName: `${PREFIX}added-system`,
+        repositoryUrl: `https://github.com/${PREFIX}org/added-repo`,
+        format: 'cyclonedx',
+        timestamp: new Date(),
+        dependencies: [],
+        componentUsage: new Map(),
+        components: [component]
+      })
+
+      expect(secondScan.addedComponents).toEqual([])
+      expect(secondScan.componentsUpdated).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  describe('createComponentAddedAuditLogs()', () => {
+    it('should create one AuditLog per added component, linked to both the System and the Component', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (:System { name: $sys })
+        CREATE (:Component { name: $compName, version: '1.0.0', purl: $purl })
+      `, { sys: `${PREFIX}audit-added-system`, compName: `${PREFIX}audited-comp`, purl: `pkg:npm/${PREFIX}audited-comp@1.0.0` })
+
+      await repo.createComponentAddedAuditLogs({
+        systemName: `${PREFIX}audit-added-system`,
+        userId: `${PREFIX}user1`,
+        realUserId: null,
+        components: [
+          { name: `${PREFIX}audited-comp`, version: '1.0.0', purl: `pkg:npm/${PREFIX}audited-comp@1.0.0` }
+        ]
+      })
+
+      const check = await session.run(`
+        MATCH (a:AuditLog { operation: 'ADD_COMPONENT' })-[:AUDITS]->(x)
+        WHERE a.userId = $userId
+        RETURN labels(x) AS labels, a.entityId AS entityId
+      `, { userId: `${PREFIX}user1` })
+
+      expect(check.records).toHaveLength(2)
+      const labelSets = check.records.map(r => r.get('labels'))
+      expect(labelSets).toContainEqual(['System'])
+      expect(labelSets).toContainEqual(['Component'])
+      expect(check.records[0].get('entityId')).toBe(`pkg:npm/${PREFIX}audited-comp@1.0.0`)
+    })
+
+    it('should do nothing when components is empty', async () => {
+      if (!ctx.neo4jAvailable) return
+      await expect(
+        repo.createComponentAddedAuditLogs({
+          systemName: `${PREFIX}nonexistent-system`,
+          userId: `${PREFIX}user1`,
+          realUserId: null,
+          components: []
+        })
+      ).resolves.not.toThrow()
+    })
   })
 
   describe('isDirect on USES edges via persistSBOM()', () => {

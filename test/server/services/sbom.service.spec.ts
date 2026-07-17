@@ -1215,5 +1215,55 @@ describe('SBOMService', () => {
 
       expect(callOrder).toEqual(['upsert', 'scan'])
     })
+
+    it('should audit newly-added components individually and pass counts to the summary audit log', async () => {
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1,
+        componentsUpdated: 0,
+        relationshipsCreated: 1,
+        addedComponents: [{ name: 'lodash', version: '4.17.21', purl: 'pkg:npm/lodash@4.17.21' }]
+      })
+      vi.mocked(SBOMRepository.prototype.createAuditLog).mockResolvedValue()
+      vi.mocked(SBOMRepository.prototype.createComponentAddedAuditLogs).mockResolvedValue()
+
+      await service.processSBOM({
+        sbom: validCycloneDxSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1'
+      })
+
+      expect(SBOMRepository.prototype.createAuditLog).toHaveBeenCalledWith({
+        systemName: 'test-system',
+        userId: 'user-1',
+        realUserId: null,
+        format: 'cyclonedx',
+        componentsAdded: 1,
+        componentsUpdated: 0
+      })
+      expect(SBOMRepository.prototype.createComponentAddedAuditLogs).toHaveBeenCalledWith({
+        systemName: 'test-system',
+        userId: 'user-1',
+        realUserId: null,
+        components: [{ name: 'lodash', version: '4.17.21', purl: 'pkg:npm/lodash@4.17.21' }]
+      })
+    })
+
+    it('should not include addedComponents in the returned result', async () => {
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1,
+        componentsUpdated: 0,
+        relationshipsCreated: 1,
+        addedComponents: [{ name: 'lodash', version: '4.17.21', purl: 'pkg:npm/lodash@4.17.21' }]
+      })
+
+      const result = await service.processSBOM({
+        sbom: validCycloneDxSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx'
+      })
+
+      expect(result).not.toHaveProperty('addedComponents')
+    })
   })
 })

@@ -13,6 +13,19 @@ WITH t, c, $componentName AS componentName, count(c) AS linkedCount
 MATCH (s:System)-[uses:USES]->(c)
 WITH t, componentName, linkedCount, collect(DISTINCT s.name) AS affectedSystems
 
+CREATE (al:AuditLog {
+  id: randomUUID(),
+  timestamp: datetime(),
+  operation: 'LINK',
+  entityType: 'TechnologyComponent',
+  entityId: t.name,
+  entityLabel: componentName + ' -> ' + t.name,
+  source: 'API',
+  userId: $userId,
+  realUserId: $realUserId
+})
+CREATE (al)-[:AUDITS]->(t)
+
 RETURN
   t.name AS technologyName,
   componentName AS name,

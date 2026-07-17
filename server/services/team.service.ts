@@ -3,6 +3,7 @@ import type { Team, TeamApprovalsResult, TeamConstraintsResult, TeamUsageResult,
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
 import { toDateString } from '../utils/neo4j'
+import { logger } from '../utils/logger'
 
 /**
  * Service for team-related business logic
@@ -57,13 +58,15 @@ export class TeamService {
       })
     }
 
-    return await this.teamRepo.create({
+    const name = await this.teamRepo.create({
       name: input.name,
       email: input.email?.trim() || null,
       responsibilityArea: input.responsibilityArea?.trim() || null,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     })
+    logger.info({ name, userId: input.userId }, 'Team created')
+    return name
   }
 
   /**
@@ -169,7 +172,7 @@ export class TeamService {
     }
     const changes = buildAuditChanges(before, after, changedFields)
 
-    return await this.teamRepo.update({
+    const result = await this.teamRepo.update({
       name: input.name,
       newName,
       email: input.email ?? null,
@@ -179,6 +182,8 @@ export class TeamService {
       userId: input.userId,
       realUserId: input.realUserId ?? null
     })
+    logger.info({ name: input.name, newName, changedFields, userId: input.userId }, 'Team updated')
+    return result
   }
 
   /**
@@ -220,6 +225,7 @@ export class TeamService {
     })
 
     await this.teamRepo.delete(name, userId, changes, realUserId)
+    logger.info({ name, userId }, 'Team deleted')
   }
 
   /**

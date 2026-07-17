@@ -1,5 +1,5 @@
 import { BaseRepository } from './base.repository'
-import type { PersistSBOMParams, PersistSBOMResult, ComponentDependency } from '../types/sbom'
+import type { PersistSBOMParams, PersistSBOMResult, AddedComponent, ComponentDependency } from '../types/sbom'
 
 /**
  * Repository for SBOM-related data access
@@ -68,6 +68,7 @@ export class SBOMRepository extends BaseRepository {
     let componentsAdded = 0
     let componentsUpdated = 0
     let relationshipsCreated = 0
+    const addedComponents: AddedComponent[] = []
 
     // Phase 1: MERGE components and USES edges — batch of 50
     for (let i = 0; i < coreComponents.length; i += SBOMRepository.BATCH_SIZE) {
@@ -77,10 +78,18 @@ export class SBOMRepository extends BaseRepository {
         components: batch,
         timestamp,
       })
-      if (records.length > 0) {
-        componentsAdded += records[0]!.get('componentsAdded').toNumber()
-        componentsUpdated += records[0]!.get('componentsUpdated').toNumber()
-        relationshipsCreated += records[0]!.get('relationshipsCreated').toNumber()
+      for (const record of records) {
+        const isNew = record.get('isNew') as boolean
+        componentsAdded += isNew ? 1 : 0
+        componentsUpdated += isNew ? 0 : 1
+        relationshipsCreated += (record.get('relIsNew') as boolean) ? 1 : 0
+        if (isNew) {
+          addedComponents.push({
+            name: record.get('componentName'),
+            version: record.get('componentVersion'),
+            purl: record.get('componentPurl')
+          })
+        }
       }
     }
 
@@ -100,7 +109,7 @@ export class SBOMRepository extends BaseRepository {
 
 
 
-    return { componentsAdded, componentsUpdated, relationshipsCreated }
+    return { componentsAdded, componentsUpdated, relationshipsCreated, addedComponents }
   }
 
 
@@ -154,5 +163,30 @@ export class SBOMRepository extends BaseRepository {
       realUserId: params.realUserId ?? null,
       metadata: JSON.stringify({ format: params.format, added: params.componentsAdded, updated: params.componentsUpdated })
     })
+  }
+
+  /**
+   * Create one granular AuditLog entry per newly-added component, so
+   * "who introduced component X into system Y" can be answered directly.
+   * Only called with newly-added components — see create-component-added-audit-logs.cypher.
+   */
+  async createComponentAddedAuditLogs(params: {
+    systemName: string
+    userId: string
+    realUserId?: string | null
+    components: AddedComponent[]
+  }): Promise<void> {
+    if (params.components.length === 0) return
+
+    const query = await loadQuery('sboms/create-component-added-audit-logs.cypher')
+    for (let i = 0; i < params.components.length; i += SBOMRepository.BATCH_SIZE) {
+      const batch = params.components.slice(i, i + SBOMRepository.BATCH_SIZE)
+      await this.executeQuery(query, {
+        systemName: params.systemName,
+        userId: params.userId,
+        realUserId: params.realUserId ?? null,
+        components: batch
+      })
+    }
   }
 }

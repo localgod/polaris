@@ -324,6 +324,29 @@ describe('TechnologyRepository', () => {
       expect(result.count).toBeGreaterThanOrEqual(1)
       expect(result.affectedSystems.length).toBeGreaterThanOrEqual(1)
     })
+
+    it('linkComponentsByName should create a LINK AuditLog entry', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c:Component { name: $comp, version: '1.0.0' })
+        CREATE (s:System { name: $sys })-[:USES]->(c)
+      `, { tech: `${PREFIX}audit-link-tech`, comp: `${PREFIX}audit-link-comp`, sys: `${PREFIX}audit-link-sys` })
+
+      await repo.linkComponentsByName({
+        technologyName: `${PREFIX}audit-link-tech`,
+        componentName: `${PREFIX}audit-link-comp`,
+        userId: `${PREFIX}user1`,
+      })
+
+      const check = await session.run(`
+        MATCH (a:AuditLog { operation: 'LINK', entityType: 'TechnologyComponent' })-[:AUDITS]->(t:Technology { name: $tech })
+        WHERE a.userId = $userId
+        RETURN a
+      `, { tech: `${PREFIX}audit-link-tech`, userId: `${PREFIX}user1` })
+
+      expect(check.records).toHaveLength(1)
+    })
   })
 
   describe('upsertApproval()', () => {
