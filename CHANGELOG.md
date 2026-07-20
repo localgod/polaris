@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.69] - 2026-07-20
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps-dev): bump @cucumber/gherkin from 40.0.0 to 42.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#769)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.68...v0.6.69
+
 ## [0.6.63] - 2026-07-13
 
 ## What's Changed
