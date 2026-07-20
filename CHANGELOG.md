@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.66] - 2026-07-20
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps-dev): bump @cucumber/messages from 33.0.4 to 34.2.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#770)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.65...v0.6.66
+
 ## [0.6.63] - 2026-07-13
 
 ## What's Changed
