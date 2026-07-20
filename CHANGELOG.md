@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.67] - 2026-07-20
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore(deps)(deps): bump spdx-expression-parse from 4.0.0 to 5.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#768)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.66...v0.6.67
+
 ## [0.6.63] - 2026-07-13
 
 ## What's Changed
