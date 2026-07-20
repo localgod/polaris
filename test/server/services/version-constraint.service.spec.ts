@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { VersionConstraintService } from '../../../server/services/version-constraint.service'
 import { VersionConstraintRepository } from '../../../server/repositories/version-constraint.repository'
+import { logger } from '../../../server/utils/logger'
 import '../../fixtures/service-test-helper'
 
 vi.mock('../../../server/repositories/version-constraint.repository')
@@ -105,6 +106,30 @@ describe('VersionConstraintService', () => {
 
     it('throws for invalid severity filter', async () => {
       await expect(service.getViolations({ severity: 'bogus' })).rejects.toMatchObject({ statusCode: 400 })
+    })
+
+    it('logs a warn for critical/error violations but not warning/info', async () => {
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger)
+      vi.mocked(VersionConstraintRepository.prototype.findViolations).mockResolvedValue([
+        {
+          team: 'Platform', system: 'orders', systemBusinessCriticality: null, systemEnvironment: null,
+          component: 'node', componentVersion: '18.0.0', technology: 'Node.js', technologyType: 'runtime',
+          constraint: { name: 'node-critical', description: '', severity: 'critical', versionRange: '>=20.0.0' },
+        },
+        {
+          team: 'Platform', system: 'orders', systemBusinessCriticality: null, systemEnvironment: null,
+          component: 'lodash', componentVersion: '3.0.0', technology: 'lodash', technologyType: 'library',
+          constraint: { name: 'lodash-info', description: '', severity: 'info', versionRange: '>=4.0.0' },
+        },
+      ])
+
+      await service.getViolations({})
+
+      expect(warnSpy).toHaveBeenCalledOnce()
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ constraintName: 'node-critical', severity: 'critical' }),
+        'Version constraint violated'
+      )
     })
   })
 

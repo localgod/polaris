@@ -187,19 +187,23 @@ export class SBOMService {
       realUserId: input.realUserId ?? null,
       format: input.format,
       componentsAdded: result.componentsAdded,
-      componentsUpdated: result.componentsUpdated
+      componentsUpdated: result.componentsUpdated,
+      correlationId: input.correlationId ?? null
     })
     await this.sbomRepo.createComponentAddedAuditLogs({
       systemName: system.name,
       userId: input.userId,
       realUserId: input.realUserId ?? null,
-      components: addedComponents
+      components: addedComponents,
+      correlationId: input.correlationId ?? null
     })
 
     // Queue health refresh after import persistence is complete. External
-    // source lookups run later through HealthRefreshJob processing.
+    // source lookups run later through HealthRefreshJob processing. The
+    // correlationId is persisted on the job so failures discovered by the
+    // async cron processor can still be traced back to this import.
     try {
-      await this.healthRefreshService.enqueueForSystem(system.name)
+      await this.healthRefreshService.enqueueForSystem(system.name, input.correlationId ?? null)
     } catch (error) {
       logger.error({ err: error, systemName: system.name }, 'Failed to enqueue post-import health refresh')
     }

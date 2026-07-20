@@ -4,6 +4,9 @@ import type {
   CreateVersionConstraintInput, UpdateVersionConstraintInput, UpdateStatusInput, UpdateStatusResult
 } from '../repositories/version-constraint.repository'
 import semver from 'semver'
+import { logger } from '../utils/logger'
+
+const WARN_SEVERITIES = new Set(['critical', 'error'])
 
 export interface ViolationResult {
   data: Violation[]
@@ -40,6 +43,21 @@ export class VersionConstraintService {
       if (!coerced) return false
       return !semver.satisfies(coerced, v.constraint.versionRange)
     })
+
+    // Warn on the actionable severities so alerting can be built on the log
+    // stream. warning/info are skipped to avoid noise on every dashboard read.
+    for (const violation of violations) {
+      if (!WARN_SEVERITIES.has(violation.constraint.severity)) continue
+      logger.warn({
+        constraintName: violation.constraint.name,
+        severity: violation.constraint.severity,
+        technology: violation.technology,
+        component: violation.component,
+        componentVersion: violation.componentVersion,
+        system: violation.system,
+        team: violation.team
+      }, 'Version constraint violated')
+    }
 
     return {
       data: violations,

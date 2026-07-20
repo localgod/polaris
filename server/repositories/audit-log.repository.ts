@@ -31,6 +31,8 @@ export interface AuditLog {
   userId: string | null
   userName: string | null
   realUserId: string | null
+  correlationId: string | null
+  requestId: string | null
 }
 
 export interface AuditLogFilters {
@@ -148,7 +150,9 @@ export class AuditLogRepository extends BaseRepository {
       source: a.properties.source || '',
       userId: a.properties.userId || null,
       userName: record.get('performerName') || null,
-      realUserId: a.properties.realUserId || null
+      realUserId: a.properties.realUserId || null,
+      correlationId: a.properties.correlationId || null,
+      requestId: a.properties.requestId || null
     }
   }
 
@@ -166,6 +170,8 @@ export class AuditLogRepository extends BaseRepository {
     source?: string
     userId: string
     realUserId?: string | null
+    correlationId?: string | null
+    requestId?: string | null
   }): Promise<void> {
     await this.executeQuery(await loadQuery('audit-logs/create.cypher'), {
       operation: params.operation,
@@ -177,7 +183,9 @@ export class AuditLogRepository extends BaseRepository {
       reason: params.reason ?? null,
       source: params.source || 'API',
       userId: params.userId,
-      realUserId: params.realUserId ?? null
+      realUserId: params.realUserId ?? null,
+      correlationId: params.correlationId ?? null,
+      requestId: params.requestId ?? null
     })
   }
 }

@@ -36,9 +36,11 @@ export async function auditFailedOperation(event: H3Event, params: AuditFailureP
       entityId: params.entityId,
       entityLabel: params.entityLabel || params.entityId,
       reason: params.reason,
-      source: 'API',
+      source: event.context.auditSource ?? 'API',
       userId: params.userId,
-      realUserId: params.realUserId ?? null
+      realUserId: params.realUserId ?? null,
+      correlationId: event.context.correlationId ?? null,
+      requestId: event.context.requestId ?? null
     })
   } catch (auditError) {
     ;(event.context.logger ?? baseLogger).error({ err: auditError }, 'Failed to write audit log for failed operation')
@@ -66,9 +68,11 @@ export async function auditSensitiveRead(event: H3Event, params: AuditSensitiveR
       entityId: params.entityId,
       entityLabel: params.entityLabel || params.entityId,
       reason: params.reason,
-      source: 'API',
+      source: event.context.auditSource ?? 'API',
       userId: params.userId,
-      realUserId: params.realUserId ?? null
+      realUserId: params.realUserId ?? null,
+      correlationId: event.context.correlationId ?? null,
+      requestId: event.context.requestId ?? null
     })
   } catch (auditError) {
     ;(event.context.logger ?? baseLogger).error({ err: auditError }, 'Failed to write audit log for sensitive read')

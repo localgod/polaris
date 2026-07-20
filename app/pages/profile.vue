@@ -130,6 +130,9 @@
           <UFormField label="Description" required>
             <UInput v-model="tokenDescription" placeholder="e.g. CI/CD pipeline" />
           </UFormField>
+          <UFormField label="Type" description="Distinguishes automation tokens from personal ones in the audit trail.">
+            <USelect v-model="tokenType" :items="tokenTypeOptions" />
+          </UFormField>
           <UFormField label="Expires in (days, leave empty for no expiration)">
             <UInput v-model="tokenExpiresInDays" type="number" placeholder="e.g. 90" />
           </UFormField>
@@ -199,7 +202,14 @@ interface TokenInfo {
   expiresAt: string | null
   revoked: boolean
   description: string | null
+  type: 'user' | 'ci-cd' | 'service-account'
 }
+
+const tokenTypeOptions = [
+  { label: 'Personal', value: 'user' },
+  { label: 'CI/CD', value: 'ci-cd' },
+  { label: 'Service Account', value: 'service-account' }
+]
 
 interface TokensResponse {
   success: boolean
@@ -224,6 +234,11 @@ const tokenColumns: TableColumn<TokenInfo>[] = [
     accessorKey: 'description',
     header: 'Description',
     cell: ({ row }) => (row.getValue('description') as string) || '—'
+  },
+  {
+    accessorKey: 'type',
+    header: 'Type',
+    cell: ({ row }) => tokenTypeOptions.find(o => o.value === row.getValue('type'))?.label || 'Personal'
   },
   {
     accessorKey: 'createdAt',
@@ -272,6 +287,7 @@ const tokenColumns: TableColumn<TokenInfo>[] = [
 // Token generation
 const tokenModalOpen = ref(false)
 const tokenDescription = ref('')
+const tokenType = ref<'user' | 'ci-cd' | 'service-account'>('user')
 const tokenExpiresInDays = ref('')
 const tokenLoading = ref(false)
 const tokenError = ref('')
@@ -280,6 +296,7 @@ const generatedToken = ref('')
 
 function openTokenModal() {
   tokenDescription.value = ''
+  tokenType.value = 'user'
   tokenExpiresInDays.value = ''
   tokenError.value = ''
   tokenModalOpen.value = true
@@ -296,6 +313,7 @@ async function generateToken() {
         method: 'POST',
         body: {
           description: tokenDescription.value,
+          type: tokenType.value,
           expiresInDays: tokenExpiresInDays.value ? parseInt(tokenExpiresInDays.value, 10) : undefined
         }
       }

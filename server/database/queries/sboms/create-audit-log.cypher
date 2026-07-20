@@ -10,6 +10,7 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId,
-  metadata: $metadata
+  metadata: $metadata,
+  correlationId: $correlationId
 })
 CREATE (a)-[:AUDITS]->(s)

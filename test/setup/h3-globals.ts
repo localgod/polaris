@@ -23,6 +23,8 @@ import {
   createError,
   getCookie,
   getHeader,
+  getRequestHeader,
+  setResponseHeader,
 } from 'h3'
 
 const notMocked = (name: string) => () => {
@@ -39,6 +41,8 @@ Object.assign(globalThis, {
   createError,
   getCookie,
   getHeader,
+  getRequestHeader,
+  setResponseHeader,
   // server/utils/auth stubs (overridden per-test via vi.mock)
   requireAuth: notMocked('requireAuth'),
   requireSuperuser: notMocked('requireSuperuser'),

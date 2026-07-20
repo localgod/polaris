@@ -3,6 +3,7 @@ import { SBOMService } from '../../../server/services/sbom.service'
 import { SystemRepository } from '../../../server/repositories/system.repository'
 import { SBOMRepository } from '../../../server/repositories/sbom.repository'
 import { SourceRepositoryRepository } from '../../../server/repositories/source-repository.repository'
+import { HealthRefreshService } from '../../../server/services/health-refresh.service'
 
 vi.mock('../../../server/repositories/system.repository')
 vi.mock('../../../server/repositories/sbom.repository')
@@ -1239,14 +1240,44 @@ describe('SBOMService', () => {
         realUserId: null,
         format: 'cyclonedx',
         componentsAdded: 1,
-        componentsUpdated: 0
+        componentsUpdated: 0,
+        correlationId: null
       })
       expect(SBOMRepository.prototype.createComponentAddedAuditLogs).toHaveBeenCalledWith({
         systemName: 'test-system',
         userId: 'user-1',
         realUserId: null,
-        components: [{ name: 'lodash', version: '4.17.21', purl: 'pkg:npm/lodash@4.17.21' }]
+        components: [{ name: 'lodash', version: '4.17.21', purl: 'pkg:npm/lodash@4.17.21' }],
+        correlationId: null
       })
+    })
+
+    it('should thread correlationId through to the audit logs and the health-refresh enqueue', async () => {
+      vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
+        componentsAdded: 1,
+        componentsUpdated: 0,
+        relationshipsCreated: 1,
+        addedComponents: [{ name: 'lodash', version: '4.17.21', purl: 'pkg:npm/lodash@4.17.21' }]
+      })
+      vi.mocked(SBOMRepository.prototype.createAuditLog).mockResolvedValue()
+      vi.mocked(SBOMRepository.prototype.createComponentAddedAuditLogs).mockResolvedValue()
+      const enqueueSpy = vi.spyOn(HealthRefreshService.prototype, 'enqueueForSystem').mockResolvedValue('job-1')
+
+      await service.processSBOM({
+        sbom: validCycloneDxSbom,
+        repositoryUrl: 'https://github.com/org/repo',
+        format: 'cyclonedx',
+        userId: 'user-1',
+        correlationId: 'corr-1'
+      })
+
+      expect(SBOMRepository.prototype.createAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({ correlationId: 'corr-1' })
+      )
+      expect(SBOMRepository.prototype.createComponentAddedAuditLogs).toHaveBeenCalledWith(
+        expect.objectContaining({ correlationId: 'corr-1' })
+      )
+      expect(enqueueSpy).toHaveBeenCalledWith('test-system', 'corr-1')
     })
 
     it('should not include addedComponents in the returned result', async () => {

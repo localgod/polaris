@@ -27,6 +27,7 @@ export interface SetPlatformApprovalInput {
   environment?: string | null
   userId: string
   realUserId?: string | null
+  correlationId?: string | null
 }
 
 export interface CreatePlatformInput {
@@ -256,6 +257,8 @@ export class PlatformService {
       notes: input.notes ?? null,
     }
     const changes = buildAuditChanges(before, after, ['time', 'notes'])
+    changes.team = { before: input.teamName, after: input.teamName }
+    changes.environment = { before: environment, after: environment }
 
     const params: UpsertPlatformApprovalParams = {
       platformName: input.platformName,
@@ -264,7 +267,8 @@ export class PlatformService {
       notes: input.notes?.trim() || null,
       environment,
       userId: input.userId,
-      realUserId: input.realUserId ?? null
+      realUserId: input.realUserId ?? null,
+      correlationId: input.correlationId ?? null
     }
 
     return await this.platformRepo.upsertApproval({ ...params, changes })

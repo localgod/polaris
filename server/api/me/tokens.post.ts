@@ -1,5 +1,6 @@
 import { getRealUser } from '../../utils/auth'
 import { tokenService } from '../../services/singletons'
+import { VALID_TOKEN_TYPES } from '../../services/token.service'
 import { AuditLogRepository } from '../../repositories/audit-log.repository'
 import { auditFailedOperation } from '../../utils/audit'
 
@@ -29,6 +30,10 @@ const MAX_ACTIVE_TOKENS = 10
  *                 type: string
  *               expiresInDays:
  *                 type: integer
+ *               type:
+ *                 type: string
+ *                 enum: [user, ci-cd, service-account]
+ *                 description: Defaults to "user". Distinguishes automation tokens from personal ones in the audit trail.
  *     responses:
  *       201:
  *         description: Token created
@@ -36,6 +41,8 @@ const MAX_ACTIVE_TOKENS = 10
  *         description: Missing description or token cap reached
  *       401:
  *         description: Not authenticated
+ *       422:
+ *         description: Invalid token type
  */
 export default defineEventHandler(async (event) => {
   // Use getRealUser so a superuser impersonating another user always creates
@@ -53,6 +60,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'description is required' })
   }
 
+  if (body.type !== undefined && !VALID_TOKEN_TYPES.includes(body.type)) {
+    throw createError({ statusCode: 422, message: `Invalid token type. Must be one of: ${VALID_TOKEN_TYPES.join(', ')}` })
+  }
+
   try {
     const activeCount = await tokenService.countActiveTokens(user.id)
     if (activeCount >= MAX_ACTIVE_TOKENS) {
@@ -64,7 +75,8 @@ export default defineEventHandler(async (event) => {
 
     const result = await tokenService.createToken(user.id, {
       description,
-      expiresInDays: body.expiresInDays || undefined
+      expiresInDays: body.expiresInDays || undefined,
+      type: body.type
     })
 
     const auditRepo = new AuditLogRepository()
@@ -73,9 +85,10 @@ export default defineEventHandler(async (event) => {
       entityType: 'ApiToken',
       entityId: result.id,
       entityLabel: `Token for ${user.email}`,
-      changedFields: ['description', 'expiresAt'],
+      changedFields: ['description', 'expiresAt', 'type'],
       userId: user.id,
-      realUserId: null
+      realUserId: null,
+      correlationId: event.context.correlationId ?? null
     })
 
     setResponseStatus(event, 201)

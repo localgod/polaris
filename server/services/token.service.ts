@@ -1,9 +1,12 @@
 import { createHash, randomBytes } from 'crypto'
-import { TokenRepository, type ApiToken, type CreateTokenParams } from '../repositories/token.repository'
+import { TokenRepository, type ApiToken, type CreateTokenParams, type TokenType } from '../repositories/token.repository'
+
+export const VALID_TOKEN_TYPES: TokenType[] = ['user', 'ci-cd', 'service-account']
 
 export interface CreateTokenOptions {
   description?: string
   expiresInDays?: number
+  type?: TokenType
 }
 
 export interface CreateTokenResult {
@@ -12,6 +15,7 @@ export interface CreateTokenResult {
   createdAt: string
   expiresAt: string | null
   description: string | null
+  type: TokenType
 }
 
 export interface ResolvedToken {
@@ -23,6 +27,7 @@ export interface ResolvedToken {
     teams?: Array<{ name: string; email: string | null }>
   }
   tokenId: string
+  tokenType: TokenType
 }
 
 /**
@@ -55,25 +60,33 @@ export class TokenService {
    * @returns Token details with plaintext token (returned once)
    */
   async createToken(userId: string, options: CreateTokenOptions = {}): Promise<CreateTokenResult> {
+    const type = options.type ?? 'user'
+    if (!VALID_TOKEN_TYPES.includes(type)) {
+      throw createError({
+        statusCode: 422,
+        message: `Invalid token type. Must be one of: ${VALID_TOKEN_TYPES.join(', ')}`
+      })
+    }
+
     // Generate secure random token (32 bytes = 256 bits)
     const plaintextToken = this.generateToken()
-    
+
     // Compute SHA-256 hash
     const tokenHash = this.hashToken(plaintextToken)
-    
+
     // Calculate expiration if specified
     const createdAt = new Date().toISOString()
     let expiresAt: string | null = null
-    
+
     if (options.expiresInDays) {
       const expiration = new Date()
       expiration.setDate(expiration.getDate() + options.expiresInDays)
       expiresAt = expiration.toISOString()
     }
-    
+
     // Generate unique ID for the token
     const id = randomBytes(16).toString('hex')
-    
+
     // Store token in database
     const params: CreateTokenParams = {
       id,
@@ -81,17 +94,19 @@ export class TokenService {
       createdAt,
       expiresAt,
       createdBy: userId,
-      description: options.description?.trim() || null
+      description: options.description?.trim() || null,
+      type
     }
-    
+
     const savedToken = await this.tokenRepo.create(params)
-    
+
     return {
       token: plaintextToken, // Return plaintext only once
       id: savedToken.id,
       createdAt: savedToken.createdAt,
       expiresAt: savedToken.expiresAt,
-      description: savedToken.description
+      description: savedToken.description,
+      type: savedToken.type
     }
   }
 
@@ -138,7 +153,8 @@ export class TokenService {
         role: user.role,
         teams: user.teams || []
       },
-      tokenId: token.id
+      tokenId: token.id,
+      tokenType: token.type
     }
   }
 

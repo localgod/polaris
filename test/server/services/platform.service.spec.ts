@@ -138,6 +138,22 @@ describe('PlatformService', () => {
 
       await expect(service.setApproval(baseInput)).rejects.toMatchObject({ statusCode: 404 })
     })
+
+    it('should include team name and environment in the audit changes, not just entityId', async () => {
+      await service.setApproval({ ...baseInput, environment: 'prod' })
+
+      const params = vi.mocked(PlatformRepository.prototype.upsertApproval).mock.calls[0][0]
+      expect(params.changes.team).toEqual({ before: 'Data Platform', after: 'Data Platform' })
+      expect(params.changes.environment).toEqual({ before: 'prod', after: 'prod' })
+    })
+
+    it('should pass correlationId through to the repository', async () => {
+      await service.setApproval({ ...baseInput, correlationId: 'corr-1' })
+
+      expect(PlatformRepository.prototype.upsertApproval).toHaveBeenCalledWith(
+        expect.objectContaining({ correlationId: 'corr-1' })
+      )
+    })
   })
 
   describe('delete()', () => {

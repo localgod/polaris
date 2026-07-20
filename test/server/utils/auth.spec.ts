@@ -40,6 +40,8 @@ const resolvedUser = {
     role: 'user' as const,
     teams: [],
   },
+  tokenId: 'token-1',
+  tokenType: 'user' as const,
 }
 
 beforeEach(() => {
@@ -86,6 +88,45 @@ describe('getRealUser — Bearer token extraction', () => {
       await getRealUser(event)
 
       expect(tokenService.resolveToken).toHaveBeenCalledWith('abc123')
+    })
+  })
+
+  describe('event.context.auditSource derived from token type', () => {
+    it('sets "API" for a personal (user) token', async () => {
+      vi.mocked(tokenService.resolveToken).mockResolvedValue({ ...resolvedUser, tokenType: 'user' })
+      const event = mockEvent({ headers: { authorization: 'Bearer abc123' } })
+
+      await getRealUser(event)
+
+      expect(event.context.auditSource).toBe('API')
+    })
+
+    it('sets "API (ci-cd)" for a CI/CD token', async () => {
+      vi.mocked(tokenService.resolveToken).mockResolvedValue({ ...resolvedUser, tokenType: 'ci-cd' })
+      const event = mockEvent({ headers: { authorization: 'Bearer abc123' } })
+
+      await getRealUser(event)
+
+      expect(event.context.auditSource).toBe('API (ci-cd)')
+    })
+
+    it('sets "API (service-account)" for a service-account token', async () => {
+      vi.mocked(tokenService.resolveToken).mockResolvedValue({ ...resolvedUser, tokenType: 'service-account' })
+      const event = mockEvent({ headers: { authorization: 'Bearer abc123' } })
+
+      await getRealUser(event)
+
+      expect(event.context.auditSource).toBe('API (service-account)')
+    })
+
+    it('leaves auditSource unset when falling back to session auth', async () => {
+      const sessionUser = { id: 'session-user', email: 'session@example.com', role: 'user' as const, teams: [] }
+      vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
+      const event = mockEvent()
+
+      await getRealUser(event)
+
+      expect(event.context.auditSource).toBeUndefined()
     })
   })
 

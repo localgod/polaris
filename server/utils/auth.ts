@@ -20,8 +20,13 @@ async function getRealUser(event: H3Event) {
     
     try {
       const resolved = await tokenService.resolveToken(token)
-      
+
       if (resolved) {
+        // Distinguishes how this Bearer-token request was authenticated in
+        // the audit trail — e.g. "API (ci-cd)" vs "API (service-account)" —
+        // so incident response can tell a human API call from automation.
+        event.context.auditSource = resolved.tokenType === 'user' ? 'API' : `API (${resolved.tokenType})`
+
         return {
           id: resolved.user.id,
           email: resolved.user.email,

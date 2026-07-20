@@ -17,7 +17,8 @@ CREATE (a:AuditLog {
   changedFields: ['system'],
   source: 'API',
   userId: $userId,
-  realUserId: $realUserId
+  realUserId: $realUserId,
+  correlationId: $correlationId
 })
 CREATE (a)-[:AUDITS]->(s)
 FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |

@@ -13,6 +13,9 @@ export interface MockEventOptions {
   params?: Record<string, string>
   body?: unknown
   headers?: Record<string, string>
+  correlationId?: string
+  requestId?: string
+  auditSource?: string
 }
 
 /**
@@ -23,7 +26,7 @@ export interface MockEventOptions {
  * without needing a real HTTP stream.
  */
 export function mockEvent(options: MockEventOptions = {}) {
-  const { method = 'GET', query = {}, params = {}, body, headers = {} } = options
+  const { method = 'GET', query = {}, params = {}, body, headers = {}, correlationId, requestId, auditSource } = options
 
   const qs = new URLSearchParams(query).toString()
   const req = new IncomingMessage(null as never)
@@ -38,6 +41,9 @@ export function mockEvent(options: MockEventOptions = {}) {
   const event = createEvent(req, res)
 
   event.context.logger = testLogger
+  if (correlationId !== undefined) event.context.correlationId = correlationId
+  if (requestId !== undefined) event.context.requestId = requestId
+  if (auditSource !== undefined) event.context.auditSource = auditSource
 
   if (Object.keys(params).length > 0) {
     event.context.params = params

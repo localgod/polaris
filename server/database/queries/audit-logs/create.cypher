@@ -10,5 +10,7 @@ CREATE (a:AuditLog {
   reason: $reason,
   source: $source,
   userId: $userId,
-  realUserId: $realUserId
+  realUserId: $realUserId,
+  correlationId: $correlationId,
+  requestId: $requestId
 })

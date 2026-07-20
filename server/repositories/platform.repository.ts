@@ -23,6 +23,7 @@ export interface UpsertPlatformApprovalParams {
   environment: string | null
   userId: string
   realUserId?: string | null
+  correlationId?: string | null
 }
 
 export interface UpdatePlatformParams {
@@ -157,7 +158,12 @@ export class PlatformRepository extends BaseRepository {
 
   async upsertApproval(params: UpsertPlatformApprovalParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<{ time: string; team: string }> {
     const query = await loadQuery('platforms/upsert-approval.cypher')
-    const { records } = await this.executeQuery(query, { ...params, approvedBy: params.userId, changes: JSON.stringify(params.changes) })
+    const { records } = await this.executeQuery(query, {
+      ...params,
+      approvedBy: params.userId,
+      changes: JSON.stringify(params.changes),
+      correlationId: params.correlationId ?? null
+    })
 
     if (records.length === 0) {
       throw new Error('Failed to set approval — platform or team not found')
