@@ -70,8 +70,8 @@ export class HealthRefreshService {
     private readonly vulnerabilityService = new VulnerabilityService()
   ) {}
 
-  async enqueueForSystem(systemName: string): Promise<string> {
-    return await this.healthRepo.enqueueForSystem(systemName)
+  async enqueueForSystem(systemName: string, correlationId: string | null = null): Promise<string> {
+    return await this.healthRepo.enqueueForSystem(systemName, correlationId)
   }
 
   async enqueueScheduledRefresh(): Promise<string> {
@@ -101,13 +101,18 @@ export class HealthRefreshService {
     let processedCount = 0
     let failedCount = 0
 
+    // Fetched once per job (not per item) so failures discovered here can be
+    // traced back to whatever triggered the enqueue (e.g. an SBOM import).
+    const job = await this.healthRepo.findById(jobId)
+    const correlationId = job?.correlationId ?? null
+
     while (true) {
       const items = await this.healthRepo.getPendingItems(jobId, batchSize)
       if (items.length === 0) break
 
       for (const item of items) {
         try {
-          await this.processItem(jobId, item)
+          await this.processItem(jobId, item, correlationId)
         } catch (error) {
           failedCount++
           await this.healthRepo.markItemFinished(jobId, item.id, 'failed', {
@@ -121,13 +126,14 @@ export class HealthRefreshService {
     await this.healthRepo.markJobCompletedIfDone(jobId)
     logger.info({
       jobId,
+      correlationId,
       processedCount,
       failedCount,
       durationMs: Date.now() - startedAt
     }, 'Health refresh job processed')
   }
 
-  private async processItem(jobId: string, item: HealthRefreshJobItem): Promise<void> {
+  private async processItem(jobId: string, item: HealthRefreshJobItem, correlationId: string | null = null): Promise<void> {
     await this.healthRepo.markItemRunning(jobId, item.id)
 
     const component = await this.componentRepo.findByIdentity({
@@ -154,7 +160,7 @@ export class HealthRefreshService {
     })
 
     if (result.failures.length > 0) {
-      await this.auditRefreshFailures(jobId, component, result.failures)
+      await this.auditRefreshFailures(jobId, component, result.failures, correlationId)
     }
 
     await this.healthRepo.markItemFinished(
@@ -347,7 +353,8 @@ export class HealthRefreshService {
   private async auditRefreshFailures(
     jobId: string,
     component: Component,
-    failures: SourceFailure[]
+    failures: SourceFailure[],
+    correlationId: string | null = null
   ): Promise<void> {
     const failedFields = [...new Set(failures.flatMap(failure => failure.failedFields))]
 
@@ -371,7 +378,8 @@ export class HealthRefreshService {
         }
       },
       source: 'HEALTH_REFRESH',
-      userId: 'system'
+      userId: 'system',
+      correlationId
     })
   }
 }

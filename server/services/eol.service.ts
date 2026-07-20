@@ -118,7 +118,9 @@ export class EOLService {
         return this.unknown('no_matching_cycle', product.name, product)
       }
 
-      return this.toStatus(product, release)
+      const status = this.toStatus(product, release)
+      this.logLifecycleWarning(input, status)
+      return status
     } catch (error) {
       logger.warn({ err: error, productName }, 'EOL fetch failed')
       return this.unknown('fetch_failed', productName, null)
@@ -237,6 +239,32 @@ export class EOLService {
         name: 'endoflife.date',
         url: product.links?.html || `https://endoflife.date/${product.name}`
       }
+    }
+  }
+
+  /**
+   * Emits a warn-level log when a component is found to be EOL or
+   * approaching EOL, so alerting can be built on top of the log stream
+   * without polling every component on a schedule.
+   */
+  private logLifecycleWarning(input: EOLStatusInput, status: EOLStatus): void {
+    if (status.status === 'unsupported') {
+      logger.warn({
+        name: input.name,
+        version: input.version,
+        productName: status.productName,
+        matchedCycle: status.matchedCycle,
+        eolDate: status.eolDate
+      }, 'Component reached end-of-life')
+    } else if (status.status === 'approaching_eol') {
+      logger.warn({
+        name: input.name,
+        version: input.version,
+        productName: status.productName,
+        matchedCycle: status.matchedCycle,
+        eolDate: status.eolDate,
+        daysUntilEOL: status.daysUntilEOL
+      }, 'Component approaching end-of-life')
     }
   }
 

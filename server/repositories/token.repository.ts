@@ -1,6 +1,12 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 
+/**
+ * How the token is used, so audit entries can distinguish a human API call
+ * from automation (e.g. "was this a CI/CD pipeline or a person?").
+ */
+export type TokenType = 'user' | 'ci-cd' | 'service-account'
+
 export interface ApiToken {
   id: string
   tokenHash: string
@@ -9,6 +15,7 @@ export interface ApiToken {
   revoked: boolean
   createdBy: string
   description: string | null
+  type: TokenType
 }
 
 export interface CreateTokenParams {
@@ -18,6 +25,7 @@ export interface CreateTokenParams {
   expiresAt: string | null
   createdBy: string
   description: string | null
+  type: TokenType
 }
 
 export interface TokenWithUser {
@@ -50,7 +58,8 @@ export class TokenRepository extends BaseRepository {
         expiresAt: datetime($expiresAt),
         revoked: false,
         createdBy: $createdBy,
-        description: $description
+        description: $description,
+        type: $type
       })
       CREATE (u)-[:HAS_API_TOKEN]->(t)
       RETURN t {
@@ -60,12 +69,13 @@ export class TokenRepository extends BaseRepository {
         expiresAt: toString(t.expiresAt),
         .revoked,
         .createdBy,
-        .description
+        .description,
+        type: coalesce(t.type, 'user')
       } as token
     `
     
-    const { records } = await this.executeQuery(query, params)
-    
+    const { records } = await this.executeQuery(query, { ...params, type: params.type ?? 'user' })
+
     if (records.length === 0) {
       throw new Error('Failed to create token - user not found')
     }
@@ -91,7 +101,8 @@ export class TokenRepository extends BaseRepository {
         expiresAt: toString(t.expiresAt),
         .revoked,
         .createdBy,
-        .description
+        .description,
+        type: coalesce(t.type, 'user')
       } as token,
       u {
         .id,
@@ -165,13 +176,14 @@ export class TokenRepository extends BaseRepository {
         expiresAt: toString(t.expiresAt),
         .revoked,
         .createdBy,
-        .description
+        .description,
+        type: coalesce(t.type, 'user')
       } as token
       ORDER BY t.createdAt DESC
     `
-    
+
     const { records } = await this.executeQuery(query, { userId })
-    
+
     return records.map(record => {
       const token = record.get('token')
       return {
@@ -180,7 +192,8 @@ export class TokenRepository extends BaseRepository {
         expiresAt: token.expiresAt,
         revoked: token.revoked,
         createdBy: token.createdBy,
-        description: token.description
+        description: token.description,
+        type: token.type
       }
     })
   }
@@ -197,7 +210,8 @@ export class TokenRepository extends BaseRepository {
       expiresAt: token.expiresAt,
       revoked: token.revoked,
       createdBy: token.createdBy,
-      description: token.description
+      description: token.description,
+      type: token.type
     }
   }
 }

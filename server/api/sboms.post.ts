@@ -260,7 +260,8 @@ export default defineEventHandler(async (event): Promise<SbomResponse> => {
       repositoryUrl: validatedBody.repositoryUrl,
       format: result.format as 'cyclonedx' | 'spdx',
       userId: user.id,
-      realUserId
+      realUserId,
+      correlationId: event.context.correlationId
     })
 
     setResponseStatus(event, 200)

@@ -10,6 +10,7 @@ export interface ProcessSBOMInput {
   format: 'cyclonedx' | 'spdx'
   userId: string
   realUserId?: string | null
+  correlationId?: string | null
 }
 
 export interface ProcessSBOMResult {

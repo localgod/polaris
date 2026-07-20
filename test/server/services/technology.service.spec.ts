@@ -229,6 +229,30 @@ describe('TechnologyService', () => {
 
       expect(TechnologyRepository.prototype.findExistingApproval).toHaveBeenCalledWith('React', 'Platform Team', 'staging')
     })
+
+    it('should include team name and environment in the audit changes, not just entityId', async () => {
+      await service.setApproval({ ...baseInput, environment: 'prod' })
+
+      const params = vi.mocked(TechnologyRepository.prototype.upsertApproval).mock.calls[0][0]
+      expect(params.changes.team).toEqual({ before: 'Platform Team', after: 'Platform Team' })
+      expect(params.changes.environment).toEqual({ before: 'prod', after: 'prod' })
+    })
+
+    it('should pass correlationId through to the repository', async () => {
+      await service.setApproval({ ...baseInput, correlationId: 'corr-1' })
+
+      expect(TechnologyRepository.prototype.upsertApproval).toHaveBeenCalledWith(
+        expect.objectContaining({ correlationId: 'corr-1' })
+      )
+    })
+
+    it('should default correlationId to null when not provided', async () => {
+      await service.setApproval(baseInput)
+
+      expect(TechnologyRepository.prototype.upsertApproval).toHaveBeenCalledWith(
+        expect.objectContaining({ correlationId: null })
+      )
+    })
   })
 
   describe('update() — optional field coercion', () => {

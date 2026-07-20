@@ -88,7 +88,8 @@ export default defineEventHandler(async (event) => {
       environment: body.environment ?? null,
       notes: body.notes,
       userId: user.id,
-      realUserId
+      realUserId,
+      correlationId: event.context.correlationId
     })
 
     return {

@@ -9,7 +9,8 @@ CREATE (job:HealthRefreshJob {
   createdAt: datetime(),
   startedAt: null,
   finishedAt: null,
-  error: null
+  error: null,
+  correlationId: $correlationId
 })
 WITH job
 CALL {

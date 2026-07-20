@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const name = decodeURIComponent(rawName)
 
   try {
-    const jobId = await healthRefreshService.enqueueForSystem(name)
+    const jobId = await healthRefreshService.enqueueForSystem(name, event.context.correlationId)
 
     return { success: true, data: { jobId } }
   } catch (error) {

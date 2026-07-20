@@ -4851,6 +4851,15 @@
                   },
                   "expiresInDays": {
                     "type": "integer"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "user",
+                      "ci-cd",
+                      "service-account"
+                    ],
+                    "description": "Defaults to \"user\". Distinguishes automation tokens from personal ones in the audit trail."
                   }
                 }
               }
@@ -4866,6 +4875,9 @@
           },
           "401": {
             "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Invalid token type"
           }
         }
       },
@@ -6305,6 +6317,15 @@
                   },
                   "expiresInDays": {
                     "type": "integer"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "user",
+                      "ci-cd",
+                      "service-account"
+                    ],
+                    "description": "Defaults to \"service-account\" since these tokens belong to technical users, not people."
                   }
                 }
               }
@@ -6320,6 +6341,9 @@
           },
           "404": {
             "description": "User not found"
+          },
+          "422": {
+            "description": "Invalid token type"
           }
         }
       },

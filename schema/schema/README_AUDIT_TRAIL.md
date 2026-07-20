@@ -130,7 +130,9 @@ The following entity types can be audited:
 Changes can originate from:
 
 - `UI` - Web application interface
-- `API` - REST API endpoints
+- `API` - REST API endpoints (personal Bearer token or session)
+- `API (ci-cd)` - REST API endpoints called with a CI/CD-type Bearer token
+- `API (service-account)` - REST API endpoints called with a service-account-type Bearer token
 - `SBOM` - SBOM upload/processing
 - `MIGRATION` - Database migration scripts
 - `SYSTEM` - System-generated changes
@@ -279,12 +281,23 @@ When making changes through the API or UI, provide:
 - **Tags**: Categorize the change (e.g., 'security', 'compliance', 'routine')
 - **Correlation ID**: Link related changes together
 
-### 2. Use Session and Correlation IDs
+### 2. Use Correlation and Request IDs
 
-Group related changes:
-- **Session ID**: All changes in the same user session
-- **Correlation ID**: Changes that are part of the same logical operation
-- **Request ID**: API requests that trigger multiple changes
+`correlationId` and `requestId` are populated automatically on every audit
+entry written through `server/utils/audit.ts` or `AuditLogRepository.create()`
+— no caller action needed:
+- **Request ID**: unique per HTTP request, taken from the incoming
+  `x-request-id` header or generated if absent (`server/middleware/logger.ts`)
+- **Correlation ID**: taken from `x-correlation-id` when the caller supplies
+  one (e.g. to chain a script's multiple API calls under one id), otherwise
+  defaults to the request's own `requestId`. It is echoed back on the
+  `x-correlation-id` response header, and threaded through multi-step
+  operations that cross an async boundary — e.g. an SBOM import's
+  `correlationId` is persisted on the `HealthRefreshJob` it enqueues, so a
+  `HEALTH_REFRESH_FAILED` entry written later by the cron processor still
+  carries the same id and can be traced back to the import that triggered it.
+
+`sessionId` remains an aspirational field — not currently populated.
 
 ### 3. Leverage Metadata
 

@@ -30,6 +30,7 @@ export interface SetApprovalInput {
   environment?: string | null
   userId: string
   realUserId?: string | null
+  correlationId?: string | null
 }
 
 export interface CreateTechnologyFromComponentInput {
@@ -411,6 +412,11 @@ export class TechnologyService {
       notes: input.notes ?? null,
     }
     const changes = buildAuditChanges(before, after, ['time', 'notes'])
+    // Team and environment don't "change" on an upsert, but recording them in
+    // `changes` (not just entityId) answers "which teams approved tech X in
+    // prod?" directly from the audit trail.
+    changes.team = { before: input.teamName, after: input.teamName }
+    changes.environment = { before: environment, after: environment }
 
     const params: UpsertApprovalParams = {
       technologyName: input.technologyName,
@@ -419,7 +425,8 @@ export class TechnologyService {
       notes: input.notes?.trim() || null,
       environment,
       userId: input.userId,
-      realUserId: input.realUserId ?? null
+      realUserId: input.realUserId ?? null,
+      correlationId: input.correlationId ?? null
     }
 
     const result = await this.techRepo.upsertApproval({ ...params, changes })

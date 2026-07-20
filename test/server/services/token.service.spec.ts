@@ -17,7 +17,7 @@ describe('TokenService', () => {
     it('should create a token and return plaintext + metadata', async () => {
       vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
         id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
-        expiresAt: null, revoked: false, createdBy: 'user-1', description: null
+        expiresAt: null, revoked: false, createdBy: 'user-1', description: null, type: 'user'
       })
 
       const result = await service.createToken('user-1')
@@ -31,7 +31,7 @@ describe('TokenService', () => {
     it('should pass expiration when specified', async () => {
       vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
         id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
-        expiresAt: '2026-01-31', revoked: false, createdBy: 'user-1', description: null
+        expiresAt: '2026-01-31', revoked: false, createdBy: 'user-1', description: null, type: 'user'
       })
 
       const result = await service.createToken('user-1', { expiresInDays: 30 })
@@ -53,7 +53,7 @@ describe('TokenService', () => {
       const validToken: TokenWithUser = {
         token: {
           id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
-          expiresAt: null, revoked: false, createdBy: 'user-1', description: null
+          expiresAt: null, revoked: false, createdBy: 'user-1', description: null, type: 'user'
         },
         user: { id: 'user-1', email: 'test@test.com', role: 'user', teams: [] }
       }
@@ -64,13 +64,14 @@ describe('TokenService', () => {
       expect(result).not.toBeNull()
       expect(result!.user.id).toBe('user-1')
       expect(result!.tokenId).toBe('token-id')
+      expect(result!.tokenType).toBe('user')
     })
 
     it('should return null for expired token', async () => {
       const expiredToken: TokenWithUser = {
         token: {
           id: 'token-id', tokenHash: 'hash', createdAt: '2025-01-01',
-          expiresAt: '2025-01-02', revoked: false, createdBy: 'user-1', description: null
+          expiresAt: '2025-01-02', revoked: false, createdBy: 'user-1', description: null, type: 'user'
         },
         user: { id: 'user-1', email: 'test@test.com', role: 'user', teams: [] }
       }
@@ -84,7 +85,7 @@ describe('TokenService', () => {
     beforeEach(() => {
       vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
         id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
-        expiresAt: null, revoked: false, createdBy: 'user-1', description: null
+        expiresAt: null, revoked: false, createdBy: 'user-1', description: null, type: 'user'
       })
     })
 
@@ -124,6 +125,35 @@ describe('TokenService', () => {
     })
   })
 
+  describe('createToken() — type', () => {
+    beforeEach(() => {
+      vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
+        id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
+        expiresAt: null, revoked: false, createdBy: 'user-1', description: null, type: 'ci-cd'
+      })
+    })
+
+    it('defaults to "user" when no type is given', async () => {
+      await service.createToken('user-1')
+
+      const params = vi.mocked(TokenRepository.prototype.create).mock.calls[0][0]
+      expect(params.type).toBe('user')
+    })
+
+    it('passes an explicit type through', async () => {
+      await service.createToken('user-1', { type: 'ci-cd' })
+
+      const params = vi.mocked(TokenRepository.prototype.create).mock.calls[0][0]
+      expect(params.type).toBe('ci-cd')
+    })
+
+    it('rejects an invalid type', async () => {
+      await expect(service.createToken('user-1', { type: 'bogus' as never }))
+        .rejects.toMatchObject({ statusCode: 422 })
+      expect(TokenRepository.prototype.create).not.toHaveBeenCalled()
+    })
+  })
+
   describe('revokeToken()', () => {
     it('should pass both tokenId and userId to repository', async () => {
       vi.mocked(TokenRepository.prototype.revoke).mockResolvedValue(true)
@@ -143,7 +173,7 @@ describe('TokenService', () => {
   describe('listTokens()', () => {
     it('should return tokens for user', async () => {
       vi.mocked(TokenRepository.prototype.listByUser).mockResolvedValue([
-        { id: 't1', tokenHash: '', createdAt: '', expiresAt: null, revoked: false, createdBy: 'u1', description: null }
+        { id: 't1', tokenHash: '', createdAt: '', expiresAt: null, revoked: false, createdBy: 'u1', description: null, type: 'user' }
       ])
 
       const result = await service.listTokens('u1')

@@ -155,13 +155,15 @@ export class SBOMRepository extends BaseRepository {
     componentsAdded: number
     componentsUpdated: number
     realUserId?: string | null
+    correlationId?: string | null
   }): Promise<void> {
     const query = await loadQuery('sboms/create-audit-log.cypher')
     await this.executeQuery(query, {
       systemName: params.systemName,
       userId: params.userId,
       realUserId: params.realUserId ?? null,
-      metadata: JSON.stringify({ format: params.format, added: params.componentsAdded, updated: params.componentsUpdated })
+      metadata: JSON.stringify({ format: params.format, added: params.componentsAdded, updated: params.componentsUpdated }),
+      correlationId: params.correlationId ?? null
     })
   }
 
@@ -175,6 +177,7 @@ export class SBOMRepository extends BaseRepository {
     userId: string
     realUserId?: string | null
     components: AddedComponent[]
+    correlationId?: string | null
   }): Promise<void> {
     if (params.components.length === 0) return
 
@@ -185,7 +188,8 @@ export class SBOMRepository extends BaseRepository {
         systemName: params.systemName,
         userId: params.userId,
         realUserId: params.realUserId ?? null,
-        components: batch
+        components: batch,
+        correlationId: params.correlationId ?? null
       })
     }
   }

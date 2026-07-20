@@ -33,11 +33,12 @@ CREATE (al:AuditLog {
   entityType: 'PlatformApproval',
   entityId: p.name,
   entityLabel: team.name + ' -> ' + p.name + ' (' + $time + ')',
-  changedFields: ['time', 'notes'],
+  changedFields: ['time', 'notes', 'team', 'environment'],
   changes: $changes,
   source: 'API',
   userId: $userId,
-  realUserId: $realUserId
+  realUserId: $realUserId,
+  correlationId: $correlationId
 })
 CREATE (al)-[:AUDITS]->(p)
 RETURN a.time as time, team.name as team

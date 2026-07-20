@@ -19,6 +19,7 @@ export interface HealthRefreshJob {
   startedAt: string | null
   finishedAt: string | null
   error: string | null
+  correlationId: string | null
   items: HealthRefreshJobItem[]
 }
 
@@ -95,16 +96,16 @@ export class HealthRefreshRepository extends BaseRepository {
     }
   }
 
-  async enqueueForSystem(systemName: string, trigger: HealthRefreshTrigger = 'sbom_import'): Promise<string> {
-    return await this.enqueue(trigger, systemName)
+  async enqueueForSystem(systemName: string, correlationId: string | null = null, trigger: HealthRefreshTrigger = 'sbom_import'): Promise<string> {
+    return await this.enqueue(trigger, systemName, correlationId)
   }
 
   async enqueueAll(trigger: HealthRefreshTrigger = 'scheduled'): Promise<string> {
-    return await this.enqueue(trigger, null)
+    return await this.enqueue(trigger, null, null)
   }
 
-  private async enqueue(trigger: HealthRefreshTrigger, systemName: string | null): Promise<string> {
-    const { records } = await this.executeQuery(await loadQuery('health-refresh/enqueue.cypher'), { trigger, systemName })
+  private async enqueue(trigger: HealthRefreshTrigger, systemName: string | null, correlationId: string | null): Promise<string> {
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/enqueue.cypher'), { trigger, systemName, correlationId })
 
     const id = records[0]?.get('id')
     if (!id) throw new Error('Failed to enqueue health refresh job')
@@ -202,6 +203,7 @@ export class HealthRefreshRepository extends BaseRepository {
       startedAt: job.properties.startedAt?.toString() || null,
       finishedAt: job.properties.finishedAt?.toString() || null,
       error: job.properties.error || null,
+      correlationId: job.properties.correlationId || null,
       items
     }
   }

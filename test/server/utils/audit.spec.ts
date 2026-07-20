@@ -76,6 +76,33 @@ describe('auditFailedOperation', () => {
       userId: 'user-1'
     })).resolves.toBeUndefined()
   })
+
+  it('carries the request correlationId/requestId from event.context', async () => {
+    await auditFailedOperation(mockEvent({ correlationId: 'corr-1', requestId: 'req-1' }), {
+      operation: 'DELETE',
+      entityType: 'System',
+      entityId: 'payments',
+      reason: 'System not found',
+      userId: 'user-1'
+    })
+
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      correlationId: 'corr-1',
+      requestId: 'req-1'
+    }))
+  })
+
+  it('defaults source to "API" but honors an auditSource override from event.context (e.g. CI/CD token)', async () => {
+    await auditFailedOperation(mockEvent({ auditSource: 'API (ci-cd)' }), {
+      operation: 'DELETE',
+      entityType: 'System',
+      entityId: 'payments',
+      reason: 'System not found',
+      userId: 'user-1'
+    })
+
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ source: 'API (ci-cd)' }))
+  })
 })
 
 describe('auditSensitiveRead', () => {
@@ -105,5 +132,16 @@ describe('auditSensitiveRead', () => {
       reason: 'boom',
       userId: 'user-1'
     })).resolves.toBeUndefined()
+  })
+
+  it('carries the request correlationId from event.context', async () => {
+    await auditSensitiveRead(mockEvent({ correlationId: 'corr-2' }), {
+      entityType: 'User',
+      entityId: 'all',
+      reason: 'Listed all users',
+      userId: 'user-1'
+    })
+
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ correlationId: 'corr-2' }))
   })
 })

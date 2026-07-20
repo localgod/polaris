@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EOLService } from '../../../server/services/eol.service'
+import { logger } from '../../../server/utils/logger'
 
 function createStorage() {
   const cache = new Map<string, unknown>()
@@ -122,6 +123,54 @@ describe('EOLService', () => {
     expect(status).toMatchObject({
       status: 'unknown',
       reason: 'fetch_failed'
+    })
+  })
+
+  describe('lifecycle warn logging', () => {
+    it('logs a warn when a component has reached end-of-life', async () => {
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger)
+      const storage = createStorage()
+      const service = new EOLService(vi.fn(async () => nodeProduct) as never, () => storage)
+
+      await service.getEOLStatus({ name: 'node', version: '25.9.0' })
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ productName: 'nodejs', matchedCycle: '25' }),
+        'Component reached end-of-life'
+      )
+    })
+
+    it('logs a warn when a component is approaching end-of-life', async () => {
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger)
+      const storage = createStorage()
+      const approachingProduct = {
+        result: {
+          name: 'redis',
+          label: 'Redis',
+          releases: [
+            { name: '7', isLts: false, isEol: false, eolFrom: '2026-07-01' }
+          ]
+        }
+      }
+      const service = new EOLService(vi.fn(async () => approachingProduct) as never, () => storage)
+
+      const status = await service.getEOLStatus({ name: 'redis', version: '7.0.0' })
+
+      expect(status.status).toBe('approaching_eol')
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ productName: 'redis', matchedCycle: '7' }),
+        'Component approaching end-of-life'
+      )
+    })
+
+    it('does not log a warn for an actively supported component', async () => {
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger)
+      const storage = createStorage()
+      const service = new EOLService(vi.fn(async () => nodeProduct) as never, () => storage)
+
+      await service.getEOLStatus({ name: 'node', version: '24.16.0' })
+
+      expect(warnSpy).not.toHaveBeenCalled()
     })
   })
 })
