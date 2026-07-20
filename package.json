@@ -89,7 +89,7 @@
     "@amiceli/vitest-cucumber": "^7.0.0",
     "@cucumber/cucumber": "^13.0.0",
     "@cucumber/gherkin": "^40.0.0",
-    "@cucumber/messages": "^33.0.4",
+    "@cucumber/messages": "^34.2.0",
     "@iconify-json/lucide": "^1.2.117",
     "@iconify-json/simple-icons": "^1.2.90",
     "@nuxt/eslint": "^1.16.0",
