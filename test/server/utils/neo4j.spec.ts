@@ -3,7 +3,7 @@ import neo4j from 'neo4j-driver'
 import { toDateString, getFirstRecordOrThrow } from '../../../server/utils/neo4j'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 
-describe('toDateString', () => {
+describe('[contract] toDateString', () => {
   it('returns null for null', () => {
     expect(toDateString(null)).toBeNull()
   })
@@ -45,7 +45,7 @@ describe('toDateString', () => {
   })
 })
 
-describe('getFirstRecordOrThrow', () => {
+describe('[contract] getFirstRecordOrThrow', () => {
   it('returns the first record when the array is non-empty', () => {
     const record = { get: (key: string) => key } as unknown as Neo4jRecord
     expect(getFirstRecordOrThrow([record], 'not found')).toBe(record)

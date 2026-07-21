@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { isCompoundExpression, parseLicenseExpression } from '../../../server/utils/license-expression'
 
-describe('isCompoundExpression', () => {
+describe('[contract] isCompoundExpression', () => {
   it('returns false for a simple SPDX id', () => {
     expect(isCompoundExpression('MIT')).toBe(false)
   })
@@ -24,7 +24,7 @@ describe('isCompoundExpression', () => {
   })
 })
 
-describe('parseLicenseExpression', () => {
+describe('[contract] parseLicenseExpression', () => {
   it('returns empty array for an empty string', () => {
     expect(parseLicenseExpression('')).toEqual([])
   })

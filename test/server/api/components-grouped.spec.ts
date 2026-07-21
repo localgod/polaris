@@ -30,7 +30,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('GET /api/components/grouped', () => {
+describe('[pin] GET /api/components/grouped', () => {
   it('should return grouped components with count and total', async () => {
     vi.mocked(componentService.findAllGrouped).mockResolvedValue({ data: [mockGroupedComponent], count: 1, total: 1 })
 

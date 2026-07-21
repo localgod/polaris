@@ -20,7 +20,7 @@ beforeEach(async () => {
 
 afterEach(async () => { if (session) await session.close() })
 
-describe('ComplianceRepository', () => {
+describe('[pin] ComplianceRepository', () => {
   describe('findViolations()', () => {
     it('should return empty array when no violations exist', async () => {
       if (!ctx.neo4jAvailable) return

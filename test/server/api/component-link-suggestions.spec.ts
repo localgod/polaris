@@ -37,7 +37,7 @@ beforeEach(() => {
   mockRequireSuperuser.mockResolvedValue(superuser)
 })
 
-describe('GET /api/components/link-suggestions', () => {
+describe('[contract] GET /api/components/link-suggestions', () => {
   it('should return suggestions with count and total', async () => {
     vi.mocked(componentService.getLinkSuggestions).mockResolvedValue({
       data: [mockSuggestion], count: 1, total: 1
@@ -81,7 +81,7 @@ describe('GET /api/components/link-suggestions', () => {
   })
 })
 
-describe('POST /api/components/dismiss-link', () => {
+describe('[contract] POST /api/components/dismiss-link', () => {
   it('should dismiss a component by componentName and return 204', async () => {
     vi.mocked(componentService.dismissLink).mockResolvedValue(undefined)
 

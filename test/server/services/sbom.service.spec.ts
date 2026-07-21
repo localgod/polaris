@@ -93,7 +93,7 @@ describe('SBOMService', () => {
     vi.mocked(SBOMRepository.prototype.upsertTeamUsesTechnology).mockResolvedValue()
   })
 
-  describe('processSBOM', () => {
+  describe('[pin] processSBOM', () => {
     it('should process CycloneDX SBOM successfully', async () => {
       vi.mocked(SBOMRepository.prototype.persistSBOM).mockResolvedValue({
         componentsAdded: 2,

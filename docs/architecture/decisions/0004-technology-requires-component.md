@@ -44,6 +44,8 @@ Should it be possible to create a `Technology` node for something a SBOM scan ca
 
 4. **Existing componentless Technology nodes were cut over, not grandfathered.** A one-time migration (`20260702_180000_cutover_componentless_technologies`) converted the infra-flavored ones (by `type`/`domain`) to `Platform`, preserving their stewardship and approval history, and deleted the rest — recording full pre-migration node data in `AuditLog` entries for traceability, since the migration itself cannot be reversed with full fidelity.
 
+5. **Attaching an additional Component to an already-existing Technology carries the same two-tier auth split as the queue itself.** `POST /api/technologies/{name}/components` accepts either `componentName` + `componentVersion` (legacy, exact-match, gated by `requireAuth` — any authenticated user) or `purl` (gated by `requireSuperuser`). This is not an inconsistency: the `purl` path is the same guided-matching mechanism `/admin/component-links` uses (point 2), it can match more loosely than an explicit name+version pair, and it additionally refreshes `Team→Technology` `USES` edges for every affected `System` — a wider blast radius than the legacy path's single link. The legacy path predates the component-links queue and remains available as a narrower, lower-privilege escape hatch for the exact-match case. Both branches live behind the same route, which makes the split easy to miss when reading the endpoint in isolation — see `linkComponent()`/`linkComponentByPurl()`/`linkComponentByName()` in `TechnologyService`.
+
 ## Consequences
 
 ### Positive
@@ -69,4 +71,6 @@ Should it be possible to create a `Technology` node for something a SBOM scan ca
 - Migration: `schema/migrations/common/20260702_150000_create_platform_node.up.cypher`
 - Migration: `schema/migrations/common/20260702_180000_cutover_componentless_technologies.up.cypher`
 - PR #727: guided PURL-to-Technology matching queue for SBOM governance (the precursor this decision builds on)
+- `server/api/technologies/[name]/components.post.ts`: the two-tier `componentName`+`componentVersion` vs `purl` linking endpoint described in Decision point 5
+- `test/server/api/technology-component-link.spec.ts`: contract coverage for both linking paths and their respective auth guards
 - Related: [ThoughtWorks Technology Radar](https://www.thoughtworks.com/radar) — the "Platforms" vs. "Languages & Frameworks" quadrant split this ADR's `Platform`/`Technology` split mirrors

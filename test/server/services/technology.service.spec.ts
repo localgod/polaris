@@ -21,7 +21,7 @@ describe('TechnologyService', () => {
     service = new TechnologyService()
   })
 
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return technologies with count', async () => {
       vi.mocked(TechnologyRepository.prototype.findAll).mockResolvedValue({ data: [mockTech], total: 1 })
 
@@ -45,7 +45,7 @@ describe('TechnologyService', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('should return technology when found', async () => {
       vi.mocked(TechnologyRepository.prototype.findByName).mockResolvedValue(mockTech)
 
@@ -111,7 +111,7 @@ describe('TechnologyService', () => {
     })
   })
 
-  describe('createFromComponent() — a Technology always requires a Component', () => {
+  describe('[contract] createFromComponent() — a Technology always requires a Component', () => {
     beforeEach(() => {
       vi.mocked(TechnologyRepository.prototype.exists).mockResolvedValue(false)
       vi.mocked(TechnologyRepository.prototype.createFromComponent).mockResolvedValue('React')
@@ -181,7 +181,7 @@ describe('TechnologyService', () => {
     })
   })
 
-  describe('setApproval()', () => {
+  describe('[contract] setApproval()', () => {
     const baseInput = {
       technologyName: 'React',
       teamName: 'Platform Team',
@@ -255,7 +255,7 @@ describe('TechnologyService', () => {
     })
   })
 
-  describe('update() — optional field coercion', () => {
+  describe('[pin] update() — optional field coercion', () => {
     beforeEach(() => {
       vi.mocked(TechnologyRepository.prototype.findByName).mockResolvedValue(mockTech)
       vi.mocked(TechnologyRepository.prototype.update).mockResolvedValue('React')
@@ -286,7 +286,7 @@ describe('TechnologyService', () => {
     })
   })
 
-  describe('findForRadar()', () => {
+  describe('[contract] findForRadar()', () => {
     const mockRows = [
       { name: 'React',   type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'invest' }, { team: 'B', time: 'invest' }] },
       { name: 'Angular', type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'migrate' }, { team: 'B', time: 'invest' }] },
@@ -338,7 +338,7 @@ describe('TechnologyService', () => {
     })
   })
 
-  describe('linkComponentByPurl()', () => {
+  describe('[pin] linkComponentByPurl()', () => {
     const input = { technologyName: 'React', purl: 'pkg:npm/react@18.2.0', userId: 'user-1', realUserId: null }
 
     it('should link component by purl and refresh affected systems', async () => {

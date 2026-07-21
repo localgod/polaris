@@ -20,7 +20,7 @@ beforeEach(async () => {
 
 afterEach(async () => { if (session) await session.close() })
 
-describe('SourceRepositoryRepository', () => {
+describe('[pin] SourceRepositoryRepository', () => {
   describe('findAll()', () => {
     it('should return repositories', async () => {
       if (!ctx.neo4jAvailable) return

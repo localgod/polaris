@@ -108,7 +108,7 @@ const mavenResponse = {
   }
 }
 
-describe('PackageMetadataService', () => {
+describe('[pin] PackageMetadataService', () => {
   beforeEach(() => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-06-02T00:00:00Z'))
   })

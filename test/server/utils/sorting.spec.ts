@@ -10,7 +10,7 @@ const config: SortConfig = {
   defaultOrderBy: 's.name ASC',
 }
 
-describe('buildOrderByClause', () => {
+describe('[contract] buildOrderByClause', () => {
   it('returns the default when sortBy is absent', () => {
     expect(buildOrderByClause({}, config)).toBe('s.name ASC')
   })
@@ -38,7 +38,7 @@ describe('buildOrderByClause', () => {
   })
 })
 
-describe('parseSortParams', () => {
+describe('[pin] parseSortParams', () => {
   it('returns sortBy and asc order from query params', () => {
     const result = parseSortParams({ sortBy: 'name', sortOrder: 'asc' })
     expect(result).toEqual({ sortBy: 'name', sortOrder: 'asc' })

@@ -59,6 +59,7 @@ Examples:
 - [ADR-0002: Implement Service Layer Pattern](0002-implement-service-layer-pattern.md) - Accepted
 - [ADR-0003: Exclude CVE and Vulnerability Management](0003-exclude-cve-vulnerability-management.md) - Accepted
 - [ADR-0004: Technology Requires a Component](0004-technology-requires-component.md) - Accepted
+- [ADR-0005: Default-Deny for Unreviewed Governance State](0005-default-deny-for-unreviewed-state.md) - Accepted
 
 ## References
 

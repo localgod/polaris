@@ -41,7 +41,7 @@ describe('SystemService', () => {
     systemService = new SystemService()
   })
 
-  describe('findAll', () => {
+  describe('[pin] findAll', () => {
     it('should return all systems with count', async () => {
       vi.mocked(SystemRepository.prototype.findAll).mockResolvedValue({ data: mockSystems, total: 2 })
 
@@ -64,7 +64,7 @@ describe('SystemService', () => {
     })
   })
 
-  describe('findByName', () => {
+  describe('[pin] findByName', () => {
     it('should return system when found', async () => {
       const system = mockSystems[0]
       vi.mocked(SystemRepository.prototype.findByName).mockResolvedValue(system)
@@ -84,7 +84,7 @@ describe('SystemService', () => {
     })
   })
 
-  describe('create', () => {
+  describe('[contract] create', () => {
     const validInput = {
       name: 'new-system',
       domain: 'Platform',
@@ -188,7 +188,7 @@ describe('SystemService', () => {
     })
   })
 
-  describe('delete', () => {
+  describe('[pin] delete', () => {
     it('should delete existing system', async () => {
       const mockSystem: System = {
         name: 'polaris-api',

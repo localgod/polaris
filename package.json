@@ -56,6 +56,8 @@
     "test:schema": "vitest run test/schema",
     "test:unit": "vitest run test/server/services test/server/repositories test/server/utils test/app/components test/app/composables",
     "test:smoke": "vitest run -t '@smoke'",
+    "test:contract": "vitest run -t '\\[contract\\]'",
+    "test:integration:contract": "vitest run --config vitest.integration.config.ts -t '\\[contract\\]'",
     "test:coverage": "vitest run --coverage",
     "test:coverage:check": "vitest run --config vitest.coverage.config.ts --coverage",
     "test:ci": "vitest run --reporter=verbose --reporter=json --outputFile=test-results.json",

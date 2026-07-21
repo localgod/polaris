@@ -1,4 +1,4 @@
-Feature: Homepage UI
+Feature: [pin] Homepage UI
   As a user
   I want to visit the homepage
   So that I can see the application is working

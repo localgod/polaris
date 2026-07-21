@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('EOL rollup API', () => {
+describe('[pin] EOL rollup API', () => {
   it('returns approaching EOL rollup data', async () => {
     vi.mocked(eolRollupService.getApproaching).mockResolvedValue(rollup)
 

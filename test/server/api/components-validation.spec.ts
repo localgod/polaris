@@ -29,7 +29,7 @@ async function ensureServerCheck(): Promise<boolean> {
   return serverAvailable
 }
 
-describe('Components API - Input Validation', () => {
+describe('[contract] Components API - Input Validation', () => {
   beforeAll(async () => {
     await ensureServerCheck()
   })

@@ -1,4 +1,4 @@
-Feature: Technology Approvals API
+Feature: [contract] Technology Approvals API
   As a team member
   I want to set TIME approvals for technologies
   So that my team's technology usage is tracked and compliant

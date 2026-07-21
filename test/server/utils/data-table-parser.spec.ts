@@ -9,7 +9,7 @@ import {
   type DataTableRow
 } from '../../fixtures/data-table-parser'
 
-describe('Data Table Parser', () => {
+describe('[pin] Data Table Parser', () => {
   describe('parseDataTable', () => {
     it('should parse multi-row data table', () => {
       const table = `

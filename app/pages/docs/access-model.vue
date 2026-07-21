@@ -94,7 +94,7 @@
       variant="subtle"
       icon="i-lucide-eye"
       title="Impersonation"
-      description="Superusers can impersonate other users to verify what they see. While impersonating, the UI respects the impersonated user's role — superuser-only actions and navigation items are hidden if the impersonated user is not a superuser."
+      description="Superusers can impersonate other users to verify what they see. While impersonating, the UI respects the impersonated user's role — superuser-only actions and navigation items are hidden if the impersonated user is not a superuser. If the impersonated identity can't be resolved, the system falls back to the real superuser identity rather than failing the request."
     />
 
     <!-- API Token Self-Service -->
@@ -183,18 +183,18 @@ const accessColumns: TableColumn<typeof accessRows[0]>[] = [
 const accessRows = [
   { element: 'Systems', view: 'Public', create: 'Authenticated', edit: 'Owner team*', delete: 'Owner team*', notes: '* Superusers or members of the system\'s owner team' },
   { element: 'Repositories', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Added to systems; viewed as part of system detail' },
-  { element: 'Components', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Created only via SBOM ingestion, never directly' },
+  { element: 'Components', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Created only via SBOM ingestion, never directly. Deleting a System cascades to the Components used only by that System — ones shared with other Systems are preserved.' },
   { element: 'Technologies', view: 'Public', create: 'Superuser', edit: 'Owner team*', delete: 'Owner team*', notes: 'Created via the component-links queue only, by claiming an unlinked Component. * Edit/delete: superusers or members of the technology\'s steward team' },
   { element: 'Platforms', view: 'Public', create: 'Superuser', edit: 'Steward team*', delete: 'Steward team*', notes: 'No Component required — the deliberate exception for non-SBOM-observable infrastructure. * Superusers or members of the platform\'s steward team' },
-  { element: 'Teams', view: 'Public', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Full team management is superuser-only' },
+  { element: 'Teams', view: 'Public', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Full team management is superuser-only. A team cannot be deleted while it still owns Systems — reassign or remove them first.' },
   { element: 'Users', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Technical users only; OAuth users are created on sign-in' },
-  { element: 'API Tokens', view: 'Authenticated', create: 'Authenticated', edit: '—', delete: 'Authenticated', notes: 'Users manage their own tokens from /profile. Superusers also manage tokens for technical users. Token value shown once on creation.' },
-  { element: 'Version Constraints', view: 'Public', create: 'Authenticated', edit: 'Creator*', delete: 'Creator*', notes: '* Superusers or the user who created the version constraint' },
+  { element: 'API Tokens', view: 'Authenticated', create: 'Authenticated', edit: '—', delete: 'Authenticated', notes: 'Users manage their own tokens from /profile. Superusers also manage tokens for technical users. Token value shown once on creation. An expired token resolves to no session at all — there is no degraded or read-only fallback.' },
+  { element: 'Version Constraints', view: 'Public', create: 'Authenticated', edit: 'Scope-based*', delete: 'Creator*', notes: 'Deleting or changing status: superusers or the constraint\'s creator. * Full edits and team reassignment go by scope instead: organization-scoped constraints require a superuser; team-scoped constraints require membership in the constraint\'s team (and in the target team, when reassigning) — creator identity isn\'t checked on this path. Superusers can always edit, reassign, or delete.' },
   { element: 'Licenses', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Discovered via SBOM ingestion; not directly managed' },
-  { element: 'License Allow/Deny', view: 'Superuser', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Superusers manage the organization license whitelist' },
+  { element: 'License Allow/Deny', view: 'Superuser', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Superusers manage the organization license whitelist. A license with no recorded decision defaults to not allowed. Bulk status updates are all-or-nothing — if any license in the batch doesn\'t exist, none of the batch is applied.' },
   { element: 'Violations', view: 'Authenticated', create: '—', edit: '—', delete: '—', notes: 'Compliance and version constraint violations; read-only for authenticated users' },
-  { element: 'Approvals', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Team members approve technologies or platforms for their team' },
-  { element: 'SBOMs', view: '—', create: 'Authenticated', edit: '—', delete: '—', notes: 'Submitted via API; creates/updates components and licenses' },
+  { element: 'Approvals', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Team members approve technologies or platforms for their team. Superusers can record an approval on behalf of any team, bypassing the membership check.' },
+  { element: 'SBOMs', view: '—', create: 'Authenticated', edit: '—', delete: '—', notes: 'Submitted via API; creates/updates components and licenses. The repositoryUrl must already match a registered System — submission never creates a System implicitly.' },
   { element: 'Audit Logs', view: 'Authenticated', create: '—', edit: '—', delete: '—', notes: 'Automatically generated; read-only' },
   { element: 'GitHub Import', view: '—', create: 'Superuser', edit: '—', delete: '—', notes: 'Creates a system from a GitHub repo without cloning' },
   { element: 'Impersonation', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Start/stop impersonation of other users' },

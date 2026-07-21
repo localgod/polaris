@@ -44,7 +44,7 @@ beforeEach(() => {
   }))
 })
 
-describe('GET /api/version-sprawl', () => {
+describe('[contract] GET /api/version-sprawl', () => {
   it('returns all detections', async () => {
     vi.mocked(versionSprawlService.detect).mockResolvedValue([highDetection, lowDetection])
 
@@ -79,7 +79,7 @@ describe('GET /api/version-sprawl', () => {
   })
 })
 
-describe('GET /api/version-sprawl/summary', () => {
+describe('[pin] GET /api/version-sprawl/summary', () => {
   it('returns severity counts', async () => {
     vi.mocked(versionSprawlService.getSummary).mockResolvedValue({ high: 1, medium: 0, low: 1, total: 2 })
 

@@ -41,7 +41,7 @@ const metadata = {
   license: null
 }
 
-describe('GitHubImportService', () => {
+describe('[pin] GitHubImportService', () => {
   const systemService = {
     create: vi.fn(),
     addRepository: vi.fn()

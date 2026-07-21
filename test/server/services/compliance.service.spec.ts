@@ -5,7 +5,7 @@ import type { ComplianceViolation } from '../../../server/repositories/complianc
 
 vi.mock('../../../server/repositories/compliance.repository')
 
-describe('ComplianceService', () => {
+describe('[pin] ComplianceService', () => {
   let service: ComplianceService
 
   beforeEach(() => {

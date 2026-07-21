@@ -37,7 +37,7 @@ beforeEach(() => {
   mockRequireSuperuser.mockResolvedValue(mockSuperuser)
 })
 
-describe('POST /api/technologies — failed CRUD attempts are audited', () => {
+describe('[contract] POST /api/technologies — failed CRUD attempts are audited', () => {
   it('writes a CREATE_FAILED audit entry when the service rejects, then still surfaces the error', async () => {
     vi.mocked(technologyService.createFromComponent).mockRejectedValue(new Error('No unlinked component named "react" was found'))
 
@@ -69,7 +69,7 @@ describe('POST /api/technologies — failed CRUD attempts are audited', () => {
   })
 })
 
-describe('GET /admin/users — sensitive reads are audited', () => {
+describe('[contract] GET /admin/users — sensitive reads are audited', () => {
   it('writes a READ_SENSITIVE audit entry when the user list is retrieved', async () => {
     vi.mocked(userService.findAll).mockResolvedValue({ data: [], count: 0 })
 

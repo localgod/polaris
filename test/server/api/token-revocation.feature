@@ -1,4 +1,4 @@
-Feature: Token Revocation API
+Feature: [contract] Token Revocation API
   As a superuser
   I want to revoke API tokens
   So that I can manage user access

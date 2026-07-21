@@ -52,7 +52,7 @@ describe('API Pagination', () => {
     await ensureServerCheck()
   })
 
-  describe('GET /api/components', () => {
+  describe('[pin] GET /api/components', () => {
     it('should return paginated results with limit', async () => {
       if (!serverAvailable) return
 
@@ -84,7 +84,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/systems', () => {
+  describe('[pin] GET /api/systems', () => {
     it('should return paginated results with count and total', async () => {
       if (!serverAvailable) return
 
@@ -97,7 +97,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/teams', () => {
+  describe('[pin] GET /api/teams', () => {
     it('should return paginated results with count and total', async () => {
       if (!serverAvailable) return
 
@@ -110,7 +110,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/technologies', () => {
+  describe('[pin] GET /api/technologies', () => {
     it('should return paginated results with count and total', async () => {
       if (!serverAvailable) return
 
@@ -123,7 +123,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/licenses', () => {
+  describe('[pin] GET /api/licenses', () => {
     it('should return paginated results with count and total', async () => {
       if (!serverAvailable) return
 
@@ -136,7 +136,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/version-constraints', () => {
+  describe('[pin] GET /api/version-constraints', () => {
     it('should return paginated results with count and total', async () => {
       if (!serverAvailable) return
 
@@ -149,7 +149,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/audit-logs', () => {
+  describe('[contract] GET /api/audit-logs', () => {
     it('should require authentication', async () => {
       if (!serverAvailable) return
 
@@ -159,7 +159,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('GET /api/licenses/violations', () => {
+  describe('[contract] GET /api/licenses/violations', () => {
     it('should require authentication', async () => {
       if (!serverAvailable) return
 
@@ -169,7 +169,7 @@ describe('API Pagination', () => {
     })
   })
 
-  describe('Pagination consistency', () => {
+  describe('[pin] Pagination consistency', () => {
     it('should have consistent total across pages', async () => {
       if (!serverAvailable) return
 

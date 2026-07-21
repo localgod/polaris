@@ -142,7 +142,7 @@ beforeEach(() => {
   vi.stubGlobal('useToast', () => ({ add: vi.fn() }))
 })
 
-describe('ComponentDependencyTree', () => {
+describe('[pin] ComponentDependencyTree', () => {
   it('fetches a shallow root dependency tree on mount', async () => {
     const fetchMock = vi.fn().mockResolvedValue(treeResponse({ dependencies: [rootA], totalCount: 1 }))
 

@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('SystemRepository', () => {
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return systems with required properties', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -78,7 +78,7 @@ describe('SystemRepository', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('should return null for non-existent system', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.findByName(`${PREFIX}nonexistent`)).toBeNull()
@@ -112,7 +112,7 @@ describe('SystemRepository', () => {
     })
   })
 
-  describe('exists()', () => {
+  describe('[pin] exists()', () => {
     it('should return false for non-existent system', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.exists(`${PREFIX}nonexistent`)).toBe(false)
@@ -126,7 +126,7 @@ describe('SystemRepository', () => {
     })
   })
 
-  describe('create()', () => {
+  describe('[pin] create()', () => {
     it('should create a system and return its name', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `MERGE (:Team { name: $t })`, { t: `${PREFIX}Platform Team` })
@@ -159,7 +159,7 @@ describe('SystemRepository', () => {
     })
   })
 
-  describe('delete()', () => {
+  describe('[contract] delete()', () => {
     it('should delete an existing system', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `CREATE (:System { name: $name, domain: 'Test' })`, { name: `${PREFIX}to-delete` })

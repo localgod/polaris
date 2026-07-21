@@ -105,7 +105,7 @@ function mountPage(options: {
   return { wrapper, route, replace }
 }
 
-describe('component detail dependencies section', () => {
+describe('[pin] component detail dependencies section', () => {
   beforeEach(() => {
     vi.unstubAllGlobals()
   })

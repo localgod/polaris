@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { normalizeRepoUrl, detectScmType, extractRepoName, isLikelyPublic } from '../../../server/utils/repository'
 
-describe('normalizeRepoUrl', () => {
+describe('[pin] normalizeRepoUrl', () => {
   it('returns the value unchanged for an empty string', () => {
     expect(normalizeRepoUrl('')).toBe('')
   })
@@ -35,7 +35,7 @@ describe('normalizeRepoUrl', () => {
   })
 })
 
-describe('detectScmType', () => {
+describe('[pin] detectScmType', () => {
   it('returns git for an empty string', () => {
     expect(detectScmType('')).toBe('git')
   })
@@ -73,7 +73,7 @@ describe('detectScmType', () => {
   })
 })
 
-describe('extractRepoName', () => {
+describe('[pin] extractRepoName', () => {
   it('returns empty string for an empty URL', () => {
     expect(extractRepoName('')).toBe('')
   })
@@ -87,7 +87,7 @@ describe('extractRepoName', () => {
   })
 })
 
-describe('isLikelyPublic', () => {
+describe('[pin] isLikelyPublic', () => {
   it('returns false for an empty URL', () => {
     expect(isLikelyPublic('')).toBe(false)
   })

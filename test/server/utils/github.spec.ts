@@ -25,7 +25,7 @@ afterEach(() => {
 })
 
 describe('GitHub utilities', () => {
-  describe('parseGitHubOwner()', () => {
+  describe('[contract] parseGitHubOwner()', () => {
     it('accepts owner names and profile URLs', () => {
       expect(parseGitHubOwner('localgod')).toBe('localgod')
       expect(parseGitHubOwner('https://github.com/localgod')).toBe('localgod')
@@ -37,7 +37,7 @@ describe('GitHub utilities', () => {
     })
   })
 
-  describe('listOrgRepositories()', () => {
+  describe('[contract] listOrgRepositories()', () => {
     it('follows pagination and applies filters', async () => {
       const firstPage = [
         ...Array.from({ length: 99 }, (_, index) => repo(`service-${index}`)),
@@ -84,7 +84,7 @@ describe('GitHub utilities', () => {
     })
   })
 
-  describe('listGitHubOwnerRepositories()', () => {
+  describe('[contract] listGitHubOwnerRepositories()', () => {
     it('falls back to user repositories when the owner is not an organization', async () => {
       const fetchMock = vi.fn()
         .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, statusText: 'Not Found' }))
@@ -139,7 +139,7 @@ describe('GitHub utilities', () => {
     })
   })
 
-  describe('cloneRepository()', () => {
+  describe('[contract] cloneRepository()', () => {
     it('invokes git clone with depth=1 and injects the token into the URL', async () => {
       const { execFile } = await import('child_process')
       vi.mocked(execFile).mockImplementation((...args: unknown[]) => {
@@ -181,7 +181,7 @@ describe('GitHub utilities', () => {
     })
   })
 
-  describe('runWithConcurrency()', () => {
+  describe('[pin] runWithConcurrency()', () => {
     it('runs all tasks and returns results in order', async () => {
       const tasks = [1, 2, 3].map(n => () => Promise.resolve(n * 10))
       const results = await runWithConcurrency(tasks, 2)

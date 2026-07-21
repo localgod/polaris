@@ -36,7 +36,7 @@ beforeAll(async () => {
   }
 })
 
-describe('HTTP routing', () => {
+describe('[pin] HTTP routing', () => {
   it('returns 404 for an unknown API route', async () => {
     const { status } = await rawFetch('/api/does-not-exist-xyz')
     expect(status).toBe(404)
@@ -48,7 +48,7 @@ describe('HTTP routing', () => {
   })
 })
 
-describe('Auth middleware — unauthenticated requests', () => {
+describe('[contract] Auth middleware — unauthenticated requests', () => {
   // The Nitro error handler returns H3 error shape: { error: true, statusCode, message }
   // rather than the application's { success: false } shape.
 
@@ -96,7 +96,7 @@ describe('Auth middleware — unauthenticated requests', () => {
   })
 })
 
-describe('Content-Type enforcement', () => {
+describe('[contract] Content-Type enforcement', () => {
   it('POST /api/sboms returns 415 when Content-Type is text/plain', async () => {
     const { status, body } = await rawFetch('/api/sboms', {
       method: 'POST',
@@ -113,7 +113,7 @@ describe('Content-Type enforcement', () => {
   })
 })
 
-describe('Public read endpoints', () => {
+describe('[pin] Public read endpoints', () => {
   it('GET /api/systems returns 200', async () => {
     const { status, body } = await rawFetch('/api/systems')
     expect(status).toBe(200)
@@ -151,7 +151,7 @@ describe('Public read endpoints', () => {
   })
 })
 
-describe('Query parameter parsing', () => {
+describe('[contract] Query parameter parsing', () => {
   // The list handlers return { success: false, error: '...' } in the body
   // (not an HTTP 4xx) when limit is non-integer. The status is 200.
   it('GET /api/systems rejects non-integer limit in the response body', async () => {
@@ -185,7 +185,7 @@ describe('Query parameter parsing', () => {
   })
 })
 
-describe('404 for unknown named resources', () => {
+describe('[pin] 404 for unknown named resources', () => {
   it('GET /api/systems/:name returns 404 for a non-existent system', async () => {
     const { status } = await rawFetch('/api/systems/this-system-does-not-exist-xyz')
     expect(status).toBe(404)
@@ -202,7 +202,7 @@ describe('404 for unknown named resources', () => {
   })
 })
 
-describe('Response shape from real serialisation', () => {
+describe('[contract] Response shape from real serialisation', () => {
   it('GET /api/systems response has success, data, count, total fields', async () => {
     const { body } = await rawFetch('/api/systems')
     const b = body as Record<string, unknown>

@@ -31,7 +31,7 @@ const baseMetadata: PackageMetadata = {
   }
 }
 
-describe('calculateMaintenanceHealth', () => {
+describe('[pin] calculateMaintenanceHealth', () => {
   it('returns healthy for a recent current version', () => {
     const health = calculateMaintenanceHealth(baseComponent, baseMetadata, now)
 

@@ -19,7 +19,7 @@ describe('TeamService', () => {
     service = new TeamService()
   })
 
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return teams with count', async () => {
       vi.mocked(TeamRepository.prototype.findAll).mockResolvedValue({ data: [mockTeam], total: 1 })
 
@@ -32,7 +32,7 @@ describe('TeamService', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     beforeEach(() => {
       vi.mocked(TeamRepository.prototype.findUsage).mockResolvedValue({
         team: 'Platform', usage: [], summary: { totalTechnologies: 0, compliant: 0, unapproved: 0, violations: 0, migrationNeeded: 0 }
@@ -89,7 +89,7 @@ describe('TeamService', () => {
     })
   })
 
-  describe('delete()', () => {
+  describe('[contract] delete()', () => {
     it('should delete team that exists and owns no systems', async () => {
       vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam)
       vi.mocked(TeamRepository.prototype.countOwnedSystems).mockResolvedValue(0)
@@ -121,7 +121,7 @@ describe('TeamService', () => {
     })
   })
 
-  describe('create() — optional field coercion', () => {
+  describe('[pin] create() — optional field coercion', () => {
     beforeEach(() => {
       vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(false)
       vi.mocked(TeamRepository.prototype.create).mockResolvedValue('Platform')
@@ -166,7 +166,7 @@ describe('TeamService', () => {
     })
   })
 
-  describe('create() validation', () => {
+  describe('[contract] create() validation', () => {
     it('throws when name is empty', async () => {
       await expect(service.create({ name: '', userId: 'u1' })).rejects.toMatchObject({ statusCode: 400 })
       expect(TeamRepository.prototype.create).not.toHaveBeenCalled()
@@ -180,7 +180,7 @@ describe('TeamService', () => {
     })
   })
 
-  describe('update()', () => {
+  describe('[contract] update()', () => {
     beforeEach(() => {
       vi.mocked(TeamRepository.prototype.findByName).mockResolvedValue(mockTeam)
     })
@@ -231,7 +231,7 @@ describe('TeamService', () => {
     })
   })
 
-  describe('query methods', () => {
+  describe('[pin] query methods', () => {
     it('findApprovals returns data from repository', async () => {
       vi.mocked(TeamRepository.prototype.findApprovals).mockResolvedValue({
         team: 'Platform',

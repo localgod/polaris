@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('SBOMRepository', () => {
-  describe('persistSBOM()', () => {
+  describe('[pin] persistSBOM()', () => {
     it('should persist components and link to system', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -112,7 +112,7 @@ describe('SBOMRepository', () => {
     })
   })
 
-  describe('createComponentAddedAuditLogs()', () => {
+  describe('[pin] createComponentAddedAuditLogs()', () => {
     it('should create one AuditLog per added component, linked to both the System and the Component', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -155,7 +155,7 @@ describe('SBOMRepository', () => {
     })
   })
 
-  describe('isDirect on USES edges via persistSBOM()', () => {
+  describe('[contract] isDirect on USES edges via persistSBOM()', () => {
     it('should set isDirect=true on USES edges for direct dependencies', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -218,7 +218,7 @@ describe('SBOMRepository', () => {
     })
   })
 
-  describe('DEPENDS_ON edges via persistSBOM()', () => {
+  describe('[contract] DEPENDS_ON edges via persistSBOM()', () => {
     it('should create DEPENDS_ON edges between components', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -321,7 +321,7 @@ describe('SBOMRepository', () => {
     })
   })
 
-  describe('createAuditLog()', () => {
+  describe('[pin] createAuditLog()', () => {
     it('should create an AuditLog node linked to the System', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `

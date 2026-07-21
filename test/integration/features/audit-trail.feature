@@ -1,4 +1,4 @@
-Feature: Audit Trail Schema @model @unit
+Feature: [contract] Audit Trail Schema @model @unit
   As a compliance officer
   I need to track all data changes
   So that I can maintain audit trails for security and compliance
