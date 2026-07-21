@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('PlatformRepository', () => {
-  describe('create()', () => {
+  describe('[contract] create()', () => {
     it('should create a Platform with no Component required', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -59,7 +59,7 @@ describe('PlatformRepository', () => {
     })
   })
 
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return platforms', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -74,7 +74,7 @@ describe('PlatformRepository', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('should return null for non-existent platform', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.findByName(`${PREFIX}nonexistent`)).toBeNull()
@@ -97,7 +97,7 @@ describe('PlatformRepository', () => {
     })
   })
 
-  describe('findStewardTeam()', () => {
+  describe('[pin] findStewardTeam()', () => {
     it('should return null steward when none assigned', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `CREATE (:Platform { name: $name, type: 'platform' })`, { name: `${PREFIX}Solo` })
@@ -108,7 +108,7 @@ describe('PlatformRepository', () => {
     })
   })
 
-  describe('update()', () => {
+  describe('[pin] update()', () => {
     it('should update properties and swap the steward team', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -150,7 +150,7 @@ describe('PlatformRepository', () => {
     })
   })
 
-  describe('delete()', () => {
+  describe('[pin] delete()', () => {
     it('should delete a platform', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `CREATE (:Platform { name: $name, type: 'platform' })`, { name: `${PREFIX}ToDelete` })
@@ -161,7 +161,7 @@ describe('PlatformRepository', () => {
     })
   })
 
-  describe('upsertApproval() / findExistingApproval()', () => {
+  describe('[pin] upsertApproval() / findExistingApproval()', () => {
     it('should create then update a blanket approval', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `

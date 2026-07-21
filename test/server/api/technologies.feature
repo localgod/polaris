@@ -1,4 +1,4 @@
-Feature: Technologies API
+Feature: [contract] Technologies API
   As an API consumer
   I want to interact with the technologies endpoint
   So that I can manage technology approvals and lifecycle

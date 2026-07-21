@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('GET /api/components', () => {
+describe('[pin] GET /api/components', () => {
   it('should return components with count and total', async () => {
     vi.mocked(componentService.findAll).mockResolvedValue({ data: [mockComponent], count: 1, total: 1 })
 

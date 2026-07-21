@@ -25,7 +25,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('TokenRepository', () => {
-  describe('create()', () => {
+  describe('[pin] create()', () => {
     it('should create a token and return it', async () => {
       if (!ctx.neo4jAvailable) return
       const token = await repo.create({
@@ -43,7 +43,7 @@ describe('TokenRepository', () => {
     })
   })
 
-  describe('findByHash()', () => {
+  describe('[pin] findByHash()', () => {
     it('should return null for non-existent hash', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.findByHash(`${PREFIX}nonexistent`)).toBeNull()
@@ -68,7 +68,7 @@ describe('TokenRepository', () => {
     })
   })
 
-  describe('revoke()', () => {
+  describe('[contract] revoke()', () => {
     it('should revoke a token when userId matches owner', async () => {
       if (!ctx.neo4jAvailable) return
       await repo.create({
@@ -102,7 +102,7 @@ describe('TokenRepository', () => {
     })
   })
 
-  describe('listByUser()', () => {
+  describe('[pin] listByUser()', () => {
     it('should return tokens for a user', async () => {
       if (!ctx.neo4jAvailable) return
       await repo.create({

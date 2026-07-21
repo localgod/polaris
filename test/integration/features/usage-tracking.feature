@@ -3,7 +3,7 @@
 # Track actual technology usage by teams (inferred from system ownership)
 # and enable compliance checking against approval policies.
 
-Feature: Technology Usage Tracking
+Feature: [contract] Technology Usage Tracking
 
   Scenario: Team USES relationship is created from system ownership
     Given a Neo4j database is available

@@ -7,7 +7,7 @@ import ComponentsPage from '../../../../app/pages/components/index.vue'
 import { usePaginatedSorting } from '../../../../app/composables/usePaginatedSorting'
 import { useApiCount, useApiData } from '../../../../app/composables/useApiData'
 
-describe('components index page', () => {
+describe('[pin] components index page', () => {
   beforeEach(() => {
     vi.unstubAllGlobals()
   })

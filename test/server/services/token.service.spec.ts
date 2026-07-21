@@ -13,7 +13,7 @@ describe('TokenService', () => {
     service = new TokenService()
   })
 
-  describe('createToken()', () => {
+  describe('[pin] createToken()', () => {
     it('should create a token and return plaintext + metadata', async () => {
       vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
         id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
@@ -42,7 +42,7 @@ describe('TokenService', () => {
     })
   })
 
-  describe('resolveToken()', () => {
+  describe('[contract] resolveToken()', () => {
     it('should return null for non-existent token', async () => {
       vi.mocked(TokenRepository.prototype.findByHash).mockResolvedValue(null)
 
@@ -81,7 +81,7 @@ describe('TokenService', () => {
     })
   })
 
-  describe('createToken() — description coercion', () => {
+  describe('[pin] createToken() — description coercion', () => {
     beforeEach(() => {
       vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
         id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
@@ -125,7 +125,7 @@ describe('TokenService', () => {
     })
   })
 
-  describe('createToken() — type', () => {
+  describe('[pin] createToken() — type', () => {
     beforeEach(() => {
       vi.mocked(TokenRepository.prototype.create).mockResolvedValue({
         id: 'token-id', tokenHash: 'hash', createdAt: '2026-01-01',
@@ -154,7 +154,7 @@ describe('TokenService', () => {
     })
   })
 
-  describe('revokeToken()', () => {
+  describe('[contract] revokeToken()', () => {
     it('should pass both tokenId and userId to repository', async () => {
       vi.mocked(TokenRepository.prototype.revoke).mockResolvedValue(true)
 
@@ -170,7 +170,7 @@ describe('TokenService', () => {
     })
   })
 
-  describe('listTokens()', () => {
+  describe('[pin] listTokens()', () => {
     it('should return tokens for user', async () => {
       vi.mocked(TokenRepository.prototype.listByUser).mockResolvedValue([
         { id: 't1', tokenHash: '', createdAt: '', expiresAt: null, revoked: false, createdBy: 'u1', description: null, type: 'user' }

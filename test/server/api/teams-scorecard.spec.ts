@@ -20,7 +20,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('GET /api/teams/{name}/scorecard', () => {
+describe('[contract] GET /api/teams/{name}/scorecard', () => {
   it('returns the scorecard for an existing team', async () => {
     vi.mocked(scorecardService.getTeamScorecard).mockResolvedValue(mockScorecard)
 

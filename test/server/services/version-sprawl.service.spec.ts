@@ -35,7 +35,7 @@ function makeGroup(overrides: Partial<VersionSprawlRaw> = {}): VersionSprawlRaw 
   }
 }
 
-describe('VersionSprawlService', () => {
+describe('[pin] VersionSprawlService', () => {
   describe('detect()', () => {
     it('sorts versions ascending and recommends the newest one', async () => {
       const service = new VersionSprawlService(

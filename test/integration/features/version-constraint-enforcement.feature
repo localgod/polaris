@@ -1,4 +1,4 @@
-Feature: Version Constraint Enforcement
+Feature: [contract] Version Constraint Enforcement
   As a system administrator
   I want to manage version constraints and their enforcement
   So that I can ensure compliance across the organization

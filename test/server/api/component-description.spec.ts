@@ -54,7 +54,7 @@ describe('GET /api/components/description', () => {
     vi.clearAllMocks()
   })
 
-  describe('parameter validation', () => {
+  describe('[contract] parameter validation', () => {
     it('returns 400 when name is missing', async () => {
       const event = createMockEvent({ packageManager: 'npm' })
       const result = await handler(event)
@@ -80,7 +80,7 @@ describe('GET /api/components/description', () => {
     })
   })
 
-  describe('registry lookup', () => {
+  describe('[pin] registry lookup', () => {
     it('returns description from the registry for a supported package manager', async () => {
       vi.mocked(fetchRegistryDescription).mockResolvedValue('A JavaScript library')
 
@@ -110,7 +110,7 @@ describe('GET /api/components/description', () => {
     })
   })
 
-  describe('caching', () => {
+  describe('[pin] caching', () => {
     it('serves cached result on second request without calling registry again', async () => {
       vi.mocked(fetchRegistryDescription).mockResolvedValue('Cached description')
 

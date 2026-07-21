@@ -12,7 +12,7 @@ beforeAll(async () => { ctx = await getTestContext() })
 afterAll(async () => { if (ctx.neo4jAvailable) await cleanupTestData(ctx.driver, { prefix: PREFIX }) })
 afterEach(async () => { if (session) await session.close() })
 
-describe('VersionConstraintRepository - Create', () => {
+describe('[contract] VersionConstraintRepository - Create', () => {
   beforeEach(async () => {
     if (!ctx.neo4jAvailable) return
     await cleanupTestData(ctx.driver, { prefix: PREFIX })
@@ -69,7 +69,7 @@ describe('VersionConstraintRepository - Create', () => {
   })
 })
 
-describe('VersionConstraintRepository - Update Status', () => {
+describe('[contract] VersionConstraintRepository - Update Status', () => {
   beforeEach(async () => {
     if (!ctx.neo4jAvailable) return
     await cleanupTestData(ctx.driver, { prefix: PREFIX })

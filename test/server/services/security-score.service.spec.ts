@@ -27,7 +27,7 @@ function notFound() {
   return Object.assign(new Error('not found'), { statusCode: 404 })
 }
 
-describe('SecurityScoreService', () => {
+describe('[pin] SecurityScoreService', () => {
   beforeEach(() => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-06-02T00:00:00Z'))
   })

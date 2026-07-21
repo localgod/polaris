@@ -5,7 +5,7 @@ beforeEach(() => {
   clearQueryCache()
 })
 
-describe('injectOrderBy', () => {
+describe('[pin] injectOrderBy', () => {
   it('replaces the {{ORDER_BY}} placeholder', () => {
     const query = 'MATCH (n) RETURN n ORDER BY {{ORDER_BY}}'
     expect(injectOrderBy(query, 'n.name ASC')).toBe('MATCH (n) RETURN n ORDER BY n.name ASC')
@@ -17,7 +17,7 @@ describe('injectOrderBy', () => {
   })
 })
 
-describe('injectWhereConditions', () => {
+describe('[pin] injectWhereConditions', () => {
   it('replaces {{WHERE_CONDITIONS}} with a WHERE clause', () => {
     const query = 'MATCH (n) {{WHERE_CONDITIONS}} RETURN n'
     const result = injectWhereConditions(query, ['n.active = true'])

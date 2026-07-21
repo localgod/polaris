@@ -14,7 +14,7 @@ describe('VersionConstraintService', () => {
     service = new VersionConstraintService()
   })
 
-  describe('delete()', () => {
+  describe('[pin] delete()', () => {
     it('should delete existing constraint', async () => {
       vi.mocked(VersionConstraintRepository.prototype.exists).mockResolvedValue(true)
       vi.mocked(VersionConstraintRepository.prototype.delete).mockResolvedValue(undefined)
@@ -32,7 +32,7 @@ describe('VersionConstraintService', () => {
     })
   })
 
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('returns data with count and total', async () => {
       vi.mocked(VersionConstraintRepository.prototype.findAll).mockResolvedValue({
         data: [{
@@ -58,7 +58,7 @@ describe('VersionConstraintService', () => {
     })
   })
 
-  describe('getViolations()', () => {
+  describe('[contract] getViolations()', () => {
     it('filters out compliant and non-semver component versions', async () => {
       vi.mocked(VersionConstraintRepository.prototype.findViolations).mockResolvedValue([
         {
@@ -133,7 +133,7 @@ describe('VersionConstraintService', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('delegates to repository', async () => {
       vi.mocked(VersionConstraintRepository.prototype.findByName).mockResolvedValue(null)
 
@@ -142,7 +142,7 @@ describe('VersionConstraintService', () => {
     })
   })
 
-  describe('update()', () => {
+  describe('[contract] update()', () => {
     it('throws 404 when target does not exist', async () => {
       vi.mocked(VersionConstraintRepository.prototype.exists).mockResolvedValue(false)
 
@@ -188,7 +188,7 @@ describe('VersionConstraintService', () => {
     })
   })
 
-  describe('updateStatus()', () => {
+  describe('[pin] updateStatus()', () => {
     it('throws for invalid status value', async () => {
       await expect(
         service.updateStatus('vc-1', { status: 'invalid' as never }, 'u1')

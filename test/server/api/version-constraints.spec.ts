@@ -44,7 +44,7 @@ beforeEach(() => {
   mockGetImpersonatorId.mockResolvedValue(null)
 })
 
-describe('POST /api/version-constraints', () => {
+describe('[contract] POST /api/version-constraints', () => {
   it('should return 401 when unauthenticated', async () => {
     mockRequireAuth.mockRejectedValue(createError({ statusCode: 401 }))
 
@@ -101,7 +101,7 @@ describe('POST /api/version-constraints', () => {
   })
 })
 
-describe('DELETE /api/version-constraints/:name', () => {
+describe('[contract] DELETE /api/version-constraints/:name', () => {
   it('should return 400 when name param is missing', async () => {
     mockRequireAuth.mockResolvedValue(superuser)
 
@@ -136,7 +136,7 @@ describe('DELETE /api/version-constraints/:name', () => {
   })
 })
 
-describe('PATCH /api/version-constraints/:name', () => {
+describe('[contract] PATCH /api/version-constraints/:name', () => {
   it('should return 400 when name param is missing', async () => {
     mockRequireAuth.mockResolvedValue(superuser)
 
@@ -171,7 +171,7 @@ describe('PATCH /api/version-constraints/:name', () => {
   })
 })
 
-describe('PUT /api/version-constraints/:name — subjectTeam reassignment authorization', () => {
+describe('[contract] PUT /api/version-constraints/:name — subjectTeam reassignment authorization', () => {
   const teamConstraint = { ...mockConstraint, scope: 'team', subjectTeam: 'Platform Team' }
 
   it('should return 404 when constraint does not exist', async () => {

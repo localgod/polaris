@@ -222,6 +222,13 @@
         <p class="text-(--ui-text-muted)">
           Each team independently assigns a TIME category (Tolerate, Invest, Migrate, Eliminate) to the technologies it uses. Compliance violations are detected when a component appears in an SBOM without a corresponding team approval, or when the assigned category is Eliminate.
         </p>
+        <UAlert
+          color="warning"
+          variant="subtle"
+          icon="i-lucide-shield-off"
+          title="No approval defaults to Eliminate"
+          description="These aren't just two cases that happen to produce the same violation — internally they're the same value. A technology with no recorded team approval is treated exactly as Eliminate; there is no separate unreviewed or pending state. Where a team has approved a specific version of a technology, that version-level approval takes precedence over whatever the team approved at the technology level."
+        />
         <div>
           <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">How it works</p>
           <UTimeline :items="approvalWorkflowSteps" />
@@ -256,6 +263,82 @@
       </div>
     </UCard>
 
+    <!-- Technology Radar -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-radar" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">Technology Radar</h2>
+        </div>
+      </template>
+      <div class="space-y-6">
+        <p class="text-(--ui-text-muted)">
+          The Technology Radar aggregates every team's individual TIME approval for a technology into a single, organization-wide consensus view — a majority vote across all teams that have recorded a stance.
+        </p>
+        <UAlert
+          color="info"
+          variant="subtle"
+          icon="i-lucide-scale"
+          title="Tie-break order"
+          description="When teams are evenly split, the Radar resolves the tie by favoring the more cautious category: Eliminate outranks Migrate, which outranks Tolerate, which outranks Invest. A tied vote never resolves toward the more permissive stance."
+        />
+      </div>
+    </UCard>
+
+    <!-- Version Sprawl -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-git-fork" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">Version Sprawl</h2>
+        </div>
+      </template>
+      <div class="space-y-4">
+        <p class="text-(--ui-text-muted)">
+          Version sprawl detection flags components in use at too many distinct versions across the organization at once — a signal that a technology has drifted out of consistent, centrally-governed use.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <UPageFeature
+            v-for="fact in versionSprawlFacts"
+            :key="fact.title"
+            :icon="fact.icon"
+            :title="fact.title"
+            :description="fact.description"
+            orientation="horizontal"
+          />
+        </div>
+      </div>
+    </UCard>
+
+    <!-- License Compliance -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-scale" class="w-5 h-5 text-(--ui-primary)" />
+          <h2 class="text-lg font-semibold">License Compliance</h2>
+        </div>
+      </template>
+      <div class="space-y-4">
+        <p class="text-(--ui-text-muted)">
+          Every license discovered through SBOM ingestion is checked against an organization-managed allow list, maintained by superusers.
+        </p>
+        <UAlert
+          color="warning"
+          variant="subtle"
+          icon="i-lucide-shield-off"
+          title="No review defaults to not allowed"
+          description="A license with no explicit allowed/denied decision recorded is treated as not allowed — the same outcome as one a superuser has actively reviewed and denied. There is no neutral or unreviewed state, the same default-deny posture used for TIME approvals above."
+        />
+        <UAlert
+          color="info"
+          variant="subtle"
+          icon="i-lucide-list-checks"
+          title="Bulk updates are all-or-nothing"
+          description="Approving or denying many licenses at once is transactional: if any license in the batch doesn't exist, the entire update is rejected and none of the valid ones are applied."
+        />
+      </div>
+    </UCard>
+
     <!-- Audit Trail -->
     <UCard>
       <template #header>
@@ -268,6 +351,13 @@
         <p class="text-(--ui-text-muted)">
           The audit trail captures governance decisions — changes to version constraints, approvals, team structure, and system ownership. Operational data that changes frequently through automated processes (components discovered via SBOM, repositories) is excluded.
         </p>
+        <UAlert
+          color="neutral"
+          variant="subtle"
+          icon="i-lucide-shield-alert"
+          title="Failures and sensitive reads are audited too"
+          description="A failed governance operation — for example a rejected technology creation — still produces an audit entry, not just successful ones. Certain sensitive reads, such as viewing the full user list as an admin, are logged as well, even though nothing was changed. Audit writes are best-effort: if writing the audit entry itself fails, the operation it was recording still completes — auditability never blocks or breaks the action it documents."
+        />
         <div>
           <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Governance Operations</p>
           <div class="space-y-3">
@@ -415,6 +505,12 @@ const stewardshipDuties = [
 const teamOwnershipReasons = [
   { icon: 'i-lucide-refresh-cw', title: 'Continuity', description: 'People change roles and leave organizations. Team-level stewardship survives personnel changes without manual reassignment.' },
   { icon: 'i-lucide-users-2', title: 'Shared accountability', description: 'Technology decisions benefit from collective judgment. Team ownership distributes responsibility across multiple people rather than creating a single point of failure.' },
+]
+
+const versionSprawlFacts = [
+  { icon: 'i-lucide-link', title: 'Direct usage only', description: 'Only versions a System depends on directly count toward sprawl — versions that appear solely as transitive dependencies are excluded' },
+  { icon: 'i-lucide-hash', title: 'Minimum version count', description: 'A component must be in use at a minimum number of distinct versions across the organization before it is flagged at all' },
+  { icon: 'i-lucide-alert-triangle', title: 'EOL-weighted severity', description: 'Sprawl is scored by severity, weighted more heavily when one or more of the versions in use is past end-of-life' },
 ]
 
 const auditGovernanceEvents = [

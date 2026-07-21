@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('auditFailedOperation', () => {
+describe('[contract] auditFailedOperation', () => {
   it('records a failed operation with the operation suffixed _FAILED', async () => {
     await auditFailedOperation(mockEvent(), {
       operation: 'DELETE',
@@ -105,7 +105,7 @@ describe('auditFailedOperation', () => {
   })
 })
 
-describe('auditSensitiveRead', () => {
+describe('[contract] auditSensitiveRead', () => {
   it('records a READ_SENSITIVE entry for the given actor', async () => {
     await auditSensitiveRead(mockEvent(), {
       entityType: 'User',

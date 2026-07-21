@@ -42,7 +42,7 @@ describe('LicenseService', () => {
     service = new LicenseService()
   })
 
-  describe('getStatistics()', () => {
+  describe('[pin] getStatistics()', () => {
     it('should merge allowed count from getAllowedLicenses into statistics', async () => {
       vi.mocked(LicenseRepository.prototype.getStatistics).mockResolvedValue(mockStatistics)
       vi.mocked(LicenseRepository.prototype.getAllowedLicenses).mockResolvedValue(mockLicenses.filter(l => l.allowed))
@@ -64,7 +64,7 @@ describe('LicenseService', () => {
     })
   })
 
-  describe('updateAllowedStatus()', () => {
+  describe('[contract] updateAllowedStatus()', () => {
     it('should throw 404 when license does not exist', async () => {
       vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(null)
 
@@ -89,7 +89,7 @@ describe('LicenseService', () => {
     })
   })
 
-  describe('bulkUpdateAllowedStatus()', () => {
+  describe('[contract] bulkUpdateAllowedStatus()', () => {
     it('should return success when all licenses exist and update succeeds', async () => {
       vi.mocked(LicenseRepository.prototype.findById)
         .mockResolvedValueOnce(mockLicenses[0]).mockResolvedValueOnce(mockLicenses[1])

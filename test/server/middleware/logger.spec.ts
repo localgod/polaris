@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mockEvent } from '../../fixtures/h3-event'
 import loggerMiddleware from '../../../server/middleware/logger'
 
-describe('logger middleware', () => {
+describe('[contract] logger middleware', () => {
   it('generates a requestId and uses it as correlationId when no headers are present', async () => {
     const event = mockEvent()
 

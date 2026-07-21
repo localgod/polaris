@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('UserRepository', () => {
-  describe('createOrUpdateUser()', () => {
+  describe('[pin] createOrUpdateUser()', () => {
     it('should create a new user', async () => {
       if (!ctx.neo4jAvailable) return
       await repo.createOrUpdateUser({
@@ -78,7 +78,7 @@ describe('UserRepository', () => {
     })
   })
 
-  describe('canManageTeam()', () => {
+  describe('[pin] canManageTeam()', () => {
     it('should return true when user has CAN_MANAGE relationship with the team', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -103,7 +103,7 @@ describe('UserRepository', () => {
     })
   })
 
-  describe('getAuthData()', () => {
+  describe('[pin] getAuthData()', () => {
     it('should return auth data with role and teams', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -128,7 +128,7 @@ describe('UserRepository', () => {
     })
   })
 
-  describe('findById()', () => {
+  describe('[pin] findById()', () => {
     it('should return user with teams and canManage arrays', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -160,7 +160,7 @@ describe('UserRepository', () => {
     })
   })
 
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return users ordered by createdAt descending', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -197,7 +197,7 @@ describe('UserRepository', () => {
     })
   })
 
-  describe('assignTeams()', () => {
+  describe('[contract] assignTeams()', () => {
     it('should assign user to teams and return updated user', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `

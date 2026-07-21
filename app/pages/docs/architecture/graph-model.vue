@@ -127,6 +127,7 @@ const keyRelationships = [
   { label: 'USES', description: 'System uses Component', detail: 'System dependency on a component. Carries scope (runtime, required, dev, optional, excluded, or null) and isDirect (true for root-level deps, false for transitive). Scope and isDirect are computed by BFS propagation at ingest time.' },
   { label: 'HAS_SOURCE_IN', description: 'System has source in Repository', detail: 'Source code location' },
   { label: 'GOVERNS', description: 'VersionConstraint governs Technology', detail: 'Constraint scope' },
+  { label: 'SUBJECT_TO', description: 'Team is subject to VersionConstraint', detail: 'Organization-scoped constraints link to every Team at creation time, in one pass — a Team created afterward is not automatically included. Team-scoped constraints link only to the one named Team.' },
   { label: 'PERFORMED_BY', description: 'AuditLog performed by User', detail: 'Who made the change' },
   { label: 'AUDITS', description: 'AuditLog audits Entity', detail: 'What was changed' },
 ]
@@ -167,7 +168,6 @@ const diagram = `graph TB
     Team -->|APPROVES| Platform
     Team -->|APPROVES| Version
     Team -->|MAINTAINS| Repository
-    Team -->|ENFORCES| VersionConstraint
     Team -->|SUBJECT_TO| VersionConstraint
 
     User -->|MEMBER_OF| Team

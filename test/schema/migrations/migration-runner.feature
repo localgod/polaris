@@ -1,4 +1,4 @@
-Feature: Database Migration Runner
+Feature: [contract] Database Migration Runner
   As a developer
   I want to manage database schema migrations
   So that I can evolve the database schema safely and consistently

@@ -20,7 +20,7 @@ beforeEach(async () => {
 
 afterEach(async () => { if (session) await session.close() })
 
-describe('ImportJobRepository', () => {
+describe('[pin] ImportJobRepository', () => {
   it('creates and finds an import job with parsed filters', async () => {
     if (!ctx.neo4jAvailable) return
 

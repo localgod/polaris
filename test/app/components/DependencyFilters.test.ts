@@ -20,7 +20,7 @@ const global = {
   }
 }
 
-describe('DependencyFilters', () => {
+describe('[contract] DependencyFilters', () => {
   it('emits selected scopes when checkboxes change', async () => {
     const wrapper = mount(DependencyFilters, {
       props: { modelValue: [] },

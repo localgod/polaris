@@ -24,7 +24,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('GET /api/licenses', () => {
+describe('[pin] GET /api/licenses', () => {
   it('should return licenses with count and total', async () => {
     vi.mocked(licenseService.findAll).mockResolvedValue({ data: [mockLicense], count: 1, total: 1 })
 
@@ -73,7 +73,7 @@ describe('GET /api/licenses', () => {
   })
 })
 
-describe('GET /api/licenses/:id', () => {
+describe('[pin] GET /api/licenses/:id', () => {
   it('should return 404 response when license is not found', async () => {
     vi.mocked(LicenseRepository.prototype.findById).mockResolvedValue(null)
 
@@ -98,7 +98,7 @@ describe('GET /api/licenses/:id', () => {
   })
 })
 
-describe('GET /api/licenses/statistics', () => {
+describe('[pin] GET /api/licenses/statistics', () => {
   it('should return statistics from repository', async () => {
     const stats = { total: 10, byCategory: { permissive: 7, copyleft: 3 }, osiApproved: 8, deprecated: 1 }
     vi.mocked(LicenseRepository.prototype.getStatistics).mockResolvedValue(stats)

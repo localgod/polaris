@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import type { SbomValidator } from '../../../server/utils/sbom-validator'
 import { getSbomValidator } from '../../../server/utils/sbom-validator'
 
-describe('SBOM Validator', () => {
+describe('[contract] SBOM Validator', () => {
   let validator: SbomValidator
 
   beforeAll(async () => {

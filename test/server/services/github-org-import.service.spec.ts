@@ -52,7 +52,7 @@ function createRepoMocks() {
   }
 }
 
-describe('GitHubOrgImportService', () => {
+describe('[pin] GitHubOrgImportService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

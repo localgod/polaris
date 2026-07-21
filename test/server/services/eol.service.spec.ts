@@ -38,7 +38,7 @@ const nodeProduct = {
   }
 }
 
-describe('EOLService', () => {
+describe('[contract] EOLService', () => {
   beforeEach(() => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-06-02T00:00:00Z'))
   })
@@ -126,7 +126,7 @@ describe('EOLService', () => {
     })
   })
 
-  describe('lifecycle warn logging', () => {
+  describe('[contract] lifecycle warn logging', () => {
     it('logs a warn when a component has reached end-of-life', async () => {
       const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger)
       const storage = createStorage()

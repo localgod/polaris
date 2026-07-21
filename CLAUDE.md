@@ -76,7 +76,7 @@ Key relationships: `STEWARDED_BY` (Team→Technology/Platform, technical governa
 
 Neo4j Community Edition is in use — there is no separate test database. Tests isolate data with a `test_` / `test-` name prefix; the global setup cleans these nodes before and after the suite.
 
-## Testing Strategy
+### Testing Strategy
 
 | Layer | Location | Mocks | DB |
 |-------|----------|-------|----|
@@ -86,7 +86,58 @@ Neo4j Community Edition is in use — there is no separate test database. Tests 
 | Integration | `test/integration/` | None (real Nitro server) | Yes |
 | Frontend | `test/app/` | Vitest + happy-dom | No |
 
-API tests call handler functions directly via `mockEvent()` from `test/fixtures/h3-event.ts`. Auth globals are stubbed with `vi.stubGlobal()` — see `test/setup/h3-globals.ts` for the wiring pattern.
+API tests call handler functions directly via `mockEvent()` from
+`test/fixtures/h3-event.ts`. Auth globals are stubbed with `vi.stubGlobal()`
+— see `test/setup/h3-globals.ts` for the wiring pattern.
+
+### Test intent classification
+
+Every test is one of two kinds. Mark the distinction with a describe-block
+prefix:
+
+- **`[contract]`** — encodes a requirement someone actually decided on
+  (invariants, business rules, API response shapes consumers depend on).
+  These are constraints. Do not weaken, delete, or rewrite a `[contract]`
+  test to make a change pass. If a requested change genuinely conflicts
+  with one, stop and surface the conflict instead of resolving it yourself.
+- **`[pin]`** — characterization tests that snapshot current behavior
+  nobody explicitly specified (default ordering, incidental formatting,
+  exact wording of messages). These are disposable: update or regenerate
+  them freely when behavior changes intentionally.
+
+Untagged tests are treated as `[pin]`. When writing new tests, only tag
+`[contract]` if the assertion traces to a stated requirement in this file,
+a spec, or an explicit user instruction — not to behavior you just
+implemented.
+
+### What to assert
+
+- Test observable behavior at the layer's public boundary (inputs →
+  outputs, persisted state, HTTP status + body shape).
+- Do not assert internal call sequences, call counts, or arguments passed
+  to mocks unless that interaction *is* the contract (e.g. "must not call
+  the payment provider twice"). Mocks exist to isolate layers, not to be
+  asserted against.
+- Avoid asserting exact error-message strings, incidental ordering, or
+  full-object snapshots when only specific fields matter. Assert the
+  fields that matter.
+
+### When a change breaks existing tests
+
+1. Classify the failure: regression (fix the code) or outdated spec
+   (update the test).
+2. For `[pin]` tests: update them to match the new intended behavior.
+3. For `[contract]` tests: do not modify without flagging. Ask before
+   changing.
+4. In your summary, list every test file you modified or deleted and why,
+   separately from tests you added — so test changes can be reviewed as
+   spec changes, not noise.
+
+### Coverage
+
+Coverage is not a goal in itself. Do not add tests that restate the
+implementation to raise coverage. A smaller suite of boundary-level
+contract tests beats exhaustive mocks of internals.
 
 ## Database Migrations
 

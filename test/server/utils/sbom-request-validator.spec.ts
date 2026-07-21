@@ -6,7 +6,7 @@ import {
   type SbomRequest
 } from '../../../server/utils/sbom-request-validator'
 
-describe('SBOM Request Validator', () => {
+describe('[contract] SBOM Request Validator', () => {
   describe('validateRepositoryUrl', () => {
     it('should fail when repositoryUrl is missing', () => {
       const result = validateRepositoryUrl(undefined)

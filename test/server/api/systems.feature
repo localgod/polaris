@@ -1,4 +1,4 @@
-Feature: Systems API
+Feature: [contract] Systems API
   As an API consumer
   I want to interact with the systems endpoint
   So that I can manage system information

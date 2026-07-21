@@ -41,7 +41,7 @@ beforeEach(async () => {
 
 afterEach(async () => { if (session) await session.close() })
 
-describe('AuditLogRepository', () => {
+describe('[pin] AuditLogRepository', () => {
   describe('findAll()', () => {
     it('should return logs ordered by timestamp descending', async () => {
       if (!ctx.neo4jAvailable) return

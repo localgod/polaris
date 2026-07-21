@@ -41,7 +41,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('GET /api/components/{key}/dependencies', () => {
+describe('[contract] GET /api/components/{key}/dependencies', () => {
   it('returns a dependency tree', async () => {
     vi.mocked(componentService.findDependencies).mockResolvedValue(mockTree)
 

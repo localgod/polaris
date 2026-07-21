@@ -70,7 +70,7 @@ function usageRow(complianceStatus: string, technology = 'tech'): TechnologyUsag
   }
 }
 
-describe('ScorecardService', () => {
+describe('[pin] ScorecardService', () => {
   let service: ScorecardService
 
   beforeEach(() => {

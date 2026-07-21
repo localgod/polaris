@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseSearchParam } from '../../../server/utils/query-params'
 
-describe('parseSearchParam', () => {
+describe('[pin] parseSearchParam', () => {
   it('returns undefined when absent', () => {
     expect(parseSearchParam(undefined)).toBeUndefined()
   })

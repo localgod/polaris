@@ -5,7 +5,7 @@ import '../../fixtures/service-test-helper'
 
 vi.mock('../../../server/repositories/version-constraint.repository')
 
-describe('VersionConstraintService - create()', () => {
+describe('[contract] VersionConstraintService - create()', () => {
   let service: VersionConstraintService
 
   beforeEach(() => {

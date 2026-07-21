@@ -32,7 +32,7 @@ beforeEach(() => {
   mockGetImpersonatorId.mockResolvedValue(null)
 })
 
-describe('POST /api/technologies/{name}/components — legacy (name+version)', () => {
+describe('[contract] POST /api/technologies/{name}/components — legacy (name+version)', () => {
   it('should link component by name+version', async () => {
     vi.mocked(technologyService.linkComponent).mockResolvedValue({
       technologyName: 'React', componentName: 'react', componentVersion: '18.2.0'
@@ -63,7 +63,7 @@ describe('POST /api/technologies/{name}/components — legacy (name+version)', (
   })
 })
 
-describe('POST /api/technologies/{name}/components — PURL-based', () => {
+describe('[contract] POST /api/technologies/{name}/components — PURL-based', () => {
   it('should link component by purl and require superuser', async () => {
     vi.mocked(technologyService.linkComponentByPurl).mockResolvedValue({
       technologyName: 'React', name: 'react', purl: 'pkg:npm/react@18.2.0'

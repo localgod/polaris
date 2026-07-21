@@ -41,7 +41,7 @@ beforeEach(() => {
   mockGetImpersonatorId.mockResolvedValue(null)
 })
 
-describe('POST /api/sboms — Content-Type enforcement', () => {
+describe('[contract] POST /api/sboms — Content-Type enforcement', () => {
   it('should return 415 when Content-Type is not application/json', async () => {
     const result = await handler(mockEvent({ headers: { 'content-type': 'text/plain' }, body: {} }))
 
@@ -55,7 +55,7 @@ describe('POST /api/sboms — Content-Type enforcement', () => {
   })
 })
 
-describe('POST /api/sboms — authentication', () => {
+describe('[contract] POST /api/sboms — authentication', () => {
   it('should return 401 when unauthenticated', async () => {
     mockRequireAuth.mockRejectedValue(new Error('Unauthenticated'))
 
@@ -68,7 +68,7 @@ describe('POST /api/sboms — authentication', () => {
   })
 })
 
-describe('POST /api/sboms — request validation', () => {
+describe('[contract] POST /api/sboms — request validation', () => {
   beforeEach(() => { mockRequireAuth.mockResolvedValue(user) })
 
   it('should return 400 when repositoryUrl is missing', async () => {
@@ -99,7 +99,7 @@ describe('POST /api/sboms — request validation', () => {
   })
 })
 
-describe('POST /api/sboms — SBOM validation', () => {
+describe('[contract] POST /api/sboms — SBOM validation', () => {
   beforeEach(() => { mockRequireAuth.mockResolvedValue(user) })
 
   it('should return 422 when SBOM schema is invalid', async () => {
@@ -133,7 +133,7 @@ describe('POST /api/sboms — SBOM validation', () => {
   })
 })
 
-describe('POST /api/sboms — successful processing', () => {
+describe('[contract] POST /api/sboms — successful processing', () => {
   beforeEach(() => { mockRequireAuth.mockResolvedValue(user) })
 
   it('should process a valid CycloneDX SBOM and return success', async () => {

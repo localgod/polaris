@@ -124,7 +124,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('GET /api/components/{key}', () => {
+describe('[contract] GET /api/components/{key}', () => {
   it('returns component details with read-only enrichment', async () => {
     vi.mocked(componentService.findByIdentity).mockResolvedValue(mockComponent)
     vi.mocked(eolService.getEOLStatus).mockResolvedValue(mockEol)
@@ -252,7 +252,7 @@ describe('GET /api/components/{key}', () => {
   })
 })
 
-describe('GET /api/components/eol', () => {
+describe('[pin] GET /api/components/eol', () => {
   it('requires component name and version', async () => {
     const result = await eolHandler(mockEvent({ query: { name: 'node' } }))
 

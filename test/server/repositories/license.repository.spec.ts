@@ -22,7 +22,7 @@ describe('LicenseRepository', () => {
   })
 
 
-  describe('count()', () => {
+  describe('[pin] count()', () => {
     it('should return 0 when no licenses exist', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -243,7 +243,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return empty array when no licenses exist', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -334,7 +334,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('findById()', () => {
+  describe('[pin] findById()', () => {
     it('should return null when license does not exist', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -370,7 +370,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('exists()', () => {
+  describe('[pin] exists()', () => {
     it('should return false when license does not exist', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -401,7 +401,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('getStatistics()', () => {
+  describe('[pin] getStatistics()', () => {
     it('should return statistics for licenses', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -441,7 +441,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('updateAllowedStatus()', () => {
+  describe('[pin] updateAllowedStatus()', () => {
     it('should update allowed status to true', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -535,7 +535,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('getAllowedLicenses()', () => {
+  describe('[pin] getAllowedLicenses()', () => {
     it('should return only allowed licenses', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -608,7 +608,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('isAllowed()', () => {
+  describe('[contract] isAllowed()', () => {
     it('should return true when license is allowed', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -680,7 +680,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('bulkUpdateAllowedStatus()', () => {
+  describe('[contract] bulkUpdateAllowedStatus()', () => {
     it('should update multiple licenses at once', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -839,7 +839,7 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('findAll() with allowed filter', () => {
+  describe('[pin] findAll() with allowed filter', () => {
     it('should filter licenses by allowed status', async () => {
       if (!ctx.neo4jAvailable) return
 

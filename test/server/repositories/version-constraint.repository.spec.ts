@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('VersionConstraintRepository', () => {
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return constraints', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -39,7 +39,7 @@ describe('VersionConstraintRepository', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('should return null for non-existent constraint', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.findByName(`${PREFIX}nonexistent`)).toBeNull()
@@ -64,7 +64,7 @@ describe('VersionConstraintRepository', () => {
     })
   })
 
-  describe('exists()', () => {
+  describe('[pin] exists()', () => {
     it('should return false for non-existent constraint', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.exists(`${PREFIX}nonexistent`)).toBe(false)
@@ -80,7 +80,7 @@ describe('VersionConstraintRepository', () => {
     })
   })
 
-  describe('delete()', () => {
+  describe('[pin] delete()', () => {
     it('should delete a constraint and its relationships', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -95,7 +95,7 @@ describe('VersionConstraintRepository', () => {
     })
   })
 
-  describe('getCreator()', () => {
+  describe('[pin] getCreator()', () => {
     it('should return null when creator is missing', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -118,7 +118,7 @@ describe('VersionConstraintRepository', () => {
     })
   })
 
-  describe('findViolations()', () => {
+  describe('[contract] findViolations()', () => {
     it('should return violations and support directOnly/depScope filters', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -155,7 +155,7 @@ describe('VersionConstraintRepository', () => {
     })
   })
 
-  describe('update()', () => {
+  describe('[contract] update()', () => {
     it('should update fields and relink scope/governs relationships', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `

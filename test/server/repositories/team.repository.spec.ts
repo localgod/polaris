@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('TeamRepository', () => {
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return teams', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -70,7 +70,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('should return null for non-existent team', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.findByName(`${PREFIX}nonexistent`)).toBeNull()
@@ -145,7 +145,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('exists()', () => {
+  describe('[pin] exists()', () => {
     it('should return false for non-existent team', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.exists(`${PREFIX}nonexistent`)).toBe(false)
@@ -159,7 +159,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('countOwnedSystems()', () => {
+  describe('[pin] countOwnedSystems()', () => {
     it('should return 0 when team owns no systems', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `CREATE (:Team { name: $n })`, { n: `${PREFIX}no-systems` })
@@ -181,7 +181,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('delete()', () => {
+  describe('[pin] delete()', () => {
     it('should delete a team', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `CREATE (:Team { name: $n })`, { n: `${PREFIX}to-delete` })
@@ -192,7 +192,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('create() and update()', () => {
+  describe('[pin] create() and update()', () => {
     it('should create team and write audit entry', async () => {
       if (!ctx.neo4jAvailable) return
 
@@ -235,7 +235,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('findAllNames()', () => {
+  describe('[pin] findAllNames()', () => {
     it('should return all team names', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -249,7 +249,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('findApprovals()', () => {
+  describe('[pin] findApprovals()', () => {
     it('should return technology and version approvals', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -274,7 +274,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('findConstraints()', () => {
+  describe('[pin] findConstraints()', () => {
     it('should return both enforced and subject constraints', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -295,7 +295,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('findUsage()', () => {
+  describe('[pin] findUsage()', () => {
     it('should derive compliance summary from usage and approvals', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -315,7 +315,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('checkApproval()', () => {
+  describe('[contract] checkApproval()', () => {
     it('should return default eliminate when no explicit approval exists', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -349,7 +349,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('ownsSystem()', () => {
+  describe('[pin] ownsSystem()', () => {
     it('should return true when one of the teams owns the system', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -374,7 +374,7 @@ describe('TeamRepository', () => {
     })
   })
 
-  describe('stewardsTechnology()', () => {
+  describe('[pin] stewardsTechnology()', () => {
     it('should return true when one of the teams stewards the technology', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `

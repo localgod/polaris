@@ -19,7 +19,7 @@ describe('PlatformService', () => {
     service = new PlatformService()
   })
 
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return platforms with count', async () => {
       vi.mocked(PlatformRepository.prototype.findAll).mockResolvedValue({ data: [mockPlatform], total: 1 })
 
@@ -32,7 +32,7 @@ describe('PlatformService', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('should return platform when found', async () => {
       vi.mocked(PlatformRepository.prototype.findByName).mockResolvedValue(mockPlatform)
 
@@ -49,7 +49,7 @@ describe('PlatformService', () => {
     })
   })
 
-  describe('create() — no Component required, unlike Technology', () => {
+  describe('[contract] create() — no Component required, unlike Technology', () => {
     beforeEach(() => {
       vi.mocked(PlatformRepository.prototype.exists).mockResolvedValue(false)
       vi.mocked(PlatformRepository.prototype.create).mockResolvedValue('PostgreSQL')
@@ -106,7 +106,7 @@ describe('PlatformService', () => {
     })
   })
 
-  describe('setApproval()', () => {
+  describe('[contract] setApproval()', () => {
     const baseInput = {
       platformName: 'PostgreSQL',
       teamName: 'Data Platform',
@@ -156,7 +156,7 @@ describe('PlatformService', () => {
     })
   })
 
-  describe('delete()', () => {
+  describe('[pin] delete()', () => {
     it('should reject when the platform does not exist', async () => {
       vi.mocked(PlatformRepository.prototype.findByName).mockResolvedValue(null)
 

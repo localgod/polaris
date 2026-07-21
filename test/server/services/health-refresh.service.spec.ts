@@ -170,7 +170,7 @@ function createRefreshDeps() {
   return { componentRepo, auditRepo, eolService, packageMetadataService, securityScoreService, vulnerabilityService }
 }
 
-describe('HealthRefreshService', () => {
+describe('[contract] HealthRefreshService', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-06-19T12:00:00Z'))

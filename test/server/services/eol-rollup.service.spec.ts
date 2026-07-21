@@ -38,7 +38,7 @@ const activeReact: EOLStatus = {
   source: { name: 'endoflife.date', url: 'https://endoflife.date/react' }
 }
 
-describe('EOLRollupService', () => {
+describe('[pin] EOLRollupService', () => {
   const candidates = [
     {
       name: 'node',

@@ -49,7 +49,7 @@ beforeEach(() => {
   vi.mocked(getServerSession).mockResolvedValue(null)
 })
 
-describe('getRealUser — Bearer token extraction', () => {
+describe('[contract] getRealUser — Bearer token extraction', () => {
   describe('case-insensitive scheme matching (RFC 7235)', () => {
     it('accepts canonical "Bearer" casing', async () => {
       vi.mocked(tokenService.resolveToken).mockResolvedValue(resolvedUser)
@@ -192,7 +192,7 @@ describe('getRealUser — Bearer token extraction', () => {
   })
 })
 
-describe('getCurrentUser()', () => {
+describe('[contract] getCurrentUser()', () => {
   it('returns real user when no impersonation cookie is set', async () => {
     const sessionUser = { id: 'u1', email: 'a@example.com', role: 'user' as const, teams: [] }
     vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
@@ -243,7 +243,7 @@ describe('getCurrentUser()', () => {
   })
 })
 
-describe('getImpersonatorId()', () => {
+describe('[contract] getImpersonatorId()', () => {
   it('returns null when not impersonating', async () => {
     const sessionUser = { id: 'admin', email: 'admin@example.com', role: 'superuser' as const, teams: [] }
     vi.mocked(getServerSession).mockResolvedValue({ user: sessionUser, expires: '' })
@@ -262,7 +262,7 @@ describe('getImpersonatorId()', () => {
   })
 })
 
-describe('authorization helpers', () => {
+describe('[contract] authorization helpers', () => {
   it('requireAuth throws 401 when no user exists', async () => {
     vi.mocked(getServerSession).mockResolvedValue(null)
 

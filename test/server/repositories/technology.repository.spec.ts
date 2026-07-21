@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('TechnologyRepository', () => {
-  describe('findAll()', () => {
+  describe('[pin] findAll()', () => {
     it('should return technologies', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -36,7 +36,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('findByName()', () => {
+  describe('[pin] findByName()', () => {
     it('should return null for non-existent technology', async () => {
       if (!ctx.neo4jAvailable) return
       expect(await repo.findByName(`${PREFIX}nonexistent`)).toBeNull()
@@ -60,7 +60,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('createFromComponent()', () => {
+  describe('[contract] createFromComponent()', () => {
     it('should create a Technology and link every unlinked Component sharing componentName', async () => {
       if (!ctx.neo4jAvailable) return
       const componentName = `${PREFIX}react`
@@ -125,7 +125,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('findExistingApproval()', () => {
+  describe('[pin] findExistingApproval()', () => {
     it('should return null when no APPROVES relationship exists', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -172,7 +172,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('findOwnerTeam()', () => {
+  describe('[pin] findOwnerTeam()', () => {
     it('should return null for unknown technology', async () => {
       if (!ctx.neo4jAvailable) return
       await expect(repo.findOwnerTeam(`${PREFIX}missing`)).resolves.toBeNull()
@@ -193,7 +193,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('findForRadar()', () => {
+  describe('[pin] findForRadar()', () => {
     it('should include only approvals with both team and time', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -212,7 +212,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('update() and delete()', () => {
+  describe('[pin] update() and delete()', () => {
     it('should update an existing technology', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -262,7 +262,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('link operations', () => {
+  describe('[contract] link operations', () => {
     it('linkComponent should connect named component version', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -349,7 +349,7 @@ describe('TechnologyRepository', () => {
     })
   })
 
-  describe('upsertApproval()', () => {
+  describe('[pin] upsertApproval()', () => {
     it('should create and then update approval for same environment', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `

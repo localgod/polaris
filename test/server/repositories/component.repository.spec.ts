@@ -21,7 +21,7 @@ beforeEach(async () => {
 afterEach(async () => { if (session) await session.close() })
 
 describe('ComponentRepository', () => {
-  describe('findAll()', () => {
+  describe('[contract] findAll()', () => {
     it('should return components with required properties', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -267,7 +267,7 @@ describe('ComponentRepository', () => {
     })
   })
 
-  describe('findAllGrouped()', () => {
+  describe('[pin] findAllGrouped()', () => {
     it('should group components by package manager, group, and name', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -491,7 +491,7 @@ describe('ComponentRepository', () => {
     })
   })
 
-  describe('findByIdentity()', () => {
+  describe('[pin] findByIdentity()', () => {
     it('should find component details by purl', async () => {
       if (!ctx.neo4jAvailable) return
       const purl = `pkg:npm/${PREFIX}detail-purl@1.2.3`
@@ -686,7 +686,7 @@ describe('ComponentRepository', () => {
     })
   })
 
-  describe('findDependencies()', () => {
+  describe('[contract] findDependencies()', () => {
     it('should return an empty dependency tree when a component has no dependencies', async () => {
       if (!ctx.neo4jAvailable) return
       const purl = `pkg:npm/${PREFIX}deps-empty@1.0.0`
@@ -858,7 +858,7 @@ describe('ComponentRepository', () => {
     })
   })
 
-  describe('findEOLCandidates()', () => {
+  describe('[pin] findEOLCandidates()', () => {
     it('returns EOL candidates with linked systems', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
@@ -895,7 +895,7 @@ describe('ComponentRepository', () => {
     })
   })
 
-  describe('findVersionSprawl()', () => {
+  describe('[contract] findVersionSprawl()', () => {
     it('groups by technology and reports per-version distinct direct-usage system counts', async () => {
       if (!ctx.neo4jAvailable) return
       const techName = `${PREFIX}sprawl-react`
