@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.73] - 2026-07-21
+
+## What's Changed
+
+- test: tag [contract]/[pin] test intent and document the rules it surfaced @localgod (#780)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.72...v0.6.73
+
 ## [0.6.63] - 2026-07-13
 
 ## What's Changed
