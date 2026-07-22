@@ -253,6 +253,46 @@ export interface HealthDashboardSummary {
     highSystems: number
     affectedComponents: number
   }
+  eolExposure: {
+    total: number
+    topItems: Array<{ name: string; version: string | null; systemCount: number }>
+  }
+}
+
+export interface DashboardAttentionSummary {
+  vulnerabilityExposure: HealthDashboardSummary['vulnerabilityExposure']
+  advisoryHotspots: HealthDashboardSummary['advisoryHotspots']
+  refreshCoverage: HealthDashboardSummary['refreshCoverage']
+  eolExposure: HealthDashboardSummary['eolExposure']
+  complianceViolations: {
+    total: number
+    teamsAffected: number
+    topViolations: Array<{
+      team: string
+      technology: string
+      violationType: string
+      systemCount: number
+    }>
+  }
+  versionConstraintViolations: {
+    total: number
+    critical: number
+    error: number
+    warning: number
+  }
+  componentLinkQueue: { total: number } | null
+  stewardshipGaps: {
+    unstewardedTechnologies: number
+    unstewardedPlatforms: number
+    unownedSystems: number
+    sampleTechnologies: string[]
+    samplePlatforms: string[]
+    sampleSystems: string[]
+  }
+  importJobHealth: {
+    total: number
+    jobs: Array<{ id: string; organization: string; status: string; createdAt: string }>
+  }
 }
 
 export type VersionSprawlSeverity = 'high' | 'medium' | 'low'

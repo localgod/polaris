@@ -82,6 +82,10 @@ export class GitHubOrgImportService {
     return await this.jobRepo.findById(id)
   }
 
+  async findRecentActive(sinceHours = 24, limit = 5) {
+    return await this.jobRepo.findRecentActive(sinceHours, limit)
+  }
+
   private runInBackground(jobId: string, input: GitHubOrgImportInput): void {
     if (activeJobs.has(jobId)) return
     activeJobs.add(jobId)

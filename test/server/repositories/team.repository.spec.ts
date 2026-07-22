@@ -398,4 +398,67 @@ describe('TeamRepository', () => {
       expect(result).toBe(false)
     })
   })
+
+  describe('[pin] findStewardshipGaps()', () => {
+    // Counts are portfolio-wide (no test_ prefix filter on the query itself),
+    // so assertions use before/after deltas rather than absolute values.
+
+    it('counts a newly created unstewarded Technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      const before = await repo.findStewardshipGaps()
+
+      await seed(ctx.driver, `CREATE (:Technology { name: $tech })`, { tech: `${PREFIX}orphan-tech` })
+
+      const after = await repo.findStewardshipGaps()
+      expect(after.unstewardedTechnologies).toBe(before.unstewardedTechnologies + 1)
+    })
+
+    it('does not count a Technology that has a steward', async () => {
+      if (!ctx.neo4jAvailable) return
+      const before = await repo.findStewardshipGaps()
+
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (tech:Technology { name: $tech })
+        CREATE (t)-[:STEWARDED_BY]->(tech)
+      `, { team: `${PREFIX}gap-steward-team`, tech: `${PREFIX}stewarded-tech` })
+
+      const after = await repo.findStewardshipGaps()
+      expect(after.unstewardedTechnologies).toBe(before.unstewardedTechnologies)
+    })
+
+    it('counts a newly created unstewarded Platform', async () => {
+      if (!ctx.neo4jAvailable) return
+      const before = await repo.findStewardshipGaps()
+
+      await seed(ctx.driver, `CREATE (:Platform { name: $platform })`, { platform: `${PREFIX}orphan-platform` })
+
+      const after = await repo.findStewardshipGaps()
+      expect(after.unstewardedPlatforms).toBe(before.unstewardedPlatforms + 1)
+    })
+
+    it('counts a newly created unowned System', async () => {
+      if (!ctx.neo4jAvailable) return
+      const before = await repo.findStewardshipGaps()
+
+      await seed(ctx.driver, `CREATE (:System { name: $system })`, { system: `${PREFIX}orphan-system` })
+
+      const after = await repo.findStewardshipGaps()
+      expect(after.unownedSystems).toBe(before.unownedSystems + 1)
+    })
+
+    it('does not count a System that has an owner', async () => {
+      if (!ctx.neo4jAvailable) return
+      const before = await repo.findStewardshipGaps()
+
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (s:System { name: $system })
+        CREATE (t)-[:OWNS]->(s)
+      `, { team: `${PREFIX}gap-owner-team`, system: `${PREFIX}owned-system` })
+
+      const after = await repo.findStewardshipGaps()
+      expect(after.unownedSystems).toBe(before.unownedSystems)
+    })
+  })
 })

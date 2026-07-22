@@ -1,5 +1,5 @@
 import { TeamRepository } from '../repositories/team.repository'
-import type { Team, TeamApprovalsResult, TeamConstraintsResult, TeamUsageResult, ApprovalStatus } from '../repositories/team.repository'
+import type { Team, TeamApprovalsResult, TeamConstraintsResult, TeamUsageResult, ApprovalStatus, StewardshipGaps } from '../repositories/team.repository'
 import type { SortParams } from '../utils/sorting'
 import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
 import { toDateString } from '../utils/neo4j'
@@ -23,6 +23,13 @@ export class TeamService {
   async findAll(sort?: SortParams, limit = 50, offset = 0, search?: string): Promise<{ data: Team[]; count: number; total: number }> {
     const { data, total } = await this.teamRepo.findAll(sort, limit, offset, search)
     return { data, count: data.length, total }
+  }
+
+  /**
+   * Technologies/Platforms with no steward and Systems with no owner.
+   */
+  async getStewardshipGaps(): Promise<StewardshipGaps> {
+    return await this.teamRepo.findStewardshipGaps()
   }
 
   /**

@@ -1,5 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import neo4j from 'neo4j-driver'
 import { loadQuery } from '../utils/query-loader'
 
 export type ImportJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
@@ -54,6 +55,17 @@ export interface CreateImportJobParams {
   dryRun: boolean
 }
 
+export interface ImportJobSummary {
+  id: string
+  status: ImportJobStatus
+  organization: string
+  total: number
+  completed: number
+  failed: number
+  createdAt: string
+  error: string | null
+}
+
 export interface CreateImportJobItemParams {
   repositoryFullName: string
   repositoryUrl: string
@@ -94,6 +106,24 @@ export class ImportJobRepository extends BaseRepository {
 
     if (records.length === 0) return null
     return this.mapJob(records[0]!)
+  }
+
+  /**
+   * Currently active jobs (running/queued) plus jobs that failed within the
+   * last `sinceHours` — the set worth surfacing on a "needs attention" view.
+   */
+  async findRecentActive(sinceHours = 24, limit = 5): Promise<{ total: number; jobs: ImportJobSummary[] }> {
+    const { records } = await this.executeQuery(await loadQuery('import-jobs/find-recent-active.cypher'), { sinceHours, limit: neo4j.int(limit) })
+
+    if (records.length === 0) return { total: 0, jobs: [] }
+
+    const record = records[0]!
+    const rawJobs = (record.get('jobs') || []) as Array<{ properties: Record<string, unknown> }>
+
+    return {
+      total: intValue(record.get('total')),
+      jobs: rawJobs.map(job => this.mapJobSummary(job.properties))
+    }
   }
 
   async markRunning(id: string): Promise<void> {
@@ -170,6 +200,19 @@ export class ImportJobRepository extends BaseRepository {
       finishedAt: job.properties.finishedAt?.toString() || null,
       error: job.properties.error || null,
       items
+    }
+  }
+
+  private mapJobSummary(job: Record<string, unknown>): ImportJobSummary {
+    return {
+      id: job.id as string,
+      status: job.status as ImportJobStatus,
+      organization: job.organization as string,
+      total: intValue(job.total),
+      completed: intValue(job.completed),
+      failed: intValue(job.failed),
+      createdAt: job.createdAt?.toString() || '',
+      error: (job.error as string | null | undefined) ?? null
     }
   }
 
