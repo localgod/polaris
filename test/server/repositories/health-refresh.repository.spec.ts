@@ -72,6 +72,12 @@ describe('HealthRefreshRepository', () => {
               affectedComponents: 4
             })] } as QueryResult
           }
+          if (query.includes('topItems')) {
+            return { records: [record({
+              total: 6,
+              topItems: [{ name: 'OldTech', version: '1.0.0', systemCount: 3 }]
+            })] } as QueryResult
+          }
           throw new Error(`Unexpected query: ${query}`)
         }
       }
@@ -107,6 +113,10 @@ describe('HealthRefreshRepository', () => {
           criticalSystems: 1,
           highSystems: 2,
           affectedComponents: 4
+        },
+        eolExposure: {
+          total: 6,
+          topItems: [{ name: 'OldTech', version: '1.0.0', systemCount: 3 }]
         }
       })
     })

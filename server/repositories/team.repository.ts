@@ -106,6 +106,15 @@ export interface TeamConstraintsResult {
   subjectToCount: number
 }
 
+export interface StewardshipGaps {
+  unstewardedTechnologies: number
+  sampleTechnologies: string[]
+  unstewardedPlatforms: number
+  samplePlatforms: string[]
+  unownedSystems: number
+  sampleSystems: string[]
+}
+
 export interface TechnologyUsage {
   technology: string
   type: string | null
@@ -290,6 +299,25 @@ export class TeamRepository extends BaseRepository {
     const { records } = await this.executeQuery(query, { name })
     
     return records[0]?.get('systemCount').toNumber() || 0
+  }
+
+  /**
+   * Technologies/Platforms with no STEWARDED_BY team and Systems with no
+   * OWNS team — a small sample of each, for a "needs attention" view.
+   */
+  async findStewardshipGaps(): Promise<StewardshipGaps> {
+    const query = await loadQuery('teams/stewardship-gaps.cypher')
+    const { records } = await this.executeQuery(query, {})
+    const record = records[0]
+
+    return {
+      unstewardedTechnologies: record?.get('unstewardedTechnologies').toNumber() || 0,
+      sampleTechnologies: (record?.get('sampleTechnologies') || []) as string[],
+      unstewardedPlatforms: record?.get('unstewardedPlatforms').toNumber() || 0,
+      samplePlatforms: (record?.get('samplePlatforms') || []) as string[],
+      unownedSystems: record?.get('unownedSystems').toNumber() || 0,
+      sampleSystems: (record?.get('sampleSystems') || []) as string[]
+    }
   }
 
   /**

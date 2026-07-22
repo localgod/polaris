@@ -72,14 +72,16 @@ export class HealthRefreshRepository extends BaseRepository {
       advisoryHotspots,
       refreshCoverage,
       failedItems,
-      criticalSystemsAtRisk
+      criticalSystemsAtRisk,
+      eolExposure
     ] = await Promise.all([
       this.getVulnerabilityExposure(),
       this.getVulnerabilityAffectedSystems(),
       this.getAdvisoryHotspots(),
       this.getRefreshCoverage(staleAfterDays),
       this.getRecentFailedItems(),
-      this.getCriticalSystemsAtRisk()
+      this.getCriticalSystemsAtRisk(),
+      this.getEolExposure()
     ])
 
     return {
@@ -92,7 +94,8 @@ export class HealthRefreshRepository extends BaseRepository {
         ...refreshCoverage,
         failedItems
       },
-      criticalSystemsAtRisk
+      criticalSystemsAtRisk,
+      eolExposure
     }
   }
 
@@ -278,6 +281,26 @@ export class HealthRefreshRepository extends BaseRepository {
       criticalSystems: intValue(record?.get('criticalSystems')),
       highSystems: intValue(record?.get('highSystems')),
       affectedComponents: intValue(record?.get('affectedComponents'))
+    }
+  }
+
+  /**
+   * Unsupported (past-EOL) components, read from the already-computed
+   * HealthSnapshot.eolStatus field — no live EOL-source lookups, unlike
+   * EOLRollupService, so this is safe to call on every dashboard load.
+   */
+  private async getEolExposure(): Promise<HealthDashboardSummary['eolExposure']> {
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-eol-exposure.cypher'))
+    const record = records[0]
+    const rawTopItems = (record?.get('topItems') || []) as Array<{ name: string; version: string | null; systemCount: unknown }>
+
+    return {
+      total: intValue(record?.get('total')),
+      topItems: rawTopItems.map(item => ({
+        name: item.name,
+        version: item.version,
+        systemCount: intValue(item.systemCount)
+      }))
     }
   }
 }
