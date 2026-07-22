@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
-import type { Technology, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
+import type { Technology, TechnologyLifecycleSummary, TechnologyVersionLifecycle, TimeValue } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
 import { buildCreateChanges } from '../utils/audit-diff'
 import { toDateString } from '../utils/neo4j'
@@ -54,6 +54,15 @@ export interface TechnologyVersionDetail {
   eolDate: string | null
   approved: boolean | null
   notes: string | null
+}
+
+export interface TechnologyGraphRow {
+  systemName: string
+  ownerTeamName: string | null
+  environment: string | null
+  approved: boolean
+  time: TimeValue | null
+  versions: string[]
 }
 
 export interface TechnologyDetail extends Omit<Technology, 'versions'> {
@@ -133,6 +142,37 @@ export class TechnologyRepository extends BaseRepository {
     }
     
     return this.mapToTechnologyDetail(records[0]!)
+  }
+
+  /**
+   * Get impact/blast-radius graph data for a technology: every system using
+   * it, that system's owning team, and the owning team's own TIME approval
+   * for this technology (never an unrelated approving team's).
+   *
+   * Returns null when the technology does not exist.
+   * Returns an empty array when the technology exists but no system uses it.
+   *
+   * @param name - Technology name
+   * @returns Array of per-system rows, or null if technology not found
+   */
+  async getGraph(name: string): Promise<TechnologyGraphRow[] | null> {
+    const query = await loadQuery('technologies/graph.cypher')
+    const { records } = await this.executeQuery(query, { name })
+
+    // Zero rows → technology not found
+    if (records.length === 0) return null
+
+    // One row with systemName = null → technology exists but no system uses it
+    if (records.length === 1 && records[0]!.get('systemName') === null) return []
+
+    return records.map(record => ({
+      systemName: record.get('systemName') as string,
+      ownerTeamName: record.get('ownerTeamName') as string | null,
+      environment: record.get('environment') as string | null,
+      approved: record.get('approved') as boolean,
+      time: record.get('time') as TimeValue | null,
+      versions: (record.get('versions') as string[]) ?? [],
+    }))
   }
 
   /**

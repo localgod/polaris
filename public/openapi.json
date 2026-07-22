@@ -3471,6 +3471,68 @@
         }
       }
     },
+    "/technologies/{name}/graph": {
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Get impact/blast-radius graph data for a technology",
+        "description": "Returns every system using this technology, that system's owning\nteam, and the owning team's own TIME approval for the technology\n(never an unrelated approving team's). Used to answer \"what's the\nblast radius if we eliminate this technology?\"\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name",
+            "example": "React"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Graph data returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "technology": {
+                              "type": "string"
+                            },
+                            "systems": {
+                              "type": "array",
+                              "items": {
+                                "type": "object"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Technology name is required"
+          },
+          "404": {
+            "description": "Technology not found"
+          }
+        }
+      }
+    },
     "/technologies/{name}/components": {
       "post": {
         "tags": [

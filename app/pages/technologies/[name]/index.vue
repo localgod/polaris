@@ -19,7 +19,10 @@
       <div class="flex justify-between items-center">
         <UPageHeader
           :title="tech.name"
-          :links="[{ label: 'Back to Technologies', to: '/technologies', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+          :links="[
+            { label: 'Back to Technologies', to: '/technologies', icon: 'i-lucide-arrow-left', variant: 'outline' as const },
+            { label: 'View Impact Graph', to: `/technologies/${encodeURIComponent(tech.name)}/impact`, icon: 'i-lucide-share-2', variant: 'outline' as const },
+          ]"
         />
         <div class="flex gap-2">
           <UBadge v-if="tech.type" color="neutral" variant="subtle">
