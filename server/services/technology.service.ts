@@ -1,4 +1,4 @@
-import { TechnologyRepository, type TechnologyDetail, type CreateTechnologyFromComponentParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
+import { TechnologyRepository, type TechnologyDetail, type TechnologyGraphRow, type CreateTechnologyFromComponentParams, type UpdateTechnologyParams, type UpsertApprovalParams } from '../repositories/technology.repository'
 import { SBOMRepository } from '../repositories/sbom.repository'
 import type { EOLStatus, EOLStatusValue, Technology, ComponentType, TechnologyDomain, TimeValue, TechnologyLifecycleSummary, TechnologyVersionLifecycle } from '~~/types/api'
 import type { SortParams } from '../utils/sorting'
@@ -210,6 +210,21 @@ export class TechnologyService {
    */
   async findOwnerTeam(name: string): Promise<{ name: string; ownerTeam: string | null } | null> {
     return await this.techRepo.findOwnerTeam(name)
+  }
+
+  /**
+   * Get impact/blast-radius graph data for a technology: every system using
+   * it, that system's owning team, and the owning team's own TIME approval.
+   *
+   * A pure passthrough — deliberately does not merge EOL/lifecycle data the
+   * way findByName() does, since that's outside this view's scope and would
+   * add a per-version EOL lookup across potentially many systems.
+   *
+   * @param name - Technology name
+   * @returns Array of per-system rows, or null if technology not found
+   */
+  async getGraph(name: string): Promise<TechnologyGraphRow[] | null> {
+    return this.techRepo.getGraph(name)
   }
 
   /**

@@ -349,6 +349,142 @@ describe('TechnologyRepository', () => {
     })
   })
 
+  describe('[pin] getGraph()', () => {
+    it('should return null for non-existent technology', async () => {
+      if (!ctx.neo4jAvailable) return
+      expect(await repo.getGraph(`${PREFIX}nonexistent`)).toBeNull()
+    })
+
+    it('should return an empty array when the technology exists but no system uses it', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `CREATE (:Technology { name: $tech, type: 'library' })`, { tech: `${PREFIX}unused-tech` })
+
+      expect(await repo.getGraph(`${PREFIX}unused-tech`)).toEqual([])
+    })
+
+    it('should deduplicate versions in use by a system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c1:Component { name: $comp, version: '1.0.0' })-[:IS_VERSION_OF]->(t)
+        CREATE (c2:Component { name: $comp, version: '2.0.0' })-[:IS_VERSION_OF]->(t)
+        CREATE (s:System { name: $sys })-[:USES]->(c1)
+        CREATE (s)-[:USES]->(c2)
+      `, { tech: `${PREFIX}versions-tech`, comp: `${PREFIX}versions-comp`, sys: `${PREFIX}versions-sys` })
+
+      const rows = await repo.getGraph(`${PREFIX}versions-tech`)
+
+      expect(rows).toHaveLength(1)
+      expect(rows![0]!.versions.sort()).toEqual(['1.0.0', '2.0.0'])
+    })
+
+    it('should deterministically pin one owning team when a system somehow has more than one OWNS edge', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c:Component { name: $comp, version: '1.0.0' })-[:IS_VERSION_OF]->(t)
+        CREATE (a:Team { name: $a })
+        CREATE (b:Team { name: $b })
+        CREATE (s:System { name: $sys })-[:USES]->(c)
+        CREATE (b)-[:OWNS]->(s)
+        CREATE (a)-[:OWNS]->(s)
+      `, {
+        tech: `${PREFIX}multi-owns-tech`,
+        comp: `${PREFIX}multi-owns-comp`,
+        a: `${PREFIX}A-Team`,
+        b: `${PREFIX}B-Team`,
+        sys: `${PREFIX}multi-owns-sys`,
+      })
+
+      const rows1 = await repo.getGraph(`${PREFIX}multi-owns-tech`)
+      const rows2 = await repo.getGraph(`${PREFIX}multi-owns-tech`)
+
+      expect(rows1![0]!.ownerTeamName).toBe(`${PREFIX}A-Team`)
+      expect(rows2![0]!.ownerTeamName).toBe(`${PREFIX}A-Team`)
+    })
+  })
+
+  describe('[contract] getGraph() approval resolution', () => {
+    it('should resolve the TIME from the system\'s OWNING team, not an unrelated approving team', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c:Component { name: $comp, version: '1.0.0' })-[:IS_VERSION_OF]->(t)
+        CREATE (owningTeam:Team { name: $owningTeam })
+        CREATE (otherTeam:Team { name: $otherTeam })
+        CREATE (s:System { name: $sys, environment: 'prod' })-[:USES]->(c)
+        CREATE (owningTeam)-[:OWNS]->(s)
+        CREATE (owningTeam)-[:APPROVES { time: 'tolerate' }]->(t)
+        CREATE (otherTeam)-[:APPROVES { time: 'eliminate' }]->(t)
+      `, {
+        tech: `${PREFIX}owning-team-tech`,
+        comp: `${PREFIX}owning-team-comp`,
+        owningTeam: `${PREFIX}owning-team`,
+        otherTeam: `${PREFIX}other-team`,
+        sys: `${PREFIX}owning-team-sys`,
+      })
+
+      const rows = await repo.getGraph(`${PREFIX}owning-team-tech`)
+      const row = rows!.find(r => r.systemName === `${PREFIX}owning-team-sys`)
+
+      expect(row).toBeDefined()
+      expect(row!.ownerTeamName).toBe(`${PREFIX}owning-team`)
+      expect(row!.approved).toBe(true)
+      expect(row!.time).toBe('tolerate')
+    })
+
+    it('should return approved=false and time=null when the owning team has no APPROVES edge at all', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c:Component { name: $comp, version: '1.0.0' })-[:IS_VERSION_OF]->(t)
+        CREATE (owningTeam:Team { name: $owningTeam })
+        CREATE (s:System { name: $sys })-[:USES]->(c)
+        CREATE (owningTeam)-[:OWNS]->(s)
+      `, {
+        tech: `${PREFIX}gap-tech`,
+        comp: `${PREFIX}gap-comp`,
+        owningTeam: `${PREFIX}gap-team`,
+        sys: `${PREFIX}gap-sys`,
+      })
+
+      const rows = await repo.getGraph(`${PREFIX}gap-tech`)
+      const row = rows!.find(r => r.systemName === `${PREFIX}gap-sys`)
+
+      expect(row).toBeDefined()
+      expect(row!.approved).toBe(false)
+      expect(row!.time).toBeNull()
+    })
+
+    it('should prefer an environment-specific approval over a blanket one, and fall back to blanket when no environment-specific approval exists', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (c:Component { name: $comp, version: '1.0.0' })-[:IS_VERSION_OF]->(t)
+        CREATE (team:Team { name: $team })
+        CREATE (prodSys:System { name: $prodSys, environment: 'prod' })-[:USES]->(c)
+        CREATE (devSys:System { name: $devSys, environment: 'dev' })-[:USES]->(c)
+        CREATE (team)-[:OWNS]->(prodSys)
+        CREATE (team)-[:OWNS]->(devSys)
+        CREATE (team)-[:APPROVES { time: 'eliminate', environment: 'prod' }]->(t)
+        CREATE (team)-[:APPROVES { time: 'invest' }]->(t)
+      `, {
+        tech: `${PREFIX}env-tech`,
+        comp: `${PREFIX}env-comp`,
+        team: `${PREFIX}env-team`,
+        prodSys: `${PREFIX}env-prod-sys`,
+        devSys: `${PREFIX}env-dev-sys`,
+      })
+
+      const rows = await repo.getGraph(`${PREFIX}env-tech`)
+      const prodRow = rows!.find(r => r.systemName === `${PREFIX}env-prod-sys`)
+      const devRow = rows!.find(r => r.systemName === `${PREFIX}env-dev-sys`)
+
+      expect(prodRow!.time).toBe('eliminate')
+      expect(devRow!.time).toBe('invest')
+    })
+  })
+
   describe('[pin] upsertApproval()', () => {
     it('should create and then update approval for same environment', async () => {
       if (!ctx.neo4jAvailable) return
