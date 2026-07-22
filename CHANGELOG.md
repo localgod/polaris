@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.75] - 2026-07-22
+
+## What's Changed
+
+- Redesign homepage dashboard to focus on actionable "Needs Attention" signals @localgod (#784)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.74...v0.6.75
+
 ## [0.6.72] - 2026-07-20
 
 ## What's Changed
