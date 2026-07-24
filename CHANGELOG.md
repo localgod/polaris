@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.77] - 2026-07-24
+
+## What's Changed
+
+- Show component descriptions in the link queue @localgod (#789)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.76...v0.6.77
+
 ## [0.6.72] - 2026-07-20
 
 ## What's Changed
