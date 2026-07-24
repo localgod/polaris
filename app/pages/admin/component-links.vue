@@ -160,6 +160,7 @@ import type { ApiResponse } from '~~/types/api'
 interface LinkSuggestion {
   name: string
   packageManager: string | null
+  description: string | null
   purlName: string
   suggestedTechnologies: string[]
   hasExactMatch: boolean
@@ -180,6 +181,7 @@ interface TeamsResponse {
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
+const UIcon = resolveComponent('UIcon')
 
 const { searchInput, debouncedSearch } = useTableSearch()
 
@@ -218,7 +220,15 @@ const columns: TableColumn<LinkSuggestion>[] = [
   {
     accessorKey: 'name',
     header: 'Component',
-    cell: ({ row }) => h('span', { class: 'font-medium' }, row.original.name)
+    cell: ({ row }) => {
+      const description = row.original.description
+      if (!description) return h('span', { class: 'font-medium' }, row.original.name)
+      const content = h('span', { class: 'inline-flex items-center gap-1.5 font-medium' }, [
+        row.original.name,
+        h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-(--ui-text-muted)' })
+      ])
+      return h(UTooltip, { text: description }, () => content)
+    }
   },
   {
     accessorKey: 'packageManager',

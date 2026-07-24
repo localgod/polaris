@@ -168,6 +168,15 @@ export class GitHubImportService {
     logger.info({ projectName, repoDir }, 'Running cdxgen for GitHub import')
     const startedAt = Date.now()
 
+    // With installDeps: false, cdxgen has no local node_modules to read
+    // per-package description/license/homepage from — so npm/yarn components
+    // normally come back with none of that metadata. CDXGEN_FETCH_PKG_METADATA
+    // makes cdxgen fetch the same fields from the public registry (e.g.
+    // registry.npmjs.org) instead — read-only HTTP lookups, no install
+    // scripts run — matching the pattern cdxgen's own CLI uses.
+    const originalFetchPkgMetadata = process.env.CDXGEN_FETCH_PKG_METADATA
+    process.env.CDXGEN_FETCH_PKG_METADATA = 'true'
+
     try {
       const bom = await createBom(repoDir, {
         installDeps: false,
@@ -194,6 +203,12 @@ export class GitHubImportService {
     } catch (err) {
       logger.error({ err, projectName, durationMs: Date.now() - startedAt }, 'cdxgen threw during GitHub import')
       throw err
+    } finally {
+      if (originalFetchPkgMetadata === undefined) {
+        delete process.env.CDXGEN_FETCH_PKG_METADATA
+      } else {
+        process.env.CDXGEN_FETCH_PKG_METADATA = originalFetchPkgMetadata
+      }
     }
   }
 }

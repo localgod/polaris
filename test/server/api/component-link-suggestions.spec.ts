@@ -27,6 +27,7 @@ const mockSuggestion = {
   purl: 'pkg:npm/react@18.2.0',
   name: 'react',
   packageManager: 'npm',
+  description: 'A JavaScript library for building user interfaces.',
   purlName: 'react',
   suggestedTechnologies: ['React'],
   hasExactMatch: true

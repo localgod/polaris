@@ -47,6 +47,7 @@ export interface LinkSuggestion {
   name: string
   version: string
   packageManager: string | null
+  description: string | null
   purlName: string
   suggestedTechnologies: string[]
   hasExactMatch: boolean
@@ -402,6 +403,7 @@ export class ComponentRepository extends BaseRepository {
         purl: record.get('purl') as string,
         name: record.get('name') as string,
         packageManager: record.get('packageManager') as string | null,
+        description: record.get('description') as string | null,
         purlName: record.get('purlName') as string,
         suggestedTechnologies: (record.get('suggestedTechnologies') as string[]).filter(Boolean),
         hasExactMatch: record.get('hasExactMatch') as boolean
