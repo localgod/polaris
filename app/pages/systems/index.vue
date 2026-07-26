@@ -119,7 +119,12 @@
             <template v-else>
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p class="font-medium">{{ ownerRepositories.length }} repositories found</p>
+                  <p class="font-medium">
+                    {{ visibleOwnerRepositories.length }} repositories found
+                    <span v-if="visibleOwnerRepositories.length !== ownerRepositories.length" class="text-(--ui-text-muted) font-normal">
+                      ({{ ownerRepositories.length - visibleOwnerRepositories.length }} hidden)
+                    </span>
+                  </p>
                   <p class="text-sm text-(--ui-text-muted)">{{ selectedRepositoryFullNames.length }} selected</p>
                 </div>
                 <div class="flex gap-2">
@@ -127,9 +132,13 @@
                   <UButton label="Clear" size="xs" color="neutral" variant="ghost" @click="clearSelectedOwnerRepositories" />
                 </div>
               </div>
+              <div class="flex flex-wrap items-center gap-4">
+                <USwitch v-model="hidePrivateRepos" label="Hide private" size="sm" />
+                <USwitch v-model="hideArchivedRepos" label="Hide archived" size="sm" />
+              </div>
               <div class="max-h-80 overflow-auto divide-y divide-(--ui-border) rounded-md border border-(--ui-border)">
                 <label
-                  v-for="repo in ownerRepositories"
+                  v-for="repo in visibleOwnerRepositories"
                   :key="repo.fullName"
                   class="flex cursor-pointer items-start gap-3 px-3 py-2"
                 >
@@ -202,6 +211,13 @@
 
           <!-- Step 3: Progress -->
           <div v-else-if="importStep === 3" class="space-y-4">
+            <UAlert
+              v-if="isJobRunning"
+              color="info"
+              variant="subtle"
+              icon="i-lucide-info"
+              description="This import continues running in the background even if you close this dialog. Visit Import Jobs (admin) anytime to check progress or cancel it."
+            />
             <USkeleton v-if="!activeImportJob" class="h-32 w-full" />
             <div v-else class="space-y-3">
               <div class="flex items-center justify-between gap-3">
@@ -274,10 +290,17 @@
         </template>
         <template v-else-if="importStep === 3">
           <UButton
+            v-if="isJobRunning"
+            label="View in Background Jobs"
+            icon="i-lucide-external-link"
+            color="neutral"
+            variant="outline"
+            to="/admin/import-jobs"
+          />
+          <UButton
             label="Close"
             color="neutral"
             variant="outline"
-            :disabled="isJobRunning"
             @click="closeImportModal"
           />
         </template>
@@ -570,8 +593,21 @@ const ownerRepositories = ref<OwnerRepository[]>([])
 const selectedRepositoryFullNames = ref<string[]>([])
 const repoConfigs = ref<RepoConfig[]>([])
 const defaultTeam = ref('')
+const hidePrivateRepos = ref(false)
+const hideArchivedRepos = ref(false)
 let importPollTimer: ReturnType<typeof setInterval> | null = null
 let importPollInFlight = false
+
+const visibleOwnerRepositories = computed(() =>
+  ownerRepositories.value.filter(repo =>
+    (!hidePrivateRepos.value || !repo.private) && (!hideArchivedRepos.value || !repo.archived)
+  )
+)
+
+watch([hidePrivateRepos, hideArchivedRepos], () => {
+  const visibleFullNames = new Set(visibleOwnerRepositories.value.map(repo => repo.fullName))
+  selectedRepositoryFullNames.value = selectedRepositoryFullNames.value.filter(name => visibleFullNames.has(name))
+})
 
 const importProgressPercent = computed(() => {
   if (!activeImportJob.value?.total) return 0
@@ -623,10 +659,12 @@ function stopImportPolling() {
 function resetOwnerRepositorySelection() {
   ownerRepositories.value = []
   selectedRepositoryFullNames.value = []
+  hidePrivateRepos.value = false
+  hideArchivedRepos.value = false
 }
 
 function selectAllOwnerRepositories() {
-  selectedRepositoryFullNames.value = ownerRepositories.value.map(repo => repo.fullName)
+  selectedRepositoryFullNames.value = visibleOwnerRepositories.value.map(repo => repo.fullName)
 }
 
 function clearSelectedOwnerRepositories() {
@@ -640,7 +678,7 @@ function toggleOwnerRepository(fullName: string, selected: boolean) {
   } else {
     current.delete(fullName)
   }
-  selectedRepositoryFullNames.value = ownerRepositories.value
+  selectedRepositoryFullNames.value = visibleOwnerRepositories.value
     .map(repo => repo.fullName)
     .filter(name => current.has(name))
 }

@@ -6,7 +6,6 @@ import {
   complianceService,
   healthRefreshService,
   componentService,
-  gitHubOrgImportService,
   teamService
 } from '../../../server/services/singletons'
 
@@ -15,7 +14,6 @@ vi.mock('../../../server/services/singletons', () => ({
   complianceService: { findViolations: vi.fn() },
   healthRefreshService: { getDashboardSummary: vi.fn() },
   componentService: { getLinkSuggestions: vi.fn() },
-  gitHubOrgImportService: { findRecentActive: vi.fn() },
   teamService: { getStewardshipGaps: vi.fn() }
 }))
 
@@ -73,10 +71,6 @@ beforeEach(() => {
   })
   vi.mocked(healthRefreshService.getDashboardSummary).mockResolvedValue(healthSummary as never)
   vi.mocked(teamService.getStewardshipGaps).mockResolvedValue(stewardshipGaps)
-  vi.mocked(gitHubOrgImportService.findRecentActive).mockResolvedValue({
-    total: 1,
-    jobs: [{ id: 'job-1', status: 'failed', organization: 'acme', total: 3, completed: 1, failed: 1, createdAt: '2026-01-01T00:00:00Z', error: 'boom' }]
-  })
   vi.mocked(componentService.getLinkSuggestions).mockResolvedValue({ data: [], count: 0, total: 7 })
 })
 
@@ -98,10 +92,6 @@ describe('[pin] GET /api/dashboard/attention', () => {
       topItems: [{ name: 'OldTech', version: '1.0.0', systemCount: 4 }]
     })
     expect(result.data.stewardshipGaps).toEqual(stewardshipGaps)
-    expect(result.data.importJobHealth.total).toBe(1)
-    expect(result.data.importJobHealth.jobs).toEqual([
-      { id: 'job-1', organization: 'acme', status: 'failed', createdAt: '2026-01-01T00:00:00Z' }
-    ])
   })
 
   it('omits the component link queue for non-superusers', async () => {

@@ -289,10 +289,6 @@ export interface DashboardAttentionSummary {
     samplePlatforms: string[]
     sampleSystems: string[]
   }
-  importJobHealth: {
-    total: number
-    jobs: Array<{ id: string; organization: string; status: string; createdAt: string }>
-  }
 }
 
 export type VersionSprawlSeverity = 'high' | 'medium' | 'low'

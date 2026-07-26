@@ -5360,10 +5360,54 @@
           "Dashboard"
         ],
         "summary": "Get prioritized, actionable dashboard items",
-        "description": "Aggregates the portfolio's actionable signals — compliance violations,\nversion constraint violations, EOL exposure, vulnerability exposure,\nthe unlinked-component queue, stewardship/ownership gaps, and GitHub\nimport job health — into a single \"needs attention\" summary.\n",
+        "description": "Aggregates the portfolio's actionable signals — compliance violations,\nversion constraint violations, EOL exposure, vulnerability exposure,\nthe unlinked-component queue, and stewardship/ownership gaps — into a\nsingle \"needs attention\" summary.\n",
         "responses": {
           "200": {
             "description": "Attention summary retrieved successfully"
+          }
+        }
+      }
+    },
+    "/components/undismiss-link": {
+      "post": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Restore a dismissed component to the link suggestions queue",
+        "description": "Clears the dismissal (all versions), so the component can reappear in /components/link-suggestions. Superuser only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "componentName"
+                ],
+                "properties": {
+                  "componentName": {
+                    "type": "string",
+                    "description": "The component name to restore (all versions)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Component restored to queue"
+          },
+          "400": {
+            "description": "Missing componentName"
+          },
+          "403": {
+            "description": "Superuser access required"
           }
         }
       }
@@ -5678,6 +5722,55 @@
           },
           "400": {
             "description": "Missing component name or version"
+          }
+        }
+      }
+    },
+    "/components/dismissed-links": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Get components dismissed from the link-suggestions queue",
+        "description": "Returns components previously dismissed via /components/dismiss-link, so they can be restored to the queue. Superuser only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on component name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dismissed components returned"
+          },
+          "403": {
+            "description": "Superuser access required"
           }
         }
       }
@@ -7151,6 +7244,63 @@
         }
       }
     },
+    "/admin/import/jobs": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List GitHub import jobs",
+        "description": "Paginated, filterable listing of all import jobs for the admin monitoring view. Superuser only.",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of statuses to include (queued, running, completed, failed, cancelled)"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on organization"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import jobs retrieved successfully"
+          },
+          "403": {
+            "description": "Superuser access required"
+          }
+        }
+      }
+    },
     "/admin/import/jobs/{jobId}": {
       "get": {
         "tags": [
@@ -7181,6 +7331,80 @@
           },
           "404": {
             "description": "Import job not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a GitHub import job",
+        "description": "Permanently removes a finished import job and its repository items.\nQueued/running jobs must be cancelled first. Superuser only.\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import job deleted"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Import job not found"
+          },
+          "409": {
+            "description": "Job is still queued/running and must be cancelled first"
+          }
+        }
+      }
+    },
+    "/admin/import/jobs/{jobId}/cancel": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Cancel a GitHub import job",
+        "description": "Cancels a queued or running import job. Any not-yet-finished repositories\nare marked skipped. Superuser only.\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import job cancelled"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Import job not found"
+          },
+          "409": {
+            "description": "Job is already finished and cannot be cancelled"
           }
         }
       }
@@ -7248,6 +7472,171 @@
           },
           "422": {
             "description": "GitHub owner not accessible"
+          }
+        }
+      }
+    },
+    "/admin/health-refresh/jobs": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List health-refresh jobs",
+        "description": "Paginated, filterable listing of all health-refresh jobs for the admin monitoring view. Superuser only.",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of statuses to include (queued, running, completed, failed, cancelled)"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on system name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health-refresh jobs retrieved successfully"
+          },
+          "403": {
+            "description": "Superuser access required"
+          }
+        }
+      }
+    },
+    "/admin/health-refresh/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get health-refresh job status",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health-refresh job status"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Health-refresh job not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a health-refresh job",
+        "description": "Permanently removes a finished health-refresh job and its items.\nQueued/running jobs must be cancelled first. Superuser only.\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health-refresh job deleted"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Health-refresh job not found"
+          },
+          "409": {
+            "description": "Job is still queued/running and must be cancelled first"
+          }
+        }
+      }
+    },
+    "/admin/health-refresh/jobs/{jobId}/cancel": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Cancel a health-refresh job",
+        "description": "Cancels a queued or running health-refresh job. Any not-yet-finished\nitems are marked skipped. Superuser only.\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health-refresh job cancelled"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "Health-refresh job not found"
+          },
+          "409": {
+            "description": "Job is already finished and cannot be cancelled"
           }
         }
       }

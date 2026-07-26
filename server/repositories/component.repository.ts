@@ -53,6 +53,14 @@ export interface LinkSuggestion {
   hasExactMatch: boolean
 }
 
+export interface DismissedComponent {
+  name: string
+  packageManager: string | null
+  description: string | null
+  purl: string | null
+  dismissedAt: string
+}
+
 export interface ComponentEOLCandidate {
   name: string
   version: string
@@ -415,6 +423,31 @@ export class ComponentRepository extends BaseRepository {
   async dismissLink(componentName: string): Promise<void> {
     const query = await loadQuery('components/dismiss-link.cypher')
     await this.executeQuery(query, { componentName })
+  }
+
+  async undismissLink(componentName: string): Promise<void> {
+    const query = await loadQuery('components/undismiss-link.cypher')
+    await this.executeQuery(query, { componentName })
+  }
+
+  async getDismissedLinks(skip: number, limit: number, search?: string): Promise<{ data: DismissedComponent[]; total: number }> {
+    const countQuery = await loadQuery('components/dismissed-links-count.cypher')
+    const dataQuery = await loadQuery('components/dismissed-links.cypher')
+
+    const { records: countRecords } = await this.executeQuery(countQuery, { search: search || null })
+    const total = countRecords.length > 0 ? countRecords[0]!.get('total').toNumber() : 0
+
+    const { records } = await this.executeQuery(dataQuery, { skip, limit, search: search || null })
+    return {
+      data: records.map(record => ({
+        name: record.get('name') as string,
+        packageManager: record.get('packageManager') as string | null,
+        description: record.get('description') as string | null,
+        purl: record.get('purl') as string | null,
+        dismissedAt: record.get('dismissedAt') as string
+      })),
+      total
+    }
   }
 
   async findEOLCandidates(): Promise<ComponentEOLCandidate[]> {

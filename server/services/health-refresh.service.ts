@@ -13,7 +13,9 @@ import { ComponentRepository } from '../repositories/component.repository'
 import {
   HealthRefreshRepository,
   type AdvisorySnapshot,
-  type HealthRefreshJobItem
+  type HealthRefreshJob,
+  type HealthRefreshJobItem,
+  type FindAllHealthRefreshJobsParams
 } from '../repositories/health-refresh.repository'
 import { calculateMaintenanceHealth } from '../utils/component-health'
 import { logger } from '../utils/logger'
@@ -82,6 +84,73 @@ export class HealthRefreshService {
     return await this.healthRepo.getDashboardSummary()
   }
 
+  async findAll(params: FindAllHealthRefreshJobsParams = {}) {
+    return await this.healthRepo.findAll(params)
+  }
+
+  async findById(id: string): Promise<HealthRefreshJob | null> {
+    return await this.healthRepo.findById(id)
+  }
+
+  /**
+   * Cancels a queued/running job. A job orphaned by a dead/restarted process (no
+   * live `processJob()` loop anywhere) is cancelled purely at the DB level; a job
+   * still executing in *this* process is stopped between batches via the status
+   * check in `processJob`.
+   */
+  async cancel(jobId: string, actor: { userId: string; realUserId?: string | null }): Promise<HealthRefreshJob> {
+    const job = await this.healthRepo.findById(jobId)
+    if (!job) {
+      throw createError({ statusCode: 404, message: 'Health-refresh job not found' })
+    }
+    if (job.status !== 'queued' && job.status !== 'running') {
+      throw createError({ statusCode: 409, message: `Cannot cancel a job with status '${job.status}'` })
+    }
+
+    await this.healthRepo.markCancelled(jobId)
+    await this.healthRepo.cancelPendingItems(jobId)
+
+    await this.auditRepo.create({
+      operation: 'CANCEL',
+      entityType: 'HealthRefreshJob',
+      entityId: jobId,
+      entityLabel: job.systemName ? `Health refresh for ${job.systemName}` : 'Scheduled health refresh',
+      changedFields: ['status'],
+      source: 'Background Jobs Admin',
+      userId: actor.userId,
+      realUserId: actor.realUserId ?? null
+    })
+
+    return (await this.healthRepo.findById(jobId))!
+  }
+
+  /**
+   * Deletes a finished job. Active jobs must be cancelled first — deleting out from
+   * under a still-running `processJob()` loop would let it keep writing to a node
+   * that no longer exists (silently, since the mark-* queries just no-op).
+   */
+  async remove(jobId: string, actor: { userId: string; realUserId?: string | null }): Promise<void> {
+    const job = await this.healthRepo.findById(jobId)
+    if (!job) {
+      throw createError({ statusCode: 404, message: 'Health-refresh job not found' })
+    }
+    if (job.status === 'queued' || job.status === 'running') {
+      throw createError({ statusCode: 409, message: 'Cancel the job before deleting it' })
+    }
+
+    await this.healthRepo.delete(jobId)
+
+    await this.auditRepo.create({
+      operation: 'DELETE',
+      entityType: 'HealthRefreshJob',
+      entityId: jobId,
+      entityLabel: job.systemName ? `Health refresh for ${job.systemName}` : 'Scheduled health refresh',
+      source: 'Background Jobs Admin',
+      userId: actor.userId,
+      realUserId: actor.realUserId ?? null
+    })
+  }
+
   async processNextQueuedJob(options: { batchSize?: number } = {}): Promise<string | null> {
     const jobId = await this.healthRepo.claimNextQueuedJob()
     if (!jobId) return null
@@ -107,6 +176,8 @@ export class HealthRefreshService {
     const correlationId = job?.correlationId ?? null
 
     while (true) {
+      if ((await this.healthRepo.getStatus(jobId)) === 'cancelled') break
+
       const items = await this.healthRepo.getPendingItems(jobId, batchSize)
       if (items.length === 0) break
 
@@ -123,7 +194,9 @@ export class HealthRefreshService {
       }
     }
 
-    await this.healthRepo.markJobCompletedIfDone(jobId)
+    if ((await this.healthRepo.getStatus(jobId)) !== 'cancelled') {
+      await this.healthRepo.markJobCompletedIfDone(jobId)
+    }
     logger.info({
       jobId,
       correlationId,

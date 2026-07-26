@@ -73,7 +73,11 @@ function createHealthRepo(correlationId: string | null = null) {
     markItemRunning: vi.fn(async () => {}),
     upsertHealthSnapshot: vi.fn(async () => {}),
     markItemFinished: vi.fn(async () => {}),
-    markJobCompletedIfDone: vi.fn(async () => {})
+    markJobCompletedIfDone: vi.fn(async () => {}),
+    getStatus: vi.fn(async () => 'running'),
+    markCancelled: vi.fn(async () => {}),
+    cancelPendingItems: vi.fn(async () => {}),
+    delete: vi.fn(async () => {})
   }
 }
 
@@ -248,5 +252,109 @@ describe('[contract] HealthRefreshService', () => {
       operation: 'HEALTH_REFRESH_FAILED',
       correlationId: 'corr-sbom-1'
     }))
+  })
+})
+
+describe('[pin] HealthRefreshService findAll()/findById()', () => {
+  it('delegates findAll to the repository', async () => {
+    const healthRepo = { findAll: vi.fn().mockResolvedValue({ total: 1, jobs: [] }) }
+    const service = new HealthRefreshService(healthRepo as never)
+
+    const result = await service.findAll({ skip: 10, limit: 5 })
+
+    expect(healthRepo.findAll).toHaveBeenCalledWith({ skip: 10, limit: 5 })
+    expect(result).toEqual({ total: 1, jobs: [] })
+  })
+
+  it('delegates findById to the repository', async () => {
+    const job = { id: 'job-1', status: 'completed' }
+    const healthRepo = { findById: vi.fn().mockResolvedValue(job) }
+    const service = new HealthRefreshService(healthRepo as never)
+
+    const result = await service.findById('job-1')
+
+    expect(healthRepo.findById).toHaveBeenCalledWith('job-1')
+    expect(result).toEqual(job)
+  })
+})
+
+describe('[pin] HealthRefreshService processJob() respects cancellation', () => {
+  it('stops before fetching pending items once the job is cancelled', async () => {
+    const healthRepo = {
+      findById: vi.fn().mockResolvedValue({ id: 'job-1', correlationId: null }),
+      getStatus: vi.fn().mockResolvedValue('cancelled'),
+      getPendingItems: vi.fn(),
+      markJobCompletedIfDone: vi.fn()
+    }
+    const service = new HealthRefreshService(healthRepo as never)
+
+    await service.processJob('job-1')
+
+    expect(healthRepo.getPendingItems).not.toHaveBeenCalled()
+    expect(healthRepo.markJobCompletedIfDone).not.toHaveBeenCalled()
+  })
+})
+
+describe('[pin] HealthRefreshService cancel()', () => {
+  it('cancels a running job and its pending items', async () => {
+    const healthRepo = {
+      findById: vi.fn().mockResolvedValue({ id: 'job-1', status: 'running', systemName: 'acme' }),
+      markCancelled: vi.fn().mockResolvedValue(undefined),
+      cancelPendingItems: vi.fn().mockResolvedValue(undefined)
+    }
+    const auditRepo = { create: vi.fn().mockResolvedValue(undefined) }
+    const service = new HealthRefreshService(healthRepo as never, {} as never, auditRepo as never)
+
+    const result = await service.cancel('job-1', { userId: 'admin-1', realUserId: null })
+
+    expect(healthRepo.markCancelled).toHaveBeenCalledWith('job-1')
+    expect(healthRepo.cancelPendingItems).toHaveBeenCalledWith('job-1')
+    expect(auditRepo.create).toHaveBeenCalledWith(expect.objectContaining({ operation: 'CANCEL', entityType: 'HealthRefreshJob' }))
+    expect(result).toEqual({ id: 'job-1', status: 'running', systemName: 'acme' })
+  })
+
+  it('rejects cancelling a job that is not queued/running', async () => {
+    const healthRepo = { findById: vi.fn().mockResolvedValue({ id: 'job-1', status: 'completed' }) }
+    const service = new HealthRefreshService(healthRepo as never)
+
+    await expect(service.cancel('job-1', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 409 })
+  })
+
+  it('rejects cancelling an unknown job', async () => {
+    const healthRepo = { findById: vi.fn().mockResolvedValue(null) }
+    const service = new HealthRefreshService(healthRepo as never)
+
+    await expect(service.cancel('missing-job', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 404 })
+  })
+})
+
+describe('[pin] HealthRefreshService remove()', () => {
+  it('deletes a finished job', async () => {
+    const healthRepo = {
+      findById: vi.fn().mockResolvedValue({ id: 'job-1', status: 'completed', systemName: 'acme' }),
+      delete: vi.fn().mockResolvedValue(undefined)
+    }
+    const auditRepo = { create: vi.fn().mockResolvedValue(undefined) }
+    const service = new HealthRefreshService(healthRepo as never, {} as never, auditRepo as never)
+
+    await service.remove('job-1', { userId: 'admin-1', realUserId: null })
+
+    expect(healthRepo.delete).toHaveBeenCalledWith('job-1')
+    expect(auditRepo.create).toHaveBeenCalledWith(expect.objectContaining({ operation: 'DELETE', entityType: 'HealthRefreshJob' }))
+  })
+
+  it('rejects deleting a queued/running job', async () => {
+    const healthRepo = { findById: vi.fn().mockResolvedValue({ id: 'job-1', status: 'running' }), delete: vi.fn() }
+    const service = new HealthRefreshService(healthRepo as never)
+
+    await expect(service.remove('job-1', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 409 })
+    expect(healthRepo.delete).not.toHaveBeenCalled()
+  })
+
+  it('rejects deleting an unknown job', async () => {
+    const healthRepo = { findById: vi.fn().mockResolvedValue(null) }
+    const service = new HealthRefreshService(healthRepo as never)
+
+    await expect(service.remove('missing-job', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 404 })
   })
 })

@@ -161,6 +161,7 @@ interface LinkSuggestion {
   name: string
   packageManager: string | null
   description: string | null
+  purl: string
   purlName: string
   suggestedTechnologies: string[]
   hasExactMatch: boolean
@@ -221,13 +222,17 @@ const columns: TableColumn<LinkSuggestion>[] = [
     accessorKey: 'name',
     header: 'Component',
     cell: ({ row }) => {
-      const description = row.original.description
-      if (!description) return h('span', { class: 'font-medium' }, row.original.name)
-      const content = h('span', { class: 'inline-flex items-center gap-1.5 font-medium' }, [
-        row.original.name,
-        h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-(--ui-text-muted)' })
+      const { name, description, purl } = row.original
+      const nameEl = description
+        ? h(UTooltip, { text: description }, () => h('span', { class: 'inline-flex items-center gap-1.5 font-medium' }, [
+            name,
+            h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-(--ui-text-muted)' })
+          ]))
+        : h('span', { class: 'font-medium' }, name)
+      return h('div', {}, [
+        nameEl,
+        h('div', { class: 'text-xs text-(--ui-text-muted) font-mono truncate' }, purl)
       ])
-      return h(UTooltip, { text: description }, () => content)
     }
   },
   {

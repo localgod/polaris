@@ -4,7 +4,6 @@ import {
   complianceService,
   healthRefreshService,
   componentService,
-  gitHubOrgImportService,
   teamService
 } from '../../services/singletons'
 import { cachedFetch } from '../../utils/cache'
@@ -20,8 +19,8 @@ import type { DashboardAttentionSummary } from '~~/types/api'
  *     description: |
  *       Aggregates the portfolio's actionable signals — compliance violations,
  *       version constraint violations, EOL exposure, vulnerability exposure,
- *       the unlinked-component queue, stewardship/ownership gaps, and GitHub
- *       import job health — into a single "needs attention" summary.
+ *       the unlinked-component queue, and stewardship/ownership gaps — into a
+ *       single "needs attention" summary.
  *     responses:
  *       200:
  *         description: Attention summary retrieved successfully
@@ -42,14 +41,12 @@ async function buildAttentionSummary(currentUser: Awaited<ReturnType<typeof getC
     compliance,
     healthSummary,
     stewardshipGaps,
-    importJobHealth,
     linkQueue
   ] = await Promise.all([
     versionConstraintService.getViolations({}),
     complianceService.findViolations(),
     healthRefreshService.getDashboardSummary(),
     teamService.getStewardshipGaps(),
-    gitHubOrgImportService.findRecentActive(),
     currentUser?.role === 'superuser'
       ? componentService.getLinkSuggestions(0, 5)
       : Promise.resolve(null)
@@ -77,16 +74,7 @@ async function buildAttentionSummary(currentUser: Awaited<ReturnType<typeof getC
       warning: versionViolations.summary.warning
     },
     componentLinkQueue: linkQueue ? { total: linkQueue.total } : null,
-    stewardshipGaps,
-    importJobHealth: {
-      total: importJobHealth.total,
-      jobs: importJobHealth.jobs.map(job => ({
-        id: job.id,
-        organization: job.organization,
-        status: job.status,
-        createdAt: job.createdAt
-      }))
-    }
+    stewardshipGaps
   }
 
   return { success: true, data }
