@@ -59,11 +59,22 @@ export interface ImportJobSummary {
   id: string
   status: ImportJobStatus
   organization: string
+  requestedBy: string
   total: number
   completed: number
   failed: number
+  skipped: number
   createdAt: string
+  startedAt: string | null
+  finishedAt: string | null
   error: string | null
+}
+
+export interface FindAllImportJobsParams {
+  skip?: number
+  limit?: number
+  statuses?: ImportJobStatus[]
+  search?: string
 }
 
 export interface CreateImportJobItemParams {
@@ -108,12 +119,23 @@ export class ImportJobRepository extends BaseRepository {
     return this.mapJob(records[0]!)
   }
 
+  async getStatus(id: string): Promise<ImportJobStatus | null> {
+    const { records } = await this.executeQuery(await loadQuery('import-jobs/get-status.cypher'), { id })
+
+    if (records.length === 0) return null
+    return records[0]!.get('status') as ImportJobStatus
+  }
+
   /**
-   * Currently active jobs (running/queued) plus jobs that failed within the
-   * last `sinceHours` — the set worth surfacing on a "needs attention" view.
+   * Paginated, filterable job listing for the admin monitoring view.
    */
-  async findRecentActive(sinceHours = 24, limit = 5): Promise<{ total: number; jobs: ImportJobSummary[] }> {
-    const { records } = await this.executeQuery(await loadQuery('import-jobs/find-recent-active.cypher'), { sinceHours, limit: neo4j.int(limit) })
+  async findAll(params: FindAllImportJobsParams = {}): Promise<{ total: number; jobs: ImportJobSummary[] }> {
+    const { records } = await this.executeQuery(await loadQuery('import-jobs/find-all.cypher'), {
+      statuses: params.statuses && params.statuses.length > 0 ? params.statuses : null,
+      search: params.search?.trim() || null,
+      skip: neo4j.int(params.skip ?? 0),
+      limit: neo4j.int(params.limit ?? 20)
+    })
 
     if (records.length === 0) return { total: 0, jobs: [] }
 
@@ -136,6 +158,20 @@ export class ImportJobRepository extends BaseRepository {
 
   async markFailed(id: string, error: string): Promise<void> {
     await this.executeQuery(await loadQuery('import-jobs/mark-failed.cypher'), { id, error })
+  }
+
+  /** Only transitions jobs still in `queued`/`running` — a no-op on already-finished jobs. */
+  async markCancelled(id: string): Promise<void> {
+    await this.executeQuery(await loadQuery('import-jobs/mark-cancelled.cypher'), { id })
+  }
+
+  /** Marks any not-yet-finished items as skipped once their job is cancelled, keeping progress counters consistent. */
+  async cancelPendingItems(jobId: string): Promise<void> {
+    await this.executeQuery(await loadQuery('import-jobs/cancel-pending-items.cypher'), { jobId })
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.executeQuery(await loadQuery('import-jobs/delete-job.cypher'), { id })
   }
 
   async createItems(jobId: string, items: CreateImportJobItemParams[]): Promise<void> {
@@ -208,10 +244,14 @@ export class ImportJobRepository extends BaseRepository {
       id: job.id as string,
       status: job.status as ImportJobStatus,
       organization: job.organization as string,
+      requestedBy: job.requestedBy as string,
       total: intValue(job.total),
       completed: intValue(job.completed),
       failed: intValue(job.failed),
+      skipped: intValue(job.skipped),
       createdAt: job.createdAt?.toString() || '',
+      startedAt: job.startedAt?.toString() || null,
+      finishedAt: job.finishedAt?.toString() || null,
       error: (job.error as string | null | undefined) ?? null
     }
   }

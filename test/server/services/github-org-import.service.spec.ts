@@ -43,9 +43,14 @@ function createRepoMocks() {
   return {
     create: vi.fn().mockResolvedValue(baseJob),
     findById: vi.fn().mockResolvedValue({ ...baseJob, status: 'completed' }),
+    findAll: vi.fn().mockResolvedValue({ total: 0, jobs: [] }),
+    getStatus: vi.fn().mockResolvedValue('running'),
     markRunning: vi.fn().mockResolvedValue(undefined),
     markCompleted: vi.fn().mockResolvedValue(undefined),
     markFailed: vi.fn().mockResolvedValue(undefined),
+    markCancelled: vi.fn().mockResolvedValue(undefined),
+    cancelPendingItems: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
     createItems: vi.fn().mockResolvedValue(undefined),
     markItemRunning: vi.fn().mockResolvedValue(undefined),
     markItemFinished: vi.fn().mockResolvedValue(undefined)
@@ -321,5 +326,144 @@ describe('[pin] GitHubOrgImportService', () => {
       componentsAdded: 3
     }))
     expect(repo.markCompleted).toHaveBeenCalledWith('job-1')
+  })
+
+  it('skips marking a cancelled job completed after processing finishes', async () => {
+    const repo = createRepoMocks()
+    repo.getStatus.mockResolvedValue('cancelled')
+    vi.mocked(listGitHubOwnerRepositories).mockResolvedValue([])
+
+    const service = new GitHubOrgImportService(
+      repo as never,
+      { import: vi.fn() } as never,
+      { create: vi.fn() } as never
+    )
+
+    await service.process('job-1', {
+      organization: 'acme',
+      ownerTeam: 'Platform',
+      userId: 'user-1'
+    })
+
+    expect(repo.markCompleted).not.toHaveBeenCalled()
+  })
+
+  it('does not import a repository whose job was cancelled before its task started', async () => {
+    const repo = createRepoMocks()
+    repo.getStatus.mockResolvedValue('cancelled')
+    const importService = { import: vi.fn() }
+    vi.mocked(listGitHubOwnerRepositories).mockResolvedValue([
+      {
+        name: 'repo-a',
+        full_name: 'acme/repo-a',
+        html_url: 'https://github.com/acme/repo-a',
+        description: null,
+        default_branch: 'main',
+        language: 'TypeScript',
+        private: false,
+        fork: false,
+        archived: false,
+        topics: []
+      }
+    ])
+
+    const service = new GitHubOrgImportService(
+      repo as never,
+      importService as never,
+      { create: vi.fn() } as never
+    )
+
+    await service.process('job-1', {
+      organization: 'acme',
+      ownerTeam: 'Platform',
+      userId: 'user-1'
+    })
+
+    expect(importService.import).not.toHaveBeenCalled()
+    expect(repo.markItemRunning).not.toHaveBeenCalled()
+  })
+
+  describe('[pin] cancel()', () => {
+    it('cancels a running job and its pending items', async () => {
+      const repo = createRepoMocks()
+      repo.findById.mockResolvedValue({ ...baseJob, status: 'running' })
+      const service = new GitHubOrgImportService(
+        repo as never,
+        { import: vi.fn() } as never,
+        { create: vi.fn() } as never
+      )
+
+      const result = await service.cancel('job-1', { userId: 'admin-1', realUserId: null })
+
+      expect(repo.markCancelled).toHaveBeenCalledWith('job-1')
+      expect(repo.cancelPendingItems).toHaveBeenCalledWith('job-1')
+      expect(result).toEqual({ ...baseJob, status: 'running' })
+    })
+
+    it('rejects cancelling a job that is not queued/running', async () => {
+      const repo = createRepoMocks()
+      repo.findById.mockResolvedValue({ ...baseJob, status: 'completed' })
+      const service = new GitHubOrgImportService(
+        repo as never,
+        { import: vi.fn() } as never,
+        { create: vi.fn() } as never
+      )
+
+      await expect(service.cancel('job-1', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 409 })
+      expect(repo.markCancelled).not.toHaveBeenCalled()
+    })
+
+    it('rejects cancelling an unknown job', async () => {
+      const repo = createRepoMocks()
+      repo.findById.mockResolvedValue(null)
+      const service = new GitHubOrgImportService(
+        repo as never,
+        { import: vi.fn() } as never,
+        { create: vi.fn() } as never
+      )
+
+      await expect(service.cancel('missing-job', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 404 })
+    })
+  })
+
+  describe('[pin] remove()', () => {
+    it('deletes a finished job', async () => {
+      const repo = createRepoMocks()
+      repo.findById.mockResolvedValue({ ...baseJob, status: 'completed' })
+      const service = new GitHubOrgImportService(
+        repo as never,
+        { import: vi.fn() } as never,
+        { create: vi.fn() } as never
+      )
+
+      await service.remove('job-1', { userId: 'admin-1', realUserId: null })
+
+      expect(repo.delete).toHaveBeenCalledWith('job-1')
+    })
+
+    it('rejects deleting a queued/running job', async () => {
+      const repo = createRepoMocks()
+      repo.findById.mockResolvedValue({ ...baseJob, status: 'running' })
+      const service = new GitHubOrgImportService(
+        repo as never,
+        { import: vi.fn() } as never,
+        { create: vi.fn() } as never
+      )
+
+      await expect(service.remove('job-1', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 409 })
+      expect(repo.delete).not.toHaveBeenCalled()
+    })
+
+    it('rejects deleting an unknown job', async () => {
+      const repo = createRepoMocks()
+      repo.findById.mockResolvedValue(null)
+      const service = new GitHubOrgImportService(
+        repo as never,
+        { import: vi.fn() } as never,
+        { create: vi.fn() } as never
+      )
+
+      await expect(service.remove('missing-job', { userId: 'admin-1' })).rejects.toMatchObject({ statusCode: 404 })
+    })
   })
 })

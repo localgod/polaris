@@ -1,7 +1,8 @@
-import { rmSync, existsSync } from 'fs'
+import { rmSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
-import { createBom } from '@cyclonedx/cdxgen'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { logger } from '../utils/logger'
 import {
   parseGitHubRepo,
@@ -41,6 +42,49 @@ export interface GitHubImportResult {
   componentsAdded: number
   componentsUpdated: number
   relationshipsCreated: number
+}
+
+const execFileAsync = promisify(execFile)
+
+// cdxgen is run as its own subprocess (not imported in-process) so a memory-hungry or
+// runaway scan can only take down that child, never the Nitro server itself. Previously,
+// an in-process, unrestricted-project-type scan of a large repo OOM-killed the whole dev
+// server — see the incident where self-importing this repo took down `nuxt dev`.
+const CDXGEN_BIN = join(process.cwd(), 'node_modules', '@cyclonedx', 'cdxgen', 'bin', 'cdxgen.js')
+const CDXGEN_TIMEOUT_MS = 5 * 60 * 1000
+const CDXGEN_MAX_OLD_SPACE_MB = 2048
+
+// Best-effort narrowing of cdxgen's scan to the ecosystem GitHub already detected as the
+// repo's primary language — dramatically cuts scan cost vs. cdxgen's default "universal"
+// mode, which walks every manifest type it knows about (Maven, Gradle, pip, Cargo, ...).
+// Falls back to an unrestricted (but still subprocess-isolated) scan when unmapped.
+const GITHUB_LANGUAGE_TO_CDXGEN_TYPE: Record<string, string> = {
+  javascript: 'javascript',
+  typescript: 'typescript',
+  vue: 'typescript',
+  python: 'python',
+  java: 'java',
+  kotlin: 'java',
+  scala: 'scala',
+  go: 'go',
+  rust: 'rust',
+  php: 'php',
+  csharp: 'csharp',
+  'c#': 'csharp',
+  ruby: 'ruby',
+  swift: 'swift',
+  'objective-c': 'objective-c',
+  dart: 'dart',
+  c: 'c',
+  'c++': 'cpp',
+  clojure: 'clojure',
+  haskell: 'haskell',
+  elixir: 'elixir'
+}
+
+function resolveCdxgenProjectType(githubLanguage: string | null): string | null {
+  if (!githubLanguage) return null
+  return GITHUB_LANGUAGE_TO_CDXGEN_TYPE[githubLanguage.toLowerCase()] ?? null
 }
 
 export class GitHubImportService {
@@ -83,7 +127,7 @@ export class GitHubImportService {
       await this.createSystemWithRepo(metadata, input)
 
       // 4. Generate and submit SBOM
-      const sbom = await this.generateSBOM(tempDir, metadata.name)
+      const sbom = await this.generateSBOM(tempDir, metadata.name, metadata.language)
 
       if (sbom) {
         sbomResult = await this.sbomService.processSBOM({
@@ -163,51 +207,62 @@ export class GitHubImportService {
 
   /**
    * Run cdxgen on a cloned repository directory to generate an SBOM.
+   *
+   * Runs cdxgen as a subprocess rather than importing it in-process, capped with
+   * --max-old-space-size and a hard timeout, so a memory-hungry or hanging scan
+   * only kills that child process instead of the whole Nitro server.
    */
-  private async generateSBOM(repoDir: string, projectName: string): Promise<object | null> {
+  private async generateSBOM(repoDir: string, projectName: string, githubLanguage: string | null): Promise<object | null> {
     logger.info({ projectName, repoDir }, 'Running cdxgen for GitHub import')
     const startedAt = Date.now()
 
-    // With installDeps: false, cdxgen has no local node_modules to read
-    // per-package description/license/homepage from — so npm/yarn components
-    // normally come back with none of that metadata. CDXGEN_FETCH_PKG_METADATA
-    // makes cdxgen fetch the same fields from the public registry (e.g.
-    // registry.npmjs.org) instead — read-only HTTP lookups, no install
-    // scripts run — matching the pattern cdxgen's own CLI uses.
-    const originalFetchPkgMetadata = process.env.CDXGEN_FETCH_PKG_METADATA
-    process.env.CDXGEN_FETCH_PKG_METADATA = 'true'
+    const outputFile = join(repoDir, `.cdxgen-bom-${randomBytes(4).toString('hex')}.json`)
+    const projectType = resolveCdxgenProjectType(githubLanguage)
+
+    const args = [
+      `--max-old-space-size=${CDXGEN_MAX_OLD_SPACE_MB}`,
+      CDXGEN_BIN,
+      repoDir,
+      '-o', outputFile,
+      '--no-install-deps'
+    ]
+    if (projectType) {
+      args.push('-t', projectType)
+    }
 
     try {
-      const bom = await createBom(repoDir, {
-        installDeps: false,
-        projectName,
-        projectVersion: '1.0.0',
-        multiProject: true,
+      // With --no-install-deps, cdxgen has no local node_modules to read
+      // per-package description/license/homepage from — so npm/yarn components
+      // normally come back with none of that metadata. CDXGEN_FETCH_PKG_METADATA
+      // makes cdxgen fetch the same fields from the public registry (e.g.
+      // registry.npmjs.org) instead — read-only HTTP lookups, no install
+      // scripts run — matching the pattern cdxgen's own CLI uses.
+      await execFileAsync('node', args, {
+        timeout: CDXGEN_TIMEOUT_MS,
+        killSignal: 'SIGKILL',
+        maxBuffer: 20 * 1024 * 1024,
+        env: { ...process.env, CDXGEN_FETCH_PKG_METADATA: 'true' }
       })
+
       const durationMs = Date.now() - startedAt
 
-      if (!bom) {
-        logger.warn({ projectName, durationMs }, 'cdxgen returned no BOM')
+      if (!existsSync(outputFile)) {
+        logger.warn({ projectName, durationMs }, 'cdxgen produced no BOM file')
         return null
       }
 
-      logger.info({ projectName, durationMs }, 'cdxgen completed')
-
-      if (typeof bom === 'string') {
-        return JSON.parse(bom)
-      } else if (bom && typeof bom === 'object' && 'bomJson' in bom) {
-        return (bom as Record<string, unknown>).bomJson as object
-      }
-
-      return bom as object
+      logger.info({ projectName, durationMs, projectType }, 'cdxgen completed')
+      return JSON.parse(readFileSync(outputFile, 'utf8'))
     } catch (err) {
-      logger.error({ err, projectName, durationMs: Date.now() - startedAt }, 'cdxgen threw during GitHub import')
-      throw err
+      const durationMs = Date.now() - startedAt
+      const timedOut = (err as { killed?: boolean })?.killed === true
+      logger.error({ err, projectName, durationMs, timedOut }, 'cdxgen failed during GitHub import')
+      throw timedOut
+        ? new Error(`cdxgen timed out after ${CDXGEN_TIMEOUT_MS}ms while scanning ${projectName}`)
+        : err
     } finally {
-      if (originalFetchPkgMetadata === undefined) {
-        delete process.env.CDXGEN_FETCH_PKG_METADATA
-      } else {
-        process.env.CDXGEN_FETCH_PKG_METADATA = originalFetchPkgMetadata
+      if (existsSync(outputFile)) {
+        rmSync(outputFile, { force: true })
       }
     }
   }

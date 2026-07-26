@@ -215,29 +215,6 @@
           </div>
           <p class="text-xs text-(--ui-text-muted) mt-3">{{ attention.refreshCoverage.refreshedComponents }} of {{ attention.refreshCoverage.totalComponents }} direct components checked.</p>
         </UCard>
-
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-3">
-              <h3 class="font-semibold">Import Job Health</h3>
-              <UIcon name="i-lucide-download" class="size-5 text-(--ui-color-primary-500)" />
-            </div>
-          </template>
-          <div v-if="attention.importJobHealth.jobs.length > 0" class="space-y-3">
-            <div
-              v-for="job in attention.importJobHealth.jobs"
-              :key="job.id"
-              class="flex items-center justify-between gap-3"
-            >
-              <span class="truncate">{{ job.organization }}</span>
-              <UBadge :color="job.status === 'failed' ? 'error' : 'info'" variant="subtle">
-                {{ job.status }}
-              </UBadge>
-            </div>
-          </div>
-          <p v-else class="text-sm text-(--ui-text-muted)">No running or recently failed import jobs.</p>
-          <NuxtLink to="/systems" class="text-sm text-(--ui-color-primary-500) mt-3 block">View imports →</NuxtLink>
-        </UCard>
       </div>
     </div>
 
@@ -358,8 +335,7 @@ const emptyAttention: DashboardAttentionSummary = {
     sampleTechnologies: [],
     samplePlatforms: [],
     sampleSystems: []
-  },
-  importJobHealth: { total: 0, jobs: [] }
+  }
 }
 
 const attention = computed(() => attentionData.value?.data || emptyAttention)

@@ -18,14 +18,15 @@ vi.mock('../../../server/services/sbom.service', () => ({
   SBOMService: vi.fn()
 }))
 
-// cdxgen is invoked inside generateSBOM; stub it out
-vi.mock('@cyclonedx/cdxgen', () => ({
-  createBom: vi.fn().mockResolvedValue(null)
+// cdxgen is run as a subprocess inside generateSBOM; stub execFile so no real process spawns
+vi.mock('child_process', () => ({
+  execFile: vi.fn((_cmd, _args, _options, callback) => callback(null, '', ''))
 }))
 
 // fs cleanup runs in finally; mock to avoid touching the filesystem
 vi.mock('fs', () => ({
   existsSync: vi.fn(() => false),
+  readFileSync: vi.fn(),
   rmSync: vi.fn()
 }))
 

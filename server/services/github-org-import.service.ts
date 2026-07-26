@@ -4,7 +4,8 @@ import {
   type ImportJob,
   type ImportJobFilters,
   type ImportJobItem,
-  type CreateImportJobItemParams
+  type CreateImportJobItemParams,
+  type FindAllImportJobsParams
 } from '../repositories/import-job.repository'
 import { GitHubImportService } from './github-import.service'
 import { listGitHubOwnerRepositories, parseGitHubOwner, runWithConcurrency, type GitHubOrgRepository } from '../utils/github'
@@ -82,8 +83,68 @@ export class GitHubOrgImportService {
     return await this.jobRepo.findById(id)
   }
 
-  async findRecentActive(sinceHours = 24, limit = 5) {
-    return await this.jobRepo.findRecentActive(sinceHours, limit)
+  async findAll(params: FindAllImportJobsParams = {}) {
+    return await this.jobRepo.findAll(params)
+  }
+
+  /**
+   * Cancels a queued/running job. Already-finished jobs are rejected (409) rather
+   * than silently no-op'd, since the caller likely expects a state change to happen.
+   * A job orphaned by a dead/restarted process (no live `process()` loop anywhere)
+   * is cancelled purely at the DB level; a job still executing in *this* process
+   * is stopped between repositories via the status check in `importRepository`.
+   */
+  async cancel(jobId: string, actor: { userId: string; realUserId?: string | null }): Promise<ImportJob> {
+    const job = await this.jobRepo.findById(jobId)
+    if (!job) {
+      throw createError({ statusCode: 404, message: 'Import job not found' })
+    }
+    if (job.status !== 'queued' && job.status !== 'running') {
+      throw createError({ statusCode: 409, message: `Cannot cancel a job with status '${job.status}'` })
+    }
+
+    await this.jobRepo.markCancelled(jobId)
+    await this.jobRepo.cancelPendingItems(jobId)
+
+    await this.auditRepo.create({
+      operation: 'CANCEL',
+      entityType: 'ImportJob',
+      entityId: jobId,
+      entityLabel: `GitHub owner ${job.organization} import job`,
+      changedFields: ['status'],
+      source: 'Import Job Admin',
+      userId: actor.userId,
+      realUserId: actor.realUserId ?? null
+    })
+
+    return (await this.jobRepo.findById(jobId))!
+  }
+
+  /**
+   * Deletes a finished job. Active jobs must be cancelled first — deleting out from
+   * under a still-running `process()` loop would let it keep writing to a node that
+   * no longer exists (silently, since the mark-* queries just no-op on a missing match).
+   */
+  async remove(jobId: string, actor: { userId: string; realUserId?: string | null }): Promise<void> {
+    const job = await this.jobRepo.findById(jobId)
+    if (!job) {
+      throw createError({ statusCode: 404, message: 'Import job not found' })
+    }
+    if (job.status === 'queued' || job.status === 'running') {
+      throw createError({ statusCode: 409, message: 'Cancel the job before deleting it' })
+    }
+
+    await this.jobRepo.delete(jobId)
+
+    await this.auditRepo.create({
+      operation: 'DELETE',
+      entityType: 'ImportJob',
+      entityId: jobId,
+      entityLabel: `GitHub owner ${job.organization} import job`,
+      source: 'Import Job Admin',
+      userId: actor.userId,
+      realUserId: actor.realUserId ?? null
+    })
   }
 
   private runInBackground(jobId: string, input: GitHubOrgImportInput): void {
@@ -128,6 +189,8 @@ export class GitHubOrgImportService {
       const tasks = items.map(item => () => this.importRepository(jobId, item, input))
       await runWithConcurrency(tasks, 5)
 
+      if ((await this.jobRepo.getStatus(jobId)) === 'cancelled') return
+
       await this.jobRepo.markCompleted(jobId)
       await this.createAuditLog(jobId, input)
       logger.info({
@@ -156,6 +219,10 @@ export class GitHubOrgImportService {
     item: Pick<ImportJobItem, 'repositoryFullName' | 'repositoryUrl'> & { ownerTeam?: string | null; systemName?: string | null },
     input: GitHubOrgImportInput
   ): Promise<void> {
+    // An admin may have cancelled the job between task scheduling and this task
+    // starting — `cancelPendingItems` already marked this item skipped in that case.
+    if ((await this.jobRepo.getStatus(jobId)) === 'cancelled') return
+
     await this.jobRepo.markItemRunning(jobId, item.repositoryFullName)
     const startedAt = Date.now()
 

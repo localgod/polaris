@@ -18,20 +18,21 @@ WHERE NOT (c)-[:IS_VERSION_OF]->(:Technology)
   AND c.linkDismissedAt IS NULL
   AND c.purl IS NOT NULL
   AND ($search IS NULL OR toLower(c.name) CONTAINS toLower($search))
-WITH c.name AS componentName, c.packageManager AS packageManager, c.description AS description,
+WITH c.name AS componentName, c.packageManager AS packageManager, c.description AS description, c.purl AS purl,
      toLower(split(last(split(c.purl, '/')), '@')[0]) AS purlName
 WHERE size(purlName) > 0
-// Different versions of the same component may carry different (or missing) descriptions — take the first non-null one
+// Different versions of the same component may carry different (or missing) description/purl — take the first non-null one
 WITH componentName, packageManager, purlName,
-     [d IN collect(description) WHERE d IS NOT NULL][0] AS description
+     [d IN collect(description) WHERE d IS NOT NULL][0] AS description,
+     [p IN collect(purl) WHERE p IS NOT NULL][0] AS purl
 OPTIONAL MATCH (t:Technology)
   WHERE toLower(t.name) = purlName AND t IS NOT NULL
-WITH componentName, packageManager, purlName, description, [x IN collect(t.name) WHERE x IS NOT NULL] AS exactMatches
+WITH componentName, packageManager, purlName, description, purl, [x IN collect(t.name) WHERE x IS NOT NULL] AS exactMatches
 OPTIONAL MATCH (t2:Technology)
   WHERE toLower(t2.name) CONTAINS purlName AND NOT toLower(t2.name) = purlName AND t2 IS NOT NULL
-WITH componentName, packageManager, purlName, description, exactMatches,
+WITH componentName, packageManager, purlName, description, purl, exactMatches,
      [x IN collect(t2.name) WHERE x IS NOT NULL][0..4] AS partialMatches
-WITH componentName, packageManager, purlName, description,
+WITH componentName, packageManager, purlName, description, purl,
      exactMatches + partialMatches AS suggestedTechnologies,
      size(exactMatches) > 0 AS hasExactMatch
 ORDER BY hasExactMatch DESC, componentName ASC
@@ -39,9 +40,8 @@ SKIP toInteger($skip) LIMIT toInteger($limit)
 RETURN
   componentName AS name,
   packageManager,
-  componentName AS purl,
+  purl,
   purlName,
   description,
   suggestedTechnologies,
   hasExactMatch
-

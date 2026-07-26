@@ -140,66 +140,44 @@ describe('[pin] ImportJobRepository', () => {
     expect(found?.finishedAt).not.toBeNull()
   })
 
-  describe('[pin] findRecentActive()', () => {
-    it('includes queued and running jobs regardless of age', async () => {
+  describe('[pin] findAll()', () => {
+    it('filters by status', async () => {
       if (!ctx.neo4jAvailable) return
 
       const queued = await repo.create({
         type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}queued-org`, filters: {}, dryRun: false
       })
-      const running = await repo.create({
-        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}running-org`, filters: {}, dryRun: false
+      const completed = await repo.create({
+        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}completed-org`, filters: {}, dryRun: false
       })
-      await repo.markRunning(running.id)
-      await session.run('MATCH (j:ImportJob {id: $id}) SET j.createdAt = datetime() - duration({days: 30})', { id: running.id })
+      await repo.createItems(completed.id, [])
+      await repo.markCompleted(completed.id)
 
-      const result = await repo.findRecentActive(24, 50)
+      const result = await repo.findAll({ statuses: ['queued'] })
       const ids = result.jobs.map(j => j.id)
 
       expect(ids).toContain(queued.id)
-      expect(ids).toContain(running.id)
+      expect(ids).not.toContain(completed.id)
     })
 
-    it('includes a failed job within the lookback window', async () => {
+    it('filters by organization search substring', async () => {
       if (!ctx.neo4jAvailable) return
 
       const job = await repo.create({
-        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}failed-org`, filters: {}, dryRun: false
+        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}searchable-org`, filters: {}, dryRun: false
       })
-      await repo.markFailed(job.id, 'boom')
+      const other = await repo.create({
+        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}other-org`, filters: {}, dryRun: false
+      })
 
-      const result = await repo.findRecentActive(24, 50)
-      expect(result.jobs.map(j => j.id)).toContain(job.id)
-      expect(result.jobs.find(j => j.id === job.id)).toMatchObject({ status: 'failed', error: 'boom' })
+      const result = await repo.findAll({ search: 'searchable' })
+      const ids = result.jobs.map(j => j.id)
+
+      expect(ids).toContain(job.id)
+      expect(ids).not.toContain(other.id)
     })
 
-    it('excludes a failed job outside the lookback window', async () => {
-      if (!ctx.neo4jAvailable) return
-
-      const job = await repo.create({
-        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}stale-failed-org`, filters: {}, dryRun: false
-      })
-      await repo.markFailed(job.id, 'boom')
-      await session.run('MATCH (j:ImportJob {id: $id}) SET j.createdAt = datetime() - duration({hours: 48})', { id: job.id })
-
-      const result = await repo.findRecentActive(24, 50)
-      expect(result.jobs.map(j => j.id)).not.toContain(job.id)
-    })
-
-    it('excludes completed jobs', async () => {
-      if (!ctx.neo4jAvailable) return
-
-      const job = await repo.create({
-        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}completed-org`, filters: {}, dryRun: false
-      })
-      await repo.createItems(job.id, [])
-      await repo.markCompleted(job.id)
-
-      const result = await repo.findRecentActive(24, 50)
-      expect(result.jobs.map(j => j.id)).not.toContain(job.id)
-    })
-
-    it('respects the limit', async () => {
+    it('paginates with skip/limit and reports total', async () => {
       if (!ctx.neo4jAvailable) return
 
       for (let i = 0; i < 3; i++) {
@@ -208,9 +186,71 @@ describe('[pin] ImportJobRepository', () => {
         })
       }
 
-      const result = await repo.findRecentActive(24, 2)
+      const result = await repo.findAll({ search: `${PREFIX}limit-org`, skip: 0, limit: 2 })
       expect(result.jobs.length).toBeLessThanOrEqual(2)
       expect(result.total).toBeGreaterThanOrEqual(3)
+    })
+  })
+
+  describe('[pin] markCancelled() and cancelPendingItems()', () => {
+    it('cancels a running job and skips its pending/running items', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const job = await repo.create({
+        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}cancel-org`, filters: {}, dryRun: false
+      })
+      await repo.markRunning(job.id)
+      await repo.createItems(job.id, [
+        { repositoryFullName: `${PREFIX}cancel-org/repo-a`, repositoryUrl: `https://github.com/${PREFIX}cancel-org/repo-a` },
+        { repositoryFullName: `${PREFIX}cancel-org/repo-b`, repositoryUrl: `https://github.com/${PREFIX}cancel-org/repo-b` }
+      ])
+      await repo.markItemRunning(job.id, `${PREFIX}cancel-org/repo-a`)
+
+      await repo.markCancelled(job.id)
+      await repo.cancelPendingItems(job.id)
+
+      const found = await repo.findById(job.id)
+      expect(found).toMatchObject({ status: 'cancelled', skipped: 2 })
+      expect(found?.finishedAt).not.toBeNull()
+      expect(found?.items.every(item => item.status === 'skipped')).toBe(true)
+    })
+
+    it('does not cancel an already-completed job', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const job = await repo.create({
+        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}already-done-org`, filters: {}, dryRun: false
+      })
+      await repo.createItems(job.id, [])
+      await repo.markCompleted(job.id)
+
+      await repo.markCancelled(job.id)
+
+      const found = await repo.findById(job.id)
+      expect(found?.status).toBe('completed')
+    })
+  })
+
+  describe('[pin] delete()', () => {
+    it('removes the job and its items', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const job = await repo.create({
+        type: 'github-org', requestedBy: `${PREFIX}user`, organization: `${PREFIX}delete-org`, filters: {}, dryRun: false
+      })
+      await repo.createItems(job.id, [
+        { repositoryFullName: `${PREFIX}delete-org/repo-a`, repositoryUrl: `https://github.com/${PREFIX}delete-org/repo-a` }
+      ])
+
+      await repo.delete(job.id)
+
+      await expect(repo.findById(job.id)).resolves.toBeNull()
+    })
+
+    it('is a no-op for an unknown job id', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      await expect(repo.delete(`${PREFIX}missing`)).resolves.toBeUndefined()
     })
   })
 })

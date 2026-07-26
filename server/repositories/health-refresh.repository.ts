@@ -1,5 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
+import neo4j from 'neo4j-driver'
 import type { HealthDashboardSummary } from '~~/types/api'
 import { loadQuery, injectPlaceholder } from '../utils/query-loader'
 
@@ -54,6 +55,27 @@ export interface HealthSnapshotUpdate {
   componentName: string
   values: Record<string, unknown>
   advisories?: AdvisorySnapshot[]
+}
+
+export interface HealthRefreshJobSummary {
+  id: string
+  status: HealthRefreshJobStatus
+  trigger: HealthRefreshTrigger
+  systemName: string | null
+  totalItems: number
+  completedItems: number
+  failedItems: number
+  createdAt: string
+  startedAt: string | null
+  finishedAt: string | null
+  error: string | null
+}
+
+export interface FindAllHealthRefreshJobsParams {
+  skip?: number
+  limit?: number
+  statuses?: HealthRefreshJobStatus[]
+  search?: string
 }
 
 function intValue(value: unknown): number {
@@ -128,6 +150,33 @@ export class HealthRefreshRepository extends BaseRepository {
     return this.mapJob(records[0]!)
   }
 
+  async getStatus(id: string): Promise<HealthRefreshJobStatus | null> {
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/get-status.cypher'), { id })
+
+    if (records.length === 0) return null
+    return records[0]!.get('status') as HealthRefreshJobStatus
+  }
+
+  /** Paginated, filterable job listing for the admin monitoring view. */
+  async findAll(params: FindAllHealthRefreshJobsParams = {}): Promise<{ total: number; jobs: HealthRefreshJobSummary[] }> {
+    const { records } = await this.executeQuery(await loadQuery('health-refresh/find-all.cypher'), {
+      statuses: params.statuses && params.statuses.length > 0 ? params.statuses : null,
+      search: params.search?.trim() || null,
+      skip: neo4j.int(params.skip ?? 0),
+      limit: neo4j.int(params.limit ?? 20)
+    })
+
+    if (records.length === 0) return { total: 0, jobs: [] }
+
+    const record = records[0]!
+    const rawJobs = (record.get('jobs') || []) as Array<{ properties: Record<string, unknown> }>
+
+    return {
+      total: intValue(record.get('total')),
+      jobs: rawJobs.map(job => this.mapJobSummary(job.properties))
+    }
+  }
+
   async getPendingItems(jobId: string, limit = 25): Promise<HealthRefreshJobItem[]> {
     const { records } = await this.executeQuery(await loadQuery('health-refresh/get-pending-items.cypher'), { jobId, limit })
 
@@ -164,6 +213,20 @@ export class HealthRefreshRepository extends BaseRepository {
 
   async markJobFailed(jobId: string, error: string): Promise<void> {
     await this.executeQuery(await loadQuery('health-refresh/mark-job-failed.cypher'), { jobId, error })
+  }
+
+  /** Only transitions jobs still in `queued`/`running` — a no-op on already-finished jobs. */
+  async markCancelled(id: string): Promise<void> {
+    await this.executeQuery(await loadQuery('health-refresh/mark-cancelled.cypher'), { id })
+  }
+
+  /** Marks any not-yet-finished items as skipped once their job is cancelled. */
+  async cancelPendingItems(jobId: string): Promise<void> {
+    await this.executeQuery(await loadQuery('health-refresh/cancel-pending-items.cypher'), { jobId })
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.executeQuery(await loadQuery('health-refresh/delete-job.cypher'), { id })
   }
 
   async upsertHealthSnapshot(update: HealthSnapshotUpdate): Promise<void> {
@@ -208,6 +271,22 @@ export class HealthRefreshRepository extends BaseRepository {
       error: job.properties.error || null,
       correlationId: job.properties.correlationId || null,
       items
+    }
+  }
+
+  private mapJobSummary(job: Record<string, unknown>): HealthRefreshJobSummary {
+    return {
+      id: job.id as string,
+      status: job.status as HealthRefreshJobStatus,
+      trigger: job.trigger as HealthRefreshTrigger,
+      systemName: (job.systemName as string | null | undefined) ?? null,
+      totalItems: intValue(job.totalItems),
+      completedItems: intValue(job.completedItems),
+      failedItems: intValue(job.failedItems),
+      createdAt: job.createdAt?.toString() || '',
+      startedAt: job.startedAt?.toString() || null,
+      finishedAt: job.finishedAt?.toString() || null,
+      error: (job.error as string | null | undefined) ?? null
     }
   }
 

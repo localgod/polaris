@@ -216,4 +216,126 @@ describe('HealthRefreshRepository', () => {
       expect(result.records[0]?.get('advisoryIds')).toEqual([`${PREFIX}GHSA-current`])
     })
   })
+
+  describe('[pin] findAll()', () => {
+    it('filters by status', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const queuedId = await repo.enqueueForSystem(`${PREFIX}queued-system`)
+      const failedId = await repo.enqueueForSystem(`${PREFIX}failed-system`)
+      await repo.markJobFailed(failedId, 'boom')
+
+      const result = await repo.findAll({ statuses: ['queued'] })
+      const ids = result.jobs.map(j => j.id)
+
+      expect(ids).toContain(queuedId)
+      expect(ids).not.toContain(failedId)
+    })
+
+    it('filters by system name search substring', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const matchId = await repo.enqueueForSystem(`${PREFIX}searchable-system`)
+      const otherId = await repo.enqueueForSystem(`${PREFIX}other-system`)
+
+      const result = await repo.findAll({ search: 'searchable' })
+      const ids = result.jobs.map(j => j.id)
+
+      expect(ids).toContain(matchId)
+      expect(ids).not.toContain(otherId)
+    })
+
+    it('paginates with skip/limit and reports total', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      for (let i = 0; i < 3; i++) {
+        await repo.enqueueForSystem(`${PREFIX}limit-system-${i}`)
+      }
+
+      const result = await repo.findAll({ search: `${PREFIX}limit-system`, skip: 0, limit: 2 })
+      expect(result.jobs.length).toBeLessThanOrEqual(2)
+      expect(result.total).toBeGreaterThanOrEqual(3)
+    })
+  })
+
+  describe('[pin] markCancelled() and cancelPendingItems()', () => {
+    it('cancels a running job and skips its pending items', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      await session.run(`
+        CREATE (s:System {name: $systemName})
+        CREATE (a:Component {name: $componentName, version: '1.0.0', packageManager: 'npm', purl: $componentPurl})
+        CREATE (s)-[:USES]->(a)
+      `, {
+        systemName: `${PREFIX}cancel-system`,
+        componentName: `${PREFIX}cancel-component`,
+        componentPurl: `${PREFIX}pkg:cancel@1.0.0`
+      })
+
+      const jobId = await repo.enqueueForSystem(`${PREFIX}cancel-system`)
+      await session.run('MATCH (j:HealthRefreshJob {id: $id}) SET j.status = "running"', { id: jobId })
+
+      await repo.markCancelled(jobId)
+      await repo.cancelPendingItems(jobId)
+
+      const found = await repo.findById(jobId)
+      expect(found?.status).toBe('cancelled')
+      expect(found?.finishedAt).not.toBeNull()
+      expect(found?.items.every(item => item.status === 'skipped')).toBe(true)
+    })
+
+    it('does not cancel an already-completed job', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const jobId = await repo.enqueueForSystem(`${PREFIX}already-done-system`)
+      await repo.markJobCompletedIfDone(jobId)
+
+      await repo.markCancelled(jobId)
+
+      const found = await repo.findById(jobId)
+      expect(found?.status).toBe('completed')
+    })
+  })
+
+  describe('[pin] getStatus()', () => {
+    it('returns the current status', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const jobId = await repo.enqueueForSystem(`${PREFIX}status-system`)
+      await expect(repo.getStatus(jobId)).resolves.toBe('queued')
+    })
+
+    it('returns null for an unknown job', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      await expect(repo.getStatus(`${PREFIX}missing`)).resolves.toBeNull()
+    })
+  })
+
+  describe('[pin] delete()', () => {
+    it('removes the job and its items', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      await session.run(`
+        CREATE (s:System {name: $systemName})
+        CREATE (a:Component {name: $componentName, version: '1.0.0', packageManager: 'npm', purl: $componentPurl})
+        CREATE (s)-[:USES]->(a)
+      `, {
+        systemName: `${PREFIX}delete-system`,
+        componentName: `${PREFIX}delete-component`,
+        componentPurl: `${PREFIX}pkg:delete@1.0.0`
+      })
+      const jobId = await repo.enqueueForSystem(`${PREFIX}delete-system`)
+
+      await repo.delete(jobId)
+
+      await expect(repo.findById(jobId)).resolves.toBeNull()
+    })
+
+    it('is a no-op for an unknown job id', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      await expect(repo.delete(`${PREFIX}missing`)).resolves.toBeUndefined()
+    })
+  })
 })

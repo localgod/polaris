@@ -340,6 +340,16 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
       to: '/admin/component-links'
     })
     items.push({
+      label: 'Dismissed Components',
+      icon: 'i-lucide-undo-2',
+      to: '/admin/dismissed-links'
+    })
+    items.push({
+      label: 'Background Jobs',
+      icon: 'i-lucide-download',
+      to: '/admin/import-jobs'
+    })
+    items.push({
       label: 'Impersonate User',
       icon: 'i-lucide-eye',
       onSelect: () => openImpersonateModal()
