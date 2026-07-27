@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.80] - 2026-07-27
+
+## What's Changed
+
+## 🔧 Maintenance
+
+- chore: release v0.6.79 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#793)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.79...v0.6.80
+
 ## [0.6.79] - 2026-07-26
 
 ## What's Changed
