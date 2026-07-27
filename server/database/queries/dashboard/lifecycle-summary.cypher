@@ -11,7 +11,8 @@ CALL {
 CALL {
   MATCH (c:Component)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
   WHERE h.eolStatus IN ['unsupported', 'approaching_eol']
-  OPTIONAL MATCH (sys:System)-[:USES]->(c)
+  OPTIONAL MATCH (sys:System)-[u:USES]->(c)
+  WHERE u.isDirect = true
   RETURN count(DISTINCT sys.name) AS systems
 }
 RETURN unsupported,

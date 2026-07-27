@@ -27,12 +27,15 @@
         :page-size="pageSize"
       >
         <template #header>
-          <UInput
-            v-model="searchInput"
-            placeholder="Filter by component, license, system, or team..."
-            icon="i-lucide-search"
-            class="max-w-sm"
-          />
+          <div class="flex flex-wrap items-center gap-2">
+            <UInput
+              v-model="searchInput"
+              placeholder="Filter by component, license, system, or team..."
+              icon="i-lucide-search"
+              class="max-w-sm"
+            />
+            <UCheckbox v-model="showTransitive" label="Include transitive dependencies" />
+          </div>
         </template>
         <template #empty>
           <div class="text-center py-8">
@@ -127,14 +130,22 @@ const columns: TableColumn<LicenseViolation>[] = [
 
 const searchInput = ref('')
 const debouncedSearch = ref('')
+const showTransitive = ref(false)
 
 const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
 watch(searchInput, updateSearch)
 
-const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({ resetOn: [debouncedSearch] })
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({ resetOn: [debouncedSearch, showTransitive] })
 
 const { data, pending, error } = await useFetch<ApiResponse<LicenseViolation>>('/api/licenses/violations', {
-  query: { limit: pageSize, offset, sortBy, sortOrder, search: debouncedSearch }
+  query: computed(() => ({
+    limit: pageSize.value,
+    offset: offset.value,
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value,
+    search: debouncedSearch.value,
+    direct: showTransitive.value ? undefined : 'true'
+  }))
 })
 
 const violations = useApiData(data)

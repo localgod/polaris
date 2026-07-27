@@ -43,8 +43,8 @@ async function buildAttentionSummary(currentUser: Awaited<ReturnType<typeof getC
     stewardshipGaps,
     linkQueue
   ] = await Promise.all([
-    versionConstraintService.getViolations({}),
-    complianceService.findViolations(),
+    versionConstraintService.getViolations({ directOnly: true }),
+    complianceService.findViolations({ directOnly: true }),
     healthRefreshService.getDashboardSummary(),
     teamService.getStewardshipGaps(),
     currentUser?.role === 'superuser'

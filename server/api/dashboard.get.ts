@@ -57,7 +57,7 @@ async function buildDashboardSummary(
       : Promise.resolve({ records: [] }),
     driver.executeQuery(lifecycleQuery),
     user
-      ? versionConstraintService.getViolations({})
+      ? versionConstraintService.getViolations({ directOnly: true })
       : Promise.resolve({
           count: 0,
           summary: { critical: 0, error: 0, warning: 0, info: 0 }
