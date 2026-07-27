@@ -28,14 +28,17 @@ RUN apk add --no-cache git
 
 WORKDIR /app
 
+# cdxgen runs as a subprocess (not imported), so Nitro does not externalise it or its
+# transitive dependencies. Install production deps here so the subprocess can resolve them.
+# Copy from source (not builder) to avoid lockfile drift caused by the Nuxt build.
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci --omit=dev
+
 COPY --from=builder /app/.output ./output
 # Cypher queries and JSON schemas are read at runtime via fs using process.cwd().
 # process.cwd() is /app (WORKDIR), so copy files to match the expected paths.
 COPY --from=builder /app/server/database/queries ./server/database/queries
 COPY --from=builder /app/server/schemas ./server/schemas
-# cdxgen is never imported by the app code, so Nitro does not externalise it.
-# Copy the full package so the subprocess binary and its co-located data files are available.
-COPY --from=builder /app/node_modules/@cyclonedx/cdxgen ./node_modules/@cyclonedx/cdxgen
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
