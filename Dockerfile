@@ -24,7 +24,7 @@ RUN npm run build
 
 FROM node:lts-alpine AS runner
 
-RUN apk add --no-cache git
+RUN apk add --no-cache git openjdk21-jdk maven
 
 WORKDIR /app
 
