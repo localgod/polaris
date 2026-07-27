@@ -33,9 +33,9 @@ COPY --from=builder /app/.output ./output
 # process.cwd() is /app (WORKDIR), so copy files to match the expected paths.
 COPY --from=builder /app/server/database/queries ./server/database/queries
 COPY --from=builder /app/server/schemas ./server/schemas
-# cdxgen reads data files relative to its own location at runtime.
-# Nitro externalises the package but does not copy non-JS assets, so copy manually.
-COPY --from=builder /app/node_modules/@cyclonedx/cdxgen/data ./output/server/node_modules/@cyclonedx/cdxgen/data
+# cdxgen is never imported by the app code, so Nitro does not externalise it.
+# Copy the full package so the subprocess binary and its co-located data files are available.
+COPY --from=builder /app/node_modules/@cyclonedx/cdxgen ./node_modules/@cyclonedx/cdxgen
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
