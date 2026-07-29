@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.86] - 2026-07-29
+
+## What's Changed
+
+- Scope dependency views to direct vs transitive dependencies @localgod (#801)
+
+## 🔧 Maintenance
+
+- chore: release v0.6.85 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#799)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.85...v0.6.86
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
