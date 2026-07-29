@@ -23,7 +23,16 @@
         />
         <div>
           <p class="font-medium text-sm">{{ check.label }}</p>
-          <p class="text-sm text-(--ui-text-muted)">{{ check.detail }}</p>
+          <p class="text-sm text-(--ui-text-muted)">
+            <NuxtLink
+              v-if="check.link"
+              :to="{ path: check.link.path, query: check.link.query }"
+              class="text-(--ui-color-primary-500) hover:underline"
+            >
+              {{ check.detail }}
+            </NuxtLink>
+            <template v-else>{{ check.detail }}</template>
+          </p>
         </div>
       </li>
     </ul>

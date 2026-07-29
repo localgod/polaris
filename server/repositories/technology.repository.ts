@@ -74,8 +74,10 @@ export interface TechnologyDetail extends Omit<Technology, 'versions'> {
     name: string
     version: string
     packageManager: string | null
+    isDirect: boolean
+    systems: Array<{ name: string; isDirect: boolean }>
   }>
-  systems?: string[]
+  systems?: Array<{ name: string; isDirect: boolean }>
   constraints?: Array<{
     name: string
     severity: string
@@ -92,6 +94,7 @@ export interface TechnologyDetail extends Omit<Technology, 'versions'> {
     migrationTarget: string | null
     notes: string | null
     approvedBy: string | null
+    approvedByName: string | null
   }>
   versionApprovals?: Array<{
     team: string
@@ -103,6 +106,7 @@ export interface TechnologyDetail extends Omit<Technology, 'versions'> {
     migrationTarget: string | null
     notes: string | null
     approvedBy: string | null
+    approvedByName: string | null
   }>
 }
 
@@ -406,6 +410,8 @@ export class TechnologyRepository extends BaseRepository {
       eolDate: toDateString(a.eolDate)
     }))
 
+    const components = record.get('components').filter((c: { name?: string }) => c.name)
+
     return {
       name: record.get('name'),
       type: record.get('type'),
@@ -416,13 +422,29 @@ export class TechnologyRepository extends BaseRepository {
       ownerTeamEmail: record.get('ownerTeamEmail'),
       versions,
       approvals: [],
-      components: record.get('components').filter((c: { name?: string }) => c.name),
-      systems: record.get('systems').filter((s: string) => s),
+      components,
+      systems: this.deriveSystemsFromComponents(components),
       constraints: record.get('constraints').filter((c: { name?: string }) => c.name),
       technologyApprovals,
       versionApprovals,
       lifecycleSummary: undefined,
       versionLifecycles: undefined
     }
+  }
+
+  /**
+   * Derive the technology-wide system list from per-component usage instead
+   * of querying it separately — every system using any version of this
+   * technology already appears in at least one component's `systems` list,
+   * so this avoids a second graph traversal over the same USES edges.
+   */
+  private deriveSystemsFromComponents(components: TechnologyDetail['components']): Array<{ name: string; isDirect: boolean }> {
+    const isDirectByName = new Map<string, boolean>()
+    for (const component of components ?? []) {
+      for (const system of component.systems) {
+        isDirectByName.set(system.name, (isDirectByName.get(system.name) ?? false) || system.isDirect)
+      }
+    }
+    return [...isDirectByName.entries()].map(([name, isDirect]) => ({ name, isDirect }))
   }
 }

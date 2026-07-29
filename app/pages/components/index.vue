@@ -5,7 +5,11 @@
         title="Components"
       >
         <template #description>
-          <template v-if="systemFilter">
+          <template v-if="licenseViolationFilter">
+            Components with license violations<template v-if="teamFilter"> for team: <strong>{{ teamFilter }}</strong></template><template v-else-if="systemFilter"> in system: <strong>{{ systemFilter }}</strong></template>
+            <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
+          </template>
+          <template v-else-if="systemFilter">
             {{ showDirectOnly ? 'Direct' : 'All' }} components in system: <strong>{{ systemFilter }}</strong>
             <NuxtLink to="/components" class="ml-2">(clear filter)</NuxtLink>
           </template>
@@ -200,7 +204,7 @@ const columns: TableColumn<GroupedComponent>[] = [
       }
 
       const badges = licenses.slice(0, 2).map(lic =>
-        h(UBadge, { color: 'neutral', variant: 'subtle', class: 'mr-1', key: lic.id || lic.name },
+        h(UBadge, { color: lic.allowed === false ? 'error' : 'neutral', variant: 'subtle', class: 'mr-1', key: lic.id || lic.name },
           () => lic.id || lic.name || 'Unknown')
       )
 
@@ -249,6 +253,8 @@ const columns: TableColumn<GroupedComponent>[] = [
 const route = useRoute()
 const licenseFilter = computed(() => route.query.license as string | undefined)
 const systemFilter = computed(() => route.query.system as string | undefined)
+const teamFilter = computed(() => route.query.team as string | undefined)
+const licenseViolationFilter = computed(() => route.query.licenseViolation === 'true')
 const lifecycleRiskFilter = computed(() => route.query.lifecycleRisk === 'true')
 const showDevDependenciesCookie = useCookie<'true' | 'false'>('polaris-components-show-dev-dependencies', {
   default: () => 'true',
@@ -280,15 +286,21 @@ function openGroupedComponent(_event: Event | null, row: { original: GroupedComp
 const { searchInput, debouncedSearch } = useTableSearch()
 
 // Now we can safely reference debouncedSearch in resetOn
-const resetOnDeps = [debouncedSearch, licenseFilter, systemFilter, lifecycleRiskFilter, showDevDependencies, showDirectOnly]
+const resetOnDeps = [debouncedSearch, licenseFilter, systemFilter, teamFilter, licenseViolationFilter, lifecycleRiskFilter, showDevDependencies, showDirectOnly]
 const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
   resetOn: resetOnDeps
 })
 
 const includeDev = computed(() => showDevDependencies.value ? undefined : 'false')
-// Global list (no system): always direct-only to keep result count manageable.
+// Global list (no system): always direct-only to keep result count manageable,
+// unless a license violation or lifecycle risk filter is active — those are
+// frequently in transitive dependencies and hiding them would make the filter
+// look empty (or, worse, show unrelated components instead).
 // System list: respect the user toggle; default is to show all components.
-const direct = computed(() => (!systemFilter.value || showDirectOnly.value) ? 'true' : undefined)
+const direct = computed(() => {
+  if (licenseViolationFilter.value || lifecycleRiskFilter.value) return undefined
+  return (!systemFilter.value || showDirectOnly.value) ? 'true' : undefined
+})
 
 // Pass individual refs/computeds as query values so Nuxt tracks each one
 // as a reactive dependency for the fetch key — passing a computed object
@@ -300,6 +312,8 @@ const { data, pending, error } = await useFetch<ApiResponse<GroupedComponent>>('
     search: debouncedSearch,
     license: licenseFilter,
     system: systemFilter,
+    team: teamFilter,
+    licenseViolation: computed(() => licenseViolationFilter.value ? 'true' : undefined),
     lifecycleRisk: computed(() => lifecycleRiskFilter.value ? 'true' : undefined),
     direct,
     includeDev,

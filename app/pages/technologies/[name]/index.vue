@@ -16,7 +16,7 @@
     </UAlert>
 
     <template v-else-if="tech">
-      <div class="flex justify-between items-center">
+      <div class="flex items-center justify-between gap-3">
         <UPageHeader
           :title="tech.name"
           :links="[
@@ -24,20 +24,7 @@
             { label: 'View Impact Graph', to: `/technologies/${encodeURIComponent(tech.name)}/impact`, icon: 'i-lucide-share-2', variant: 'outline' as const },
           ]"
         />
-        <div class="flex gap-2">
-          <UBadge v-if="tech.type" color="neutral" variant="subtle">
-            {{ tech.type }}
-          </UBadge>
-          <UBadge v-if="tech.domain" color="info" variant="subtle">
-            {{ tech.domain }}
-          </UBadge>
-          <UBadge v-if="timeCategory" :color="getTimeCategoryColor(timeCategory)" variant="subtle">
-            {{ timeCategory }}
-          </UBadge>
-          <UBadge :color="getEolColor(tech.lifecycleSummary?.status)" variant="subtle">
-            {{ getEolLabel(tech.lifecycleSummary?.status) }}
-          </UBadge>
-        </div>
+        <USwitch v-model="directOnly" label="Direct only" size="sm" />
       </div>
 
       <EntityStatStrip :items="statItems" />
@@ -46,7 +33,17 @@
         <template #header>
           <h2 class="text-lg font-semibold">Basic Information</h2>
         </template>
-        <EntityDescriptionList :items="basicInfoItems" />
+        <EntityDescriptionList :items="basicInfoItems">
+          <template #packageManager>
+            <div v-if="packageManagers.length > 0" class="flex flex-wrap items-center gap-2 mt-0.5">
+              <span v-for="pm in packageManagers" :key="pm" class="flex items-center gap-1 font-medium">
+                <UIcon :name="pmIcon(pm)" :style="{ color: pmColor(pm) }" class="size-4 flex-shrink-0" />
+                {{ pm }}
+              </span>
+            </div>
+            <p v-else class="font-medium mt-0.5">—</p>
+          </template>
+        </EntityDescriptionList>
       </UCard>
 
       <!-- Technology Approvals -->
@@ -147,21 +144,26 @@
         </template>
       </UModal>
 
-      <!-- Version Risk, Versions, Components, Version Constraints — kept in one card:
+      <!-- Version Risk, Versions, Version Constraints — kept in one card:
            version rows carry live violation warnings cross-referenced against
-           Components and Version Constraints (see getVersionViolation), so these
-           stay visible together rather than split behind tabs. -->
+           Version Constraints (see getViolationCountForVersion), so these
+           stay visible together rather than split behind tabs. The separate
+           Components table was folded into Version Risk (Package Manager
+           column) since the two were showing the same underlying rows. -->
       <UCard>
         <div class="divide-y divide-(--ui-border)">
           <div class="first:pt-0 last:pb-0 py-6">
-            <h3 class="text-base font-semibold mb-3">Version Risk</h3>
+            <h3 class="text-base font-semibold mb-3">Version Risk ({{ filteredVersionRiskData.length }})</h3>
             <UTable
-              v-if="versionRiskData && versionRiskData.length > 0"
+              v-if="filteredVersionRiskData.length > 0"
               v-model:sorting="versionRiskSorting"
-              :data="versionRiskData"
+              :data="filteredVersionRiskData"
               :columns="versionRiskColumns"
               class="flex-1"
             />
+            <div v-else-if="versionRiskData.length > 0" class="text-center text-(--ui-text-muted) py-8">
+              {{ versionRiskData.length }} version(s) are only used as a transitive dependency. Turn off "Direct only" above to see them.
+            </div>
             <div v-else class="text-center text-(--ui-text-muted) py-8">
               No versions found.
             </div>
@@ -170,11 +172,6 @@
           <div v-if="tech.versions && tech.versions.length > 0" class="first:pt-0 last:pb-0 py-6">
             <h3 class="text-base font-semibold mb-3">Versions ({{ tech.versions.length }})</h3>
             <UTable v-model:sorting="versionSorting" :data="versionRows" :columns="versionColumns" class="flex-1" />
-          </div>
-
-          <div v-if="tech.components && tech.components.length > 0" class="first:pt-0 last:pb-0 py-6">
-            <h3 class="text-base font-semibold mb-3">Components ({{ tech.components.length }})</h3>
-            <UTable v-model:sorting="componentSorting" :data="tech.components" :columns="componentColumns" class="flex-1" />
           </div>
 
           <div v-if="tech.constraints && tech.constraints.length > 0" class="first:pt-0 last:pb-0 py-6">
@@ -202,18 +199,24 @@
 
       <!-- Systems -->
       <div v-if="tech.systems && tech.systems.length > 0">
-        <h2 class="text-lg font-semibold mb-3">Systems ({{ tech.systems.length }})</h2>
-        <div class="flex flex-wrap gap-2">
-          <UButton
-            v-for="system in tech.systems"
-            :key="system"
-            :label="system"
-            :to="`/systems/${encodeURIComponent(system)}`"
-            variant="subtle"
-            color="neutral"
-            size="sm"
-          />
+        <h2 class="text-lg font-semibold mb-3">Systems ({{ visibleSystems.length }})</h2>
+        <div v-if="visibleSystems.length > 0" class="flex flex-wrap gap-2">
+          <div v-for="system in visibleSystems" :key="system.name" class="flex items-center gap-1">
+            <UButton
+              :label="system.name"
+              :to="`/systems/${encodeURIComponent(system.name)}`"
+              variant="subtle"
+              color="neutral"
+              size="sm"
+            />
+            <UBadge v-if="!directOnly" :color="system.isDirect ? 'primary' : 'neutral'" variant="subtle" size="sm">
+              {{ system.isDirect ? 'Direct' : 'Transitive' }}
+            </UBadge>
+          </div>
         </div>
+        <p v-else class="text-sm text-(--ui-text-muted)">
+          {{ tech.systems.length }} use this only as a transitive dependency. Turn off "Direct only" above to see them.
+        </p>
       </div>
     </template>
   </div>
@@ -256,7 +259,6 @@ const { getSortableHeader } = useSortableTable()
 const approvalSorting = ref([])
 const versionSorting = ref([])
 const versionRiskSorting = ref([])
-const componentSorting = ref([])
 
 const route = useRoute()
 const { data: session } = useAuth()
@@ -278,6 +280,8 @@ interface ComponentRef {
   name: string
   version: string
   packageManager: string | null
+  isDirect: boolean
+  systems: SystemUsage[]
 }
 
 interface ConstraintRef {
@@ -285,6 +289,11 @@ interface ConstraintRef {
   severity: string
   versionRange: string | null
   status: string | null
+}
+
+interface SystemUsage {
+  name: string
+  isDirect: boolean
 }
 
 interface TechnologyDetailData {
@@ -297,7 +306,7 @@ interface TechnologyDetailData {
   ownerTeamEmail: string | null
   versions: VersionDetail[]
   components: ComponentRef[]
-  systems: string[]
+  systems: SystemUsage[]
   constraints: ConstraintRef[]
   technologyApprovals: TechnologyApproval[]
   versionApprovals: TechnologyApproval[]
@@ -441,31 +450,20 @@ const approvalColumns: TableColumn<TechnologyApproval>[] = [
   {
     accessorKey: 'approvedBy',
     header: ({ column }) => getSortableHeader(column, 'By'),
-    cell: ({ row }) => row.original.approvedBy || '—'
-  },
-  {
-    accessorKey: 'notes',
-    header: ({ column }) => getSortableHeader(column, 'Notes'),
-    cell: ({ row }) => row.original.notes || '—'
+    cell: ({ row }) => row.original.approvedByName || row.original.approvedBy || '—'
   }
 ]
 
-function getVersionViolation(version: string): ConstraintRef | null {
-  if (!tech.value?.constraints) return null
-  const cleaned = semver.coerce(version)
-  if (!cleaned) return null
-  for (const vc of tech.value.constraints) {
-    if (vc.status === 'active' && vc.versionRange) {
-      if (!semver.satisfies(cleaned, vc.versionRange)) {
-        return vc
-      }
-    }
-  }
-  return null
+function getSystemsUsingVersion(version: string): number {
+  const systems = (tech.value?.components ?? [])
+    .filter(c => c.version === version)
+    .flatMap(c => c.systems)
+  const relevant = directOnly.value ? systems.filter(s => s.isDirect) : systems
+  return new Set(relevant.map(s => s.name)).size
 }
 
-function getComponentsForVersion(version: string): number {
-  return tech.value?.components?.filter(c => c.version === version).length ?? 0
+function isVersionDirect(version: string): boolean {
+  return (tech.value?.components ?? []).some(c => c.version === version && c.isDirect)
 }
 
 function getViolationCountForVersion(version: string): number {
@@ -483,46 +481,6 @@ function getViolationCountForVersion(version: string): number {
   return count
 }
 
-const componentColumns: TableColumn<ComponentRef>[] = [
-  {
-    accessorKey: 'name',
-    header: ({ column }) => getSortableHeader(column, 'Name'),
-    cell: ({ row }) => h('strong', {}, row.getValue('name') as string)
-  },
-  {
-    accessorKey: 'version',
-    header: ({ column }) => getSortableHeader(column, 'Version'),
-    cell: ({ row }) => h('code', {}, row.getValue('version') as string)
-  },
-  {
-    accessorKey: 'packageManager',
-    header: ({ column }) => getSortableHeader(column, 'Package Manager'),
-    cell: ({ row }) => {
-      const pm = row.getValue('packageManager') as string | null
-      if (!pm) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h('span', { class: 'flex items-center gap-1' }, [
-        h(resolveComponent('UIcon'), { name: pmIcon(pm), style: { color: pmColor(pm) }, class: 'size-4 flex-shrink-0' }),
-        pm,
-      ])
-    },
-  },
-  {
-    id: 'violation',
-    header: '',
-    meta: { class: { th: 'w-10' } },
-    cell: ({ row }) => {
-      const violation = getVersionViolation(row.original.version)
-      if (!violation) return ''
-      return h(resolveComponent('UTooltip'), {
-        text: `Violates "${violation.name}" (${violation.versionRange})`
-      }, () => h(resolveComponent('UIcon'), {
-        name: 'i-lucide-alert-triangle',
-        class: 'text-(--ui-error) size-5'
-      }))
-    }
-  }
-]
-
 const versionRiskColumns: TableColumn<VersionDetail>[] = [
   {
     accessorKey: 'version',
@@ -530,9 +488,17 @@ const versionRiskColumns: TableColumn<VersionDetail>[] = [
     cell: ({ row }) => h('code', {}, row.getValue('version') as string)
   },
   {
-    id: 'components',
-    header: 'Components Using',
-    cell: ({ row }) => getComponentsForVersion(row.getValue('version') as string).toString()
+    id: 'scope',
+    header: 'Scope',
+    cell: ({ row }) => {
+      const direct = isVersionDirect(row.getValue('version') as string)
+      return h(resolveComponent('UBadge'), { color: direct ? 'primary' : 'neutral', variant: 'subtle', size: 'sm' }, () => direct ? 'Direct' : 'Transitive')
+    }
+  },
+  {
+    id: 'systemsUsing',
+    header: 'Systems Using',
+    cell: ({ row }) => getSystemsUsingVersion(row.getValue('version') as string).toString()
   },
   {
     id: 'lifecycle',
@@ -544,7 +510,7 @@ const versionRiskColumns: TableColumn<VersionDetail>[] = [
   },
   {
     id: 'violations',
-    header: 'Violations',
+    header: 'Constraint Violations',
     cell: ({ row }) => {
       const count = getViolationCountForVersion(row.getValue('version') as string)
       if (count === 0) return '—'
@@ -582,15 +548,26 @@ const { data, pending, error, refresh } = await useFetch<TechnologyResponse>(() 
 
 const tech = computed(() => data.value?.data || null)
 
-const versionRows = computed<VersionDetail[]>(() => {
-  const lifecycles = new Map((tech.value?.versionLifecycles || []).map(item => [item.version, item.lifecycle]))
-  return (tech.value?.versions || []).map(version => ({
-    ...version,
-    lifecycle: lifecycles.get(version.version) || null
-  }))
+// Page-wide toggle: defaults to showing only direct dependencies across every
+// section below (Systems, Version Risk, the stat strip), with the option to
+// switch on transitive dependencies when a full picture is needed.
+const directOnly = ref(true)
+
+const visibleSystems = computed(() => {
+  const systems = tech.value?.systems || []
+  return directOnly.value ? systems.filter(s => s.isDirect) : systems
 })
 
-const distinctVersionCount = computed(() => tech.value?.versions?.length ?? 0)
+const versionLifecycleMap = computed(() =>
+  new Map((tech.value?.versionLifecycles || []).map(item => [item.version, item.lifecycle]))
+)
+
+const versionRows = computed<VersionDetail[]>(() =>
+  (tech.value?.versions || []).map(version => ({
+    ...version,
+    lifecycle: versionLifecycleMap.value.get(version.version) || null
+  }))
+)
 
 const versionRiskData = computed<VersionDetail[]>(() => {
   // If technology has explicit versions, use those
@@ -598,7 +575,9 @@ const versionRiskData = computed<VersionDetail[]>(() => {
     return versionRows.value
   }
 
-  // Otherwise, extract unique versions from components
+  // Otherwise, extract unique versions from components — the backend computes
+  // versionLifecycles for these derived versions too (see technology.service.ts),
+  // so look them up the same way versionRows does above.
   const componentVersionMap = new Map<string, VersionDetail>()
   for (const component of tech.value?.components || []) {
     if (!componentVersionMap.has(component.version)) {
@@ -608,7 +587,7 @@ const versionRiskData = computed<VersionDetail[]>(() => {
         eolDate: null,
         approved: null,
         notes: null,
-        lifecycle: null
+        lifecycle: versionLifecycleMap.value.get(component.version) || null
       })
     }
   }
@@ -617,21 +596,30 @@ const versionRiskData = computed<VersionDetail[]>(() => {
   )
 })
 
-const timeCategory = computed(() => {
-  const approval = tech.value?.technologyApprovals?.[0]
-  return approval?.time || null
-})
+const filteredVersionRiskData = computed(() =>
+  directOnly.value ? versionRiskData.value.filter(v => isVersionDirect(v.version)) : versionRiskData.value
+)
 
 const statItems = computed(() => [
-  { label: 'Versions', value: distinctVersionCount.value },
-  { label: 'Components', value: tech.value?.components?.length || 0 },
-  { label: 'Systems', value: tech.value?.systems?.length || 0 }
+  { label: 'Versions', value: filteredVersionRiskData.value.length },
+  {
+    label: 'Components',
+    value: directOnly.value
+      ? tech.value?.components?.filter(c => c.isDirect).length || 0
+      : tech.value?.components?.length || 0
+  },
+  { label: 'Systems', value: visibleSystems.value.length }
+])
+
+const packageManagers = computed(() => [
+  ...new Set((tech.value?.components ?? []).map(c => c.packageManager).filter((pm): pm is string => !!pm))
 ])
 
 const basicInfoItems = computed(() => [
   { key: 'type', label: 'Type', value: tech.value?.type },
   { key: 'domain', label: 'Domain', value: tech.value?.domain },
   { key: 'vendor', label: 'Vendor', value: tech.value?.vendor },
+  { key: 'packageManager', label: 'Package Manager', value: packageManagers.value.join(', ') || null },
   { key: 'lastReviewed', label: 'Last Reviewed', value: tech.value?.lastReviewed ? formatDate(tech.value.lastReviewed) : null }
 ])
 

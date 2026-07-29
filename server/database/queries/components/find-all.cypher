@@ -25,7 +25,7 @@ WITH c, tech, total,
      head([x IN collect(DISTINCT {scope: u.scope, isDirect: u.isDirect, sysName: sys.name}) WHERE x.sysName = $system | x.scope]) as scope,
      head([x IN collect(DISTINCT {scope: u.scope, isDirect: u.isDirect, sysName: sys.name}) WHERE x.sysName = $system | x.isDirect]) as isDirect,
      collect(DISTINCT {algorithm: h.algorithm, value: h.value}) as hashes,
-     collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses,
+     collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text, allowed: l.allowed}) as licenses,
      collect(DISTINCT {type: ref.type, url: ref.url}) as externalReferences
 RETURN c.name as name,
        c.version as version,

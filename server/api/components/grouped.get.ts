@@ -41,10 +41,20 @@ import { componentService, eolRollupService } from '../../services/singletons'
  *           type: boolean
  *         description: Filter by license presence (ignored when license is also specified)
  *       - in: query
+ *         name: licenseViolation
+ *         schema:
+ *           type: boolean
+ *         description: When true, restrict to groups with at least one version using a disallowed license
+ *       - in: query
  *         name: system
  *         schema:
  *           type: string
  *         description: Filter to groups where any version is used by this system
+ *       - in: query
+ *         name: team
+ *         schema:
+ *           type: string
+ *         description: Filter to groups where any version is used by a system owned by this team
  *       - in: query
  *         name: direct
  *         schema:
@@ -150,7 +160,9 @@ export default defineEventHandler(async (event): Promise<ApiResponse<GroupedComp
       technology: query.technology as string | undefined,
       license: query.license as string | undefined,
       hasLicense: query.hasLicense === 'true' ? true : query.hasLicense === 'false' ? false : undefined,
+      licenseViolation: query.licenseViolation === 'true' ? true : undefined,
       system: query.system as string | undefined,
+      team: query.team as string | undefined,
       directOnly: query.direct === 'true' ? true : undefined,
       includeDev: query.includeDev === 'false' ? false : undefined,
       depScope: query.depScope as string | undefined,
