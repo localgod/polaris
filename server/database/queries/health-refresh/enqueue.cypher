@@ -17,6 +17,7 @@ CALL {
   WITH job
   MATCH (c:Component)
   WHERE c.purl IS NOT NULL
+    AND EXISTS { MATCH ()-[:USES]->(c) }
     AND (
       $systemName IS NULL
       OR EXISTS {

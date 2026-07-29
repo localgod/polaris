@@ -50,6 +50,7 @@
               icon="i-lucide-search"
               class="max-w-xs"
             />
+            <UCheckbox v-model="showTransitive" label="Include transitive dependencies" />
             <UButton
               v-if="severityFilter || teamFilter || technologyFilter"
               label="Clear"
@@ -115,6 +116,7 @@ const severityItems = ['critical', 'error', 'warning', 'info']
 const severityFilter = ref<string | undefined>(undefined)
 const teamFilter = ref('')
 const technologyFilter = ref('')
+const showTransitive = ref(false)
 
 function clearFilters() {
   severityFilter.value = undefined
@@ -127,6 +129,7 @@ const queryParams = computed(() => {
   if (severityFilter.value) params.severity = severityFilter.value
   if (teamFilter.value) params.team = teamFilter.value
   if (technologyFilter.value) params.technology = technologyFilter.value
+  if (!showTransitive.value) params.direct = 'true'
   return params
 })
 

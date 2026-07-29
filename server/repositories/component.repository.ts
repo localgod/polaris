@@ -479,6 +479,18 @@ export class ComponentRepository extends BaseRepository {
     }))
   }
 
+  async deleteOrphaned(batchSize = 500): Promise<number> {
+    const query = await loadQuery('components/cleanup-orphaned.cypher')
+    let totalDeleted = 0
+    while (true) {
+      const { records } = await this.executeQuery(query, { batchSize })
+      const deleted = records[0]?.get('deletedCount')?.toNumber() ?? 0
+      totalDeleted += deleted
+      if (deleted === 0) break
+    }
+    return totalDeleted
+  }
+
   async findVersionSprawl(minVersions = 2): Promise<VersionSprawlRaw[]> {
     const query = await loadQuery('components/detect-version-sprawl.cypher')
     const { records } = await this.executeQuery(query, { minVersions })

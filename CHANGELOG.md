@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.85] - 2026-07-27
+
+## What's Changed
+
+* No changes
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.84...v0.6.85
+
+## [0.6.79] - 2026-07-26
+
+## What's Changed
+
+- Add Background Jobs admin page (cancel/delete for import + health-refresh jobs) @localgod (#792)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.78...v0.6.79
+
 ## [0.6.72] - 2026-07-20
 
 ## What's Changed

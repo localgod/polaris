@@ -50,7 +50,14 @@ const execFileAsync = promisify(execFile)
 // runaway scan can only take down that child, never the Nitro server itself. Previously,
 // an in-process, unrestricted-project-type scan of a large repo OOM-killed the whole dev
 // server — see the incident where self-importing this repo took down `nuxt dev`.
-const CDXGEN_BIN = join(process.cwd(), 'node_modules', '@cyclonedx', 'cdxgen', 'bin', 'cdxgen.js')
+//
+// In production Nitro externalises the package to output/server/node_modules/; in dev it
+// lives directly under node_modules/. Check the Nitro path first and fall back to dev.
+const CDXGEN_BIN = (() => {
+  const nitroBin = join(process.cwd(), 'output', 'server', 'node_modules', '@cyclonedx', 'cdxgen', 'bin', 'cdxgen.js')
+  const devBin = join(process.cwd(), 'node_modules', '@cyclonedx', 'cdxgen', 'bin', 'cdxgen.js')
+  return existsSync(nitroBin) ? nitroBin : devBin
+})()
 const CDXGEN_TIMEOUT_MS = 5 * 60 * 1000
 const CDXGEN_MAX_OLD_SPACE_MB = 2048
 

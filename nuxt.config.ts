@@ -97,7 +97,8 @@ export default defineNuxtConfig({
     },
     scheduledTasks: {
       '*/5 * * * *': ['health-refresh:process'],
-      '0 */12 * * *': ['health-refresh:enqueue-scheduled']
+      '0 */12 * * *': ['health-refresh:enqueue-scheduled'],
+      '0 3 * * *': ['components:cleanup-orphaned']
     },
     tasks: {
       'health-refresh:process': {
@@ -107,6 +108,10 @@ export default defineNuxtConfig({
       'health-refresh:enqueue-scheduled': {
         handler: './server/tasks/health-refresh/enqueue-scheduled.ts',
         description: 'Enqueue a scheduled full-landscape component health refresh'
+      },
+      'components:cleanup-orphaned': {
+        handler: './server/tasks/components/cleanup-orphaned.ts',
+        description: 'Delete Component nodes no longer used by any system and not claimed by a Technology'
       }
     }
   }
