@@ -1,7 +1,5 @@
 MATCH (s:System {name: $systemName})
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH s, {
   operation: 'IMPORT_SBOM',
   entityType: 'System',
   entityId: s.name,
@@ -12,5 +10,6 @@ CREATE (a:AuditLog {
   realUserId: $realUserId,
   metadata: $metadata,
   correlationId: $correlationId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(s)

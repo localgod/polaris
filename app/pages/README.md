@@ -64,14 +64,10 @@ export default defineEventHandler(async () => {
   "data": [
     {
       "name": "React",
-      "category": "framework",
+      "type": "framework",
       "vendor": "Meta",
-      "status": "approved",
-      "approvedVersionRange": ">=18.0.0 <19.0.0",
-      "ownerTeam": "Frontend Platform",
-      "riskLevel": "low",
       "lastReviewed": "2025-10-01",
-      "ownerTeamName": "Frontend Platform",
+      "stewardTeamName": "Frontend Platform",
       "versions": ["18.2.0", "18.3.1"]
     }
   ],

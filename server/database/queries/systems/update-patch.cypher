@@ -1,9 +1,6 @@
 MATCH (s:System {name: $name})
 SET {{SET_CLAUSES}}
-WITH s
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH s, {
   operation: 'UPDATE',
   entityType: 'System',
   entityId: s.name,
@@ -13,7 +10,8 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(s)
 RETURN s {
   .*,

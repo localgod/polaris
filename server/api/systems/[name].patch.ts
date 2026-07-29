@@ -55,126 +55,39 @@
  *       422:
  *         description: Validation error - invalid field values
  */
-import { buildAuditChanges } from '../../utils/audit-diff'
-import { VALID_CRITICALITIES, VALID_ENVIRONMENTS } from '../../services/system.service'
-import { loadQuery, injectPlaceholder } from '../../utils/query-loader'
+import { systemService } from '../../services/singletons'
 import { auditFailedOperation } from '../../utils/audit'
-import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuthorization(event)
   const realUserId = await getImpersonatorId(event)
-  
+
   const rawName = getRouterParam(event, 'name')
-  
+
   if (!rawName) {
     throw createError({
       statusCode: 400,
       message: 'System name is required'
     })
   }
-  
+
   const name = decodeURIComponent(rawName)
-  
+
   await validateTeamOwnership(event, 'System', name)
-  
+
   const body = await readBody(event)
 
   try {
-    // Validate that at least one field is provided
-    if (!body.description && !body.businessCriticality && !body.environment && !body.domain) {
-      throw createError({
-        statusCode: 422,
-        message: 'At least one field to update is required'
-      })
-    }
-
-    // Validate businessCriticality if provided
-    if (body.businessCriticality) {
-      if (!VALID_CRITICALITIES.includes(body.businessCriticality as BusinessCriticality)) {
-        throw createError({
-          statusCode: 422,
-          message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
-        })
-      }
-    }
-
-    // Validate environment if provided
-    if (body.environment) {
-      if (!VALID_ENVIRONMENTS.includes(body.environment as SystemEnvironment)) {
-        throw createError({
-          statusCode: 422,
-          message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
-        })
-      }
-    }
-
-    const driver = useDriver()
-
-    // Fetch current state before writing so we can diff it
-    const getCurrentStateQuery = await loadQuery('systems/get-current-state.cypher')
-    const { records: currentRecords } = await driver.executeQuery(getCurrentStateQuery, { name })
-
-    if (currentRecords.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `System '${name}' not found`
-      })
-    }
-
-    const currentProps = currentRecords[0]!.get('props') as Record<string, unknown>
-
-    // Build dynamic SET clause based on provided fields
-    const updates: string[] = []
-    const params: Record<string, unknown> = { name }
-
-    if (body.description !== undefined) {
-      updates.push('s.description = $description')
-      params.description = body.description
-    }
-    if (body.domain !== undefined) {
-      updates.push('s.domain = $domain')
-      params.domain = body.domain
-    }
-    if (body.businessCriticality !== undefined) {
-      updates.push('s.businessCriticality = $businessCriticality')
-      params.businessCriticality = body.businessCriticality
-    }
-    if (body.environment !== undefined) {
-      updates.push('s.environment = $environment')
-      params.environment = body.environment
-    }
-
-    const changedFields = updates.map(u => u.split(' = ')[0]!.replace('s.', ''))
-
-    // Build the incoming state from only the fields being updated
-    const incomingState: Record<string, unknown> = {}
-    for (const field of changedFields) {
-      incomingState[field] = params[field]
-    }
-    const changes = buildAuditChanges(currentProps, incomingState, changedFields)
-
-    params.userId = user.id
-    params.realUserId = realUserId
-    params.changes = JSON.stringify(changes)
-    params.changedFields = changedFields
-
-    const updateQuery = injectPlaceholder(
-      await loadQuery('systems/update-patch.cypher'),
-      'SET_CLAUSES', updates.join(', ')
-    )
-    const { records } = await driver.executeQuery(updateQuery, params)
-
-    if (records.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `System '${name}' not found`
-      })
-    }
+    const data = await systemService.updatePatch(name, {
+      description: body.description,
+      domain: body.domain,
+      businessCriticality: body.businessCriticality,
+      environment: body.environment
+    }, user.id, realUserId)
 
     return {
       success: true,
-      data: records[0]!.get('system')
+      data
     }
   } catch (error) {
     await auditFailedOperation(event, {

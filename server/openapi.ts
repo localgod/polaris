@@ -617,7 +617,7 @@ This API implements **RMM Level 2** with proper use of HTTP methods and status c
             domain: { type: 'string', nullable: true, enum: ['foundational-runtime', 'framework', 'data-platform', 'integration-platform', 'security-identity', 'infrastructure', 'observability', 'developer-tooling', 'other'] },
             vendor: { type: 'string', nullable: true },
             lastReviewed: { type: 'string', nullable: true },
-            ownerTeamName: { type: 'string', nullable: true },
+            stewardTeamName: { type: 'string', nullable: true },
             versions: { type: 'array', items: { type: 'string' } },
             approvals: { type: 'array', items: { $ref: '#/components/schemas/TechnologyApproval' } }
           }

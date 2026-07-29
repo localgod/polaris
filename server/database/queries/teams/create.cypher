@@ -4,9 +4,7 @@ CREATE (t:Team {
   responsibilityArea: $responsibilityArea,
   createdAt: datetime()
 })
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH t, {
   operation: 'CREATE',
   entityType: 'Team',
   entityId: t.name,
@@ -16,5 +14,6 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 RETURN t.name as name

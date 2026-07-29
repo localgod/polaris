@@ -5,7 +5,7 @@ import type { System, CreateSystemParams, RepositoryInput, ComponentIssueRow } f
 import type { Repository, BusinessCriticality, SystemEnvironment } from '~~/types/api'
 import { normalizeRepoUrl } from '../utils/repository'
 import type { SortParams } from '../utils/sorting'
-import { buildDeleteChanges } from '../utils/audit-diff'
+import { buildAuditChanges, buildDeleteChanges } from '../utils/audit-diff'
 
 export interface SystemIssues {
   vulnerabilities: ComponentIssueRow[]
@@ -144,6 +144,188 @@ export class SystemService {
     }
 
     return await this.systemRepo.create(params)
+  }
+
+  /**
+   * Partially update a system (PATCH) — only the provided fields are changed.
+   *
+   * Business rules:
+   * - At least one field must be provided
+   * - Business criticality must be valid, if provided
+   * - Environment must be valid, if provided
+   * - System must exist
+   *
+   * @param name - System name
+   * @param input - Fields to update (only defined fields are applied)
+   * @returns The updated system projection
+   * @throws Error if validation fails or system not found
+   */
+  async updatePatch(name: string, input: {
+    description?: string
+    domain?: string
+    businessCriticality?: string
+    environment?: string
+  }, userId: string, realUserId?: string | null): Promise<unknown> {
+    if (!input.description && !input.businessCriticality && !input.environment && !input.domain) {
+      throw createError({
+        statusCode: 422,
+        message: 'At least one field to update is required'
+      })
+    }
+
+    if (input.businessCriticality && !VALID_CRITICALITIES.includes(input.businessCriticality as BusinessCriticality)) {
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
+      })
+    }
+
+    if (input.environment && !VALID_ENVIRONMENTS.includes(input.environment as SystemEnvironment)) {
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
+      })
+    }
+
+    const currentProps = await this.systemRepo.getCurrentState(name)
+    if (!currentProps) {
+      throw createError({
+        statusCode: 404,
+        message: `System '${name}' not found`
+      })
+    }
+
+    const setClauses: string[] = []
+    const params: Record<string, unknown> = {}
+
+    if (input.description !== undefined) {
+      setClauses.push('s.description = $description')
+      params.description = input.description
+    }
+    if (input.domain !== undefined) {
+      setClauses.push('s.domain = $domain')
+      params.domain = input.domain
+    }
+    if (input.businessCriticality !== undefined) {
+      setClauses.push('s.businessCriticality = $businessCriticality')
+      params.businessCriticality = input.businessCriticality
+    }
+    if (input.environment !== undefined) {
+      setClauses.push('s.environment = $environment')
+      params.environment = input.environment
+    }
+
+    const changedFields = setClauses.map(u => u.split(' = ')[0]!.replace('s.', ''))
+
+    const incomingState: Record<string, unknown> = {}
+    for (const field of changedFields) {
+      incomingState[field] = params[field]
+    }
+    const changes = buildAuditChanges(currentProps, incomingState, changedFields)
+
+    params.userId = userId
+    params.realUserId = realUserId ?? null
+    params.changes = JSON.stringify(changes)
+    params.changedFields = changedFields
+
+    const updated = await this.systemRepo.updatePatch(name, setClauses, params)
+    if (!updated) {
+      throw createError({
+        statusCode: 404,
+        message: `System '${name}' not found`
+      })
+    }
+
+    return updated
+  }
+
+  /**
+   * Fully replace a system (PUT) — all required fields must be provided.
+   *
+   * Business rules:
+   * - All required fields must be provided
+   * - Business criticality and environment must be valid
+   * - The new owner team must exist
+   * - System must exist
+   *
+   * @param name - System name
+   * @param input - Full replacement field set
+   * @returns The updated system projection
+   * @throws Error if validation fails or system/team not found
+   */
+  async updatePut(name: string, input: {
+    domain: string
+    ownerTeam: string
+    businessCriticality: string
+    environment: string
+    description?: string
+  }, userId: string, realUserId?: string | null): Promise<unknown> {
+    if (!input.domain || !input.ownerTeam || !input.businessCriticality || !input.environment) {
+      throw createError({
+        statusCode: 422,
+        message: 'All required fields must be provided for full update: domain, ownerTeam, businessCriticality, environment'
+      })
+    }
+
+    if (!VALID_CRITICALITIES.includes(input.businessCriticality as BusinessCriticality)) {
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
+      })
+    }
+
+    if (!VALID_ENVIRONMENTS.includes(input.environment as SystemEnvironment)) {
+      throw createError({
+        statusCode: 422,
+        message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
+      })
+    }
+
+    const teamExists = await this.teamRepo.exists(input.ownerTeam)
+    if (!teamExists) {
+      throw createError({
+        statusCode: 422,
+        message: `Team '${input.ownerTeam}' not found`
+      })
+    }
+
+    const currentProps = await this.systemRepo.getCurrentStateFull(name)
+    if (!currentProps) {
+      throw createError({
+        statusCode: 404,
+        message: `System '${name}' not found`
+      })
+    }
+
+    const incomingProps: Record<string, unknown> = {
+      domain: input.domain,
+      ownerTeam: input.ownerTeam,
+      businessCriticality: input.businessCriticality,
+      environment: input.environment,
+      description: input.description || null,
+    }
+    const allFields = ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description']
+    const changes = JSON.stringify(buildAuditChanges(currentProps, incomingProps, allFields))
+
+    const updated = await this.systemRepo.updatePut({
+      name,
+      domain: input.domain,
+      ownerTeam: input.ownerTeam,
+      businessCriticality: input.businessCriticality,
+      environment: input.environment,
+      description: input.description || null,
+      userId,
+      realUserId: realUserId ?? null,
+      changes,
+    })
+    if (!updated) {
+      throw createError({
+        statusCode: 404,
+        message: `System '${name}' not found`
+      })
+    }
+
+    return updated
   }
 
   /**

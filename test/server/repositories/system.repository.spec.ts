@@ -211,4 +211,117 @@ describe('SystemRepository', () => {
     })
   })
 
+  describe('[pin] getCurrentState() / getCurrentStateFull()', () => {
+    it('should return null for a non-existent system', async () => {
+      if (!ctx.neo4jAvailable) return
+      expect(await repo.getCurrentState(`${PREFIX}nonexistent`)).toBeNull()
+      expect(await repo.getCurrentStateFull(`${PREFIX}nonexistent`)).toBeNull()
+    })
+
+    it('should return current mutable properties', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        MERGE (team:Team { name: $team })
+        CREATE (s:System { name: $name, domain: 'Platform', businessCriticality: 'medium', environment: 'dev', description: 'orig' })
+        CREATE (team)-[:OWNS]->(s)
+      `, { name: `${PREFIX}state`, team: `${PREFIX}Owner Team` })
+
+      const props = await repo.getCurrentState(`${PREFIX}state`)
+      expect(props).toMatchObject({ domain: 'Platform', businessCriticality: 'medium', environment: 'dev', description: 'orig' })
+
+      const fullProps = await repo.getCurrentStateFull(`${PREFIX}state`)
+      expect(fullProps).toMatchObject({ domain: 'Platform', businessCriticality: 'medium', environment: 'dev', ownerTeam: `${PREFIX}Owner Team` })
+    })
+  })
+
+  describe('[contract] updatePatch()', () => {
+    it('should apply only the given SET clauses and write an audit entry', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `CREATE (:System { name: $name, domain: 'Platform', businessCriticality: 'medium', environment: 'dev' })`, { name: `${PREFIX}patch-me` })
+
+      const result = await repo.updatePatch(
+        `${PREFIX}patch-me`,
+        ['s.environment = $environment'],
+        { environment: 'prod', userId: 'test-user', realUserId: null, changes: '{}', changedFields: ['environment'] }
+      ) as { environment: string; businessCriticality: string }
+
+      expect(result.environment).toBe('prod')
+      expect(result.businessCriticality).toBe('medium')
+
+      const auditResult = await session.run(
+        `MATCH (a:AuditLog)-[:AUDITS]->(s:System { name: $name }) RETURN a.operation as operation`,
+        { name: `${PREFIX}patch-me` }
+      )
+      expect(auditResult.records.map(r => r.get('operation'))).toContain('UPDATE')
+    })
+
+    it('should return null for a non-existent system', async () => {
+      if (!ctx.neo4jAvailable) return
+      const result = await repo.updatePatch(
+        `${PREFIX}nonexistent`,
+        ['s.environment = $environment'],
+        { environment: 'prod', userId: 'test-user', realUserId: null, changes: '{}', changedFields: ['environment'] }
+      )
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('[contract] updatePut()', () => {
+    it('should replace all fields, reassign owner team, and write an audit entry', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        MERGE (oldTeam:Team { name: $oldTeam })
+        MERGE (newTeam:Team { name: $newTeam })
+        CREATE (s:System { name: $name, domain: 'Old', businessCriticality: 'low', environment: 'dev' })
+        CREATE (oldTeam)-[:OWNS]->(s)
+      `, { name: `${PREFIX}put-me`, oldTeam: `${PREFIX}Old Team`, newTeam: `${PREFIX}New Team` })
+
+      const result = await repo.updatePut({
+        name: `${PREFIX}put-me`,
+        domain: 'New',
+        ownerTeam: `${PREFIX}New Team`,
+        businessCriticality: 'critical',
+        environment: 'prod',
+        description: 'replaced',
+        userId: 'test-user',
+        realUserId: null,
+        changes: '{}'
+      }) as { domain: string; ownerTeam: string; businessCriticality: string; environment: string }
+
+      expect(result.domain).toBe('New')
+      expect(result.ownerTeam).toBe(`${PREFIX}New Team`)
+      expect(result.businessCriticality).toBe('critical')
+      expect(result.environment).toBe('prod')
+
+      const oldOwnsResult = await session.run(
+        `MATCH (:Team { name: $oldTeam })-[:OWNS]->(:System { name: $name }) RETURN count(*) as c`,
+        { oldTeam: `${PREFIX}Old Team`, name: `${PREFIX}put-me` }
+      )
+      expect(oldOwnsResult.records[0]!.get('c').toNumber()).toBe(0)
+
+      const auditResult = await session.run(
+        `MATCH (a:AuditLog)-[:AUDITS]->(s:System { name: $name }) RETURN a.operation as operation`,
+        { name: `${PREFIX}put-me` }
+      )
+      expect(auditResult.records.map(r => r.get('operation'))).toContain('UPDATE')
+    })
+
+    it('should return null for a non-existent system', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `MERGE (:Team { name: $t })`, { t: `${PREFIX}Some Team` })
+      const result = await repo.updatePut({
+        name: `${PREFIX}nonexistent`,
+        domain: 'New',
+        ownerTeam: `${PREFIX}Some Team`,
+        businessCriticality: 'critical',
+        environment: 'prod',
+        description: null,
+        userId: 'test-user',
+        realUserId: null,
+        changes: '{}'
+      })
+      expect(result).toBeNull()
+    })
+  })
+
 })

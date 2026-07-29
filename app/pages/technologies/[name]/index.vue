@@ -374,8 +374,8 @@ interface TechnologyDetailData {
   domain: string | null
   vendor: string | null
   lastReviewed: string | null
-  ownerTeamName: string | null
-  ownerTeamEmail: string | null
+  stewardTeamName: string | null
+  stewardTeamEmail: string | null
   versions: VersionDetail[]
   components: ComponentRef[]
   systems: SystemUsage[]

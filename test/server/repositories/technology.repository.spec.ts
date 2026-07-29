@@ -56,7 +56,7 @@ describe('TechnologyRepository', () => {
       expect(tech!.name).toBe(`${PREFIX}Neo4j`)
       expect(tech!.type).toBe('platform')
       expect(tech!.domain).toBe('data-platform')
-      expect(tech!.ownerTeamName).toBe(`${PREFIX}Platform`)
+      expect(tech!.stewardTeamName).toBe(`${PREFIX}Platform`)
     })
   })
 

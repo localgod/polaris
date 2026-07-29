@@ -1045,4 +1045,51 @@ describe('ComponentRepository', () => {
     })
   })
 
+  describe('[contract] deleteOrphanedSatellites()', () => {
+    it('should delete Hash, ExternalReference, and HealthSnapshot nodes with no relationships', async () => {
+      if (!ctx.neo4jAvailable) return
+      const purl = `${PREFIX}pkg:npm/orphan-satellites@1.0.0`
+      await seed(ctx.driver, `
+        CREATE (:Hash { algorithm: 'sha256', value: $name })
+        CREATE (:ExternalReference { type: 'vcs', url: $name })
+        CREATE (:HealthSnapshot { componentPurl: $purl })
+      `, { name: `${PREFIX}orphan`, purl })
+
+      const result = await repo.deleteOrphanedSatellites()
+
+      expect(result.hashes).toBeGreaterThanOrEqual(1)
+      expect(result.externalReferences).toBeGreaterThanOrEqual(1)
+      expect(result.healthSnapshots).toBeGreaterThanOrEqual(1)
+
+      const remaining = await session.run(
+        `MATCH (h:Hash { value: $name }) RETURN h`,
+        { name: `${PREFIX}orphan` }
+      )
+      expect(remaining.records.length).toBe(0)
+    })
+
+    it('should not delete satellite nodes still attached to a Component', async () => {
+      if (!ctx.neo4jAvailable) return
+      const compName = `${PREFIX}attached-comp`
+      const purl = `${PREFIX}pkg:npm/${compName}@1.0.0`
+      await seed(ctx.driver, `
+        CREATE (c:Component { name: $compName, version: '1.0.0', purl: $purl })
+        CREATE (h:Hash { algorithm: 'sha256', value: $name })
+        CREATE (er:ExternalReference { type: 'vcs', url: $name })
+        CREATE (hs:HealthSnapshot { componentPurl: $purl })
+        CREATE (c)-[:HAS_HASH]->(h)
+        CREATE (c)-[:HAS_EXTERNAL_REF]->(er)
+        CREATE (c)-[:HAS_HEALTH_SNAPSHOT]->(hs)
+      `, { compName, purl, name: `${PREFIX}attached` })
+
+      await repo.deleteOrphanedSatellites()
+
+      const remaining = await session.run(
+        `MATCH (h:Hash { value: $name }) RETURN h`,
+        { name: `${PREFIX}attached` }
+      )
+      expect(remaining.records.length).toBe(1)
+    })
+  })
+
 })

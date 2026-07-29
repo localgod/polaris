@@ -1,7 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
-import { loadQuery, injectWhereConditions, injectOrderBy, injectPlaceholder } from '../utils/query-loader'
+import { loadQuery, loadQueryWithAudit, injectWhereConditions, injectOrderBy, injectPlaceholder } from '../utils/query-loader'
 
 export interface ViolationFilters {
   severity?: string
@@ -202,11 +202,11 @@ export class VersionConstraintRepository extends BaseRepository {
   }
 
   async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
-    await this.executeQuery(await loadQuery('version-constraints/delete.cypher'), { name, userId, realUserId: realUserId ?? null })
+    await this.executeQuery(await loadQueryWithAudit('version-constraints/delete.cypher'), { name, userId, realUserId: realUserId ?? null })
   }
 
   async create(input: CreateVersionConstraintInput): Promise<CreateVersionConstraintResult> {
-    await this.executeQuery(await loadQuery('version-constraints/create.cypher'), {
+    await this.executeQuery(await loadQueryWithAudit('version-constraints/create.cypher'), {
       name: input.name,
       description: input.description?.trim() || null,
       severity: input.severity,
@@ -252,7 +252,7 @@ export class VersionConstraintRepository extends BaseRepository {
     const previousStatus = current.status
     const newStatus = input.status || current.status
 
-    await this.executeQuery(await loadQuery('version-constraints/update-status.cypher'), {
+    await this.executeQuery(await loadQueryWithAudit('version-constraints/update-status.cypher'), {
       name,
       status: newStatus,
       reason: input.reason?.trim() || null,
@@ -300,7 +300,7 @@ export class VersionConstraintRepository extends BaseRepository {
     }
 
     const updateQuery = injectPlaceholder(
-      await loadQuery('version-constraints/update.cypher'),
+      await loadQueryWithAudit('version-constraints/update.cypher'),
       'SET_CLAUSES', setClauses.join(', ')
     )
     await this.executeQuery(updateQuery, params)

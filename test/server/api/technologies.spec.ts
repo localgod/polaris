@@ -22,7 +22,7 @@ beforeAll(() => {
 
 const mockTech = {
   name: 'React', type: 'library', domain: 'framework', vendor: null,
-  lastReviewed: null, ownerTeamName: null, componentCount: 0,
+  lastReviewed: null, stewardTeamName: null, componentCount: 0,
   constraintCount: 0, versions: [], approvals: []
 }
 

@@ -1,7 +1,5 @@
 MATCH (t:Technology {name: $name})
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH t, {
   operation: 'DELETE',
   entityType: 'Technology',
   entityId: t.name,
@@ -11,5 +9,7 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
+WITH t
 DETACH DELETE t

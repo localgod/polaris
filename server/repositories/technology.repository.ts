@@ -60,6 +60,7 @@ export interface TechnologyVersionDetail {
 
 export interface TechnologyGraphRow {
   systemName: string
+  /** The team that OWNS the system (Team-[:OWNS]->System) — not the technology's steward */
   ownerTeamName: string | null
   environment: string | null
   approved: boolean
@@ -69,7 +70,7 @@ export interface TechnologyGraphRow {
 
 export interface TechnologyDetail extends Omit<Technology, 'versions'> {
   versions: TechnologyVersionDetail[]
-  ownerTeamEmail?: string | null
+  stewardTeamEmail?: string | null
   lifecycleSummary?: TechnologyLifecycleSummary
   versionLifecycles?: TechnologyVersionLifecycle[]
   components?: Array<{
@@ -197,7 +198,7 @@ export class TechnologyRepository extends BaseRepository {
    * returned records, which the caller treats as "component not found."
    */
   async createFromComponent(params: CreateTechnologyFromComponentParams): Promise<string> {
-    const query = await loadQuery('technologies/create-from-component.cypher')
+    const query = await loadQueryWithAudit('technologies/create-from-component.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       type: params.type,
@@ -267,7 +268,7 @@ export class TechnologyRepository extends BaseRepository {
   }
 
   async update(params: UpdateTechnologyParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<string> {
-    const query = await loadQuery('technologies/update.cypher')
+    const query = await loadQueryWithAudit('technologies/update.cypher')
     const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
     if (records.length === 0) {
       throw createError({ statusCode: 404, message: `Technology '${params.name}' not found` })
@@ -276,7 +277,7 @@ export class TechnologyRepository extends BaseRepository {
   }
 
   async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
-    const query = await loadQuery('technologies/delete.cypher')
+    const query = await loadQueryWithAudit('technologies/delete.cypher')
     await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 
@@ -290,7 +291,7 @@ export class TechnologyRepository extends BaseRepository {
       domain: record.get('domain'),
       vendor: record.get('vendor'),
       lastReviewed: record.get('lastReviewed')?.toString(),
-      ownerTeamName: record.get('ownerTeamName'),
+      stewardTeamName: record.get('stewardTeamName'),
       componentCount: record.get('componentCount').toInt(),
       constraintCount: record.get('constraintCount').toInt(),
       versions: record.get('versions').filter((v: string) => v),
@@ -432,8 +433,8 @@ export class TechnologyRepository extends BaseRepository {
       domain: record.get('domain'),
       vendor: record.get('vendor'),
       lastReviewed: record.get('lastReviewed')?.toString(),
-      ownerTeamName: record.get('ownerTeamName'),
-      ownerTeamEmail: record.get('ownerTeamEmail'),
+      stewardTeamName: record.get('stewardTeamName'),
+      stewardTeamEmail: record.get('stewardTeamEmail'),
       versions,
       approvals: [],
       components,

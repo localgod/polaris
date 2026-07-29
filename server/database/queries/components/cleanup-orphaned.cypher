@@ -12,6 +12,6 @@ MATCH (c:Component)
 WHERE NOT EXISTS { MATCH ()-[:USES]->(c) }
   AND NOT EXISTS { MATCH (c)-[:IS_VERSION_OF]->() }
 WITH c
-LIMIT $batchSize
+LIMIT toInteger($batchSize)
 DETACH DELETE c
 RETURN count(c) AS deletedCount

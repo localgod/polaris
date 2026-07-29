@@ -110,15 +110,15 @@ export class TechnologyRepository extends BaseRepository {
 - Version controlled
 - Testable independently
 
-**Example**:
+**Example** (simplified — see the real file for the full query):
 ```cypher
 // server/database/queries/technologies/find-all.cypher
 MATCH (t:Technology)
-OPTIONAL MATCH (team:Team)-[:OWNS]->(t)
+OPTIONAL MATCH (team:Team)-[:STEWARDED_BY]->(t)
 RETURN t.name as name,
-       t.category as category,
-       team.name as ownerTeamName
-ORDER BY t.category, t.name
+       t.type as type,
+       team.name as stewardTeamName
+ORDER BY t.type, t.name
 ```
 
 ## Utilities (`/utils`)

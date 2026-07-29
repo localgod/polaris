@@ -86,7 +86,7 @@ export class PlatformRepository extends BaseRepository {
   }
 
   async create(params: CreatePlatformParams): Promise<string> {
-    const query = await loadQuery('platforms/create.cypher')
+    const query = await loadQueryWithAudit('platforms/create.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       type: params.type,
@@ -129,7 +129,7 @@ export class PlatformRepository extends BaseRepository {
   }
 
   async update(params: UpdatePlatformParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<string> {
-    const query = await loadQuery('platforms/update.cypher')
+    const query = await loadQueryWithAudit('platforms/update.cypher')
     const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
     if (records.length === 0) {
       throw createError({ statusCode: 404, message: `Platform '${params.name}' not found` })
@@ -138,7 +138,7 @@ export class PlatformRepository extends BaseRepository {
   }
 
   async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
-    const query = await loadQuery('platforms/delete.cypher')
+    const query = await loadQueryWithAudit('platforms/delete.cypher')
     await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 

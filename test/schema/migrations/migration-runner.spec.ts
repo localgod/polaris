@@ -32,7 +32,11 @@ describeFeature(feature, ({ Background, Scenario }) => {
   afterAll(async () => {
     const session = driver.session()
     try {
-      await session.run('MATCH (m:Migration) DELETE m')
+      // Scoped to this test's own migration files only — a blanket
+      // `MATCH (m:Migration) DELETE m` would also wipe the real
+      // application's migration-tracking nodes, since this project shares
+      // one Neo4j instance between app and tests (no separate test DB).
+      await session.run('MATCH (m:Migration) WHERE m.filename STARTS WITH $dir DELETE m', { dir: testMigrationsDir })
       await session.run('MATCH (t:TestNode) DELETE t')
     } finally {
       await session.close()
@@ -51,10 +55,12 @@ describeFeature(feature, ({ Background, Scenario }) => {
     Given('a Neo4j database is available', async () => {
       expect(driver).toBeDefined()
       
-      // Clean up before each scenario (not before each step!)
+      // Clean up before each scenario (not before each step!). Scoped to
+      // this test's own migration files only — see afterAll for why a
+      // blanket delete is unsafe here.
       const session = driver.session()
       try {
-        await session.run('MATCH (m:Migration) DELETE m')
+        await session.run('MATCH (m:Migration) WHERE m.filename STARTS WITH $dir DELETE m', { dir: testMigrationsDir })
         await session.run('MATCH (t:TestNode) DELETE t')
       } finally {
         await session.close()
@@ -206,7 +212,7 @@ CREATE (n:TestNode {name: 'test'})`
     And('the migration should be recorded in the database', async () => {
       const session = driver.session()
       try {
-        const result = await session.run('MATCH (m:Migration) RETURN count(m) as count')
+        const result = await session.run('MATCH (m:Migration) WHERE m.filename STARTS WITH $dir RETURN count(m) as count', { dir: testMigrationsDir })
         expect(result.records[0].get('count').toNumber()).toBe(1)
       } finally {
         await session.close()
@@ -273,7 +279,8 @@ INVALID CYPHER SYNTAX`
       const session = driver.session()
       try {
         const result = await session.run(
-          'MATCH (m:Migration {status: "FAILED"}) RETURN count(m) as count'
+          'MATCH (m:Migration {status: "FAILED"}) WHERE m.filename STARTS WITH $dir RETURN count(m) as count',
+          { dir: testMigrationsDir }
         )
         expect(result.records[0].get('count').toNumber()).toBe(1)
       } finally {

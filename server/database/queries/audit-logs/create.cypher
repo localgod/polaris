@@ -1,6 +1,4 @@
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH {
   operation: $operation,
   entityType: $entityType,
   entityId: $entityId,
@@ -13,4 +11,5 @@ CREATE (a:AuditLog {
   realUserId: $realUserId,
   correlationId: $correlationId,
   requestId: $requestId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}

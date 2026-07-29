@@ -10,10 +10,7 @@ CREATE (vc:VersionConstraint {
   createdAt: datetime(),
   updatedAt: datetime()
 })
-WITH vc
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH vc, {
   operation: 'CREATE',
   entityType: 'VersionConstraint',
   entityId: vc.name,
@@ -22,5 +19,6 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(vc)

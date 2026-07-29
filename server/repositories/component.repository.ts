@@ -508,6 +508,39 @@ export class ComponentRepository extends BaseRepository {
     return totalDeleted
   }
 
+  /**
+   * Delete Hash, ExternalReference, and HealthSnapshot nodes left dangling
+   * once every Component that referenced them is gone or has moved on to a
+   * different one — see the query files for exactly how each becomes
+   * orphaned. Safe to run independently of deleteOrphaned(): a satellite
+   * node can go orphaned either because its Component was deleted, or (for
+   * Hash/ExternalReference) because an SBOM re-scan repointed the same
+   * still-live Component at a different shared node.
+   */
+  async deleteOrphanedSatellites(batchSize = 500): Promise<{
+    hashes: number
+    externalReferences: number
+    healthSnapshots: number
+  }> {
+    const runBatched = async (queryPath: string): Promise<number> => {
+      const query = await loadQuery(queryPath)
+      let total = 0
+      while (true) {
+        const { records } = await this.executeQuery(query, { batchSize })
+        const deleted = records[0]?.get('deletedCount')?.toNumber() ?? 0
+        total += deleted
+        if (deleted === 0) break
+      }
+      return total
+    }
+
+    return {
+      hashes: await runBatched('components/cleanup-orphaned-hashes.cypher'),
+      externalReferences: await runBatched('components/cleanup-orphaned-external-refs.cypher'),
+      healthSnapshots: await runBatched('components/cleanup-orphaned-health-snapshots.cypher'),
+    }
+  }
+
   async findVersionSprawl(minVersions = 2): Promise<VersionSprawlRaw[]> {
     const query = await loadQuery('components/detect-version-sprawl.cypher')
     const { records } = await this.executeQuery(query, { minVersions })

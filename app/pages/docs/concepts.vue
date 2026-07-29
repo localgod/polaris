@@ -515,7 +515,7 @@ const versionSprawlFacts = [
 
 const auditGovernanceEvents = [
   { icon: 'i-lucide-git-branch', title: 'Version constraint lifecycle', description: 'Creation, activation, deactivation, archiving, and deletion of version constraints' },
-  { icon: 'i-lucide-scale', title: 'License decisions', description: 'Allowing or denying licenses, and enabling or disabling the license whitelist' },
+  { icon: 'i-lucide-scale', title: 'License decisions', description: 'Allowing or denying licenses on the organization-managed allow list' },
   { icon: 'i-lucide-check-circle', title: 'Technology approvals', description: 'TIME framework categorization, version-specific approvals, and revocations' },
 ]
 

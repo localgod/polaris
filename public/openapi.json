@@ -958,7 +958,7 @@
             "type": "string",
             "nullable": true
           },
-          "ownerTeamName": {
+          "stewardTeamName": {
             "type": "string",
             "nullable": true
           },
@@ -3381,7 +3381,7 @@
                             {
                               "type": "object",
                               "properties": {
-                                "ownerTeamEmail": {
+                                "stewardTeamEmail": {
                                   "type": "string"
                                 },
                                 "components": {
@@ -3423,8 +3423,8 @@
                     "type": "framework",
                     "vendor": "Meta",
                     "lastReviewed": "2025-10-01",
-                    "ownerTeamName": "Frontend Platform",
-                    "ownerTeamEmail": "frontend-platform@company.com",
+                    "stewardTeamName": "Frontend Platform",
+                    "stewardTeamEmail": "frontend-platform@company.com",
                     "versions": [
                       "18.2.0",
                       "18.3.1"
