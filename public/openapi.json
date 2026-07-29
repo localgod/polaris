@@ -2364,6 +2364,14 @@
           },
           {
             "in": "query",
+            "name": "direct",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "When true, restrict componentCount to direct dependencies only and exclude licenses with none"
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
@@ -2429,7 +2437,7 @@
                               },
                               "componentCount": {
                                 "type": "integer",
-                                "description": "Number of components using this license"
+                                "description": "Number of components using this license (direct dependencies only when the `direct` filter is set)"
                               }
                             }
                           }

@@ -47,6 +47,8 @@ export interface LicenseFilters {
   deprecated?: boolean
   allowed?: boolean
   search?: string
+  /** Restrict to licenses used by at least one direct dependency (USES {isDirect: true}) */
+  directOnly?: boolean
   limit?: number
   offset?: number
   sortBy?: string
@@ -384,6 +386,10 @@ export class LicenseRepository extends BaseRepository {
       conditions.push('(toLower(l.id) CONTAINS toLower($search) OR toLower(l.name) CONTAINS toLower($search))')
       params.search = filters.search
     }
+
+    // Always bound: find-all.cypher/count.cypher reference $directOnly directly
+    // (not via the WHERE_CONDITIONS placeholder), so it must always be present.
+    params.directOnly = filters.directOnly ?? false
 
     return { conditions, params }
   }

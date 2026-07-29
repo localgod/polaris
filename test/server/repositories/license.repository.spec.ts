@@ -948,4 +948,52 @@ describe('LicenseRepository', () => {
       expect(testLicenses[0].category).toBe('permissive')
     })
   })
+
+  describe('[contract] findAll()/count() with directOnly filter', () => {
+    it('counts only direct usage and excludes licenses with none when directOnly is true', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      // MIT: used both directly and transitively across two systems
+      // GPL: used only transitively — must disappear when directOnly is true
+      await session.run(`
+        CREATE (mit:License { id: $mitId, name: 'MIT License', spdxId: 'MIT', category: 'permissive', deprecated: false, createdAt: datetime(), updatedAt: datetime() })
+        CREATE (gpl:License { id: $gplId, name: 'GPL 3.0', spdxId: 'GPL-3.0', category: 'copyleft', deprecated: false, createdAt: datetime(), updatedAt: datetime() })
+        CREATE (compDirect:Component { name: $compDirectName, version: '1.0.0', purl: $compDirectPurl })
+        CREATE (compTransitive:Component { name: $compTransitiveName, version: '1.0.0', purl: $compTransitivePurl })
+        CREATE (compGpl:Component { name: $compGplName, version: '1.0.0', purl: $compGplPurl })
+        CREATE (sys:System { name: $sysName })
+        CREATE (compDirect)-[:HAS_LICENSE]->(mit)
+        CREATE (compTransitive)-[:HAS_LICENSE]->(mit)
+        CREATE (compGpl)-[:HAS_LICENSE]->(gpl)
+        CREATE (sys)-[:USES { isDirect: true }]->(compDirect)
+        CREATE (sys)-[:USES { isDirect: false }]->(compTransitive)
+        CREATE (sys)-[:USES { isDirect: false }]->(compGpl)
+      `, {
+        mitId: `${PREFIX}MIT`,
+        gplId: `${PREFIX}GPL-3.0`,
+        compDirectName: `${PREFIX}comp-direct`,
+        compDirectPurl: `pkg:npm/${PREFIX}comp-direct@1.0.0`,
+        compTransitiveName: `${PREFIX}comp-transitive`,
+        compTransitivePurl: `pkg:npm/${PREFIX}comp-transitive@1.0.0`,
+        compGplName: `${PREFIX}comp-gpl`,
+        compGplPurl: `pkg:npm/${PREFIX}comp-gpl@1.0.0`,
+        sysName: `${PREFIX}sys`
+      })
+
+      // Off: both licenses present, MIT counts both its components
+      const allResult = await licenseRepo.findAll({ search: PREFIX })
+      const mitAll = allResult.find(l => l.id === `${PREFIX}MIT`)
+      const gplAll = allResult.find(l => l.id === `${PREFIX}GPL-3.0`)
+      expect(mitAll?.componentCount).toBe(2)
+      expect(gplAll?.componentCount).toBe(1)
+      expect(await licenseRepo.count({ search: PREFIX })).toBe(2)
+
+      // On: GPL (transitive-only) drops out entirely, MIT counts only its direct component
+      const directResult = await licenseRepo.findAll({ search: PREFIX, directOnly: true })
+      const mitDirect = directResult.find(l => l.id === `${PREFIX}MIT`)
+      expect(mitDirect?.componentCount).toBe(1)
+      expect(directResult.find(l => l.id === `${PREFIX}GPL-3.0`)).toBeUndefined()
+      expect(await licenseRepo.count({ search: PREFIX, directOnly: true })).toBe(1)
+    })
+  })
 })

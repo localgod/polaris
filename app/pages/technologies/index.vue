@@ -26,13 +26,6 @@
             @click="viewMode = 'radar'"
           />
         </div>
-        <UButton
-          v-if="isSuperuser"
-          size="sm"
-          label="+ Create Technology"
-          icon="i-lucide-link"
-          to="/admin/component-links"
-        />
       </div>
     </div>
 
