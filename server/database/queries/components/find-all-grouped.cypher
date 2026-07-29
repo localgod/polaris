@@ -42,7 +42,7 @@ WITH group, total, c,
      head([x IN collect(DISTINCT {scope: u.scope, isDirect: u.isDirect, sysName: versionSystem.name}) WHERE x.sysName = $system | x.isDirect]) as isDirect
 OPTIONAL MATCH (c)-[:HAS_LICENSE]->(l:License)
 WITH group, total, c, versionSystemCount, scope, isDirect,
-     collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text}) as licenses
+     collect(DISTINCT {id: l.id, name: l.name, url: l.url, text: l.text, allowed: l.allowed}) as licenses
 OPTIONAL MATCH (c)-[:HAS_REFERENCE]->(ref:ExternalReference)
 WITH group, total, c, versionSystemCount, scope, isDirect, licenses,
      collect(DISTINCT {type: ref.type, url: ref.url}) as externalReferences

@@ -1,4 +1,4 @@
-MATCH (sys:System)-[:USES]->(c:Component)
+MATCH (sys:System)-[:USES {isDirect: true}]->(c:Component)
 WHERE c.purl IS NOT NULL
 OPTIONAL MATCH (c)-[:IS_VERSION_OF]->(tech:Technology)
 WITH c, tech, collect(DISTINCT sys.name) as systems

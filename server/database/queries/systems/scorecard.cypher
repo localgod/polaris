@@ -4,6 +4,10 @@
 // and disallowed-license usage. Critical version-constraint violations are
 // computed separately in the service layer (semver evaluation happens in JS).
 //
+// Direct dependencies only (USES.isDirect = true) — the scorecard should read
+// consistently with the Issues card's default view, which only surfaces what
+// this system's own manifest is directly responsible for.
+//
 // Staged CALL {} subqueries avoid cross-multiplying unrelated OPTIONAL MATCHes.
 MATCH (sys:System {name: $name})
 OPTIONAL MATCH (owner:Team)-[:OWNS]->(sys)
@@ -16,7 +20,8 @@ CALL {
 
 CALL {
   WITH sys, owner
-  OPTIONAL MATCH (sys)-[:USES]->(:Component)-[:IS_VERSION_OF]->(tech:Technology)
+  OPTIONAL MATCH (sys)-[u:USES]->(:Component)-[:IS_VERSION_OF]->(tech:Technology)
+    WHERE u.isDirect = true
   WITH sys, owner, collect(DISTINCT tech) AS usedTechs
   UNWIND (CASE WHEN size(usedTechs) = 0 THEN [null] ELSE usedTechs END) AS tech
   OPTIONAL MATCH (owner)-[envApproval:APPROVES]->(tech)
@@ -36,8 +41,8 @@ CALL {
 
 CALL {
   WITH sys
-  OPTIONAL MATCH (sys)-[:USES]->(comp:Component)-[:HAS_LICENSE]->(lic:License)
-    WHERE lic.allowed = false
+  OPTIONAL MATCH (sys)-[u:USES]->(comp:Component)-[:HAS_LICENSE]->(lic:License)
+    WHERE u.isDirect = true AND lic.allowed = false
   RETURN count(DISTINCT comp) AS licenseViolationCount
 }
 

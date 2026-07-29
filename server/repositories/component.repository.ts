@@ -12,7 +12,11 @@ export interface ComponentFilters {
   technology?: string
   license?: string
   hasLicense?: boolean
+  /** When true, restrict to components with at least one disallowed license */
+  licenseViolation?: boolean
   system?: string
+  /** Filter to components used by a system owned by this team */
+  team?: string
   /** When true, restrict to direct dependencies. With system, applies to that system; otherwise across all systems. */
   directOnly?: boolean
   /** When false, exclude dependencies whose matching USES edge is dev-scoped */
@@ -188,6 +192,11 @@ export class ComponentRepository extends BaseRepository {
       params.system = filters.system
     }
 
+    if (filters.team) {
+      componentConditions.push('EXISTS { MATCH (:Team {name: $team})-[:OWNS]->(:System)-[:USES]->(c) }')
+      params.team = filters.team
+    }
+
     if (filters.depScope && !filters.system) {
       // scope filter without a system is not meaningful — ignore silently
     }
@@ -210,6 +219,10 @@ export class ComponentRepository extends BaseRepository {
       } else {
         componentConditions.push('NOT EXISTS { (c)-[:HAS_LICENSE]->(:License) }')
       }
+    }
+
+    if (filters.licenseViolation) {
+      componentConditions.push('EXISTS { MATCH (c)-[:HAS_LICENSE]->(lic:License) WHERE lic.allowed = false }')
     }
 
     return { componentConditions, params }

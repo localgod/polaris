@@ -88,10 +88,15 @@ export class TechnologyService {
     const technology = await this.techRepo.findByName(name)
     if (!technology) return null
 
-    const versionRows = Array.isArray(technology.versions) ? technology.versions : []
-    const versionLifecycles = await Promise.all(versionRows.map(async (versionRow) => {
-      const version = typeof versionRow === 'string' ? versionRow : versionRow.version
-      const storedEolDate = typeof versionRow === 'string' ? null : versionRow.eolDate ?? null
+    // Most technologies are claimed from a Component (per ADR-0004) and have
+    // no explicit Version nodes — fall back to the distinct versions observed
+    // across their components so lifecycle status still gets computed instead
+    // of silently reporting "unknown" for every row.
+    const versionRows = technology.versions.length > 0
+      ? technology.versions
+      : this.deriveVersionRowsFromComponents(technology.components)
+
+    const versionLifecycles = await Promise.all(versionRows.map(async ({ version, eolDate }) => {
       const lifecycle = await this.eolService.getEOLStatus({
         name,
         version,
@@ -100,7 +105,7 @@ export class TechnologyService {
 
       return {
         version,
-        storedEolDate,
+        storedEolDate: eolDate ?? null,
         lifecycle
       }
     }))
@@ -110,6 +115,17 @@ export class TechnologyService {
       versionLifecycles,
       lifecycleSummary: this.summarizeLifecycle(versionLifecycles)
     }
+  }
+
+  private deriveVersionRowsFromComponents(components?: TechnologyDetail['components']): Array<{ version: string; eolDate: null }> {
+    const seen = new Set<string>()
+    const rows: Array<{ version: string; eolDate: null }> = []
+    for (const component of components ?? []) {
+      if (seen.has(component.version)) continue
+      seen.add(component.version)
+      rows.push({ version: component.version, eolDate: null })
+    }
+    return rows
   }
 
   private summarizeLifecycle(versionLifecycles: TechnologyVersionLifecycle[]): TechnologyLifecycleSummary {

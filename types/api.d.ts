@@ -38,6 +38,7 @@ export interface License {
   name?: string      // License name
   url?: string       // License URL
   text?: string      // License text
+  allowed?: boolean  // Whether this license is permitted by policy
 }
 
 export interface ExternalReference {
@@ -555,6 +556,7 @@ export interface TechnologyApproval {
   migrationTarget?: string
   notes?: string
   approvedBy?: string
+  approvedByName?: string | null
 }
 
 export interface System {
@@ -641,6 +643,8 @@ export interface ScorecardCheck {
   label: string
   passed: boolean
   detail: string
+  /** Present when the check failed and drills down to the offending records. */
+  link?: { path: string; query: Record<string, string> }
 }
 
 export interface Scorecard {

@@ -47,7 +47,11 @@
       <template #vulnerabilities>
         <UTable :data="visibleVulnerabilities" :columns="vulnColumns" class="mt-3">
           <template #empty>
-            <p class="text-sm text-(--ui-text-muted) py-4 text-center">No vulnerabilities in this category.</p>
+            <p class="text-sm text-(--ui-text-muted) py-4 text-center">
+              {{ vulnerabilitiesHiddenByDirectFilter
+                ? `${issues.vulnerabilities.length} in transitive dependencies. Turn off "Direct only" above to see them.`
+                : 'No vulnerabilities in this category.' }}
+            </p>
           </template>
         </UTable>
       </template>
@@ -55,7 +59,11 @@
       <template #licenses>
         <UTable :data="visibleLicenseIssues" :columns="licenseColumns" class="mt-3">
           <template #empty>
-            <p class="text-sm text-(--ui-text-muted) py-4 text-center">No license issues in this category.</p>
+            <p class="text-sm text-(--ui-text-muted) py-4 text-center">
+              {{ licenseIssuesHiddenByDirectFilter
+                ? `${issues.licenseIssues.length} in transitive dependencies. Turn off "Direct only" above to see them.`
+                : 'No license issues in this category.' }}
+            </p>
           </template>
         </UTable>
       </template>
@@ -63,7 +71,11 @@
       <template #health>
         <UTable :data="visibleHealthIssues" :columns="healthColumns" class="mt-3">
           <template #empty>
-            <p class="text-sm text-(--ui-text-muted) py-4 text-center">No health issues in this category.</p>
+            <p class="text-sm text-(--ui-text-muted) py-4 text-center">
+              {{ healthIssuesHiddenByDirectFilter
+                ? `${issues.healthIssues.length} in transitive dependencies. Turn off "Direct only" above to see them.`
+                : 'No health issues in this category.' }}
+            </p>
           </template>
         </UTable>
       </template>
@@ -123,6 +135,16 @@ const visibleLicenseIssues = computed(() =>
 )
 const visibleHealthIssues = computed(() =>
   showDirectOnly.value ? props.issues.healthIssues.filter(r => r.isDirect) : props.issues.healthIssues
+)
+
+const vulnerabilitiesHiddenByDirectFilter = computed(() =>
+  showDirectOnly.value && props.issues.vulnerabilities.length > 0 && visibleVulnerabilities.value.length === 0
+)
+const licenseIssuesHiddenByDirectFilter = computed(() =>
+  showDirectOnly.value && props.issues.licenseIssues.length > 0 && visibleLicenseIssues.value.length === 0
+)
+const healthIssuesHiddenByDirectFilter = computed(() =>
+  showDirectOnly.value && props.issues.healthIssues.length > 0 && visibleHealthIssues.value.length === 0
 )
 
 const totalIssues = computed(() =>

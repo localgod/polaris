@@ -32,13 +32,13 @@ export class ScorecardService {
 
     const [raw, criticalViolations] = await Promise.all([
       this.systemRepo.getScorecardRaw(name),
-      this.versionConstraintService.getViolations({ system: name, severity: 'critical' })
+      this.versionConstraintService.getViolations({ system: name, severity: 'critical', directOnly: true })
     ])
 
     const checks: ScorecardCheck[] = [
       this.sbomFreshnessCheck(raw.lastSbomScanAt),
       this.eliminateViolationsCheck(raw.eliminateCount, raw.usedTechnologyCount),
-      this.licenseViolationsCheck(raw.licenseViolationCount),
+      this.licenseViolationsCheck(raw.licenseViolationCount, { system: name }),
       this.criticalConstraintCheck(criticalViolations.summary.critical),
       this.classificationCoverageCheck(raw.unclassifiedCount, raw.usedTechnologyCount)
     ]
@@ -73,7 +73,7 @@ export class ScorecardService {
     const checks: ScorecardCheck[] = [
       this.teamSbomFreshnessCheck(raw.systemScans),
       this.eliminateViolationsCheck(usage.summary.violations, usage.summary.totalTechnologies),
-      this.licenseViolationsCheck(raw.licenseViolationCount),
+      this.licenseViolationsCheck(raw.licenseViolationCount, { team: name }),
       this.criticalConstraintCheck(criticalViolations.summary.critical),
       this.classificationCoverageCheck(unclassifiedCount, usage.summary.totalTechnologies)
     ]
@@ -133,14 +133,30 @@ export class ScorecardService {
     }
   }
 
-  private licenseViolationsCheck(licenseViolationCount: number): ScorecardCheck {
+  private licenseViolationsCheck(
+    licenseViolationCount: number,
+    context: { team?: string; system?: string }
+  ): ScorecardCheck {
+    const passed = licenseViolationCount === 0
     return {
       id: 'no-license-violations',
       label: 'License violations',
-      passed: licenseViolationCount === 0,
-      detail: licenseViolationCount === 0
+      passed,
+      detail: passed
         ? 'No components use a disallowed license'
-        : `${licenseViolationCount} component(s) use a disallowed license`
+        : `${licenseViolationCount} component(s) use a disallowed license`,
+      ...(passed
+        ? {}
+        : {
+            link: {
+              path: '/components',
+              query: {
+                licenseViolation: 'true',
+                ...(context.team ? { team: context.team } : {}),
+                ...(context.system ? { system: context.system } : {})
+              }
+            }
+          })
     }
   }
 

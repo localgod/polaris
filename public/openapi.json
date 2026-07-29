@@ -2550,11 +2550,27 @@
           },
           {
             "in": "query",
+            "name": "licenseViolation",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "When true, restrict to components with at least one disallowed license"
+          },
+          {
+            "in": "query",
             "name": "system",
             "schema": {
               "type": "string"
             },
             "description": "Filter by system name (only components used by this system)"
+          },
+          {
+            "in": "query",
+            "name": "team",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by team name (only components used by a system owned by this team)"
           },
           {
             "in": "query",
@@ -5519,11 +5535,27 @@
           },
           {
             "in": "query",
+            "name": "licenseViolation",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "When true, restrict to groups with at least one version using a disallowed license"
+          },
+          {
+            "in": "query",
             "name": "system",
             "schema": {
               "type": "string"
             },
             "description": "Filter to groups where any version is used by this system"
+          },
+          {
+            "in": "query",
+            "name": "team",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter to groups where any version is used by a system owned by this team"
           },
           {
             "in": "query",
