@@ -1,9 +1,9 @@
 import { ComponentRepository } from '../repositories/component.repository'
-import type { ComponentDependencyFilters, ComponentDependencyTree, ComponentFilters, DismissedComponent, LinkSuggestion } from '../repositories/component.repository'
+import type { ComponentDependencyFilters, ComponentDependencyTree, ComponentFilters, ComponentIdentityKey, DismissedComponent, LinkSuggestion } from '../repositories/component.repository'
 import type { Component, ComponentDetail, GroupedComponent } from '~~/types/api'
 import type { ComponentIdentity } from '~~/utils/component-identity'
 
-export type { ComponentFilters, DismissedComponent, LinkSuggestion }
+export type { ComponentFilters, ComponentIdentityKey, DismissedComponent, LinkSuggestion }
 
 /**
  * Service for component-related business logic
@@ -82,12 +82,12 @@ export class ComponentService {
     return { data, count: data.length, total }
   }
 
-  async dismissLink(componentName: string): Promise<void> {
-    await this.componentRepo.dismissLink(componentName)
+  async dismissLink(component: ComponentIdentityKey): Promise<void> {
+    await this.componentRepo.dismissLink(component)
   }
 
-  async undismissLink(componentName: string): Promise<void> {
-    await this.componentRepo.undismissLink(componentName)
+  async undismissLink(component: ComponentIdentityKey): Promise<void> {
+    await this.componentRepo.undismissLink(component)
   }
 
   async getDismissedLinks(skip: number, limit: number, search?: string): Promise<{ data: DismissedComponent[]; count: number; total: number }> {

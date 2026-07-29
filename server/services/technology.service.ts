@@ -40,6 +40,8 @@ export interface CreateTechnologyFromComponentInput {
   vendor?: string
   ownerTeam?: string
   componentName: string
+  componentGroup?: string | null
+  componentPackageManager?: string | null
   userId: string
   realUserId?: string | null
 }
@@ -209,6 +211,8 @@ export class TechnologyService {
       vendor: input.vendor?.trim() || null,
       ownerTeam: input.ownerTeam?.trim() || null,
       componentName: input.componentName.trim(),
+      componentGroup: input.componentGroup ?? null,
+      componentPackageManager: input.componentPackageManager ?? null,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     }
@@ -341,7 +345,7 @@ export class TechnologyService {
   /**
    * Link a component to a technology via IS_VERSION_OF
    */
-  async linkComponent(input: { technologyName: string; componentName: string; componentVersion: string; userId: string; realUserId?: string | null }) {
+  async linkComponent(input: { technologyName: string; componentName: string; componentVersion: string; componentGroup?: string | null; componentPackageManager?: string | null; userId: string; realUserId?: string | null }) {
     const exists = await this.techRepo.exists(input.technologyName)
     if (!exists) {
       throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })
@@ -384,7 +388,7 @@ export class TechnologyService {
    * that uses the components so that compliance and version-constraint queries
    * reflect the new relationship immediately.
    */
-  async linkComponentByName(input: { technologyName: string; componentName: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; count: number }> {
+  async linkComponentByName(input: { technologyName: string; componentName: string; componentGroup?: string | null; componentPackageManager?: string | null; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; count: number }> {
     const exists = await this.techRepo.exists(input.technologyName)
     if (!exists) {
       throw createError({ statusCode: 404, message: `Technology '${input.technologyName}' not found` })

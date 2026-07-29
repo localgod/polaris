@@ -980,4 +980,69 @@ describe('ComponentRepository', () => {
     })
   })
 
+  describe('[contract] getLinkSuggestions() / dismissLink() / undismissLink()', () => {
+    // Regression coverage for the bare-name collision bug: unrelated packages that
+    // happen to share a name across npm scopes (e.g. @nuxt/ui vs @vitest/ui) must
+    // surface as distinct suggestions and be dismissible/linkable independently.
+    async function seedScopedNameCollision() {
+      const componentName = `${PREFIX}ui`
+      await seed(ctx.driver, `
+        CREATE (c1:Component { name: $componentName, version: '4.10.0', packageManager: 'npm', group: '@nuxt', purl: $purl1 })
+        CREATE (c2:Component { name: $componentName, version: '4.1.10', packageManager: 'npm', group: '@vitest', purl: $purl2 })
+        CREATE (s1:System { name: $sys1 })-[:USES { isDirect: true }]->(c1)
+        CREATE (s2:System { name: $sys2 })-[:USES { isDirect: true }]->(c2)
+      `, {
+        componentName,
+        purl1: `pkg:npm/%40nuxt/${componentName}@4.10.0`,
+        purl2: `pkg:npm/%40vitest/${componentName}@4.1.10`,
+        sys1: `${PREFIX}sys-1`,
+        sys2: `${PREFIX}sys-2`
+      })
+      return componentName
+    }
+
+    it('getLinkSuggestions should list components sharing a bare name but differing group as separate suggestions', async () => {
+      if (!ctx.neo4jAvailable) return
+      const componentName = await seedScopedNameCollision()
+
+      const { data } = await repo.getLinkSuggestions(0, 50, componentName)
+      const matches = data.filter(s => s.name === componentName)
+
+      expect(matches).toHaveLength(2)
+      expect(matches.map(m => m.group).sort()).toEqual(['@nuxt', '@vitest'])
+    })
+
+    it('dismissLink should only dismiss the component matching the given group, not others sharing its bare name', async () => {
+      if (!ctx.neo4jAvailable) return
+      const componentName = await seedScopedNameCollision()
+
+      await repo.dismissLink({ name: componentName, group: '@nuxt', packageManager: 'npm' })
+
+      const { records } = await session.run(
+        `MATCH (c:Component {name: $componentName}) RETURN c.group AS group, c.linkDismissedAt AS dismissedAt`,
+        { componentName }
+      )
+      const byGroup = new Map(records.map(r => [r.get('group'), r.get('dismissedAt')]))
+      expect(byGroup.get('@nuxt')).not.toBeNull()
+      expect(byGroup.get('@vitest')).toBeNull()
+    })
+
+    it('undismissLink should only restore the component matching the given group, not others sharing its bare name', async () => {
+      if (!ctx.neo4jAvailable) return
+      const componentName = await seedScopedNameCollision()
+
+      await repo.dismissLink({ name: componentName, group: '@nuxt', packageManager: 'npm' })
+      await repo.dismissLink({ name: componentName, group: '@vitest', packageManager: 'npm' })
+      await repo.undismissLink({ name: componentName, group: '@nuxt', packageManager: 'npm' })
+
+      const { records } = await session.run(
+        `MATCH (c:Component {name: $componentName}) RETURN c.group AS group, c.linkDismissedAt AS dismissedAt`,
+        { componentName }
+      )
+      const byGroup = new Map(records.map(r => [r.get('group'), r.get('dismissedAt')]))
+      expect(byGroup.get('@nuxt')).toBeNull()
+      expect(byGroup.get('@vitest')).not.toBeNull()
+    })
+  })
+
 })

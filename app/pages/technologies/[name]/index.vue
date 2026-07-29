@@ -174,9 +174,19 @@
             <UTable v-model:sorting="versionSorting" :data="versionRows" :columns="versionColumns" class="flex-1" />
           </div>
 
-          <div v-if="tech.constraints && tech.constraints.length > 0" class="first:pt-0 last:pb-0 py-6">
-            <h3 class="text-base font-semibold mb-3">Version Constraints ({{ tech.constraints.length }})</h3>
-            <div class="flex flex-wrap gap-2">
+          <div class="first:pt-0 last:pb-0 py-6">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-base font-semibold">Version Constraints ({{ tech.constraints?.length || 0 }})</h3>
+              <UButton
+                v-if="isSuperuser"
+                label="Add Constraint"
+                icon="i-lucide-shield-plus"
+                size="sm"
+                variant="outline"
+                @click="openConstraintModal()"
+              />
+            </div>
+            <div v-if="tech.constraints && tech.constraints.length > 0" class="flex flex-wrap gap-2">
               <UButton
                 v-for="vc in tech.constraints"
                 :key="vc.name"
@@ -193,9 +203,69 @@
                 </template>
               </UButton>
             </div>
+            <p v-else class="text-sm text-(--ui-text-muted)">No version constraints yet.</p>
           </div>
         </div>
       </UCard>
+
+      <!-- Add Version Constraint Modal -->
+      <UModal v-model:open="constraintModalOpen">
+        <template #header>
+          <h3 class="text-lg font-semibold">Add Version Constraint for {{ tech.name }}</h3>
+        </template>
+        <template #body>
+          <form class="space-y-4" @submit.prevent="submitConstraint">
+            <UFormField label="Version Range" required>
+              <UInput v-model="constraintForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" class="w-full" autofocus />
+            </UFormField>
+
+            <div class="grid grid-cols-2 gap-4">
+              <UFormField label="Severity" required>
+                <USelect v-model="constraintForm.severity" :items="constraintSeverityOptions" placeholder="Select severity" class="w-full" />
+              </UFormField>
+              <UFormField label="Scope" required>
+                <USelect v-model="constraintForm.scope" :items="constraintScopeOptions" class="w-full" />
+              </UFormField>
+            </div>
+
+            <UFormField v-if="constraintForm.scope === 'team'" label="Subject Team" required>
+              <USelect v-model="constraintForm.subjectTeam" :items="constraintTeamOptions" placeholder="Select team" class="w-full" />
+            </UFormField>
+
+            <UFormField label="Name" required hint="Auto-generated — edit to customize">
+              <UInput
+                v-model="constraintForm.name"
+                placeholder="e.g. typescript-min-version"
+                class="w-full"
+                @update:model-value="constraintNameEdited = true"
+              />
+            </UFormField>
+
+            <UFormField label="Rationale">
+              <UTextarea v-model="constraintForm.description" placeholder="Why does this constraint exist? (e.g. CVE-2024-XXXX, contractual requirement...)" class="w-full" />
+            </UFormField>
+
+            <UAlert
+              v-if="constraintError"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-alert-circle"
+              :description="constraintError"
+            />
+          </form>
+        </template>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <UButton label="Cancel" color="neutral" variant="outline" @click="constraintModalOpen = false" />
+            <UButton
+              :label="isCreatingConstraint ? 'Creating...' : 'Create'"
+              :loading="isCreatingConstraint"
+              :disabled="!constraintForm.name || !constraintForm.severity || !constraintForm.versionRange"
+              @click="submitConstraint"
+            />
+          </div>
+        </template>
+      </UModal>
 
       <!-- Systems -->
       <div v-if="tech.systems && tech.systems.length > 0">
@@ -262,6 +332,8 @@ const versionRiskSorting = ref([])
 
 const route = useRoute()
 const { data: session } = useAuth()
+const { isSuperuser } = useEffectiveRole()
+const toast = useToast()
 
 const userTeams = computed(() =>
   (session.value?.user?.teams as { name: string }[] | undefined)?.map(t => t.name) || []
@@ -709,6 +781,83 @@ async function submitApproval() {
     approvalError.value = error.data?.message || error.message || 'Failed to set approval'
   } finally {
     approvalSubmitting.value = false
+  }
+}
+
+// Add Version Constraint modal
+const constraintModalOpen = ref(false)
+const isCreatingConstraint = ref(false)
+const constraintError = ref('')
+const constraintNameEdited = ref(false)
+const constraintSeverityOptions = ['critical', 'error', 'warning', 'info']
+const constraintScopeOptions = ['organization', 'team']
+const constraintForm = ref({
+  name: '',
+  description: '',
+  severity: undefined as string | undefined,
+  scope: 'organization',
+  subjectTeam: undefined as string | undefined,
+  versionRange: ''
+})
+
+interface TeamsResponse { success: boolean; data: { name: string }[] }
+const { data: constraintTeamsData } = useLazyFetch<TeamsResponse>('/api/teams', { key: 'tech-constraint-teams' })
+const constraintTeamOptions = computed(() =>
+  (constraintTeamsData.value?.data || []).map(t => t.name).sort()
+)
+
+watch(
+  () => [constraintForm.value.severity, constraintForm.value.scope, constraintForm.value.subjectTeam, constraintForm.value.versionRange],
+  () => {
+    if (constraintNameEdited.value) return
+    constraintForm.value.name = generateVersionConstraintName({
+      technology: tech.value?.name,
+      scope: constraintForm.value.scope,
+      subjectTeam: constraintForm.value.subjectTeam,
+      severity: constraintForm.value.severity,
+      versionRange: constraintForm.value.versionRange
+    })
+  }
+)
+
+function openConstraintModal() {
+  constraintError.value = ''
+  constraintNameEdited.value = false
+  constraintForm.value = {
+    name: '',
+    description: '',
+    severity: undefined,
+    scope: 'organization',
+    subjectTeam: undefined,
+    versionRange: ''
+  }
+  constraintModalOpen.value = true
+}
+
+async function submitConstraint() {
+  isCreatingConstraint.value = true
+  constraintError.value = ''
+  try {
+    await $fetch('/api/version-constraints', {
+      method: 'POST',
+      body: {
+        name: constraintForm.value.name,
+        description: constraintForm.value.description || undefined,
+        severity: constraintForm.value.severity,
+        scope: constraintForm.value.scope,
+        subjectTeam: constraintForm.value.scope === 'team' ? constraintForm.value.subjectTeam : undefined,
+        versionRange: constraintForm.value.versionRange,
+        governsTechnology: tech.value!.name
+      }
+    })
+    constraintModalOpen.value = false
+    await refresh()
+    toast.add({ title: 'Version constraint created', color: 'success' })
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    constraintError.value = err.data?.message || err.message || 'Failed to create version constraint'
+  } finally {
+    isCreatingConstraint.value = false
   }
 }
 

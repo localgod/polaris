@@ -44,6 +44,8 @@ export interface CreateTechnologyFromComponentParams {
   vendor: string | null
   ownerTeam: string | null
   componentName: string
+  componentGroup?: string | null
+  componentPackageManager?: string | null
   userId: string
   realUserId?: string | null
 }
@@ -210,13 +212,15 @@ export class TechnologyRepository extends BaseRepository {
       vendor: params.vendor || null,
       ownerTeam: params.ownerTeam || null,
       componentName: params.componentName,
+      componentGroup: params.componentGroup ?? null,
+      componentPackageManager: params.componentPackageManager ?? null,
       userId: params.userId,
       realUserId: params.realUserId ?? null,
       changes,
     })
 
     if (records.length === 0) {
-      throw createError({ statusCode: 404, message: `No unlinked component named '${params.componentName}' found` })
+      throw createError({ statusCode: 404, message: `No unlinked component matching '${params.componentName}' (with the given group/package manager) was found` })
     }
 
     return records[0]!.get('name')
@@ -297,9 +301,14 @@ export class TechnologyRepository extends BaseRepository {
   /**
    * Link a component to a technology via IS_VERSION_OF
    */
-  async linkComponent(params: { technologyName: string; componentName: string; componentVersion: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; componentName: string; componentVersion: string }> {
+  async linkComponent(params: { technologyName: string; componentName: string; componentVersion: string; componentGroup?: string | null; componentPackageManager?: string | null; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; componentName: string; componentVersion: string }> {
     const query = await loadQuery('technologies/link-component.cypher')
-    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
+    const { records } = await this.executeQuery(query, {
+      ...params,
+      componentGroup: params.componentGroup ?? null,
+      componentPackageManager: params.componentPackageManager ?? null,
+      realUserId: params.realUserId ?? null
+    })
 
     if (records.length === 0) {
       throw new Error('Failed to link component — technology or component not found')
@@ -333,12 +342,17 @@ export class TechnologyRepository extends BaseRepository {
     }
   }
 
-  async linkComponentsByName(params: { technologyName: string; componentName: string; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; count: number; affectedSystems: string[] }> {
+  async linkComponentsByName(params: { technologyName: string; componentName: string; componentGroup?: string | null; componentPackageManager?: string | null; userId: string; realUserId?: string | null }): Promise<{ technologyName: string; name: string; count: number; affectedSystems: string[] }> {
     const query = await loadQuery('technologies/link-components-by-name.cypher')
-    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
+    const { records } = await this.executeQuery(query, {
+      ...params,
+      componentGroup: params.componentGroup ?? null,
+      componentPackageManager: params.componentPackageManager ?? null,
+      realUserId: params.realUserId ?? null
+    })
 
     if (records.length === 0) {
-      throw createError({ statusCode: 404, message: `No components with name '${params.componentName}' found` })
+      throw createError({ statusCode: 404, message: `No components matching '${params.componentName}' (with the given group/package manager) found that aren't already linked to '${params.technologyName}'` })
     }
 
     return {

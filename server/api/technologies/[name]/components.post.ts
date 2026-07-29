@@ -33,12 +33,25 @@ import { auditFailedOperation } from '../../../utils/audit'
  *                 properties:
  *                   purl:
  *                     type: string
+ *                     description: A full PURL to link one specific component, or a bare component name to bulk-link every matching version (disambiguated by componentGroup/componentPackageManager)
+ *                   componentGroup:
+ *                     type: string
+ *                     description: Npm scope / Maven groupId / etc. — used with the bare-name form to disambiguate components sharing a name across scopes
+ *                   componentPackageManager:
+ *                     type: string
+ *                     description: Package manager — used with the bare-name form to disambiguate components sharing a name across ecosystems
  *               - required: [componentName, componentVersion]
  *                 properties:
  *                   componentName:
  *                     type: string
  *                   componentVersion:
  *                     type: string
+ *                   componentGroup:
+ *                     type: string
+ *                     description: Npm scope / Maven groupId / etc. — disambiguates components sharing a name+version across scopes
+ *                   componentPackageManager:
+ *                     type: string
+ *                     description: Package manager — disambiguates components sharing a name+version across ecosystems
  *     responses:
  *       200:
  *         description: Component linked
@@ -83,6 +96,8 @@ export default defineEventHandler(async (event) => {
         const result = await technologyService.linkComponentByName({
           technologyName,
           componentName: body.purl,
+          componentGroup: body.componentGroup ?? null,
+          componentPackageManager: body.componentPackageManager ?? null,
           userId: user.id,
           realUserId
         })
@@ -102,6 +117,8 @@ export default defineEventHandler(async (event) => {
       technologyName,
       componentName: body.componentName,
       componentVersion: body.componentVersion,
+      componentGroup: body.componentGroup ?? null,
+      componentPackageManager: body.componentPackageManager ?? null,
       userId: user.id,
       realUserId
     })

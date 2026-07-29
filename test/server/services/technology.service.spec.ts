@@ -153,6 +153,18 @@ describe('TechnologyService', () => {
       expect(params.domain).toBeNull()
       expect(params.vendor).toBeNull()
       expect(params.ownerTeam).toBeNull()
+      expect(params.componentGroup).toBeNull()
+      expect(params.componentPackageManager).toBeNull()
+    })
+
+    it('should pass componentGroup and componentPackageManager through when provided, to disambiguate components sharing a bare name', async () => {
+      await service.createFromComponent({
+        name: 'React', type: 'framework', componentName: 'ui', componentGroup: '@nuxt', componentPackageManager: 'npm', userId: 'u1'
+      })
+
+      const params = vi.mocked(TechnologyRepository.prototype.createFromComponent).mock.calls[0][0]
+      expect(params.componentGroup).toBe('@nuxt')
+      expect(params.componentPackageManager).toBe('npm')
     })
 
     it('should coerce empty string optional fields to null', async () => {

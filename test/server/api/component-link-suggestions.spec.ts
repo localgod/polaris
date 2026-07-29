@@ -26,6 +26,7 @@ const superuser = { id: 'admin-1', email: 'admin@example.com', role: 'superuser'
 const mockSuggestion = {
   purl: 'pkg:npm/react@18.2.0',
   name: 'react',
+  group: null,
   packageManager: 'npm',
   description: 'A JavaScript library for building user interfaces.',
   purlName: 'react',
@@ -92,7 +93,18 @@ describe('[contract] POST /api/components/dismiss-link', () => {
     }))
 
     expect(result).toBeNull()
-    expect(componentService.dismissLink).toHaveBeenCalledWith('react')
+    expect(componentService.dismissLink).toHaveBeenCalledWith({ name: 'react', group: null, packageManager: null })
+  })
+
+  it('should pass componentGroup and componentPackageManager through to disambiguate components sharing a bare name', async () => {
+    vi.mocked(componentService.dismissLink).mockResolvedValue(undefined)
+
+    await dismissLinkHandler(mockEvent({
+      method: 'POST',
+      body: { componentName: 'ui', componentGroup: '@nuxt', componentPackageManager: 'npm' }
+    }))
+
+    expect(componentService.dismissLink).toHaveBeenCalledWith({ name: 'ui', group: '@nuxt', packageManager: 'npm' })
   })
 
   it('should return 400 when componentName is missing', async () => {

@@ -8,7 +8,7 @@
       <UButton
         v-if="isSuperuser"
         label="+ Create"
-        @click="showCreateModal = true"
+        @click="openCreateModal()"
       />
     </div>
 
@@ -50,36 +50,34 @@
       </template>
       <template #body>
         <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Name *</label>
-            <UInput v-model="createForm.name" placeholder="e.g. react-min-version" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Description</label>
-            <UTextarea v-model="createForm.description" placeholder="What does this constraint enforce?" />
-          </div>
+          <UFormField label="Version Range" required>
+            <UInput v-model="createForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" class="w-full" autofocus />
+          </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Severity *</label>
-              <USelect v-model="createForm.severity" :items="severityOptions" placeholder="Select severity" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Scope *</label>
-              <USelect v-model="createForm.scope" :items="scopeOptions" />
-            </div>
+            <UFormField label="Severity" required>
+              <USelect v-model="createForm.severity" :items="severityOptions" placeholder="Select severity" class="w-full" />
+            </UFormField>
+            <UFormField label="Scope" required>
+              <USelect v-model="createForm.scope" :items="scopeOptions" class="w-full" />
+            </UFormField>
           </div>
-          <div v-if="createForm.scope === 'team'">
-            <label class="block text-sm font-medium mb-1">Subject Team *</label>
-            <USelect v-model="createForm.subjectTeam" :items="teamOptions" placeholder="Select team" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Version Range *</label>
-            <UInput v-model="createForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Governs Technology</label>
-            <USelect v-model="createForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" />
-          </div>
+          <UFormField v-if="createForm.scope === 'team'" label="Subject Team" required>
+            <USelect v-model="createForm.subjectTeam" :items="teamOptions" placeholder="Select team" class="w-full" />
+          </UFormField>
+          <UFormField label="Governs Technology">
+            <USelect v-model="createForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" class="w-full" />
+          </UFormField>
+          <UFormField label="Name" required hint="Auto-generated — edit to customize">
+            <UInput
+              v-model="createForm.name"
+              placeholder="e.g. react-min-version"
+              class="w-full"
+              @update:model-value="createNameEdited = true"
+            />
+          </UFormField>
+          <UFormField label="Rationale">
+            <UTextarea v-model="createForm.description" placeholder="Why does this constraint exist? (e.g. CVE-2024-XXXX, contractual requirement...)" class="w-full" />
+          </UFormField>
         </div>
       </template>
       <template #footer>
@@ -101,40 +99,32 @@
       </template>
       <template #body>
         <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Name</label>
-            <UInput :model-value="editForm.name" disabled />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Description</label>
-            <UTextarea v-model="editForm.description" placeholder="Description" />
-          </div>
+          <UFormField label="Version Range" required>
+            <UInput v-model="editForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" class="w-full" autofocus />
+          </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Severity *</label>
-              <USelect v-model="editForm.severity" :items="severityOptions" placeholder="Select severity" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Scope *</label>
-              <USelect v-model="editForm.scope" :items="editScopeOptions" />
-            </div>
+            <UFormField label="Severity" required>
+              <USelect v-model="editForm.severity" :items="severityOptions" placeholder="Select severity" class="w-full" />
+            </UFormField>
+            <UFormField label="Scope" required>
+              <USelect v-model="editForm.scope" :items="editScopeOptions" class="w-full" />
+            </UFormField>
           </div>
-          <div v-if="editForm.scope === 'team'">
-            <label class="block text-sm font-medium mb-1">Subject Team *</label>
-            <USelect v-model="editForm.subjectTeam" :items="teamOptions" placeholder="Select team" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Version Range *</label>
-            <UInput v-model="editForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Governs Technology</label>
-            <USelect v-model="editForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Status</label>
-            <USelect v-model="editForm.status" :items="statusOptions" />
-          </div>
+          <UFormField v-if="editForm.scope === 'team'" label="Subject Team" required>
+            <USelect v-model="editForm.subjectTeam" :items="teamOptions" placeholder="Select team" class="w-full" />
+          </UFormField>
+          <UFormField label="Governs Technology">
+            <USelect v-model="editForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" class="w-full" />
+          </UFormField>
+          <UFormField label="Status" required>
+            <USelect v-model="editForm.status" :items="statusOptions" class="w-full" />
+          </UFormField>
+          <UFormField label="Name" hint="Fixed — identifiers can't be renamed">
+            <UInput :model-value="editForm.name" disabled class="w-full" />
+          </UFormField>
+          <UFormField label="Rationale">
+            <UTextarea v-model="editForm.description" placeholder="Why does this constraint exist? (e.g. CVE-2024-XXXX, contractual requirement...)" class="w-full" />
+          </UFormField>
         </div>
       </template>
       <template #footer>
@@ -351,6 +341,28 @@ const { data: techData } = useLazyFetch<TechResponse>('/api/technologies', { key
 const technologyOptions = computed(() =>
   (techData.value?.data || []).map(t => t.name).sort()
 )
+
+const createNameEdited = ref(false)
+
+watch(
+  () => [createForm.value.severity, createForm.value.scope, createForm.value.subjectTeam, createForm.value.versionRange, createForm.value.governsTechnology],
+  () => {
+    if (createNameEdited.value) return
+    createForm.value.name = generateVersionConstraintName({
+      technology: createForm.value.governsTechnology,
+      scope: createForm.value.scope,
+      subjectTeam: createForm.value.subjectTeam,
+      severity: createForm.value.severity,
+      versionRange: createForm.value.versionRange
+    })
+  }
+)
+
+function openCreateModal() {
+  createNameEdited.value = false
+  createForm.value = { name: '', description: '', severity: undefined, scope: 'organization', subjectTeam: undefined, versionRange: '', governsTechnology: undefined }
+  showCreateModal.value = true
+}
 
 async function handleCreate() {
   isCreating.value = true

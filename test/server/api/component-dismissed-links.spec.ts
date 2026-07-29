@@ -25,6 +25,7 @@ const superuser = { id: 'admin-1', email: 'admin@example.com', role: 'superuser'
 
 const mockDismissed = {
   name: 'left-pad',
+  group: null,
   packageManager: 'npm',
   description: null,
   purl: 'pkg:npm/left-pad@1.3.0',
@@ -90,7 +91,18 @@ describe('[contract] POST /api/components/undismiss-link', () => {
     }))
 
     expect(result).toBeNull()
-    expect(componentService.undismissLink).toHaveBeenCalledWith('left-pad')
+    expect(componentService.undismissLink).toHaveBeenCalledWith({ name: 'left-pad', group: null, packageManager: null })
+  })
+
+  it('should pass componentGroup and componentPackageManager through to disambiguate components sharing a bare name', async () => {
+    vi.mocked(componentService.undismissLink).mockResolvedValue(undefined)
+
+    await undismissLinkHandler(mockEvent({
+      method: 'POST',
+      body: { componentName: 'ui', componentGroup: '@nuxt', componentPackageManager: 'npm' }
+    }))
+
+    expect(componentService.undismissLink).toHaveBeenCalledWith({ name: 'ui', group: '@nuxt', packageManager: 'npm' })
   })
 
   it('should return 400 when componentName is missing', async () => {
