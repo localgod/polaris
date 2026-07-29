@@ -11,10 +11,7 @@ SET s.domain = $domain,
 
 MERGE (team)-[:OWNS]->(s)
 
-WITH s, team
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH s, team, {
   operation: 'UPDATE',
   entityType: 'System',
   entityId: s.name,
@@ -24,7 +21,8 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(s)
 
 RETURN s {

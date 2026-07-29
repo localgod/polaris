@@ -1,7 +1,7 @@
 MATCH (t:Technology {name: $name})
 // Pin a single, deterministic steward team (alphabetically first) before
 // the other OPTIONAL MATCHes so a Technology with more than one steward
-// doesn't multiply into duplicate rows below (ownerTeamName/ownerTeamEmail
+// doesn't multiply into duplicate rows below (stewardTeamName/stewardTeamEmail
 // are single fields, not lists). The ORDER BY before collect() is required
 // -- Cypher's collect() has no guaranteed order otherwise, so picking [0]
 // without it can return a different team on every execution.
@@ -36,27 +36,17 @@ CALL {
   }) as components
 }
 
-OPTIONAL MATCH (t)-[:HAS_VERSION]->(v:Version)
 OPTIONAL MATCH (vc:VersionConstraint)-[:GOVERNS]->(t)
 OPTIONAL MATCH (approvalTeam:Team)-[techApproval:APPROVES]->(t)
 OPTIONAL MATCH (approvedByUser:User {id: techApproval.approvedBy})
-OPTIONAL MATCH (t)-[:HAS_VERSION]->(approvedVersion:Version)
-OPTIONAL MATCH (versionApprovalTeam:Team)-[versionApproval:APPROVES]->(approvedVersion)
-OPTIONAL MATCH (versionApprovedByUser:User {id: versionApproval.approvedBy})
 RETURN t.name as name,
        t.type as type,
        t.domain as domain,
        t.vendor as vendor,
        t.lastReviewed as lastReviewed,
-       team.name as ownerTeamName,
-       team.email as ownerTeamEmail,
-       collect(DISTINCT {
-         version: v.version,
-         releaseDate: v.releaseDate,
-         eolDate: v.eolDate,
-         approved: v.approved,
-         notes: v.notes
-       }) as versions,
+       team.name as stewardTeamName,
+       team.email as stewardTeamEmail,
+       [] as versions,
        components,
        collect(DISTINCT {
          name: vc.name,
@@ -76,15 +66,4 @@ RETURN t.name as name,
          approvedBy: techApproval.approvedBy,
          approvedByName: approvedByUser.name
        }) as technologyApprovals,
-       collect(DISTINCT {
-         team: versionApprovalTeam.name,
-         version: approvedVersion.version,
-         time: versionApproval.time,
-         approvedAt: versionApproval.approvedAt,
-         deprecatedAt: versionApproval.deprecatedAt,
-         eolDate: versionApproval.eolDate,
-         migrationTarget: versionApproval.migrationTarget,
-         notes: versionApproval.notes,
-         approvedBy: versionApproval.approvedBy,
-         approvedByName: versionApprovedByUser.name
-       }) as versionApprovals
+       [] as versionApprovals

@@ -49,31 +49,8 @@ export class TokenRepository extends BaseRepository {
    * @returns Created token
    */
   async create(params: CreateTokenParams): Promise<ApiToken> {
-    const query = `
-      MATCH (u:User {id: $createdBy})
-      CREATE (t:ApiToken {
-        id: $id,
-        tokenHash: $tokenHash,
-        createdAt: datetime($createdAt),
-        expiresAt: datetime($expiresAt),
-        revoked: false,
-        createdBy: $createdBy,
-        description: $description,
-        type: $type
-      })
-      CREATE (u)-[:HAS_API_TOKEN]->(t)
-      RETURN t {
-        .id,
-        .tokenHash,
-        createdAt: toString(t.createdAt),
-        expiresAt: toString(t.expiresAt),
-        .revoked,
-        .createdBy,
-        .description,
-        type: coalesce(t.type, 'user')
-      } as token
-    `
-    
+    const query = await loadQuery('tokens/create.cypher')
+
     const { records } = await this.executeQuery(query, { ...params, type: params.type ?? 'user' })
 
     if (records.length === 0) {
@@ -90,28 +67,8 @@ export class TokenRepository extends BaseRepository {
    * @returns Token with user or null if not found
    */
   async findByHash(tokenHash: string): Promise<TokenWithUser | null> {
-    const query = `
-      MATCH (t:ApiToken {tokenHash: $tokenHash, revoked: false})<-[:HAS_API_TOKEN]-(u:User)
-      OPTIONAL MATCH (u)-[:MEMBER_OF]->(team:Team)
-      WITH t, u, collect(team {.name, .email}) as teams
-      RETURN t {
-        .id,
-        .tokenHash,
-        createdAt: toString(t.createdAt),
-        expiresAt: toString(t.expiresAt),
-        .revoked,
-        .createdBy,
-        .description,
-        type: coalesce(t.type, 'user')
-      } as token,
-      u {
-        .id,
-        .email,
-        .role,
-        teams: teams
-      } as user
-    `
-    
+    const query = await loadQuery('tokens/find-by-hash.cypher')
+
     const { records } = await this.executeQuery(query, { tokenHash })
     
     if (records.length === 0) {
@@ -136,11 +93,7 @@ export class TokenRepository extends BaseRepository {
    * @returns true if token was revoked, false if not found or not owned by userId
    */
   async revoke(tokenId: string, userId: string): Promise<boolean> {
-    const query = `
-      MATCH (u:User {id: $userId})-[:HAS_API_TOKEN]->(t:ApiToken {id: $tokenId})
-      SET t.revoked = true
-      RETURN t
-    `
+    const query = await loadQuery('tokens/revoke.cypher')
 
     const { records } = await this.executeQuery(query, { tokenId, userId })
     return records.length > 0
@@ -153,10 +106,7 @@ export class TokenRepository extends BaseRepository {
    * @returns Number of active tokens
    */
   async countActive(userId: string): Promise<number> {
-    const query = `
-      MATCH (u:User {id: $userId})-[:HAS_API_TOKEN]->(t:ApiToken {revoked: false})
-      RETURN count(t) AS total
-    `
+    const query = await loadQuery('tokens/count-active.cypher')
     const { records } = await this.executeQuery(query, { userId })
     return (records[0]?.get('total') as number) ?? 0
   }
@@ -168,19 +118,7 @@ export class TokenRepository extends BaseRepository {
    * @returns Array of tokens (without hash)
    */
   async listByUser(userId: string): Promise<Omit<ApiToken, 'tokenHash'>[]> {
-    const query = `
-      MATCH (u:User {id: $userId})-[:HAS_API_TOKEN]->(t:ApiToken)
-      RETURN t {
-        .id,
-        createdAt: toString(t.createdAt),
-        expiresAt: toString(t.expiresAt),
-        .revoked,
-        .createdBy,
-        .description,
-        type: coalesce(t.type, 'user')
-      } as token
-      ORDER BY t.createdAt DESC
-    `
+    const query = await loadQuery('tokens/list-by-user.cypher')
 
     const { records } = await this.executeQuery(query, { userId })
 

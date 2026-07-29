@@ -18,10 +18,7 @@ FOREACH (_ IN CASE WHEN newTeam IS NOT NULL THEN [1] ELSE [] END |
 )
 
 // Audit log
-WITH t
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH t, {
   operation: 'UPDATE',
   entityType: 'Technology',
   entityId: t.name,
@@ -31,7 +28,8 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(t)
 
 RETURN t.name as name

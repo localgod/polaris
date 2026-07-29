@@ -38,6 +38,27 @@ export function clearQueryCache(): void {
   queryCache.clear()
 }
 
+const AUDIT_LOG_WRITE_PLACEHOLDER = '{{AUDIT_LOG_WRITE}}'
+
+/**
+ * Load a query and splice in the shared AuditLog-write fragment wherever
+ * it contains the {{AUDIT_LOG_WRITE}} placeholder. The fragment itself is
+ * static Cypher (server/database/queries/_shared/audit-log-write.cypher)
+ * that reads from an `auditFields` map the caller binds earlier in its own
+ * query — see that file's header comment for the contract.
+ *
+ * @param path - Relative path from server/database/queries/ (e.g., 'teams/create.cypher')
+ * @returns The query string with the audit fragment spliced in
+ */
+export async function loadQueryWithAudit(path: string): Promise<string> {
+  const query = await loadQuery(path)
+  if (!query.includes(AUDIT_LOG_WRITE_PLACEHOLDER)) {
+    return query
+  }
+  const fragment = await loadQuery('_shared/audit-log-write.cypher')
+  return query.replaceAll(AUDIT_LOG_WRITE_PLACEHOLDER, fragment)
+}
+
 /**
  * Inject a value into a named placeholder in a query template.
  * Throws if the placeholder is not present, preventing a silent syntax error

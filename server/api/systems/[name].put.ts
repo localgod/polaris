@@ -66,115 +66,40 @@
  *       422:
  *         description: Validation error - invalid field values
  */
-import { buildAuditChanges } from '../../utils/audit-diff'
-import { VALID_CRITICALITIES, VALID_ENVIRONMENTS } from '../../services/system.service'
-import { loadQuery } from '../../utils/query-loader'
+import { systemService } from '../../services/singletons'
 import { auditFailedOperation } from '../../utils/audit'
-import type { BusinessCriticality, SystemEnvironment } from '~~/types/api'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuthorization(event)
   const realUserId = await getImpersonatorId(event)
-  
+
   const rawName = getRouterParam(event, 'name')
-  
+
   if (!rawName) {
     throw createError({
       statusCode: 400,
       message: 'System name is required'
     })
   }
-  
+
   const name = decodeURIComponent(rawName)
-  
+
   await validateTeamOwnership(event, 'System', name)
 
   const body = await readBody(event)
 
   try {
-    // Validate ALL required fields for PUT (full replacement)
-    if (!body.domain || !body.ownerTeam || !body.businessCriticality || !body.environment) {
-      throw createError({
-        statusCode: 422,
-        message: 'All required fields must be provided for full update: domain, ownerTeam, businessCriticality, environment'
-      })
-    }
-
-    // Validate businessCriticality
-    if (!VALID_CRITICALITIES.includes(body.businessCriticality as BusinessCriticality)) {
-      throw createError({
-        statusCode: 422,
-        message: 'Invalid business criticality value. Must be one of: critical, high, medium, low'
-      })
-    }
-
-    // Validate environment
-    if (!VALID_ENVIRONMENTS.includes(body.environment as SystemEnvironment)) {
-      throw createError({
-        statusCode: 422,
-        message: 'Invalid environment value. Must be one of: dev, test, staging, prod'
-      })
-    }
-
-    const driver = useDriver()
-
-    // Check if new owner team exists
-    const checkTeamQuery = await loadQuery('systems/check-team-exists.cypher')
-    const { records: teamRecords } = await driver.executeQuery(checkTeamQuery, { ownerTeam: body.ownerTeam })
-
-    if (teamRecords.length === 0) {
-      throw createError({
-        statusCode: 422,
-        message: `Team '${body.ownerTeam}' not found`
-      })
-    }
-
-    // Fetch current state before writing so we can diff it
-    const getCurrentStateQuery = await loadQuery('systems/get-current-state-full.cypher')
-    const { records: currentRecords } = await driver.executeQuery(getCurrentStateQuery, { name })
-
-    if (currentRecords.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `System '${name}' not found`
-      })
-    }
-
-    const currentProps = currentRecords[0]!.get('props') as Record<string, unknown>
-    const incomingProps: Record<string, unknown> = {
+    const data = await systemService.updatePut(name, {
       domain: body.domain,
       ownerTeam: body.ownerTeam,
       businessCriticality: body.businessCriticality,
       environment: body.environment,
-      description: body.description || null,
-    }
-    const allFields = ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description']
-    const changes = JSON.stringify(buildAuditChanges(currentProps, incomingProps, allFields))
-
-    // Replace entire resource
-    const updateQuery = await loadQuery('systems/update-put.cypher')
-    const { records } = await driver.executeQuery(updateQuery, {
-      name,
-      domain: body.domain,
-      ownerTeam: body.ownerTeam,
-      businessCriticality: body.businessCriticality,
-      environment: body.environment,
-      description: body.description || null,
-      userId: user.id,
-      realUserId,
-      changes,
-    })
-
-    if (records.length === 0) {
-      throw createError({
-        statusCode: 404,
-        message: `System '${name}' not found`
-      })
-    }
+      description: body.description
+    }, user.id, realUserId)
 
     return {
       success: true,
-      data: records[0]!.get('system')
+      data
     }
   } catch (error) {
     await auditFailedOperation(event, {

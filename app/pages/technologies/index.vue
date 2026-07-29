@@ -147,8 +147,8 @@ const userTeams = computed(() =>
 
 function canManageTechnology(tech: Technology): boolean {
   if (isSuperuser.value) return true
-  if (!tech.ownerTeamName) return false
-  return userTeams.value.includes(tech.ownerTeamName)
+  if (!tech.stewardTeamName) return false
+  return userTeams.value.includes(tech.stewardTeamName)
 }
 
 const columns: TableColumn<Technology>[] = [

@@ -4,12 +4,13 @@
 
 **Technology** `name, type, vendor, domain, lastReviewed:DATE` — requires >=1 linked Component (via IS_VERSION_OF); can only be created by claiming an existing, unlinked Component
 **Platform** `name, type, vendor, domain` — manually-declared, non-SBOM-observable technology (databases, cloud services); superuser-only to create, no Component relationship
-**Version** `version, technologyName, approved:BOOL, releaseDate:DATE, eolDate:DATE, notes`
 **System** `name, environment, businessCriticality, domain`
 **Team** `name, responsibilityArea, email`
 **Component** `name, version, type, purl, packageManager, group, bomRef, description, createdAt, updatedAt`
+**VersionConstraint** `name, description, severity, versionRange, scope, subjectTeam, status, statusChangedAt, statusChangeReason, createdAt, updatedAt` — governance rule on a Technology's allowed version range (renamed from `Policy`)
 **Repository** `name, url, createdAt, updatedAt, lastSbomScanAt:DATETIME`
-**License** `id, name, expression, url`
+**License** `id, name, spdxId, osiApproved:BOOL, url, category, text, deprecated:BOOL, allowed:BOOL, createdAt, updatedAt`
+**ApiToken** `id, tokenHash, createdAt:DATETIME, expiresAt:DATETIME, revoked:BOOL, createdBy, description, type` — `type` is `user`/`ci-cd`/`service-account`
 **Advisory** `id, summary, cvssVector, aliases:LIST, publishedAt:DATETIME, modifiedAt:DATETIME, advisoryUrl, source`
 **HealthSnapshot** `componentPurl, componentName, eolStatus, eolDate, eolSource, eolRefreshedAt, maintenanceStatus, maintenanceConfidence, maintenanceSource, maintenanceRefreshedAt, vulnerabilityTotal:FLOAT, vulnerabilityCritical:FLOAT, vulnerabilityHigh:FLOAT, vulnerabilityMedium:FLOAT, vulnerabilityLow:FLOAT, advisoryCount:FLOAT, vulnerabilitySource, vulnerabilityRefreshedAt, securityScoreSource, securityScoreRefreshedAt, isDeprecated:BOOL, ageInDays:FLOAT, createdAt:DATETIME, updateType`
 **AuditLog** `id, operation, entityType, entityLabel, entityId, userId, timestamp:DATETIME, changes, changedFields:LIST, reason, metadata, source`
@@ -30,17 +31,22 @@
 (Team)-[:STEWARDED_BY]->(Technology)
 (Team)-[:STEWARDED_BY]->(Platform)
 (Team)-[:MAINTAINS {since:DATETIME}]->(Repository)
-(Technology)-[:HAS_VERSION]->(Version)
+(Team)-[:SUBJECT_TO]->(VersionConstraint)
+(VersionConstraint)-[:GOVERNS]->(Technology)
 (Component)-[:IS_VERSION_OF]->(Technology)
 (System)-[:USES {isDirect:BOOL, scope, addedAt}]->(Component)
 (System)-[:HAS_SOURCE_IN {addedAt:DATETIME}]->(Repository)
 (Component)-[:DEPENDS_ON {addedAt, lastSeenAt}]->(Component)
 (Component)-[:HAS_HEALTH_SNAPSHOT]->(HealthSnapshot)
 (Component)-[:HAS_ADVISORY {observedAt:DATETIME}]->(Advisory)
-(Component)-[:HAS_LICENSE]->(License)
+(Component)-[:HAS_LICENSE {source, expression}]->(License)
 (Component)-[:HAS_HASH]->(Hash)
 (Component)-[:HAS_EXTERNAL_REF]->(ExternalReference)
-(AuditLog)-[:AUDITS]->(System)
+(AuditLog)-[:AUDITS]->(Technology|Platform|Team|VersionConstraint|System)
+(AuditLog)-[:PERFORMED_BY]->(User)
+(User)-[:MEMBER_OF]->(Team)
+(User)-[:CAN_MANAGE]->(Team)
+(User)-[:HAS_API_TOKEN]->(ApiToken)
 (User)-[:REQUESTED]->(ImportJob)
 (ImportJob)-[:HAS_ITEM]->(ImportJobItem)
 (HealthRefreshJob)-[:HAS_ITEM]->(HealthRefreshJobItem)
@@ -53,4 +59,6 @@
 - `Component.purl` is the unique identifier (Package URL format)
 - `HealthSnapshot` is 1:1 with Component — always use `HAS_HEALTH_SNAPSHOT` to join
 - A `Technology` can never exist without >=1 `Component` linked via `IS_VERSION_OF` — Neo4j Community Edition can't enforce this as a DB constraint, so it's enforced only in `TechnologyService.createFromComponent()`. `Platform` is the manually-declared escape valve for non-SBOM-observable technology; see `docs/architecture/decisions/0004-technology-requires-component.md`.
-- Counts (2026-06, pre-dates the Technology/Platform split): 3,250 Components, 14 Systems, 8 Technologies, 6 Teams, 82 Advisories
+- `VersionConstraint` was renamed from `Policy`; there is no `Policy` label any more.
+- There is no `Version` node — version-level data (release/EOL dates, approval) lives on `Component`/`APPROVES` at the Technology level only. A prior `Technology-[:HAS_VERSION]->Version` design was retired (schema/migrations/common/20260729_090000_remove_version_node) since nothing ever populated it.
+- Node/relationship counts change frequently — query live counts (`MATCH (n) RETURN labels(n), count(*)`) rather than trusting a hardcoded snapshot here.

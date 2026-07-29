@@ -250,22 +250,21 @@ describe('TeamRepository', () => {
   })
 
   describe('[pin] findApprovals()', () => {
-    it('should return technology and version approvals', async () => {
+    it('should return technology approvals', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (team:Team { name: $team })
         CREATE (tech:Technology { name: $tech, type: 'library', vendor: 'ACME' })
-        CREATE (ver:Version { version: '1.0.0' })
-        CREATE (tech)-[:HAS_VERSION]->(ver)
         CREATE (team)-[:APPROVES { time: 'tolerate', notes: 'ok' }]->(tech)
-        CREATE (team)-[:APPROVES { time: 'invest' }]->(ver)
       `, { team: `${PREFIX}approver`, tech: `${PREFIX}tech` })
 
       const result = await repo.findApprovals(`${PREFIX}approver`)
 
       expect(result.team).toBe(`${PREFIX}approver`)
       expect(result.technologyApprovals.some(a => a.technology === `${PREFIX}tech`)).toBe(true)
-      expect(result.versionApprovals.some(a => a.version === '1.0.0')).toBe(true)
+      // Version-level approvals were retired: Technology never carries a
+      // linked Version node in practice, so this always reports empty.
+      expect(result.versionApprovals).toEqual([])
     })
 
     it('should throw when team does not exist', async () => {
@@ -328,24 +327,6 @@ describe('TeamRepository', () => {
       expect(result).not.toBeNull()
       expect(result!.approval.level).toBe('default')
       expect(result!.approval.time).toBe('eliminate')
-    })
-
-    it('should prioritize version-level approval over technology-level', async () => {
-      if (!ctx.neo4jAvailable) return
-      await seed(ctx.driver, `
-        CREATE (team:Team { name: $team })
-        CREATE (tech:Technology { name: $tech, type: 'library' })
-        CREATE (v:Version { version: '1.2.3' })
-        CREATE (tech)-[:HAS_VERSION]->(v)
-        CREATE (team)-[:APPROVES { time: 'migrate' }]->(tech)
-        CREATE (team)-[:APPROVES { time: 'tolerate' }]->(v)
-      `, { team: `${PREFIX}priority-team`, tech: `${PREFIX}priority-tech` })
-
-      const result = await repo.checkApproval(`${PREFIX}priority-team`, `${PREFIX}priority-tech`, '1.2.3')
-
-      expect(result).not.toBeNull()
-      expect(result!.approval.level).toBe('version')
-      expect(result!.approval.time).toBe('tolerate')
     })
   })
 

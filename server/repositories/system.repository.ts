@@ -2,7 +2,7 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Repository } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
-import { injectWhereConditions } from '../utils/query-loader'
+import { injectWhereConditions, injectPlaceholder, loadQueryWithAudit } from '../utils/query-loader'
 import { buildCreateChanges } from '../utils/audit-diff'
 
 const systemSortConfig: SortConfig = {
@@ -177,7 +177,7 @@ export class SystemRepository extends BaseRepository {
    * @returns Created system name
    */
   async create(params: CreateSystemParams): Promise<string> {
-    const query = await loadQuery('systems/create.cypher')
+    const query = await loadQueryWithAudit('systems/create.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       domain: params.domain,
@@ -199,7 +199,7 @@ export class SystemRepository extends BaseRepository {
    * @param name - System name
    */
   async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
-    const query = await loadQuery('systems/delete.cypher')
+    const query = await loadQueryWithAudit('systems/delete.cypher')
     await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
   }
 
@@ -212,7 +212,7 @@ export class SystemRepository extends BaseRepository {
    * @returns Created/updated repository
    */
   async addRepository(systemName: string, url: string, name: string, userId: string, realUserId?: string | null): Promise<Repository> {
-    const query = await loadQuery('systems/add-repository.cypher')
+    const query = await loadQueryWithAudit('systems/add-repository.cypher')
     const { records } = await this.executeQuery(query, {
       systemName,
       url,
@@ -319,6 +319,76 @@ export class SystemRepository extends BaseRepository {
       eliminateCount: record.get('eliminateCount')?.toNumber() || 0,
       licenseViolationCount: record.get('licenseViolationCount')?.toNumber() || 0,
     }
+  }
+
+  /**
+   * Get a system's current mutable properties, for diffing against an
+   * incoming PATCH body.
+   *
+   * @param name - System name
+   * @returns Current properties, or null if the system does not exist
+   */
+  async getCurrentState(name: string): Promise<Record<string, unknown> | null> {
+    const query = await loadQuery('systems/get-current-state.cypher')
+    const { records } = await this.executeQuery(query, { name })
+    if (records.length === 0) return null
+    return records[0]!.get('props')
+  }
+
+  /**
+   * Get a system's current mutable properties (including ownerTeam), for
+   * diffing against an incoming PUT (full-replacement) body.
+   *
+   * @param name - System name
+   * @returns Current properties, or null if the system does not exist
+   */
+  async getCurrentStateFull(name: string): Promise<Record<string, unknown> | null> {
+    const query = await loadQuery('systems/get-current-state-full.cypher')
+    const { records } = await this.executeQuery(query, { name })
+    if (records.length === 0) return null
+    return records[0]!.get('props')
+  }
+
+  /**
+   * Apply a partial update (PATCH) to a system.
+   *
+   * @param name - System name
+   * @param setClauses - Cypher SET assignments for only the fields being updated (e.g. ['s.domain = $domain'])
+   * @param params - Query parameters, including $name and one entry per field in setClauses
+   * @returns The updated system projection, or null if the system does not exist
+   */
+  async updatePatch(name: string, setClauses: string[], params: Record<string, unknown>): Promise<unknown | null> {
+    const query = injectPlaceholder(
+      await loadQueryWithAudit('systems/update-patch.cypher'),
+      'SET_CLAUSES', setClauses.join(', ')
+    )
+    const { records } = await this.executeQuery(query, { name, ...params })
+    if (records.length === 0) return null
+    return records[0]!.get('system')
+  }
+
+  /**
+   * Replace all mutable fields of a system (PUT), including reassigning
+   * its owner team.
+   *
+   * @param params - Full replacement field set plus audit metadata
+   * @returns The updated system projection, or null if the system does not exist
+   */
+  async updatePut(params: {
+    name: string
+    domain: string
+    ownerTeam: string
+    businessCriticality: string
+    environment: string
+    description: string | null
+    userId: string
+    realUserId?: string | null
+    changes: string
+  }): Promise<unknown | null> {
+    const query = await loadQueryWithAudit('systems/update-put.cypher')
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
+    if (records.length === 0) return null
+    return records[0]!.get('system')
   }
 
   /**

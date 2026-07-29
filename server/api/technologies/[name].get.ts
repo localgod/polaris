@@ -40,7 +40,7 @@ import { technologyService } from '../../services/singletons'
  *                         - $ref: '#/components/schemas/Technology'
  *                         - type: object
  *                           properties:
- *                             ownerTeamEmail:
+ *                             stewardTeamEmail:
  *                               type: string
  *                             components:
  *                               type: array
@@ -65,8 +65,8 @@ import { technologyService } from '../../services/singletons'
  *                 type: framework
  *                 vendor: Meta
  *                 lastReviewed: "2025-10-01"
- *                 ownerTeamName: Frontend Platform
- *                 ownerTeamEmail: frontend-platform@company.com
+ *                 stewardTeamName: Frontend Platform
+ *                 stewardTeamEmail: frontend-platform@company.com
  *                 versions: ["18.2.0", "18.3.1"]
  *                 technologyApprovals:
  *                   - team: Frontend Platform

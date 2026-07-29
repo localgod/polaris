@@ -1,7 +1,5 @@
 MATCH (vc:VersionConstraint {name: $name})
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH vc, {
   operation: 'DELETE',
   entityType: 'VersionConstraint',
   entityId: vc.name,
@@ -9,6 +7,7 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 WITH vc
 DETACH DELETE vc

@@ -525,7 +525,7 @@ export interface Technology {
   domain: TechnologyDomain | null
   vendor: string | null
   lastReviewed: string | null
-  ownerTeamName: string | null
+  stewardTeamName: string | null
   componentCount: number
   constraintCount: number
   versions: string[]

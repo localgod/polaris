@@ -16,6 +16,9 @@
       <p class="text-(--ui-text-muted)">
         Polaris uses Neo4j, a graph database, to model the relationships between technologies, systems, teams, and version constraints. This enables powerful queries about technology usage and compliance.
       </p>
+      <p class="text-(--ui-text-muted) mt-2">
+        This page covers the core governance model. A few supporting node types (import jobs, health-refresh jobs, health snapshots, advisories, hashes, external references, API tokens) are omitted here for diagram clarity — see <code>.claude/mcp/graph-schema.md</code> for the complete schema.
+      </p>
     </UCard>
 
     <!-- Graph Visualization -->
@@ -108,7 +111,6 @@ const coreNodes = [
   { icon: 'i-lucide-users', title: 'Team', description: 'Organizational teams' },
   { icon: 'i-lucide-git-branch', title: 'VersionConstraint', description: 'Version range constraints for technologies' },
   { icon: 'i-lucide-scale', title: 'License', description: 'Software licenses' },
-  { icon: 'i-lucide-tag', title: 'Version', description: 'Specific versions of technologies' },
   { icon: 'i-lucide-folder-git', title: 'Repository', description: 'Source code repositories' },
   { icon: 'i-lucide-clipboard-list', title: 'AuditLog', description: 'Change tracking entries' },
 ]
@@ -119,11 +121,11 @@ const keyRelationships = [
   { label: 'STEWARDED_BY', description: 'Team stewards Platform', detail: 'Same stewardship model as Technology, for manually-declared infrastructure' },
   { label: 'OWNS', description: 'Team owns System', detail: 'Operational ownership' },
   { label: 'USES', description: 'Team uses Technology', detail: 'Actual technology usage by a team' },
-  { label: 'APPROVES', description: 'Team approves Technology or Version', detail: 'TIME framework approval' },
+  { label: 'APPROVES', description: 'Team approves Technology', detail: 'TIME framework approval' },
   { label: 'APPROVES', description: 'Team approves Platform', detail: 'TIME framework approval, same shape as Technology' },
   { label: 'MAINTAINS', description: 'Team maintains Repository', detail: 'Repository maintenance responsibility' },
-  { label: 'HAS_VERSION', description: 'Technology has Version', detail: 'Version tracking per technology' },
   { label: 'IS_VERSION_OF', description: 'Component is version of Technology', detail: 'Component to technology mapping' },
+  { label: 'HAS_LICENSE', description: 'Component has License', detail: 'License(s) declared for a component' },
   { label: 'USES', description: 'System uses Component', detail: 'System dependency on a component. Carries scope (runtime, required, dev, optional, excluded, or null) and isDirect (true for root-level deps, false for transitive). Scope and isDirect are computed by BFS propagation at ingest time.' },
   { label: 'HAS_SOURCE_IN', description: 'System has source in Repository', detail: 'Source code location' },
   { label: 'GOVERNS', description: 'VersionConstraint governs Technology', detail: 'Constraint scope' },
@@ -153,8 +155,8 @@ const diagram = `graph TB
     User[(User)]
     Technology[(Technology)]
     Platform[(Platform)]
-    Version[(Version)]
     Component[(Component)]
+    License[(License)]
     System[(System)]
     Repository[(Repository)]
     VersionConstraint[(VersionConstraint)]
@@ -166,15 +168,13 @@ const diagram = `graph TB
     Team -->|USES| Technology
     Team -->|APPROVES| Technology
     Team -->|APPROVES| Platform
-    Team -->|APPROVES| Version
     Team -->|MAINTAINS| Repository
     Team -->|SUBJECT_TO| VersionConstraint
 
     User -->|MEMBER_OF| Team
 
-    Technology -->|HAS_VERSION| Version
-
     Component -->|IS_VERSION_OF| Technology
+    Component -->|HAS_LICENSE| License
 
     System -->|USES| Technology
     System -->|USES| Component
@@ -189,12 +189,11 @@ const diagram = `graph TB
     AuditLog -->|AUDITS| Team
     AuditLog -->|AUDITS| VersionConstraint
     AuditLog -->|AUDITS| System
-    AuditLog -->|AUDITS| Version
 
     classDef coreNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef auditNode fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
 
-    class Team,User,Technology,Platform,Version,Component,System,Repository,VersionConstraint coreNode
+    class Team,User,Technology,Platform,Component,License,System,Repository,VersionConstraint coreNode
     class AuditLog auditNode`
 
 onMounted(async () => {

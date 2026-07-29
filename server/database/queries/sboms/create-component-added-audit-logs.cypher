@@ -6,9 +6,7 @@
 MATCH (s:System {name: $systemName})
 UNWIND $components AS comp
 OPTIONAL MATCH (c:Component {purl: comp.purl})
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH s, c, {
   operation: 'ADD_COMPONENT',
   entityType: 'Component',
   entityId: coalesce(comp.purl, comp.name + '@' + coalesce(comp.version, 'unknown')),
@@ -19,7 +17,8 @@ CREATE (a:AuditLog {
   userId: $userId,
   realUserId: $realUserId,
   correlationId: $correlationId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(s)
 FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
   CREATE (a)-[:AUDITS]->(c)

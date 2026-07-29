@@ -251,7 +251,7 @@ export class UserRepository extends BaseRepository {
     ]
     
     if (auditEvents.length > 0) {
-      const auditQuery = await loadQuery('users/create-team-audit-events.cypher')
+      const auditQuery = await loadQueryWithAudit('users/create-team-audit-events.cypher')
       await this.executeQuery(auditQuery, {
         userId,
         events: auditEvents,
@@ -319,7 +319,7 @@ export class UserRepository extends BaseRepository {
    * Create a pending user with an invite token
    */
   async createPendingUser(params: CreatePendingUserParams): Promise<PendingUser> {
-    const query = await loadQuery('users/create-pending.cypher')
+    const query = await loadQueryWithAudit('users/create-pending.cypher')
     const { records } = await this.executeQuery(query, {
       ...params,
       realUserId: params.realUserId ?? null
@@ -352,7 +352,7 @@ export class UserRepository extends BaseRepository {
    * and activate the user
    */
   async claimInvite(params: ClaimInviteParams): Promise<void> {
-    const query = await loadQuery('users/claim-invite.cypher')
+    const query = await loadQueryWithAudit('users/claim-invite.cypher')
     await this.executeQuery(query, params)
   }
 
@@ -368,7 +368,7 @@ export class UserRepository extends BaseRepository {
     const current = await this.findById(userId)
     if (!current) return null
 
-    const query = await loadQuery('users/update-role.cypher')
+    const query = await loadQueryWithAudit('users/update-role.cypher')
     const { records } = await this.executeQuery(query, {
       userId,
       role,

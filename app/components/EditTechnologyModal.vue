@@ -73,7 +73,7 @@ const state = reactive<Partial<Schema>>({
   type: props.tech?.type || '',
   domain: props.tech?.domain || undefined,
   vendor: props.tech?.vendor || '',
-  ownerTeam: props.tech?.ownerTeamName || undefined,
+  ownerTeam: props.tech?.stewardTeamName || undefined,
   lastReviewed: props.tech?.lastReviewed || ''
 })
 

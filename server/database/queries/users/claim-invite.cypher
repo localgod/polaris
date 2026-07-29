@@ -12,9 +12,7 @@ SET u.id               = $realId,
                            WHEN u.role = 'superuser' THEN 'superuser'
                            ELSE u.role
                          END
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH u, {
   operation: 'CLAIM_INVITE',
   entityType: 'User',
   entityId: $realId,
@@ -26,6 +24,7 @@ CREATE (a:AuditLog {
   source: 'OAuth',
   userId: $realId,
   realUserId: null
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(u)
 RETURN u

@@ -1,9 +1,6 @@
 MATCH (vc:VersionConstraint {name: $name})
 SET {{SET_CLAUSES}}
-WITH vc
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH vc, {
   operation: 'UPDATE',
   entityType: 'VersionConstraint',
   entityId: vc.name,
@@ -11,5 +8,6 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(vc)

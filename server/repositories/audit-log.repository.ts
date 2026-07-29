@@ -2,7 +2,7 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import neo4j from 'neo4j-driver'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
-import { loadQuery, injectWhereConditions, injectOrderBy } from '../utils/query-loader'
+import { loadQuery, loadQueryWithAudit, injectWhereConditions, injectOrderBy } from '../utils/query-loader'
 
 const auditLogSortConfig: SortConfig = {
   allowedFields: {
@@ -173,7 +173,7 @@ export class AuditLogRepository extends BaseRepository {
     correlationId?: string | null
     requestId?: string | null
   }): Promise<void> {
-    await this.executeQuery(await loadQuery('audit-logs/create.cypher'), {
+    await this.executeQuery(await loadQueryWithAudit('audit-logs/create.cypher'), {
       operation: params.operation,
       entityType: params.entityType,
       entityId: params.entityId,

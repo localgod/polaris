@@ -10,7 +10,7 @@ vi.mock('../../../server/repositories/sbom.repository')
 
 const mockTech: TechnologyDetail = {
   name: 'React', type: 'framework', domain: 'framework', vendor: 'Meta',
-  lastReviewed: null, ownerTeamName: null, componentCount: 0, versions: [], approvals: []
+  lastReviewed: null, stewardTeamName: null, componentCount: 0, versions: [], approvals: []
 }
 
 describe('TechnologyService', () => {

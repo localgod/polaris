@@ -92,21 +92,19 @@ Governance rules:
 
 Team-technology approval relationships with TIME categories:
 
-- **adopt**: Recommended for new projects
-- **trial**: Evaluating for specific use cases
-- **assess**: Under evaluation
-- **hold**: Legacy only, migrate away
+- **tolerate**: Acceptable for now, not actively recommended
+- **invest**: Recommended, actively invested in
+- **migrate**: Being phased out, plan a migration away
+- **eliminate**: Not permitted; also the default when no approval exists (see ADR-0005)
 
 ## Relationships Created
 
 The seed script creates:
 
-- `(Technology)-[:HAS_VERSION]->(Version)`
 - `(Team)-[:STEWARDED_BY]->(Technology)`
 - `(Team)-[:APPROVES]->(Technology)` with TIME properties
-- `(Policy)-[:GOVERNS]->(Technology)`
-- `(Team)-[:ENFORCES]->(Policy)`
-- `(Team)-[:SUBJECT_TO]->(Policy)`
+- `(VersionConstraint)-[:GOVERNS]->(Technology)`
+- `(Team)-[:SUBJECT_TO]->(VersionConstraint)`
 
 ## What GitHub Seeding Adds
 
@@ -163,12 +161,8 @@ npm run seed:github
   "technologies": [
     {
       "name": "Kotlin",
-      "category": "language",
+      "type": "language",
       "vendor": "JetBrains",
-      "status": "approved",
-      "approvedVersionRange": ">=1.9.0 <2.0.0",
-      "ownerTeam": "Mobile Platform",
-      "riskLevel": "low",
       "lastReviewed": "2025-10-01"
     }
   ]
@@ -184,11 +178,10 @@ npm run seed:github
       {
         "team": "Mobile Platform",
         "technology": "Kotlin",
-        "time": "adopt",
+        "time": "invest",
         "approvedAt": "2024-01-15",
         "notes": "Primary mobile language",
-        "approvedBy": "Tech Lead",
-        "versionConstraint": ">=1.9.0"
+        "approvedBy": "Tech Lead"
       }
     ]
   }

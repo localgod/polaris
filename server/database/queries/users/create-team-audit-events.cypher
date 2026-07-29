@@ -2,14 +2,11 @@ MATCH (u:User {id: $userId})
 OPTIONAL MATCH (performer:User {id: $performedBy})
 UNWIND $events AS evt
 OPTIONAL MATCH (t:Team {name: evt.team})
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH u, t, performer, {
   operation: evt.operation,
   entityType: 'User',
   entityId: $userId,
   entityLabel: coalesce(u.name, u.email),
-  previousStatus: null,
   newStatus: evt.team,
   changedFields: ['teams'],
   reason: CASE evt.operation
@@ -19,7 +16,8 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $performedBy,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(u)
 FOREACH (_ IN CASE WHEN t IS NOT NULL THEN [1] ELSE [] END |
   CREATE (a)-[:AUDITS]->(t)

@@ -269,7 +269,7 @@ export class TechnologyService {
       type: tech.type,
       domain: tech.domain ?? null,
       vendor: tech.vendor ?? null,
-      ownerTeam: tech.ownerTeamName ?? null,
+      ownerTeam: tech.stewardTeamName ?? null,
     })
 
     await this.techRepo.delete(name, userId, changes, realUserId)
@@ -314,7 +314,7 @@ export class TechnologyService {
       type: current.type ?? null,
       domain: current.domain ?? null,
       vendor: current.vendor ?? null,
-      ownerTeam: current.ownerTeamName ?? null,
+      ownerTeam: current.stewardTeamName ?? null,
       lastReviewed: current.lastReviewed ?? null,
     }
     const after: Record<string, unknown> = {

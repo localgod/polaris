@@ -1,7 +1,5 @@
 MATCH (s:System {name: $name})
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH s, {
   operation: 'DELETE',
   entityType: 'System',
   entityId: s.name,
@@ -11,7 +9,8 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 
 // Collect components used exclusively by this system (no other USES relationship).
 // These become orphans once the system is removed and must be cleaned up.

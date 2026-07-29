@@ -31,10 +31,7 @@ OPTIONAL MATCH (team:Team {name: $ownerTeam})
 FOREACH (_ IN CASE WHEN team IS NOT NULL THEN [1] ELSE [] END |
   CREATE (team)-[:STEWARDED_BY]->(t)
 )
-WITH t, linkedCount
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH t, linkedCount, {
   operation: 'CREATE',
   entityType: 'Technology',
   entityId: t.name,
@@ -44,6 +41,7 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(t)
 RETURN t.name as name, linkedCount

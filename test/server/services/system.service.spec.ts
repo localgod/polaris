@@ -221,4 +221,101 @@ describe('SystemService', () => {
     })
   })
 
+  describe('[contract] updatePatch', () => {
+    const currentProps = { description: null, domain: 'Platform', businessCriticality: 'high', environment: 'prod' }
+
+    it('should update only the provided fields', async () => {
+      vi.mocked(SystemRepository.prototype.getCurrentState).mockResolvedValue(currentProps)
+      vi.mocked(SystemRepository.prototype.updatePatch).mockResolvedValue({ name: 'polaris-api' })
+
+      const result = await systemService.updatePatch('polaris-api', { environment: 'staging' }, 'user-123')
+
+      expect(result).toEqual({ name: 'polaris-api' })
+      expect(SystemRepository.prototype.updatePatch).toHaveBeenCalledWith(
+        'polaris-api',
+        ['s.environment = $environment'],
+        expect.objectContaining({ environment: 'staging', userId: 'user-123' })
+      )
+    })
+
+    it('should throw 422 when no fields are provided', async () => {
+      await expect(systemService.updatePatch('polaris-api', {}, 'user-123')).rejects.toThrow('At least one field to update is required')
+      expect(SystemRepository.prototype.updatePatch).not.toHaveBeenCalled()
+    })
+
+    it('should throw 422 when businessCriticality is invalid', async () => {
+      await expect(systemService.updatePatch('polaris-api', { businessCriticality: 'invalid' }, 'user-123')).rejects.toThrow('Invalid business criticality')
+    })
+
+    it('should throw 422 when environment is invalid', async () => {
+      await expect(systemService.updatePatch('polaris-api', { environment: 'invalid' }, 'user-123')).rejects.toThrow('Invalid environment')
+    })
+
+    it('should throw 404 when system does not exist', async () => {
+      vi.mocked(SystemRepository.prototype.getCurrentState).mockResolvedValue(null)
+
+      await expect(systemService.updatePatch('nonexistent', { domain: 'X' }, 'user-123')).rejects.toThrow("System 'nonexistent' not found")
+      expect(SystemRepository.prototype.updatePatch).not.toHaveBeenCalled()
+    })
+
+    it('should throw 404 when the update matches no system', async () => {
+      vi.mocked(SystemRepository.prototype.getCurrentState).mockResolvedValue(currentProps)
+      vi.mocked(SystemRepository.prototype.updatePatch).mockResolvedValue(null)
+
+      await expect(systemService.updatePatch('polaris-api', { domain: 'X' }, 'user-123')).rejects.toThrow("System 'polaris-api' not found")
+    })
+  })
+
+  describe('[contract] updatePut', () => {
+    const validInput = {
+      domain: 'Platform',
+      ownerTeam: 'Platform Team',
+      businessCriticality: 'high',
+      environment: 'prod'
+    }
+    const currentProps = { domain: 'Platform', ownerTeam: 'Old Team', businessCriticality: 'medium', environment: 'dev', description: null }
+
+    it('should replace all fields', async () => {
+      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(true)
+      vi.mocked(SystemRepository.prototype.getCurrentStateFull).mockResolvedValue(currentProps)
+      vi.mocked(SystemRepository.prototype.updatePut).mockResolvedValue({ name: 'polaris-api' })
+
+      const result = await systemService.updatePut('polaris-api', validInput, 'user-123')
+
+      expect(result).toEqual({ name: 'polaris-api' })
+      expect(TeamRepository.prototype.exists).toHaveBeenCalledWith('Platform Team')
+      expect(SystemRepository.prototype.updatePut).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'polaris-api', ...validInput, userId: 'user-123' })
+      )
+    })
+
+    it('should throw 422 when a required field is missing', async () => {
+      const incomplete = { ...validInput, domain: '' }
+      await expect(systemService.updatePut('polaris-api', incomplete, 'user-123')).rejects.toThrow('All required fields must be provided')
+    })
+
+    it('should throw 422 when businessCriticality is invalid', async () => {
+      await expect(systemService.updatePut('polaris-api', { ...validInput, businessCriticality: 'invalid' }, 'user-123')).rejects.toThrow('Invalid business criticality')
+    })
+
+    it('should throw 422 when environment is invalid', async () => {
+      await expect(systemService.updatePut('polaris-api', { ...validInput, environment: 'invalid' }, 'user-123')).rejects.toThrow('Invalid environment')
+    })
+
+    it('should throw 422 when owner team does not exist', async () => {
+      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(false)
+
+      await expect(systemService.updatePut('polaris-api', validInput, 'user-123')).rejects.toThrow("Team 'Platform Team' not found")
+      expect(SystemRepository.prototype.updatePut).not.toHaveBeenCalled()
+    })
+
+    it('should throw 404 when system does not exist', async () => {
+      vi.mocked(TeamRepository.prototype.exists).mockResolvedValue(true)
+      vi.mocked(SystemRepository.prototype.getCurrentStateFull).mockResolvedValue(null)
+
+      await expect(systemService.updatePut('nonexistent', validInput, 'user-123')).rejects.toThrow("System 'nonexistent' not found")
+      expect(SystemRepository.prototype.updatePut).not.toHaveBeenCalled()
+    })
+  })
+
 })

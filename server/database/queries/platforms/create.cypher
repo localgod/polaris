@@ -9,10 +9,7 @@ OPTIONAL MATCH (team:Team {name: $stewardTeam})
 FOREACH (_ IN CASE WHEN team IS NOT NULL THEN [1] ELSE [] END |
   CREATE (team)-[:STEWARDED_BY]->(p)
 )
-WITH p
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH p, {
   operation: 'CREATE',
   entityType: 'Platform',
   entityId: p.name,
@@ -22,6 +19,7 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(p)
 RETURN p.name as name

@@ -2,9 +2,7 @@ MATCH (u:User {id: $userId})
 SET u.role = $role
 WITH u
 OPTIONAL MATCH (performer:User {id: $performedBy})
-CREATE (a:AuditLog {
-  id: randomUUID(),
-  timestamp: datetime(),
+WITH u, performer, {
   operation: 'CHANGE_ROLE',
   entityType: 'User',
   entityId: u.id,
@@ -16,7 +14,8 @@ CREATE (a:AuditLog {
   source: 'API',
   userId: $performedBy,
   realUserId: $realUserId
-})
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
 CREATE (a)-[:AUDITS]->(u)
 FOREACH (_ IN CASE WHEN performer IS NOT NULL THEN [1] ELSE [] END |
   CREATE (a)-[:PERFORMED_BY]->(performer)

@@ -15,10 +15,17 @@ export class MigrationRunner {
 
   /**
    * Get list of applied migrations from database
+   *
+   * Scoped to this runner's own migrationsDir so that a runner pointed at
+   * one migration tree (e.g. a test fixture directory) never sees or
+   * conflicts with Migration tracking nodes belonging to another tree
+   * (e.g. the real application migrations) — both can coexist in the same
+   * Neo4j instance, since this project has no separate test database.
    */
   async getAppliedMigrations(session: Session): Promise<MigrationMetadata[]> {
     const result = await session.run(`
       MATCH (m:Migration)
+      WHERE m.filename STARTS WITH $migrationsDir
       RETURN m.filename AS filename,
              m.version AS version,
              m.checksum AS checksum,
@@ -28,7 +35,7 @@ export class MigrationRunner {
              m.status AS status,
              m.description AS description
       ORDER BY m.appliedAt ASC
-    `)
+    `, { migrationsDir: this.migrationsDir })
 
     return result.records.map(record => {
       const executionTime = record.get('executionTime')
