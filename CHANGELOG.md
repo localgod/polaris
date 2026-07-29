@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.87] - 2026-07-29
+
+## What's Changed
+
+- Fix component-linking name collisions across npm scopes/ecosystems @localgod (#803)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.86...v0.6.87
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
