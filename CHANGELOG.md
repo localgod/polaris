@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.88] - 2026-07-29
+
+## What's Changed
+
+- Refactor and clean up Neo4j queries and migrations @localgod (#805)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.87...v0.6.88
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
