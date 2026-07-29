@@ -76,6 +76,7 @@ describe('TechnologyRepository', () => {
         vendor: 'Meta',
         ownerTeam: null,
         componentName,
+        componentPackageManager: 'npm',
         userId: 'test-user'
       })
 
@@ -120,8 +121,37 @@ describe('TechnologyRepository', () => {
         vendor: null,
         ownerTeam: null,
         componentName,
+        componentPackageManager: 'npm',
         userId: 'test-user'
       })).rejects.toMatchObject({ statusCode: 404 })
+    })
+
+    it('should not cross-link unrelated components that share a bare name but differ in group', async () => {
+      if (!ctx.neo4jAvailable) return
+      const componentName = `${PREFIX}ui`
+      await seed(ctx.driver, `
+        CREATE (:Component { purl: $purl1, name: $componentName, version: '4.10.0', packageManager: 'npm', group: '@nuxt' })
+        CREATE (:Component { purl: $purl2, name: $componentName, version: '4.1.10', packageManager: 'npm', group: '@vitest' })
+      `, { purl1: `pkg:npm/%40nuxt/${componentName}@4.10.0`, purl2: `pkg:npm/%40vitest/${componentName}@4.1.10`, componentName })
+
+      await repo.createFromComponent({
+        name: `${PREFIX}NuxtUI`,
+        type: 'library',
+        domain: null,
+        vendor: null,
+        ownerTeam: null,
+        componentName,
+        componentGroup: '@nuxt',
+        componentPackageManager: 'npm',
+        userId: 'test-user'
+      })
+
+      const { records } = await session.run(
+        `MATCH (c:Component {name: $componentName})-[:IS_VERSION_OF]->(t:Technology {name: $name}) RETURN c.group AS group`,
+        { componentName, name: `${PREFIX}NuxtUI` }
+      )
+      expect(records).toHaveLength(1)
+      expect(records[0]!.get('group')).toBe('@nuxt')
     })
   })
 
@@ -321,8 +351,34 @@ describe('TechnologyRepository', () => {
         userId: 'user-1',
       })
 
-      expect(result.count).toBeGreaterThanOrEqual(1)
+      expect(result.count).toBe(2)
       expect(result.affectedSystems.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('linkComponentsByName should not cross-link unrelated components that share a bare name but differ in group', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Technology { name: $tech, type: 'library' })
+        CREATE (:Component { name: $comp, version: '4.10.0', packageManager: 'npm', group: '@nuxt' })
+        CREATE (:Component { name: $comp, version: '4.1.10', packageManager: 'npm', group: '@vitest' })
+      `, { tech: `${PREFIX}scoped-tech`, comp: `${PREFIX}ui` })
+
+      const result = await repo.linkComponentsByName({
+        technologyName: `${PREFIX}scoped-tech`,
+        componentName: `${PREFIX}ui`,
+        componentGroup: '@nuxt',
+        componentPackageManager: 'npm',
+        userId: 'user-1',
+      })
+
+      expect(result.count).toBe(1)
+
+      const { records } = await session.run(
+        `MATCH (c:Component {name: $comp})-[:IS_VERSION_OF]->(t:Technology {name: $tech}) RETURN c.group AS group`,
+        { comp: `${PREFIX}ui`, tech: `${PREFIX}scoped-tech` }
+      )
+      expect(records).toHaveLength(1)
+      expect(records[0]!.get('group')).toBe('@nuxt')
     })
 
     it('linkComponentsByName should create a LINK AuditLog entry', async () => {

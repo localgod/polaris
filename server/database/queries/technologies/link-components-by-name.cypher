@@ -1,17 +1,22 @@
-// Link all components with a given name to a technology.
+// Link all components matching the same package identity — (name, group, packageManager) —
+// to a technology. Matching includes group/packageManager, not just name: unrelated packages
+// routinely share a bare name across npm scopes or ecosystems (e.g. @nuxt/ui vs @vitest/ui),
+// and matching on name alone would silently cross-link them into the same Technology.
 // Returns the technology name, component name, count of linked components, and affected systems.
 
 MATCH (t:Technology {name: $technologyName})
 MATCH (c:Component {name: $componentName})
 WHERE NOT (c)-[:IS_VERSION_OF]->(t)
-
-// Create the IS_VERSION_OF relationship
+  AND coalesce(c.`group`, '') = coalesce($componentGroup, '')
+  AND coalesce(c.packageManager, '') = coalesce($componentPackageManager, '')
+WITH t, collect(c) AS components
+UNWIND components AS c
 CREATE (c)-[:IS_VERSION_OF]->(t)
-
-// Find all systems affected by this linking
-WITH t, c, $componentName AS componentName, count(c) AS linkedCount
-MATCH (s:System)-[uses:USES]->(c)
-WITH t, componentName, linkedCount, collect(DISTINCT s.name) AS affectedSystems
+WITH t, components
+UNWIND components AS c2
+OPTIONAL MATCH (s:System)-[:USES]->(c2)
+WITH t, components, collect(DISTINCT s.name) AS affectedSystemsRaw
+WITH t, components, [x IN affectedSystemsRaw WHERE x IS NOT NULL] AS affectedSystems
 
 CREATE (al:AuditLog {
   id: randomUUID(),
@@ -19,7 +24,7 @@ CREATE (al:AuditLog {
   operation: 'LINK',
   entityType: 'TechnologyComponent',
   entityId: t.name,
-  entityLabel: componentName + ' -> ' + t.name,
+  entityLabel: $componentName + ' -> ' + t.name,
   source: 'API',
   userId: $userId,
   realUserId: $realUserId
@@ -28,7 +33,7 @@ CREATE (al)-[:AUDITS]->(t)
 
 RETURN
   t.name AS technologyName,
-  componentName AS name,
-  linkedCount AS count,
+  $componentName AS name,
+  size(components) AS count,
   affectedSystems
 LIMIT 1

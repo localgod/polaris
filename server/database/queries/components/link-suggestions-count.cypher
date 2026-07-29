@@ -1,3 +1,4 @@
+// Count must use the same dedup key as link-suggestions.cypher: (name, group, packageManager).
 MATCH (c:Component)<-[uses:USES {isDirect: true}]-(:System)
 WHERE NOT (c)-[:IS_VERSION_OF]->(:Technology)
   AND c.linkDismissedAt IS NULL
@@ -5,4 +6,4 @@ WHERE NOT (c)-[:IS_VERSION_OF]->(:Technology)
   AND ($search IS NULL OR toLower(c.name) CONTAINS toLower($search))
 WITH c, toLower(split(last(split(c.purl, '/')), '@')[0]) AS purlName
 WHERE size(purlName) > 0
-RETURN count(DISTINCT c.name) AS total
+RETURN count(DISTINCT [c.name, coalesce(c.`group`, ''), coalesce(c.packageManager, '')]) AS total

@@ -57,6 +57,7 @@ import type { ApiResponse } from '~~/types/api'
 
 interface DismissedComponent {
   name: string
+  group: string | null
   packageManager: string | null
   description: string | null
   purl: string | null
@@ -84,13 +85,14 @@ const columns: TableColumn<DismissedComponent>[] = [
     accessorKey: 'name',
     header: 'Component',
     cell: ({ row }) => {
-      const { name, description, purl } = row.original
+      const { name, group, description, purl } = row.original
+      const displayName = group ? `${group}/${name}` : name
       const nameEl = description
         ? h(UTooltip, { text: description }, () => h('span', { class: 'inline-flex items-center gap-1.5 font-medium' }, [
-            name,
+            displayName,
             h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-(--ui-text-muted)' })
           ]))
-        : h('span', { class: 'font-medium' }, name)
+        : h('span', { class: 'font-medium' }, displayName)
       return h('div', {}, [
         nameEl,
         purl ? h('div', { class: 'text-xs text-(--ui-text-muted) font-mono truncate' }, purl) : null
@@ -131,7 +133,11 @@ async function restoreItem(item: DismissedComponent) {
   try {
     await $fetch('/api/components/undismiss-link', {
       method: 'POST',
-      body: { componentName: item.name }
+      body: {
+        componentName: item.name,
+        componentGroup: item.group,
+        componentPackageManager: item.packageManager
+      }
     })
     await refresh()
   } catch (err: unknown) {

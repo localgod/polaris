@@ -48,7 +48,13 @@ import { auditFailedOperation } from '../utils/audit'
  *                 type: string
  *               componentName:
  *                 type: string
- *                 description: Name of an existing, unlinked Component — all currently-unlinked versions sharing this name are linked
+ *                 description: Name of an existing, unlinked Component — all currently-unlinked versions sharing this identity are linked
+ *               componentGroup:
+ *                 type: string
+ *                 description: Npm scope / Maven groupId / etc. — required to disambiguate components sharing a bare name across scopes
+ *               componentPackageManager:
+ *                 type: string
+ *                 description: Package manager — required to disambiguate components sharing a bare name across ecosystems
  *     responses:
  *       201:
  *         description: Technology created
@@ -71,6 +77,8 @@ interface CreateTechnologyRequest {
   vendor?: string
   ownerTeam?: string
   componentName: string
+  componentGroup?: string | null
+  componentPackageManager?: string | null
 }
 
 interface CreateTechnologyResponse {

@@ -178,7 +178,14 @@ function versionActions(component: GroupedComponentVersion) {
     groups.push([{
       label: 'Create Technology',
       icon: 'i-lucide-plus',
-      onSelect: () => navigateTo({ path: '/admin/component-links', query: { component: component.name } })
+      onSelect: () => navigateTo({
+        path: '/admin/component-links',
+        query: {
+          component: component.name,
+          group: component.group ?? undefined,
+          packageManager: component.packageManager ?? undefined
+        }
+      })
     }])
   }
 

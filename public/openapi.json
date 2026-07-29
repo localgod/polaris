@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Polaris API",
-    "version": "0.6.72",
+    "version": "0.6.85",
     "description": "# Polaris Technology Catalog API\n\nThe Polaris API provides programmatic access to the technology catalog, enabling automation, integration, and custom tooling.\n\n## Key Features\n\n- **RESTful Design** - Resource-based URLs with proper HTTP methods\n- **Comprehensive Coverage** - Systems, Teams, Technologies, Components, Policies, and more\n- **Developer-Friendly** - Clear error messages and consistent response structure\n\n## Authentication\n\nMost endpoints require authentication using session-based authentication integrated with the web application.\n\n**Authorization Levels:**\n- **Public** - No authentication required\n- **Authenticated** - Valid user session required  \n- **Team Member** - User must belong to a team\n- **Team Owner** - User must belong to team that owns the resource\n- **Superuser** - User must have superuser role\n\n## Response Format\n\nAll successful responses follow this structure:\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"count\": 10\n}\n```\n\nAll errors follow this structure:\n```json\n{\n  \"statusCode\": 404,\n  \"message\": \"Resource 'example' not found\"\n}\n```\n\n## Richardson Maturity Model\n\nThis API implements **RMM Level 2** with proper use of HTTP methods and status codes.",
     "license": {
       "name": "MIT",
@@ -1381,7 +1381,15 @@
                   },
                   "componentName": {
                     "type": "string",
-                    "description": "Name of an existing, unlinked Component — all currently-unlinked versions sharing this name are linked"
+                    "description": "Name of an existing, unlinked Component — all currently-unlinked versions sharing this identity are linked"
+                  },
+                  "componentGroup": {
+                    "type": "string",
+                    "description": "Npm scope / Maven groupId / etc. — required to disambiguate components sharing a bare name across scopes"
+                  },
+                  "componentPackageManager": {
+                    "type": "string",
+                    "description": "Package manager — required to disambiguate components sharing a bare name across ecosystems"
                   }
                 }
               }
@@ -3584,7 +3592,16 @@
                     ],
                     "properties": {
                       "purl": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "A full PURL to link one specific component, or a bare component name to bulk-link every matching version (disambiguated by componentGroup/componentPackageManager)"
+                      },
+                      "componentGroup": {
+                        "type": "string",
+                        "description": "Npm scope / Maven groupId / etc. — used with the bare-name form to disambiguate components sharing a name across scopes"
+                      },
+                      "componentPackageManager": {
+                        "type": "string",
+                        "description": "Package manager — used with the bare-name form to disambiguate components sharing a name across ecosystems"
                       }
                     }
                   },
@@ -3599,6 +3616,14 @@
                       },
                       "componentVersion": {
                         "type": "string"
+                      },
+                      "componentGroup": {
+                        "type": "string",
+                        "description": "Npm scope / Maven groupId / etc. — disambiguates components sharing a name+version across scopes"
+                      },
+                      "componentPackageManager": {
+                        "type": "string",
+                        "description": "Package manager — disambiguates components sharing a name+version across ecosystems"
                       }
                     }
                   }
@@ -5409,6 +5434,14 @@
                   "componentName": {
                     "type": "string",
                     "description": "The component name to restore (all versions)"
+                  },
+                  "componentGroup": {
+                    "type": "string",
+                    "description": "Npm scope / Maven groupId / etc., to disambiguate components sharing a bare name"
+                  },
+                  "componentPackageManager": {
+                    "type": "string",
+                    "description": "Package manager, to disambiguate components sharing a bare name across ecosystems"
                   }
                 }
               }
@@ -5832,6 +5865,14 @@
                   "componentName": {
                     "type": "string",
                     "description": "The component name to dismiss (all versions)"
+                  },
+                  "componentGroup": {
+                    "type": "string",
+                    "description": "Npm scope / Maven groupId / etc., to disambiguate components sharing a bare name"
+                  },
+                  "componentPackageManager": {
+                    "type": "string",
+                    "description": "Package manager, to disambiguate components sharing a bare name across ecosystems"
                   }
                 }
               }

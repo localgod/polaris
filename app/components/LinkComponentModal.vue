@@ -22,19 +22,19 @@
         <div v-if="searchResults.length > 0" class="max-h-60 overflow-y-auto border border-(--ui-border) rounded-md divide-y divide-(--ui-border)">
           <UButton
             v-for="comp in searchResults"
-            :key="`${comp.name}@${comp.version}`"
+            :key="`${comp.packageManager}:${comp.group}:${comp.name}@${comp.version}`"
             variant="ghost"
             color="neutral"
             class="w-full justify-start px-3 py-2"
-            :class="{ 'bg-(--ui-bg-elevated)': selected?.name === comp.name && selected?.version === comp.version }"
-            @click="selected = { name: comp.name, version: comp.version }"
+            :class="{ 'bg-(--ui-bg-elevated)': isSelected(comp) }"
+            @click="selected = { name: comp.name, version: comp.version, group: comp.group ?? null, packageManager: comp.packageManager ?? null }"
           >
-            <span class="font-medium">{{ comp.name }}</span>
+            <span class="font-medium">{{ displayName(comp) }}</span>
             <code class="ml-2 text-sm">{{ comp.version }}</code>
           </UButton>
         </div>
         <div v-if="selected" class="text-sm">
-          Selected: <strong>{{ selected.name }}</strong> <code>{{ selected.version }}</code>
+          Selected: <strong>{{ displayName(selected) }}</strong> <code>{{ selected.version }}</code>
         </div>
         <UAlert
           v-if="error"
@@ -70,12 +70,33 @@ const emit = defineEmits<{
   linked: []
 }>()
 
+interface ComponentOption {
+  name: string
+  version: string
+  group?: string | null
+  packageManager?: string | null
+  purl?: string
+}
+
 const loading = ref(false)
 const error = ref('')
 const search = ref('')
-const searchResults = ref<{ name: string; version: string; purl?: string }[]>([])
+const searchResults = ref<ComponentOption[]>([])
 const searching = ref(false)
-const selected = ref<{ name: string; version: string } | null>(null)
+const selected = ref<ComponentOption | null>(null)
+
+// Group-qualifies the display name — different scopes/ecosystems can share a bare
+// name (e.g. @nuxt/ui vs @vitest/ui), so the bare name alone can be ambiguous.
+function displayName(comp: ComponentOption): string {
+  return comp.group ? `${comp.group}/${comp.name}` : comp.name
+}
+
+function isSelected(comp: ComponentOption): boolean {
+  return selected.value?.name === comp.name &&
+    selected.value?.version === comp.version &&
+    (selected.value?.group ?? null) === (comp.group ?? null) &&
+    (selected.value?.packageManager ?? null) === (comp.packageManager ?? null)
+}
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 watch(search, (val) => {
@@ -88,7 +109,7 @@ watch(search, (val) => {
   searchTimeout = setTimeout(async () => {
     searching.value = true
     try {
-      const res = await $fetch<{ data: { name: string; version: string; purl?: string; technologyName?: string }[] }>('/api/components', {
+      const res = await $fetch<{ data: { name: string; version: string; group?: string | null; packageManager?: string | null; purl?: string; technologyName?: string }[] }>('/api/components', {
         query: { search: val, limit: 20 }
       })
       // Only show components not already linked to a technology
@@ -111,7 +132,9 @@ async function confirmLink() {
       method: 'POST',
       body: {
         componentName: selected.value.name,
-        componentVersion: selected.value.version
+        componentVersion: selected.value.version,
+        componentGroup: selected.value.group ?? null,
+        componentPackageManager: selected.value.packageManager ?? null
       }
     })
     emit('update:open', false)

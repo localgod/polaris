@@ -49,7 +49,7 @@ export interface ComponentDependencyTree {
 export interface LinkSuggestion {
   purl: string
   name: string
-  version: string
+  group: string | null
   packageManager: string | null
   description: string | null
   purlName: string
@@ -59,10 +59,17 @@ export interface LinkSuggestion {
 
 export interface DismissedComponent {
   name: string
+  group: string | null
   packageManager: string | null
   description: string | null
   purl: string | null
   dismissedAt: string
+}
+
+export interface ComponentIdentityKey {
+  name: string
+  group?: string | null
+  packageManager?: string | null
 }
 
 export interface ComponentEOLCandidate {
@@ -423,6 +430,7 @@ export class ComponentRepository extends BaseRepository {
       data: records.map(record => ({
         purl: record.get('purl') as string,
         name: record.get('name') as string,
+        group: record.get('group') as string | null,
         packageManager: record.get('packageManager') as string | null,
         description: record.get('description') as string | null,
         purlName: record.get('purlName') as string,
@@ -433,14 +441,22 @@ export class ComponentRepository extends BaseRepository {
     }
   }
 
-  async dismissLink(componentName: string): Promise<void> {
+  async dismissLink(component: ComponentIdentityKey): Promise<void> {
     const query = await loadQuery('components/dismiss-link.cypher')
-    await this.executeQuery(query, { componentName })
+    await this.executeQuery(query, {
+      componentName: component.name,
+      componentGroup: component.group ?? null,
+      componentPackageManager: component.packageManager ?? null
+    })
   }
 
-  async undismissLink(componentName: string): Promise<void> {
+  async undismissLink(component: ComponentIdentityKey): Promise<void> {
     const query = await loadQuery('components/undismiss-link.cypher')
-    await this.executeQuery(query, { componentName })
+    await this.executeQuery(query, {
+      componentName: component.name,
+      componentGroup: component.group ?? null,
+      componentPackageManager: component.packageManager ?? null
+    })
   }
 
   async getDismissedLinks(skip: number, limit: number, search?: string): Promise<{ data: DismissedComponent[]; total: number }> {
@@ -454,6 +470,7 @@ export class ComponentRepository extends BaseRepository {
     return {
       data: records.map(record => ({
         name: record.get('name') as string,
+        group: record.get('group') as string | null,
         packageManager: record.get('packageManager') as string | null,
         description: record.get('description') as string | null,
         purl: record.get('purl') as string | null,

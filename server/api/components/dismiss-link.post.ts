@@ -23,6 +23,12 @@ import { auditFailedOperation } from '../../utils/audit'
  *               componentName:
  *                 type: string
  *                 description: The component name to dismiss (all versions)
+ *               componentGroup:
+ *                 type: string
+ *                 description: Npm scope / Maven groupId / etc., to disambiguate components sharing a bare name
+ *               componentPackageManager:
+ *                 type: string
+ *                 description: Package manager, to disambiguate components sharing a bare name across ecosystems
  *     responses:
  *       204:
  *         description: Component dismissed from queue
@@ -41,7 +47,11 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    await componentService.dismissLink(body.componentName)
+    await componentService.dismissLink({
+      name: body.componentName,
+      group: body.componentGroup ?? null,
+      packageManager: body.componentPackageManager ?? null
+    })
     setResponseStatus(event, 204)
     return null
   } catch (error) {

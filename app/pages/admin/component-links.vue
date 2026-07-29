@@ -67,7 +67,7 @@
       <template #body>
         <div class="space-y-4">
           <div class="text-sm text-(--ui-text-muted)">
-            Component: <code>{{ confirmItem?.name }}</code>
+            Component: <code>{{ confirmItem?.group ? `${confirmItem.group}/${confirmItem.name}` : confirmItem?.name }}</code>
           </div>
 
           <div>
@@ -159,6 +159,7 @@ import type { ApiResponse } from '~~/types/api'
 
 interface LinkSuggestion {
   name: string
+  group: string | null
   packageManager: string | null
   description: string | null
   purl: string
@@ -199,7 +200,10 @@ const suggestions = useApiData(data)
 const total = useApiCount(data)
 
 // Deep-link support: ComponentVersionsModal's "Create Technology" action
-// links here with ?component=<name> to jump straight into the confirm flow.
+// links here with ?component=<name>&group=<group>&packageManager=<pm> to jump straight
+// into the confirm flow. group/packageManager disambiguate components sharing a bare
+// name across scopes or ecosystems (e.g. @nuxt/ui vs @vitest/ui) — older links without
+// them fall back to matching on name alone.
 // Only attempted once on initial load — not re-triggered by later refreshes.
 const route = useRoute()
 const deepLinkNotFound = ref('')
@@ -209,7 +213,13 @@ watch(suggestions, (items) => {
   const target = route.query.component as string | undefined
   if (!target || deepLinkAttempted || pending.value) return
   deepLinkAttempted = true
-  const match = items.find(item => item.name === target)
+  const targetGroup = route.query.group as string | undefined
+  const targetPackageManager = route.query.packageManager as string | undefined
+  const match = items.find(item =>
+    item.name === target &&
+    (targetGroup === undefined || (item.group ?? '') === targetGroup) &&
+    (targetPackageManager === undefined || (item.packageManager ?? '') === targetPackageManager)
+  )
   if (match) {
     openConfirmModal(match)
   } else {
@@ -222,13 +232,16 @@ const columns: TableColumn<LinkSuggestion>[] = [
     accessorKey: 'name',
     header: 'Component',
     cell: ({ row }) => {
-      const { name, description, purl } = row.original
+      const { name, group, description, purl } = row.original
+      // Group-qualify the display name — different scopes/ecosystems can share a bare
+      // name (e.g. @nuxt/ui vs @vitest/ui), and each now appears as its own row.
+      const displayName = group ? `${group}/${name}` : name
       const nameEl = description
         ? h(UTooltip, { text: description }, () => h('span', { class: 'inline-flex items-center gap-1.5 font-medium' }, [
-            name,
+            displayName,
             h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-(--ui-text-muted)' })
           ]))
-        : h('span', { class: 'font-medium' }, name)
+        : h('span', { class: 'font-medium' }, displayName)
       return h('div', {}, [
         nameEl,
         h('div', { class: 'text-xs text-(--ui-text-muted) font-mono truncate' }, purl)
@@ -377,7 +390,11 @@ async function submitConfirmLink() {
   try {
     await $fetch(`/api/technologies/${encodeURIComponent(selectedTech.value)}/components`, {
       method: 'POST',
-      body: { purl: confirmItem.value.name }
+      body: {
+        purl: confirmItem.value.name,
+        componentGroup: confirmItem.value.group,
+        componentPackageManager: confirmItem.value.packageManager
+      }
     })
     confirmModalOpen.value = false
     await refresh()
@@ -405,7 +422,9 @@ async function submitCreateNew() {
         domain: createForm.domain || undefined,
         vendor: createForm.vendor || undefined,
         ownerTeam: createForm.ownerTeam || undefined,
-        componentName: confirmItem.value.name
+        componentName: confirmItem.value.name,
+        componentGroup: confirmItem.value.group,
+        componentPackageManager: confirmItem.value.packageManager
       }
     })
     confirmModalOpen.value = false
@@ -426,7 +445,11 @@ async function dismissItem(item: LinkSuggestion) {
   try {
     await $fetch('/api/components/dismiss-link', {
       method: 'POST',
-      body: { componentName: item.name }
+      body: {
+        componentName: item.name,
+        componentGroup: item.group,
+        componentPackageManager: item.packageManager
+      }
     })
     await refresh()
   } catch (err: unknown) {
