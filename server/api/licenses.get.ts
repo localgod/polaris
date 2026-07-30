@@ -34,6 +34,11 @@ import { licenseService } from '../services/singletons'
  *           type: string
  *         description: Search by license ID or name
  *       - in: query
+ *         name: direct
+ *         schema:
+ *           type: boolean
+ *         description: When true, restrict componentCount to direct dependencies only and exclude licenses with none
+ *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
@@ -83,7 +88,7 @@ import { licenseService } from '../services/singletons'
  *                             description: Whether license is deprecated
  *                           componentCount:
  *                             type: integer
- *                             description: Number of components using this license
+ *                             description: Number of components using this license (direct dependencies only when the `direct` filter is set)
  *                     total:
  *                       type: integer
  *                       description: Total number of licenses
@@ -112,6 +117,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<License>> =
       osiApproved: query.osiApproved === 'true' ? true : query.osiApproved === 'false' ? false : undefined,
       deprecated: query.deprecated === 'true' ? true : query.deprecated === 'false' ? false : undefined,
       search: query.search as string | undefined,
+      directOnly: query.direct === 'true' ? true : undefined,
       sortBy: query.sortBy as string | undefined,
       sortOrder: (query.sortOrder as string)?.toLowerCase() === 'desc' ? 'desc' as const : 'asc' as const,
       limit,

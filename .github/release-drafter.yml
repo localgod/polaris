@@ -24,7 +24,7 @@ categories:
       - 'config'
       - 'configuration'
 
-change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-template: '* $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
 
 version-resolver:

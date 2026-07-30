@@ -1,9 +1,12 @@
 <template>
   <div class="space-y-6">
-    <UPageHeader
-      title="License Inventory"
-      description="Licenses discovered across all components"
-    />
+    <div class="flex items-center justify-between gap-3">
+      <UPageHeader
+        title="License Inventory"
+        description="Licenses discovered across all components"
+      />
+      <USwitch v-model="directOnly" label="Direct only" size="sm" />
+    </div>
 
     <UAlert
       v-if="error"
@@ -142,8 +145,13 @@ const columns: TableColumn<License>[] = [
 
 const { searchInput, debouncedSearch } = useTableSearch()
 
+// Page-wide toggle, defaulting to direct dependencies only — mirrors the
+// concept on the technology detail page. Switch it off to include licenses
+// that only appear via a transitive component.
+const directOnly = ref(true)
+
 const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
-  resetOn: [debouncedSearch]
+  resetOn: [debouncedSearch, directOnly]
 })
 
 // Pass individual refs/computeds as query values so each one is tracked
@@ -154,7 +162,8 @@ const { data, pending, error } = await useFetch<ApiResponse<License>>('/api/lice
     offset,
     sortBy,
     sortOrder,
-    search: debouncedSearch
+    search: debouncedSearch,
+    direct: directOnly
   }
 })
 
