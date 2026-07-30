@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.89] - 2026-07-30
+
+## What's Changed
+
+* feat(licenses): add "Direct only" toggle to License Inventory @localgod (#807)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.88...v0.6.89
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
