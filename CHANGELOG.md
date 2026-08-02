@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.90] - 2026-08-02
+
+## What's Changed
+
+* fix(governance): license default-deny, Radar vote-counting, sprawl EOL severity, 3-state approvals, best-effort audit writes @localgod (#809)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.89...v0.6.90
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
