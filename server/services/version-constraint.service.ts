@@ -3,6 +3,7 @@ import type {
   VersionConstraint, ViolationFilters, VersionConstraintFilters, Violation,
   CreateVersionConstraintInput, UpdateVersionConstraintInput, UpdateStatusInput, UpdateStatusResult
 } from '../repositories/version-constraint.repository'
+import { ViolationRepository } from '../repositories/violation.repository'
 import semver from 'semver'
 import { logger } from '../utils/logger'
 
@@ -21,9 +22,11 @@ export interface ViolationResult {
 
 export class VersionConstraintService {
   private repo: VersionConstraintRepository
+  private violationRepo: ViolationRepository
 
   constructor() {
     this.repo = new VersionConstraintRepository()
+    this.violationRepo = new ViolationRepository()
   }
 
   async findAll(filters: VersionConstraintFilters = {}): Promise<{ data: VersionConstraint[]; count: number; total: number }> {
@@ -31,18 +34,31 @@ export class VersionConstraintService {
     return { data, count: data.length, total }
   }
 
-  async getViolations(filters: ViolationFilters): Promise<ViolationResult> {
+  async getViolations(filters: ViolationFilters & { includeWaived?: boolean }): Promise<ViolationResult> {
     this.validateFilters(filters)
 
     const rawViolations = await this.repo.findViolations(filters)
 
     // Apply semver filtering — keep only components outside the allowed range
-    const violations = rawViolations.filter(v => {
+    let violations = rawViolations.filter(v => {
       if (!v.constraint.versionRange || !v.componentVersion) return false
       const coerced = semver.coerce(v.componentVersion)
       if (!coerced) return false
       return !semver.satisfies(coerced, v.constraint.versionRange)
     })
+
+    // Waiver exclusion: version-constraint violations are only partly
+    // Cypher-determined (semver check above happens in JS), so unlike
+    // license/compliance the waiver check can't live inside a single query —
+    // annotate/filter this already-computed set against tracked waivers instead.
+    const naturalKeys = violations.map(v => `${v.system}|${v.componentPurl}|${v.constraint.name}`)
+    const activeWaivers = await this.violationRepo.findActiveWaivedVersionConstraintKeys(naturalKeys)
+    violations = violations
+      .map(v => {
+        const waiver = activeWaivers.get(`${v.system}|${v.componentPurl}|${v.constraint.name}`)
+        return waiver ? { ...v, waiver: { id: waiver.waiverId, reason: waiver.reason, expiresAt: waiver.expiresAt } } : v
+      })
+      .filter(v => filters.includeWaived === true || !v.waiver)
 
     // Warn on the actionable severities so alerting can be built on the log
     // stream. warning/info are skipped to avoid noise on every dashboard read.

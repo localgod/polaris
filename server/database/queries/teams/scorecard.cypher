@@ -19,6 +19,11 @@ CALL {
   WITH t
   OPTIONAL MATCH (t)-[:OWNS]->(sys2:System)-[:USES]->(comp:Component)-[:HAS_LICENSE]->(lic:License)
     WHERE coalesce(lic.allowed, false) = false
+  WITH sys2, comp, lic, coalesce(comp.purl, comp.name + '@' + coalesce(comp.version, 'unknown')) AS purl
+  WHERE sys2 IS NULL OR NOT EXISTS {
+    MATCH (:LicenseViolation {naturalKey: sys2.name + '|' + purl + '|' + lic.id})<-[:WAIVES]-(w:Waiver)
+    WHERE w.revokedAt IS NULL AND w.expiresAt > datetime()
+  }
   RETURN count(DISTINCT comp) AS licenseViolationCount
 }
 

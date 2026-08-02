@@ -102,6 +102,7 @@ export default defineEventHandler(async (event) => {
     const result = await complianceService.findViolations({
       directOnly: query.direct === 'true' ? true : undefined,
       depScope: query.depScope as string | undefined,
+      includeWaived: query.includeWaived === 'true',
     })
 
     return {

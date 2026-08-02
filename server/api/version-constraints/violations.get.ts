@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
       technology: query.technology as string | undefined,
       directOnly: query.direct === 'true' ? true : undefined,
       depScope: query.depScope as string | undefined,
+      includeWaived: query.includeWaived === 'true',
     })
 
     return { success: true, ...result }

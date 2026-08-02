@@ -45,6 +45,7 @@ export interface Violation {
   systemEnvironment: string | null
   component: string
   componentVersion: string
+  componentPurl: string
   technology: string
   technologyType: string
   constraint: {
@@ -53,6 +54,7 @@ export interface Violation {
     severity: string
     versionRange: string | null
   }
+  waiver: { id: string; reason: string; expiresAt: string } | null
 }
 
 export interface VersionConstraint {
@@ -380,6 +382,7 @@ export class VersionConstraintRepository extends BaseRepository {
       systemEnvironment: record.get('systemEnvironment') || null,
       component: record.get('componentName'),
       componentVersion: record.get('componentVersion'),
+      componentPurl: record.get('componentPurl'),
       technology: record.get('technologyName'),
       technologyType: record.get('technologyType'),
       constraint: {
@@ -387,7 +390,8 @@ export class VersionConstraintRepository extends BaseRepository {
         description: record.get('constraintDescription'),
         severity: record.get('severity'),
         versionRange: record.get('versionRange')
-      }
+      },
+      waiver: null
     }
   }
 

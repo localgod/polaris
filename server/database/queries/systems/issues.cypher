@@ -22,7 +22,7 @@ WITH c, u,
      }) AS rawAdvisories
 
 OPTIONAL MATCH (c)-[:HAS_LICENSE]->(lic:License)
-WITH c, u, rawAdvisories,
+WITH c, u, rawAdvisories, coalesce(c.purl, c.name + '@' + coalesce(c.version, 'unknown')) AS purl,
      collect(DISTINCT {
        id: lic.id,
        name: lic.name,
@@ -34,7 +34,12 @@ OPTIONAL MATCH (c)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
 
 WITH c, h,
      [a IN rawAdvisories WHERE a.id IS NOT NULL] AS advisories,
-     [l IN rawLicenses WHERE l.id IS NOT NULL AND coalesce(l.allowed, false) = false] AS disallowedLicenses,
+     [l IN rawLicenses WHERE l.id IS NOT NULL AND coalesce(l.allowed, false) = false
+        AND NOT EXISTS {
+          MATCH (:LicenseViolation {naturalKey: $name + '|' + purl + '|' + l.id})<-[:WAIVES]-(w:Waiver)
+          WHERE w.revokedAt IS NULL AND w.expiresAt > datetime()
+        }
+     ] AS disallowedLicenses,
      coalesce(u.isDirect, false) AS isDirect
 
 WHERE size(advisories) > 0

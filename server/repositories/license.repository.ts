@@ -39,6 +39,7 @@ export interface LicenseViolation {
   licenseId: string
   licenseName: string
   licenseCategory: string | null
+  waiver: { id: string; reason: string; expiresAt: string } | null
 }
 
 export interface LicenseFilters {
@@ -61,6 +62,8 @@ export interface LicenseViolationFilters {
   directOnly?: boolean
   /** Restrict to a specific dependency scope on the USES edge */
   depScope?: string
+  /** Include violations with an active waiver (excluded by default) */
+  includeWaived?: boolean
   limit?: number
   offset?: number
   sortBy?: string
@@ -333,6 +336,7 @@ export class LicenseRepository extends BaseRepository {
     const params: Record<string, unknown> = {
       directOnly: filters.directOnly ?? null,
       depScope: filters.depScope ?? null,
+      includeWaived: filters.includeWaived ?? false,
     }
 
     if (filters.search) {
@@ -366,7 +370,10 @@ export class LicenseRepository extends BaseRepository {
       componentPurl: record.get('componentPurl'),
       licenseId: record.get('licenseId'),
       licenseName: record.get('licenseName'),
-      licenseCategory: record.get('licenseCategory')
+      licenseCategory: record.get('licenseCategory'),
+      waiver: record.get('waiverId')
+        ? { id: record.get('waiverId'), reason: record.get('waiverReason'), expiresAt: record.get('waiverExpiresAt')?.toString() || '' }
+        : null
     }))
 
     return { data, total }
