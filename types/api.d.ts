@@ -629,6 +629,7 @@ export interface LicenseViolation {
   licenseId: string
   licenseName: string
   licenseCategory: string | null
+  waiver: { id: string; reason: string; expiresAt: string } | null
 }
 
 export type ScorecardCheckId =

@@ -98,7 +98,8 @@ export default defineNuxtConfig({
     scheduledTasks: {
       '*/5 * * * *': ['health-refresh:process'],
       '0 */12 * * *': ['health-refresh:enqueue-scheduled'],
-      '0 3 * * *': ['components:cleanup-orphaned']
+      '0 3 * * *': ['components:cleanup-orphaned'],
+      '*/15 * * * *': ['violations:reconcile']
     },
     tasks: {
       'health-refresh:process': {
@@ -112,6 +113,10 @@ export default defineNuxtConfig({
       'components:cleanup-orphaned': {
         handler: './server/tasks/components/cleanup-orphaned.ts',
         description: 'Delete Component nodes no longer used by any system and not claimed by a Technology'
+      },
+      'violations:reconcile': {
+        handler: './server/tasks/violations/reconcile.ts',
+        description: 'Reconcile computed license/compliance/version-constraint violation sets against tracked violation nodes'
       }
     }
   }

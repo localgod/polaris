@@ -2939,6 +2939,99 @@
         }
       }
     },
+    "/violations/waivers": {
+      "post": {
+        "tags": [
+          "Violations"
+        ],
+        "summary": "Waive a specific violation instance",
+        "description": "Records that a team has seen and accepted a specific violation instance, so\nit stops surfacing in violation lists/counts until the waiver expires or is\nrevoked. Expiry is mandatory — waivers cannot be indefinite. The caller must\nbe a member of the violation's owning team (or a superuser).\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "violationType",
+                  "naturalKey",
+                  "reason",
+                  "expiresAt"
+                ],
+                "properties": {
+                  "violationType": {
+                    "type": "string",
+                    "enum": [
+                      "license",
+                      "compliance",
+                      "version-constraint"
+                    ]
+                  },
+                  "naturalKey": {
+                    "type": "object",
+                    "description": "license/version-constraint: { systemName, componentPurl, licenseId | constraintName }.\ncompliance: { teamName, technologyName }.\n"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waiver created"
+          },
+          "400": {
+            "description": "Missing/invalid fields"
+          },
+          "403": {
+            "description": "User is not a member of the violation's owning team"
+          },
+          "404": {
+            "description": "Could not resolve an owning team for this violation"
+          }
+        }
+      }
+    },
+    "/violations/waivers/{id}": {
+      "delete": {
+        "tags": [
+          "Violations"
+        ],
+        "summary": "Revoke a waiver",
+        "description": "Revokes a waiver (sets revokedAt/revokedBy) so the violation it covered\nreappears in violation lists/counts on the next read. Never hard-deletes,\nmatching the audit-preserving posture used elsewhere in Polaris.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Waiver revoked"
+          },
+          "403": {
+            "description": "User is not a member of the violation's owning team"
+          },
+          "404": {
+            "description": "Waiver not found"
+          },
+          "409": {
+            "description": "Waiver is already revoked"
+          }
+        }
+      }
+    },
     "/version-sprawl/summary": {
       "get": {
         "tags": [
@@ -5104,6 +5197,15 @@
               ]
             },
             "description": "Filter by dependency scope on the USES edge"
+          },
+          {
+            "in": "query",
+            "name": "includeWaived",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "When true, includes violations that have an active (unrevoked, unexpired) waiver"
           }
         ],
         "responses": {

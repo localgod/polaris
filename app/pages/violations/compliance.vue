@@ -1,10 +1,17 @@
 <template>
   <div class="space-y-6">
-    <UPageHeader
-      title="License Violations"
-      description="Components using disallowed licenses"
-      :links="[{ label: 'Back to Violations', to: '/violations', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
-    />
+    <div class="flex justify-between items-center">
+      <UPageHeader
+        title="Compliance Violations"
+        description="Teams using technologies without approval or marked for elimination"
+      />
+      <UButton
+        label="Back to Violations"
+        to="/violations"
+        icon="i-lucide-arrow-left"
+        variant="outline"
+      />
+    </div>
 
     <UAlert
       v-if="error"
@@ -16,23 +23,26 @@
     />
 
     <template v-else>
+      <EntityStatStrip v-if="summary" :items="summaryStats" />
+
       <PaginatedTable
-        v-model:sorting="sorting"
-        v-model:page="page"
         :data="violations"
         :columns="columns"
         :loading="pending"
-        :manual-sorting="true"
-        :total="total"
-        :page-size="pageSize"
       >
         <template #header>
           <div class="flex flex-wrap items-center gap-2">
             <UInput
-              v-model="searchInput"
-              placeholder="Filter by component, license, system, or team..."
+              v-model="teamFilter"
+              placeholder="Filter by team..."
               icon="i-lucide-search"
-              class="max-w-sm"
+              class="max-w-xs"
+            />
+            <UInput
+              v-model="technologyFilter"
+              placeholder="Filter by technology..."
+              icon="i-lucide-search"
+              class="max-w-xs"
             />
             <UCheckbox v-model="showTransitive" label="Include transitive dependencies" />
             <UCheckbox v-model="includeWaived" label="Show waived" />
@@ -41,8 +51,8 @@
         <template #empty>
           <div class="text-center py-8">
             <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
-            <h3 class="mt-4">No License Violations!</h3>
-            <p class="text-(--ui-text-muted) mt-2">All components use allowed licenses.</p>
+            <h3 class="mt-4">No Compliance Violations!</h3>
+            <p class="text-(--ui-text-muted) mt-2">Every team-technology pair in use has been approved.</p>
           </div>
         </template>
       </PaginatedTable>
@@ -89,80 +99,111 @@
 
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
-import { useDebounceFn } from '@vueuse/core'
 import type { TableColumn } from '@nuxt/ui'
-import type { ApiResponse, LicenseViolation } from '~~/types/api'
 
 definePageMeta({ middleware: 'auth' })
+
+interface ComplianceViolation {
+  team: string
+  technology: string
+  type: string
+  systemCount: number
+  systems: string[]
+  violationType: string
+  notes: string | null
+  migrationTarget: string | null
+  waiver: { id: string; reason: string; expiresAt: string } | null
+}
+
+interface ComplianceViolationsSummary {
+  totalViolations: number
+  teamsAffected: number
+  byTeam: Array<{ team: string; violationCount: number; systemsAffected: number }>
+}
+
+interface ComplianceViolationsResponse {
+  success: boolean
+  data: { violations: ComplianceViolation[]; summary: ComplianceViolationsSummary }
+}
 
 const { getSortableHeader } = useSortableTable()
 
 const UBadge = resolveComponent('UBadge')
+const UButton = resolveComponent('UButton')
 const NuxtLink = resolveComponent('NuxtLink')
 
-const columns: TableColumn<LicenseViolation>[] = [
+const teamFilter = ref('')
+const technologyFilter = ref('')
+const showTransitive = ref(false)
+const includeWaived = ref(false)
+
+const queryParams = computed(() => {
+  const params: Record<string, string> = {}
+  if (!showTransitive.value) params.direct = 'true'
+  if (includeWaived.value) params.includeWaived = 'true'
+  return params
+})
+
+const { data, pending, error } = await useFetch<ComplianceViolationsResponse>('/api/compliance/violations', {
+  query: queryParams
+})
+
+const allViolations = computed(() => data.value?.data?.violations ?? [])
+const violations = computed(() => allViolations.value.filter(v =>
+  (!teamFilter.value || v.team.toLowerCase().includes(teamFilter.value.toLowerCase())) &&
+  (!technologyFilter.value || v.technology.toLowerCase().includes(technologyFilter.value.toLowerCase()))
+))
+const summary = computed(() => data.value?.data?.summary)
+const summaryStats = computed(() => summary.value
+  ? [
+      { label: 'Total Violations', value: summary.value.totalViolations },
+      { label: 'Teams Affected', value: summary.value.teamsAffected }
+    ]
+  : [])
+
+function violationTypeColor(violationType: string): 'error' | 'warning' {
+  return violationType === 'eliminated' ? 'error' : 'warning'
+}
+
+const columns: TableColumn<ComplianceViolation>[] = [
   {
-    accessorKey: 'componentName',
-    header: ({ column }) => getSortableHeader(column, 'Component'),
-    cell: ({ row }) => {
-      return h('div', {}, [
-        h('strong', {}, row.original.componentName),
-        h('br'),
-        h('code', { class: 'text-sm' }, row.original.componentVersion)
-      ])
-    }
+    id: 'technology',
+    accessorFn: row => row.technology,
+    header: ({ column }) => getSortableHeader(column, 'Technology'),
+    cell: ({ row }) => h(NuxtLink, {
+      to: `/technologies/${encodeURIComponent(row.original.technology)}`,
+      class: 'hover:underline'
+    }, () => row.original.technology)
   },
   {
-    accessorKey: 'licenseId',
-    header: ({ column }) => getSortableHeader(column, 'License'),
-    cell: ({ row }) => {
-      const v = row.original
-      return h(NuxtLink, {
-        to: `/licenses/${encodeURIComponent(v.licenseId)}`,
-        class: 'hover:underline'
-      }, () => h(UBadge, {
-        color: getCategoryColor(v.licenseCategory || ''),
-        variant: 'subtle'
-      }, () => v.licenseId))
-    }
+    id: 'violationType',
+    accessorFn: row => row.violationType,
+    header: ({ column }) => getSortableHeader(column, 'Type'),
+    cell: ({ row }) => h(UBadge, {
+      color: violationTypeColor(row.original.violationType),
+      variant: 'subtle'
+    }, () => row.original.violationType)
   },
   {
-    accessorKey: 'systemName',
-    header: ({ column }) => getSortableHeader(column, 'System'),
-    cell: ({ row }) => {
-      return h(NuxtLink, {
-        to: `/systems/${encodeURIComponent(row.original.systemName)}`,
-        class: 'hover:underline'
-      }, () => row.original.systemName)
-    }
-  },
-  {
-    accessorKey: 'systemBusinessCriticality',
-    header: ({ column }) => getSortableHeader(column, 'Criticality'),
-    cell: ({ row }) => {
-      const value = row.original.systemBusinessCriticality
-      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(UBadge, { color: getCriticalityColor(value), variant: 'subtle' }, () => value)
-    }
-  },
-  {
-    accessorKey: 'systemEnvironment',
-    header: ({ column }) => getSortableHeader(column, 'Environment'),
-    cell: ({ row }) => {
-      const value = row.original.systemEnvironment
-      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(UBadge, { color: getEnvironmentColor(value), variant: 'subtle' }, () => value)
-    }
-  },
-  {
-    accessorKey: 'teamName',
+    id: 'team',
+    accessorFn: row => row.team,
     header: ({ column }) => getSortableHeader(column, 'Team'),
-    cell: ({ row }) => {
-      return h(NuxtLink, {
-        to: `/teams/${encodeURIComponent(row.original.teamName)}`,
-        class: 'hover:underline'
-      }, () => row.original.teamName)
-    }
+    cell: ({ row }) => h(NuxtLink, {
+      to: `/teams/${encodeURIComponent(row.original.team)}`,
+      class: 'hover:underline'
+    }, () => row.original.team)
+  },
+  {
+    id: 'systemCount',
+    accessorFn: row => row.systemCount,
+    header: ({ column }) => getSortableHeader(column, 'Systems'),
+    cell: ({ row }) => `${row.original.systemCount} system${row.original.systemCount === 1 ? '' : 's'}`
+  },
+  {
+    id: 'migrationTarget',
+    accessorFn: row => row.migrationTarget ?? '',
+    header: 'Migration Target',
+    cell: ({ row }) => row.original.migrationTarget || h('span', { class: 'text-(--ui-text-muted)' }, '—')
   },
   {
     id: 'actions',
@@ -187,38 +228,12 @@ const columns: TableColumn<LicenseViolation>[] = [
   }
 ]
 
-const searchInput = ref('')
-const debouncedSearch = ref('')
-const showTransitive = ref(false)
-const includeWaived = ref(false)
-
-const updateSearch = useDebounceFn((value: string) => { debouncedSearch.value = value }, 300)
-watch(searchInput, updateSearch)
-
-const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({ resetOn: [debouncedSearch, showTransitive, includeWaived] })
-
-const { data, pending, error } = await useFetch<ApiResponse<LicenseViolation>>('/api/licenses/violations', {
-  query: computed(() => ({
-    limit: pageSize.value,
-    offset: offset.value,
-    sortBy: sortBy.value,
-    sortOrder: sortOrder.value,
-    search: debouncedSearch.value,
-    direct: showTransitive.value ? undefined : 'true',
-    includeWaived: includeWaived.value ? 'true' : undefined
-  }))
-})
-
-const violations = useApiData(data)
-const total = useApiCount(data)
-
 // Waive / revoke
 const toast = useToast()
-const UButton = resolveComponent('UButton')
 
 const showWaiveModal = ref(false)
 const isWaiving = ref(false)
-const waiveTarget = ref<LicenseViolation | null>(null)
+const waiveTarget = ref<ComplianceViolation | null>(null)
 const waiveForm = reactive({ reason: '', expiresAt: defaultExpiryDate() })
 
 function defaultExpiryDate(): string {
@@ -227,7 +242,7 @@ function defaultExpiryDate(): string {
   return d.toISOString().slice(0, 10)
 }
 
-function openWaiveModal(violation: LicenseViolation) {
+function openWaiveModal(violation: ComplianceViolation) {
   waiveTarget.value = violation
   waiveForm.reason = ''
   waiveForm.expiresAt = defaultExpiryDate()
@@ -241,11 +256,10 @@ async function confirmWaive() {
     await $fetch('/api/violations/waivers', {
       method: 'POST',
       body: {
-        violationType: 'license',
+        violationType: 'compliance',
         naturalKey: {
-          systemName: waiveTarget.value.systemName,
-          componentPurl: waiveTarget.value.componentPurl ?? `${waiveTarget.value.componentName}@${waiveTarget.value.componentVersion}`,
-          licenseId: waiveTarget.value.licenseId
+          teamName: waiveTarget.value.team,
+          technologyName: waiveTarget.value.technology
         },
         reason: waiveForm.reason,
         expiresAt: new Date(waiveForm.expiresAt).toISOString()
@@ -284,5 +298,5 @@ async function confirmRevoke() {
   }
 }
 
-useHead({ title: 'License Violations - Polaris' })
+useHead({ title: 'Compliance Violations - Polaris' })
 </script>

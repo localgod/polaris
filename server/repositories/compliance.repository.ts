@@ -10,6 +10,7 @@ export interface ComplianceViolation {
   violationType: string
   notes: string | null
   migrationTarget: string | null
+  waiver: { id: string; reason: string; expiresAt: string } | null
 }
 
 /**
@@ -20,6 +21,8 @@ export interface ComplianceViolationFilters {
   directOnly?: boolean
   /** Restrict to technologies used via dependencies with this scope */
   depScope?: string
+  /** Include violations with an active waiver (excluded by default) */
+  includeWaived?: boolean
 }
 
 export class ComplianceRepository extends BaseRepository {
@@ -37,6 +40,7 @@ export class ComplianceRepository extends BaseRepository {
     const { records } = await this.executeQuery(query, {
       directOnly: filters.directOnly ?? null,
       depScope: filters.depScope ?? null,
+      includeWaived: filters.includeWaived ?? false,
     })
 
     return records.map(record => this.mapToViolation(record))
@@ -54,7 +58,10 @@ export class ComplianceRepository extends BaseRepository {
       systems: record.get('systems'),
       violationType: record.get('violationType'),
       notes: record.get('notes'),
-      migrationTarget: record.get('migrationTarget')
+      migrationTarget: record.get('migrationTarget'),
+      waiver: record.get('waiverId')
+        ? { id: record.get('waiverId'), reason: record.get('waiverReason'), expiresAt: record.get('waiverExpiresAt')?.toString() || '' }
+        : null
     }
   }
 }

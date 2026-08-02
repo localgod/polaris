@@ -28,21 +28,35 @@ CALL {
     WHERE tech IS NOT NULL AND sys.environment IS NOT NULL AND envApproval.environment = sys.environment
   OPTIONAL MATCH (owner)-[blanketApproval:APPROVES]->(tech)
     WHERE tech IS NOT NULL AND blanketApproval.environment IS NULL
-  WITH tech, coalesce(envApproval.time, blanketApproval.time) AS resolvedTime
+  WITH owner, tech, coalesce(envApproval.time, blanketApproval.time) AS resolvedTime
   WHERE tech IS NOT NULL
+  // Waiver check only gates the two violation-count buckets below, not
+  // usedTechnologyCount — a waived violation is still real usage, just an
+  // accepted one, so it must stay in the usage count while dropping out of
+  // the violation counts (same distinction the primary
+  // compliance/find-violations.cypher query makes).
+  WITH tech, resolvedTime, owner IS NULL OR NOT EXISTS {
+    MATCH (:ComplianceViolation {naturalKey: owner.name + '|' + tech.name})<-[:WAIVES]-(w:Waiver)
+    WHERE w.revokedAt IS NULL AND w.expiresAt > datetime()
+  } AS notWaived
   // DISTINCT guards against row multiplication if a team ever ends up with more
   // than one matching APPROVES relationship for the same (team, tech, environment) —
   // nothing at the database level prevents that (Neo4j Community Edition has no
   // relationship-cardinality constraints; see ADR-0004).
   RETURN count(DISTINCT tech) AS usedTechnologyCount,
-         count(DISTINCT CASE WHEN resolvedTime IS NULL THEN tech END) AS unclassifiedCount,
-         count(DISTINCT CASE WHEN resolvedTime = 'eliminate' THEN tech END) AS eliminateCount
+         count(DISTINCT CASE WHEN resolvedTime IS NULL AND notWaived THEN tech END) AS unclassifiedCount,
+         count(DISTINCT CASE WHEN resolvedTime = 'eliminate' AND notWaived THEN tech END) AS eliminateCount
 }
 
 CALL {
   WITH sys
   OPTIONAL MATCH (sys)-[u:USES]->(comp:Component)-[:HAS_LICENSE]->(lic:License)
     WHERE u.isDirect = true AND coalesce(lic.allowed, false) = false
+  WITH comp, lic, coalesce(comp.purl, comp.name + '@' + coalesce(comp.version, 'unknown')) AS purl
+  WHERE comp IS NULL OR NOT EXISTS {
+    MATCH (:LicenseViolation {naturalKey: $name + '|' + purl + '|' + lic.id})<-[:WAIVES]-(w:Waiver)
+    WHERE w.revokedAt IS NULL AND w.expiresAt > datetime()
+  }
   RETURN count(DISTINCT comp) AS licenseViolationCount
 }
 

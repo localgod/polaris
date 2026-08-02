@@ -3,6 +3,7 @@ import { ScorecardService } from '../../../server/services/scorecard.service'
 import { SystemRepository } from '../../../server/repositories/system.repository'
 import { TeamRepository } from '../../../server/repositories/team.repository'
 import { VersionConstraintRepository } from '../../../server/repositories/version-constraint.repository'
+import { ViolationRepository } from '../../../server/repositories/violation.repository'
 import type { System } from '../../../server/repositories/system.repository'
 import type { Team, TeamUsageResult, TechnologyUsage } from '../../../server/repositories/team.repository'
 import type { Violation } from '../../../server/repositories/version-constraint.repository'
@@ -11,6 +12,7 @@ import '../../fixtures/service-test-helper'
 vi.mock('../../../server/repositories/system.repository')
 vi.mock('../../../server/repositories/team.repository')
 vi.mock('../../../server/repositories/version-constraint.repository')
+vi.mock('../../../server/repositories/violation.repository')
 
 const mockSystem: System = {
   name: 'checkout-api',
@@ -43,9 +45,11 @@ const criticalViolation: Violation = {
   systemEnvironment: 'prod',
   component: 'left-pad',
   componentVersion: '1.0.0',
+  componentPurl: 'pkg:npm/left-pad@1.0.0',
   technology: 'Node.js',
   technologyType: 'runtime',
-  constraint: { name: 'no-legacy-node', description: null, severity: 'critical', versionRange: '>=18.0.0' }
+  constraint: { name: 'no-legacy-node', description: null, severity: 'critical', versionRange: '>=18.0.0' },
+  waiver: null
 }
 
 function freshDate(): string {
@@ -75,6 +79,7 @@ describe('[pin] ScorecardService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(ViolationRepository.prototype.findActiveWaivedVersionConstraintKeys).mockResolvedValue(new Map())
     service = new ScorecardService()
   })
 

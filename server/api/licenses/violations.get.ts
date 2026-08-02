@@ -54,6 +54,12 @@ import type { ApiResponse, LicenseViolation } from '~~/types/api'
  *           type: string
  *           enum: [runtime, required, dev, optional, excluded]
  *         description: Filter by dependency scope on the USES edge
+ *       - in: query
+ *         name: includeWaived
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: When true, includes violations that have an active (unrevoked, unexpired) waiver
  *     responses:
  *       200:
  *         description: License violations
@@ -82,6 +88,7 @@ export default defineEventHandler(async (event): Promise<ApiResponse<LicenseViol
       search: query.search as string | undefined,
       directOnly: query.direct === 'true' ? true : undefined,
       depScope: query.depScope as string | undefined,
+      includeWaived: query.includeWaived === 'true',
       limit,
       offset,
       sortBy: query.sortBy as string | undefined,

@@ -33,6 +33,8 @@ import { VulnerabilityService } from './vulnerability.service'
 import { HealthRefreshService } from './health-refresh.service'
 import { ScorecardService } from './scorecard.service'
 import { VersionSprawlService } from './version-sprawl.service'
+import { ViolationService } from './violation.service'
+import { WaiverService } from './waiver.service'
 
 export const technologyService = new TechnologyService()
 export const platformService = new PlatformService()
@@ -57,3 +59,5 @@ export const vulnerabilityService = new VulnerabilityService()
 export const healthRefreshService = new HealthRefreshService()
 export const scorecardService = new ScorecardService()
 export const versionSprawlService = new VersionSprawlService()
+export const violationService = new ViolationService()
+export const waiverService = new WaiverService()

@@ -5,11 +5,19 @@
         title="Version Violations"
         description="Components outside allowed version ranges"
       />
-      <UButton
-        label="View License Violations"
-        to="/violations/licenses"
-        color="primary"
-      />
+      <div class="flex gap-2">
+        <UButton
+          label="View License Violations"
+          to="/violations/licenses"
+          color="primary"
+          variant="outline"
+        />
+        <UButton
+          label="View Compliance Violations"
+          to="/violations/compliance"
+          color="primary"
+        />
+      </div>
     </div>
 
     <UAlert
@@ -51,6 +59,7 @@
               class="max-w-xs"
             />
             <UCheckbox v-model="showTransitive" label="Include transitive dependencies" />
+            <UCheckbox v-model="includeWaived" label="Show waived" />
             <UButton
               v-if="severityFilter || teamFilter || technologyFilter"
               label="Clear"
@@ -70,6 +79,43 @@
         </template>
       </PaginatedTable>
     </template>
+
+    <UModal v-model:open="showWaiveModal">
+      <template #header>
+        <h3 class="text-lg font-semibold">Waive Violation</h3>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Reason" required>
+            <UTextarea v-model="waiveForm.reason" placeholder="Why is this risk accepted?" class="w-full" autofocus />
+          </UFormField>
+          <UFormField label="Expires" required hint="Waivers cannot be indefinite — pick a re-review date">
+            <UInput v-model="waiveForm.expiresAt" type="date" class="w-full" />
+          </UFormField>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <UButton color="neutral" variant="outline" label="Cancel" @click="showWaiveModal = false" />
+          <UButton color="primary" label="Waive" :loading="isWaiving" @click="confirmWaive" />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal v-model:open="showRevokeModal">
+      <template #header>
+        <h3 class="text-lg font-semibold">Revoke Waiver</h3>
+      </template>
+      <template #body>
+        <p>This violation will reappear in the list immediately. Continue?</p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <UButton color="neutral" variant="outline" label="Cancel" @click="showRevokeModal = false" />
+          <UButton color="error" label="Revoke" :loading="isRevoking" @click="confirmRevoke" />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -87,6 +133,7 @@ interface Violation {
   systemEnvironment: string | null
   component: string
   componentVersion: string
+  componentPurl: string
   technology: string
   technologyType: string
   constraint: {
@@ -95,6 +142,7 @@ interface Violation {
     severity: string
     versionRange: string | null
   }
+  waiver: { id: string; reason: string; expiresAt: string } | null
 }
 
 interface ViolationsSummary {
@@ -117,6 +165,7 @@ const severityFilter = ref<string | undefined>(undefined)
 const teamFilter = ref('')
 const technologyFilter = ref('')
 const showTransitive = ref(false)
+const includeWaived = ref(false)
 
 function clearFilters() {
   severityFilter.value = undefined
@@ -130,6 +179,7 @@ const queryParams = computed(() => {
   if (teamFilter.value) params.team = teamFilter.value
   if (technologyFilter.value) params.technology = technologyFilter.value
   if (!showTransitive.value) params.direct = 'true'
+  if (includeWaived.value) params.includeWaived = 'true'
   return params
 })
 
@@ -245,8 +295,101 @@ const columns: TableColumn<Violation>[] = [
         class: 'hover:underline'
       }, () => row.original.team)
     }
+  },
+  {
+    id: 'actions',
+    header: 'Actions',
+    enableSorting: false,
+    cell: ({ row }) => {
+      const v = row.original
+      if (v.waiver) {
+        return h('div', { class: 'flex items-center gap-2' }, [
+          h(UBadge, { color: 'warning', variant: 'subtle' }, () => `Waived until ${new Date(v.waiver!.expiresAt).toLocaleDateString()}`),
+          h(UButton, { size: 'xs', color: 'neutral', variant: 'ghost', label: 'Revoke', onClick: () => openRevokeModal(v.waiver!.id) })
+        ])
+      }
+      return h(UButton, {
+        size: 'xs',
+        color: 'neutral',
+        variant: 'outline',
+        label: 'Waive',
+        onClick: () => openWaiveModal(v)
+      })
+    }
   }
 ]
+
+// Waive / revoke
+const toast = useToast()
+const UButton = resolveComponent('UButton')
+
+const showWaiveModal = ref(false)
+const isWaiving = ref(false)
+const waiveTarget = ref<Violation | null>(null)
+const waiveForm = reactive({ reason: '', expiresAt: defaultExpiryDate() })
+
+function defaultExpiryDate(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 90)
+  return d.toISOString().slice(0, 10)
+}
+
+function openWaiveModal(violation: Violation) {
+  waiveTarget.value = violation
+  waiveForm.reason = ''
+  waiveForm.expiresAt = defaultExpiryDate()
+  showWaiveModal.value = true
+}
+
+async function confirmWaive() {
+  if (!waiveTarget.value) return
+  isWaiving.value = true
+  try {
+    await $fetch('/api/violations/waivers', {
+      method: 'POST',
+      body: {
+        violationType: 'version-constraint',
+        naturalKey: {
+          systemName: waiveTarget.value.system,
+          componentPurl: waiveTarget.value.componentPurl,
+          constraintName: waiveTarget.value.constraint.name
+        },
+        reason: waiveForm.reason,
+        expiresAt: new Date(waiveForm.expiresAt).toISOString()
+      }
+    })
+    showWaiveModal.value = false
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to waive violation', color: 'error' })
+  } finally {
+    isWaiving.value = false
+  }
+}
+
+const showRevokeModal = ref(false)
+const isRevoking = ref(false)
+const revokeTarget = ref('')
+
+function openRevokeModal(waiverId: string) {
+  revokeTarget.value = waiverId
+  showRevokeModal.value = true
+}
+
+async function confirmRevoke() {
+  isRevoking.value = true
+  try {
+    await $fetch(`/api/violations/waivers/${encodeURIComponent(revokeTarget.value)}`, { method: 'DELETE' })
+    showRevokeModal.value = false
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to revoke waiver', color: 'error' })
+  } finally {
+    isRevoking.value = false
+  }
+}
 
 useHead({ title: 'Violations - Polaris' })
 </script>

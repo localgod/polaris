@@ -7,6 +7,8 @@
 // Optional filters:
 //   $directOnly (boolean) — restrict to systems that use the technology via a direct dep
 //   $depScope   (string)  — restrict to systems that use the technology via a dep with this scope
+//   $includeWaived (boolean) — when false (default), excludes violations with an active
+//     (unrevoked, unexpired) Waiver attached to their tracked ComplianceViolation node
 MATCH (team:Team)-[u:USES]->(tech:Technology)
 
 // Collect systems that use this technology via this team's ownership
@@ -45,8 +47,18 @@ WHERE size(violatingSystems) > 0
 // Use the blanket approval for top-level notes/migrationTarget display (best-effort)
 OPTIONAL MATCH (team)-[blanket:APPROVES]->(tech)
   WHERE blanket.environment IS NULL
-WITH team, tech, u, systemApprovals, violatingSystems, blanket,
-     [sa IN systemApprovals | sa.name] AS systems
+WITH team, tech, u, blanket,
+     [sa IN systemApprovals | sa.name] AS systems,
+     CASE
+       WHEN blanket IS NULL AND all(sa IN violatingSystems WHERE sa.resolvedTime IS NULL) THEN 'unapproved'
+       WHEN blanket.time = 'eliminate' OR any(sa IN violatingSystems WHERE sa.resolvedTime = 'eliminate') THEN 'eliminated'
+       ELSE 'unapproved'
+     END AS violationType
+
+OPTIONAL MATCH (:ComplianceViolation {naturalKey: team.name + '|' + tech.name})<-[:WAIVES]-(w:Waiver)
+  WHERE w.revokedAt IS NULL AND w.expiresAt > datetime()
+WITH team, tech, u, blanket, systems, violationType, w
+WHERE $includeWaived = true OR w IS NULL
 
 RETURN
   team.name AS team,
@@ -54,11 +66,10 @@ RETURN
   tech.type AS type,
   u.systemCount AS systemCount,
   systems,
-  CASE
-    WHEN blanket IS NULL AND all(sa IN violatingSystems WHERE sa.resolvedTime IS NULL) THEN 'unapproved'
-    WHEN blanket.time = 'eliminate' OR any(sa IN violatingSystems WHERE sa.resolvedTime = 'eliminate') THEN 'eliminated'
-    ELSE 'unapproved'
-  END AS violationType,
+  violationType,
   blanket.notes AS notes,
-  blanket.migrationTarget AS migrationTarget
+  blanket.migrationTarget AS migrationTarget,
+  w.id as waiverId,
+  w.reason as waiverReason,
+  w.expiresAt as waiverExpiresAt
 ORDER BY u.systemCount DESC, team.name, tech.name
