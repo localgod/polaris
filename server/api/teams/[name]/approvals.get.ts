@@ -8,9 +8,7 @@ import { teamService } from '../../../services/singletons'
  *       - Teams
  *     summary: Get team approvals
  *     description: |
- *       Retrieves all technology approvals for a specific team.
- *       
- *       Returns both technology-level and version-specific approvals with TIME framework values.
+ *       Retrieves all technology-level approvals for a specific team, with TIME framework values.
  *     parameters:
  *       - in: path
  *         name: name
@@ -33,7 +31,7 @@ import { teamService } from '../../../services/singletons'
  *                   properties:
  *                     team:
  *                       type: string
- *                     approvals:
+ *                     technologyApprovals:
  *                       type: array
  *                       items:
  *                         type: object
@@ -41,10 +39,10 @@ import { teamService } from '../../../services/singletons'
  *               success: true
  *               data:
  *                 team: frontend-team
- *                 approvals:
+ *                 technologyApprovals:
  *                   - technology: react
  *                     type: framework
- *                     time: adopt
+ *                     time: invest
  *                     approvedAt: "2024-01-15T10:00:00Z"
  *                     approvedBy: architecture-team
  *                     notes: Approved for all new projects

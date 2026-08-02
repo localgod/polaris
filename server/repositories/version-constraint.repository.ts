@@ -1,7 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
-import { loadQuery, loadQueryWithAudit, injectWhereConditions, injectOrderBy, injectPlaceholder } from '../utils/query-loader'
+import { loadQuery, injectWhereConditions, injectOrderBy, injectPlaceholder } from '../utils/query-loader'
 
 export interface ViolationFilters {
   severity?: string
@@ -201,12 +201,22 @@ export class VersionConstraintRepository extends BaseRepository {
     return records[0]!.get('createdBy') || null
   }
 
+  /**
+   * The audit-log attach must happen BEFORE the delete — once the
+   * VersionConstraint node is gone there's nothing left to link an
+   * :AUDITS relationship to. Still best-effort: a failure here is logged
+   * and the delete proceeds regardless.
+   */
   async delete(name: string, userId: string, realUserId?: string | null): Promise<void> {
-    await this.executeQuery(await loadQueryWithAudit('version-constraints/delete.cypher'), { name, userId, realUserId: realUserId ?? null })
+    await this.attachAuditLogBestEffort('version-constraints/attach-audit-log.cypher', {
+      name, operation: 'DELETE', changedFields: null, previousStatus: null, newStatus: null, reason: null,
+      userId, realUserId: realUserId ?? null
+    })
+    await this.executeQuery(await loadQuery('version-constraints/delete.cypher'), { name })
   }
 
   async create(input: CreateVersionConstraintInput): Promise<CreateVersionConstraintResult> {
-    await this.executeQuery(await loadQueryWithAudit('version-constraints/create.cypher'), {
+    await this.executeQuery(await loadQuery('version-constraints/create.cypher'), {
       name: input.name,
       description: input.description?.trim() || null,
       severity: input.severity,
@@ -214,6 +224,16 @@ export class VersionConstraintRepository extends BaseRepository {
       subjectTeam: input.subjectTeam?.trim() || null,
       versionRange: input.versionRange,
       status: input.status || 'active',
+      userId: input.userId
+    })
+
+    await this.attachAuditLogBestEffort('version-constraints/attach-audit-log.cypher', {
+      name: input.name,
+      operation: 'CREATE',
+      changedFields: ['name', 'severity', 'scope', 'status', 'versionRange'],
+      previousStatus: null,
+      newStatus: null,
+      reason: null,
       userId: input.userId,
       realUserId: input.realUserId ?? null
     })
@@ -251,13 +271,22 @@ export class VersionConstraintRepository extends BaseRepository {
 
     const previousStatus = current.status
     const newStatus = input.status || current.status
+    const reason = input.reason?.trim() || null
 
-    await this.executeQuery(await loadQueryWithAudit('version-constraints/update-status.cypher'), {
+    await this.executeQuery(await loadQuery('version-constraints/update-status.cypher'), {
       name,
       status: newStatus,
-      reason: input.reason?.trim() || null,
+      reason
+    })
+
+    const operation = newStatus === 'active' ? 'ACTIVATE' : newStatus === 'archived' ? 'ARCHIVE' : 'DEACTIVATE'
+    await this.attachAuditLogBestEffort('version-constraints/attach-audit-log.cypher', {
+      name,
+      operation,
+      changedFields: ['status'],
       previousStatus,
       newStatus,
+      reason,
       userId: userId || 'anonymous',
       realUserId: realUserId ?? null
     })
@@ -300,10 +329,21 @@ export class VersionConstraintRepository extends BaseRepository {
     }
 
     const updateQuery = injectPlaceholder(
-      await loadQueryWithAudit('version-constraints/update.cypher'),
+      await loadQuery('version-constraints/update.cypher'),
       'SET_CLAUSES', setClauses.join(', ')
     )
     await this.executeQuery(updateQuery, params)
+
+    await this.attachAuditLogBestEffort('version-constraints/attach-audit-log.cypher', {
+      name,
+      operation: 'UPDATE',
+      changedFields: null,
+      previousStatus: null,
+      newStatus: null,
+      reason: null,
+      userId: input.userId,
+      realUserId: input.realUserId ?? null
+    })
 
     // Update SUBJECT_TO relationships if scope changed
     if (input.scope !== undefined) {

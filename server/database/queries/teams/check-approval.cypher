@@ -12,7 +12,6 @@ RETURN team.name as teamName,
        tech.name as technologyName,
        tech.type as type,
        tech.vendor as vendor,
-       null as version,
        CASE
          WHEN techApproval IS NOT NULL THEN {
            level: 'technology',
@@ -26,7 +25,7 @@ RETURN team.name as teamName,
          }
          ELSE {
            level: 'default',
-           time: 'eliminate',
+           time: 'unclassified',
            notes: 'No explicit approval found for this team'
          }
        END as approval

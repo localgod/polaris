@@ -226,8 +226,8 @@
           color="warning"
           variant="subtle"
           icon="i-lucide-shield-off"
-          title="No approval defaults to Eliminate"
-          description="These aren't just two cases that happen to produce the same violation — internally they're the same value. A technology with no recorded team approval is treated exactly as Eliminate; there is no separate unreviewed or pending state. Where a team has approved a specific version of a technology, that version-level approval takes precedence over whatever the team approved at the technology level."
+          title="No approval is a violation, distinct from Eliminate"
+          description="A technology with no recorded team approval is 'unclassified' — a distinct state from an explicit Eliminate vote, not the same value. Both are treated as compliance violations, so nothing is ungoverned by omission, but Polaris keeps 'never reviewed' distinguishable from 'actively banned' since stewards need to know which one they're looking at."
         />
         <div>
           <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">How it works</p>

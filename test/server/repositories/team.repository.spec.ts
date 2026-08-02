@@ -262,9 +262,6 @@ describe('TeamRepository', () => {
 
       expect(result.team).toBe(`${PREFIX}approver`)
       expect(result.technologyApprovals.some(a => a.technology === `${PREFIX}tech`)).toBe(true)
-      // Version-level approvals were retired: Technology never carries a
-      // linked Version node in practice, so this always reports empty.
-      expect(result.versionApprovals).toEqual([])
     })
 
     it('should throw when team does not exist', async () => {
@@ -315,7 +312,10 @@ describe('TeamRepository', () => {
   })
 
   describe('[contract] checkApproval()', () => {
-    it('should return default eliminate when no explicit approval exists', async () => {
+    // Per ADR-0005 (amended): no recorded approval is 'unclassified', a distinct
+    // state from an explicit 'eliminate' vote — both are compliance violations,
+    // but they are no longer collapsed into the literal same value.
+    it('should return default unclassified when no explicit approval exists', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (:Team { name: $team })
@@ -326,6 +326,21 @@ describe('TeamRepository', () => {
 
       expect(result).not.toBeNull()
       expect(result!.approval.level).toBe('default')
+      expect(result!.approval.time).toBe('unclassified')
+    })
+
+    it('should distinguish an explicit eliminate vote from no approval at all', async () => {
+      if (!ctx.neo4jAvailable) return
+      await seed(ctx.driver, `
+        CREATE (t:Team { name: $team })
+        CREATE (tech:Technology { name: $tech, type: 'library' })
+        CREATE (t)-[:APPROVES { time: 'eliminate' }]->(tech)
+      `, { team: `${PREFIX}elim-team`, tech: `${PREFIX}elim-tech` })
+
+      const result = await repo.checkApproval(`${PREFIX}elim-team`, `${PREFIX}elim-tech`)
+
+      expect(result).not.toBeNull()
+      expect(result!.approval.level).toBe('technology')
       expect(result!.approval.time).toBe('eliminate')
     })
   })

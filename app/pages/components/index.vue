@@ -204,7 +204,7 @@ const columns: TableColumn<GroupedComponent>[] = [
       }
 
       const badges = licenses.slice(0, 2).map(lic =>
-        h(UBadge, { color: lic.allowed === false ? 'error' : 'neutral', variant: 'subtle', class: 'mr-1', key: lic.id || lic.name },
+        h(UBadge, { color: lic.allowed !== true ? 'error' : 'neutral', variant: 'subtle', class: 'mr-1', key: lic.id || lic.name },
           () => lic.id || lic.name || 'Unknown')
       )
 

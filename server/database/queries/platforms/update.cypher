@@ -16,19 +16,4 @@ FOREACH (_ IN CASE WHEN newTeam IS NOT NULL THEN [1] ELSE [] END |
   MERGE (newTeam)-[:STEWARDED_BY]->(p)
 )
 
-// Audit log
-WITH p, {
-  operation: 'UPDATE',
-  entityType: 'Platform',
-  entityId: p.name,
-  entityLabel: p.name,
-  changedFields: ['type', 'domain', 'vendor', 'stewardTeam'],
-  changes: $changes,
-  source: 'API',
-  userId: $userId,
-  realUserId: $realUserId
-} AS auditFields
-{{AUDIT_LOG_WRITE}}
-CREATE (a)-[:AUDITS]->(p)
-
 RETURN p.name as name

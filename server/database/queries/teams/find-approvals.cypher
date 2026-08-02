@@ -13,5 +13,4 @@ RETURN team.name as teamName,
          migrationTarget: techApproval.migrationTarget,
          notes: techApproval.notes,
          approvedBy: techApproval.approvedBy
-       }) as technologyApprovals,
-       [] as versionApprovals
+       }) as technologyApprovals

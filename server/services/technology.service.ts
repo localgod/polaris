@@ -487,17 +487,39 @@ export class TechnologyService {
     const severityOrder: TimeValue[] = ['eliminate', 'migrate', 'tolerate', 'invest']
 
     return rows.map(row => {
+      // A team can hold multiple APPROVES edges to the same Technology,
+      // differentiated by environment (e.g. a blanket 'invest' plus a
+      // prod-scoped 'eliminate'). Reduce to one vote per team before doing
+      // anything else, so a team can never out-vote itself and the
+      // team-filtered lookup below is deterministic. When a team holds
+      // several recognized TIME values, keep the most restrictive one —
+      // consistent with this function's cross-team tie-break philosophy.
+      const approvalsByTeam = new Map<string, { team: string; time: string }>()
+      for (const a of row.approvals) {
+        const existing = approvalsByTeam.get(a.team)
+        if (!existing) {
+          approvalsByTeam.set(a.team, a)
+          continue
+        }
+        const existingIsValid = VALID_TIME_VALUES.includes(existing.time as TimeValue)
+        const candidateIsValid = VALID_TIME_VALUES.includes(a.time as TimeValue)
+        if (candidateIsValid && (!existingIsValid || severityOrder.indexOf(a.time as TimeValue) < severityOrder.indexOf(existing.time as TimeValue))) {
+          approvalsByTeam.set(a.team, a)
+        }
+      }
+      const dedupedApprovals = [...approvalsByTeam.values()]
+
       let timeValue: TimeValue | 'unclassified' = 'unclassified'
 
       if (team) {
-        const approval = row.approvals.find(a => a.team === team)
+        const approval = approvalsByTeam.get(team)
         if (approval && VALID_TIME_VALUES.includes(approval.time as TimeValue)) {
           timeValue = approval.time as TimeValue
         }
-      } else if (row.approvals.length > 0) {
-        // Count votes per TIME value
+      } else if (dedupedApprovals.length > 0) {
+        // Count votes per TIME value — one vote per team
         const counts: Partial<Record<TimeValue, number>> = {}
-        for (const a of row.approvals) {
+        for (const a of dedupedApprovals) {
           if (VALID_TIME_VALUES.includes(a.time as TimeValue)) {
             const t = a.time as TimeValue
             counts[t] = (counts[t] ?? 0) + 1
@@ -514,7 +536,7 @@ export class TechnologyService {
         type: (row.type as ComponentType | null) ?? null,
         domain: (row.domain as TechnologyDomain | null) ?? null,
         timeValue,
-        approvalCount: row.approvals.length,
+        approvalCount: dedupedApprovals.length,
       }
     })
   }

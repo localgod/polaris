@@ -1,21 +1,8 @@
 MATCH (s:System {name: $name})
-WITH s, {
-  operation: 'DELETE',
-  entityType: 'System',
-  entityId: s.name,
-  entityLabel: s.name,
-  changedFields: [],
-  changes: $changes,
-  source: 'API',
-  userId: $userId,
-  realUserId: $realUserId
-} AS auditFields
-{{AUDIT_LOG_WRITE}}
 
 // Collect components used exclusively by this system (no other USES relationship).
 // These become orphans once the system is removed and must be cleaned up.
 // OPTIONAL MATCH ensures the pipeline continues even when the system has no components.
-WITH s
 OPTIONAL MATCH (s)-[:USES]->(c:Component)
 WHERE NOT EXISTS { MATCH (other:System)-[:USES]->(c) WHERE other <> s }
 WITH s, collect(c) AS orphans

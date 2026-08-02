@@ -281,16 +281,19 @@ export class TeamService {
    * 
    * Business rules:
    * - Team and technology must exist
-   * - Approval hierarchy: version > technology > default (eliminate)
-   * 
+   * - Approval hierarchy: technology-level approval, or 'default'/'unclassified'
+   *   when the team has never recorded a TIME stance. Per ADR-0005 (amended),
+   *   'unclassified' is a distinct state from an explicit 'eliminate' vote —
+   *   both still count as compliance violations elsewhere, but this endpoint
+   *   no longer collapses "never reviewed" into "actively eliminated".
+   *
    * @param team - Team name
    * @param technology - Technology name
-   * @param version - Optional version
    * @returns Approval status
    * @throws Error if team or technology not found
    */
-  async checkApproval(team: string, technology: string, version?: string, environment?: string | null): Promise<ApprovalStatus> {
-    const result = await this.teamRepo.checkApproval(team, technology, version, environment)
+  async checkApproval(team: string, technology: string, environment?: string | null): Promise<ApprovalStatus> {
+    const result = await this.teamRepo.checkApproval(team, technology, environment)
     
     if (!result) {
       throw createError({

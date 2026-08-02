@@ -608,75 +608,65 @@ describe('LicenseRepository', () => {
     })
   })
 
-  describe('[contract] isAllowed()', () => {
-    it('should return true when license is allowed', async () => {
+  describe('[contract] findViolations() default-deny for unreviewed licenses', () => {
+    it('treats a license with no recorded allowed decision as a violation, same as an explicitly denied one', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      // Team -> System -> Component -> License graph. One component carries an
+      // explicitly denied license, the other a license that was never reviewed
+      // (no `allowed` property at all) — per ADR-0005, both must surface as violations.
+      await session.run(`
+        CREATE (t:Team {name: $teamName})
+        CREATE (s:System {name: $systemName, businessCriticality: 'medium', environment: 'prod'})
+        CREATE (c1:Component {name: $componentName1, version: '1.0.0', purl: $purl1})
+        CREATE (c2:Component {name: $componentName2, version: '1.0.0', purl: $purl2})
+        CREATE (l1:License {id: $licenseId1, name: 'Denied License', deprecated: false, allowed: false, createdAt: datetime(), updatedAt: datetime()})
+        CREATE (l2:License {id: $licenseId2, name: 'Unreviewed License', deprecated: false, createdAt: datetime(), updatedAt: datetime()})
+        CREATE (t)-[:OWNS]->(s)
+        CREATE (s)-[:USES {isDirect: true}]->(c1)
+        CREATE (s)-[:USES {isDirect: true}]->(c2)
+        CREATE (c1)-[:HAS_LICENSE]->(l1)
+        CREATE (c2)-[:HAS_LICENSE]->(l2)
+      `, {
+        teamName: `${PREFIX}team`,
+        systemName: `${PREFIX}system`,
+        componentName1: `${PREFIX}denied-pkg`,
+        componentName2: `${PREFIX}unreviewed-pkg`,
+        purl1: `pkg:npm/${PREFIX}denied-pkg@1.0.0`,
+        purl2: `pkg:npm/${PREFIX}unreviewed-pkg@1.0.0`,
+        licenseId1: `${PREFIX}Denied-License`,
+        licenseId2: `${PREFIX}Unreviewed-License`
+      })
+
+      const { data, total } = await licenseRepo.findViolations({ search: PREFIX })
+
+      expect(total).toBe(2)
+      const licenseIds = data.map(v => v.licenseId).sort()
+      expect(licenseIds).toEqual([`${PREFIX}Denied-License`, `${PREFIX}Unreviewed-License`].sort())
+    })
+
+    it('does not flag a component whose license was explicitly allowed', async () => {
       if (!ctx.neo4jAvailable) return
 
       await session.run(`
-        CREATE (l:License {
-          id: $id,
-          name: 'MIT License',
-          spdxId: 'MIT',
-          allowed: true,
-          deprecated: false,
-          createdAt: datetime(),
-          updatedAt: datetime()
-        })
+        CREATE (t:Team {name: $teamName})
+        CREATE (s:System {name: $systemName, businessCriticality: 'medium', environment: 'prod'})
+        CREATE (c:Component {name: $componentName, version: '1.0.0', purl: $purl})
+        CREATE (l:License {id: $licenseId, name: 'Allowed License', deprecated: false, allowed: true, createdAt: datetime(), updatedAt: datetime()})
+        CREATE (t)-[:OWNS]->(s)
+        CREATE (s)-[:USES {isDirect: true}]->(c)
+        CREATE (c)-[:HAS_LICENSE]->(l)
       `, {
-        id: `${PREFIX}MIT`
+        teamName: `${PREFIX}team2`,
+        systemName: `${PREFIX}system2`,
+        componentName: `${PREFIX}allowed-pkg`,
+        purl: `pkg:npm/${PREFIX}allowed-pkg@1.0.0`,
+        licenseId: `${PREFIX}Allowed-License`
       })
 
-      const result = await licenseRepo.isAllowed(`${PREFIX}MIT`)
-      expect(result).toBe(true)
-    })
+      const { data } = await licenseRepo.findViolations({ search: PREFIX })
 
-    it('should return false when license is not allowed', async () => {
-      if (!ctx.neo4jAvailable) return
-
-      await session.run(`
-        CREATE (l:License {
-          id: $id,
-          name: 'GPL 3.0',
-          spdxId: 'GPL-3.0',
-          allowed: false,
-          deprecated: false,
-          createdAt: datetime(),
-          updatedAt: datetime()
-        })
-      `, {
-        id: `${PREFIX}GPL-3.0`
-      })
-
-      const result = await licenseRepo.isAllowed(`${PREFIX}GPL-3.0`)
-      expect(result).toBe(false)
-    })
-
-    it('should return false when license does not exist', async () => {
-      if (!ctx.neo4jAvailable) return
-
-      const result = await licenseRepo.isAllowed(`${PREFIX}nonexistent`)
-      expect(result).toBe(false)
-    })
-
-    it('should return false when license has no whitelist property', async () => {
-      if (!ctx.neo4jAvailable) return
-
-      // Create a license without the allowed property
-      await session.run(`
-        CREATE (l:License {
-          id: $id,
-          name: 'Old License',
-          spdxId: 'Old-License',
-          deprecated: false,
-          createdAt: datetime(),
-          updatedAt: datetime()
-        })
-      `, {
-        id: `${PREFIX}Old-License`
-      })
-
-      const result = await licenseRepo.isAllowed(`${PREFIX}Old-License`)
-      expect(result).toBe(false)
+      expect(data.find(v => v.licenseId === `${PREFIX}Allowed-License`)).toBeUndefined()
     })
   })
 
@@ -892,6 +882,28 @@ describe('LicenseRepository', () => {
       expect(testNotAllowed.length).toBe(1)
       expect(testNotAllowed[0].id).toBe(`${PREFIX}GPL-3.0`)
       expect(testNotAllowed[0].allowed).toBe(false)
+    })
+
+    it('includes a license with no recorded allowed decision when filtering by allowed: false', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      await session.run(`
+        CREATE (l:License {
+          id: $id,
+          name: 'Unreviewed License',
+          spdxId: 'Unreviewed',
+          deprecated: false,
+          createdAt: datetime(),
+          updatedAt: datetime()
+        })
+      `, {
+        id: `${PREFIX}Unreviewed`
+      })
+
+      const notAllowedResult = await licenseRepo.findAll({ allowed: false })
+      const testNotAllowed = notAllowedResult.filter(l => l.id.startsWith(PREFIX))
+
+      expect(testNotAllowed.some(l => l.id === `${PREFIX}Unreviewed`)).toBe(true)
     })
 
     it('should combine allowed filter with other filters', async () => {

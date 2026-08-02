@@ -77,6 +77,41 @@ This does not change any existing behavior. It codifies behavior that was alread
 tested, so the next person who touches either code path — or builds a third governance
 check — knows it was a decision, not a bug.
 
+## Amendment (2026-08-02): a distinct 'unclassified' state for TIME approvals
+
+This ADR's original decision collapsed "no approval" and "actively eliminated" into the literal
+same value for TIME approvals, matching what `TeamRepository.checkApproval()` did at the time.
+Since then it became clear that every *aggregate* governance surface built on the same underlying
+data — the compliance-violations feed, the Technology Radar, and both scorecards — had
+independently kept "no approval" as a separate, named state (`unapproved` / `unclassified`)
+distinct from an explicit `eliminate` vote, rather than the literal collapse this ADR called for.
+That's exactly the "distinct pending state" alternative this ADR originally rejected (see
+Alternatives Considered #2) — except it was already shipped, in four out of five places that make
+this decision, without anyone revisiting the ADR.
+
+On review, the 3-state model is the better fit and is now the standing rule for TIME approvals:
+
+- **`TeamRepository.checkApproval()` (`GET /api/approvals`) now returns `time: 'unclassified'`**
+  (not `'eliminate'`) when no explicit approval exists for the team/technology (or team/platform)
+  pair, matching the Radar/scorecard/compliance precedent. `level: 'default'` is unchanged.
+- This does **not** weaken default-deny: an `unclassified` result is still meant to be treated as a
+  compliance problem by any caller checking approval status, exactly as `eliminate` is. The
+  alternative-#2 concern this ADR originally raised — that a "pending" state creates no discomfort
+  and nothing forces resolution — doesn't apply here, because `unclassified` still counts as a
+  violation everywhere it's evaluated; it's a distinguishable label on the same failure, not an
+  exemption from it.
+- **This narrows the ADR's original 2-state rule to `LicenseRepository`'s license allow-check
+  specifically**, where there genuinely is no room for a third state (a license is either allowed
+  or it isn't — there's no "license-level Radar" that benefits from knowing whether a denial was
+  explicit). That check no longer lives in a dedicated `isAllowed()` method (removed as dead code —
+  every real caller now applies the same coalesce-to-not-allowed logic directly at the query layer,
+  e.g. `coalesce(license.allowed, false) = false`), but the 2-state default-deny behavior itself is
+  unchanged for licenses.
+- Any **future** governance-decision surface should default to the most restrictive *outcome* when
+  no explicit record exists (nothing ungoverned by omission, per the original decision below), but
+  is free to keep that outcome distinguishable from an explicit denial/elimination the way TIME
+  approvals now do, rather than being forced into a literal single-value collapse.
+
 ## Consequences
 
 ### Positive
@@ -102,11 +137,9 @@ check — knows it was a decision, not a bug.
 
 ### Neutral
 
-- No code or schema changes — this ADR documents and commits to existing behavior.
-- `concepts.vue`'s Team Approvals section describes the observable outcome ("violations are
-  detected when a component appears without a corresponding approval, or when the assigned
-  category is Eliminate") without stating that these two cases are implemented as the literal
-  same value. A follow-up doc update could make that explicit for readers of the in-app docs.
+- No code or schema changes at the time this ADR was originally accepted — see the 2026-08-02
+  amendment above for the code and in-app doc changes that followed once the 3-state model was
+  adopted for TIME approvals.
 
 ## References
 

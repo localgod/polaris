@@ -1,4 +1,6 @@
 import type { Driver, QueryResult } from 'neo4j-driver'
+import { loadQueryWithAudit } from '../utils/query-loader'
+import { logger } from '../utils/logger'
 
 /**
  * Base repository class providing common database operations
@@ -55,6 +57,25 @@ export abstract class BaseRepository {
       return result
     } finally {
       await session.close()
+    }
+  }
+
+  /**
+   * Write an AuditLog entry (and its :AUDITS link to the governed entity) as
+   * a separate, best-effort transaction after the primary mutation has
+   * already committed. Never throws — a failure here must not roll back or
+   * mask the operation it was recording, mirroring auditFailedOperation()/
+   * auditSensitiveRead() in server/utils/audit.ts.
+   *
+   * @param queryPath - Path to a `{{AUDIT_LOG_WRITE}}`-templated companion query, relative to server/database/queries/
+   * @param params - Bound params the companion query expects (entity match key, auditFields inputs)
+   */
+  protected async attachAuditLogBestEffort(queryPath: string, params: Record<string, unknown>): Promise<void> {
+    try {
+      const query = await loadQueryWithAudit(queryPath)
+      await this.executeQuery(query, params)
+    } catch (err) {
+      logger.error({ err, queryPath }, 'Failed to write audit log — primary operation already committed and is not affected')
     }
   }
 

@@ -40,7 +40,7 @@ export class VersionSprawlService {
       affectedSystemCount: group.affectedSystemCount,
       versionBreakdown: group.versionBreakdown,
       sprawlScore: calculateSprawlScore(group, hasEolVersion),
-      severity: severityFor(group.versionCount),
+      severity: severityFor(group.versionCount, hasEolVersion),
       recommendedVersion: versions[versions.length - 1],
       hasEolVersion
     }
@@ -54,10 +54,17 @@ export class VersionSprawlService {
   }
 }
 
-function severityFor(versionCount: number): VersionSprawlSeverity {
-  if (versionCount >= HIGH_VERSION_THRESHOLD) return 'high'
-  if (versionCount >= MEDIUM_VERSION_THRESHOLD) return 'medium'
-  return 'low'
+// A group's severity is driven by version count, but an EOL version in the
+// mix means at least one version in active use is unsupported — that's an
+// active security/support risk, so it bumps the tier up rather than only
+// nudging the separate numeric sprawlScore.
+function severityFor(versionCount: number, hasEolVersion: boolean): VersionSprawlSeverity {
+  const base: VersionSprawlSeverity =
+    versionCount >= HIGH_VERSION_THRESHOLD ? 'high' :
+      versionCount >= MEDIUM_VERSION_THRESHOLD ? 'medium' : 'low'
+
+  if (!hasEolVersion || base === 'high') return base
+  return base === 'medium' ? 'high' : 'medium'
 }
 
 function calculateSprawlScore(group: VersionSprawlRaw, hasEolVersion: boolean): number {

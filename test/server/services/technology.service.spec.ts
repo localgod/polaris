@@ -304,6 +304,10 @@ describe('TechnologyService', () => {
       { name: 'Angular', type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'migrate' }, { team: 'B', time: 'invest' }] },
       { name: 'Vue',     type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'eliminate' }, { team: 'B', time: 'migrate' }, { team: 'C', time: 'migrate' }] },
       { name: 'Svelte',  type: 'framework', domain: 'developer-tooling', approvals: [] },
+      // Team D holds two environment-scoped APPROVES edges to the same
+      // Technology (a blanket 'invest' plus a prod-scoped 'eliminate') — must
+      // count as exactly one vote (the more restrictive), not two.
+      { name: 'Node.js', type: 'platform', domain: 'foundational-runtime', approvals: [{ team: 'D', time: 'invest' }, { team: 'D', time: 'eliminate' }] },
     ]
 
     beforeEach(() => {
@@ -347,6 +351,18 @@ describe('TechnologyService', () => {
       const result = await service.findForRadar()
       expect(result.find(r => r.name === 'React')?.approvalCount).toBe(2)
       expect(result.find(r => r.name === 'Svelte')?.approvalCount).toBe(0)
+    })
+
+    it('counts one vote per team even when a team holds multiple environment-scoped approvals, resolving to the most restrictive', async () => {
+      const result = await service.findForRadar()
+      const nodeJs = result.find(r => r.name === 'Node.js')
+      expect(nodeJs?.approvalCount).toBe(1)
+      expect(nodeJs?.timeValue).toBe('eliminate')
+    })
+
+    it('resolves a team-filtered lookup deterministically when that team holds multiple approvals', async () => {
+      const result = await service.findForRadar('D')
+      expect(result.find(r => r.name === 'Node.js')?.timeValue).toBe('eliminate')
     })
   })
 

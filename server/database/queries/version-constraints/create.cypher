@@ -10,15 +10,3 @@ CREATE (vc:VersionConstraint {
   createdAt: datetime(),
   updatedAt: datetime()
 })
-WITH vc, {
-  operation: 'CREATE',
-  entityType: 'VersionConstraint',
-  entityId: vc.name,
-  entityLabel: vc.name,
-  changedFields: ['name', 'severity', 'scope', 'status', 'versionRange'],
-  source: 'API',
-  userId: $userId,
-  realUserId: $realUserId
-} AS auditFields
-{{AUDIT_LOG_WRITE}}
-CREATE (a)-[:AUDITS]->(vc)

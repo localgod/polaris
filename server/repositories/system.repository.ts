@@ -2,7 +2,7 @@ import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import type { Repository } from '~~/types/api'
 import { buildOrderByClause, type SortParams, type SortConfig } from '../utils/sorting'
-import { injectWhereConditions, injectPlaceholder, loadQueryWithAudit } from '../utils/query-loader'
+import { injectWhereConditions, injectPlaceholder, loadQuery } from '../utils/query-loader'
 import { buildCreateChanges } from '../utils/audit-diff'
 
 const systemSortConfig: SortConfig = {
@@ -177,53 +177,84 @@ export class SystemRepository extends BaseRepository {
    * @returns Created system name
    */
   async create(params: CreateSystemParams): Promise<string> {
-    const query = await loadQueryWithAudit('systems/create.cypher')
+    const query = await loadQuery('systems/create.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       domain: params.domain,
       businessCriticality: params.businessCriticality,
       environment: params.environment,
     }))
-    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes })
-    
+    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
+
     if (records.length === 0) {
       throw new Error('Failed to create system')
     }
-    
-    return records[0]!.get('name')
+
+    const name = records[0]!.get('name')
+
+    await this.attachAuditLogBestEffort('systems/attach-audit-log.cypher', {
+      name,
+      operation: 'CREATE',
+      entityLabel: name,
+      changedFields: ['name', 'domain', 'businessCriticality', 'environment'],
+      changes,
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
+    return name
   }
 
   /**
    * Delete a system and all its relationships
-   * 
+   *
+   * The audit-log attach must happen BEFORE the delete — once the System
+   * node is gone there's nothing left to link an :AUDITS relationship to.
+   * It's still best-effort: a failure here is logged and the delete proceeds
+   * regardless (see BaseRepository.attachAuditLogBestEffort).
+   *
    * @param name - System name
    */
   async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
-    const query = await loadQueryWithAudit('systems/delete.cypher')
-    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
+    await this.attachAuditLogBestEffort('systems/attach-audit-log.cypher', {
+      name,
+      operation: 'DELETE',
+      entityLabel: name,
+      changedFields: [],
+      changes: JSON.stringify(changes),
+      userId,
+      realUserId: realUserId ?? null
+    })
+
+    const query = await loadQuery('systems/delete.cypher')
+    await this.executeQuery(query, { name })
   }
 
   /**
    * Add a repository to a system using MERGE
-   * 
+   *
    * @param systemName - System name
    * @param url - Normalized repository URL
    * @param name - Repository name
    * @returns Created/updated repository
    */
   async addRepository(systemName: string, url: string, name: string, userId: string, realUserId?: string | null): Promise<Repository> {
-    const query = await loadQueryWithAudit('systems/add-repository.cypher')
-    const { records } = await this.executeQuery(query, {
-      systemName,
-      url,
-      name,
-      userId,
-      realUserId: realUserId ?? null
-    })
+    const query = await loadQuery('systems/add-repository.cypher')
+    const { records } = await this.executeQuery(query, { systemName, url, name })
 
     if (records.length === 0) {
       throw new Error('Failed to add repository')
     }
+
+    await this.attachAuditLogBestEffort('systems/attach-audit-log.cypher', {
+      name: systemName,
+      operation: 'ADD_REPOSITORY',
+      entityLabel: `${systemName} <- ${url}`,
+      changedFields: ['repositories'],
+      changes: null,
+      userId,
+      realUserId: realUserId ?? null
+    })
 
     const record = records[0]!
     return {
@@ -359,11 +390,22 @@ export class SystemRepository extends BaseRepository {
    */
   async updatePatch(name: string, setClauses: string[], params: Record<string, unknown>): Promise<unknown | null> {
     const query = injectPlaceholder(
-      await loadQueryWithAudit('systems/update-patch.cypher'),
+      await loadQuery('systems/update-patch.cypher'),
       'SET_CLAUSES', setClauses.join(', ')
     )
     const { records } = await this.executeQuery(query, { name, ...params })
     if (records.length === 0) return null
+
+    await this.attachAuditLogBestEffort('systems/attach-audit-log.cypher', {
+      name,
+      operation: 'UPDATE',
+      entityLabel: name,
+      changedFields: params.changedFields,
+      changes: params.changes,
+      userId: params.userId,
+      realUserId: (params.realUserId as string | null | undefined) ?? null
+    })
+
     return records[0]!.get('system')
   }
 
@@ -385,9 +427,20 @@ export class SystemRepository extends BaseRepository {
     realUserId?: string | null
     changes: string
   }): Promise<unknown | null> {
-    const query = await loadQueryWithAudit('systems/update-put.cypher')
-    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null })
+    const query = await loadQuery('systems/update-put.cypher')
+    const { records } = await this.executeQuery(query, params)
     if (records.length === 0) return null
+
+    await this.attachAuditLogBestEffort('systems/attach-audit-log.cypher', {
+      name: params.name,
+      operation: 'UPDATE',
+      entityLabel: params.name,
+      changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description'],
+      changes: params.changes,
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
     return records[0]!.get('system')
   }
 

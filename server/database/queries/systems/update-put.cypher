@@ -11,20 +11,6 @@ SET s.domain = $domain,
 
 MERGE (team)-[:OWNS]->(s)
 
-WITH s, team, {
-  operation: 'UPDATE',
-  entityType: 'System',
-  entityId: s.name,
-  entityLabel: s.name,
-  changedFields: ['domain', 'ownerTeam', 'businessCriticality', 'environment', 'description'],
-  changes: $changes,
-  source: 'API',
-  userId: $userId,
-  realUserId: $realUserId
-} AS auditFields
-{{AUDIT_LOG_WRITE}}
-CREATE (a)-[:AUDITS]->(s)
-
 RETURN s {
   .*,
   ownerTeam: team.name

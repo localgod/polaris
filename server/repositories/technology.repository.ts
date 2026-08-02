@@ -99,18 +99,6 @@ export interface TechnologyDetail extends Omit<Technology, 'versions'> {
     approvedBy: string | null
     approvedByName: string | null
   }>
-  versionApprovals?: Array<{
-    team: string
-    version: string
-    time: string | null
-    approvedAt: string | null
-    deprecatedAt: string | null
-    eolDate: string | null
-    migrationTarget: string | null
-    notes: string | null
-    approvedBy: string | null
-    approvedByName: string | null
-  }>
 }
 
 /**
@@ -198,7 +186,7 @@ export class TechnologyRepository extends BaseRepository {
    * returned records, which the caller treats as "component not found."
    */
   async createFromComponent(params: CreateTechnologyFromComponentParams): Promise<string> {
-    const query = await loadQueryWithAudit('technologies/create-from-component.cypher')
+    const query = await loadQuery('technologies/create-from-component.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       type: params.type,
@@ -215,16 +203,24 @@ export class TechnologyRepository extends BaseRepository {
       componentName: params.componentName,
       componentGroup: params.componentGroup ?? null,
       componentPackageManager: params.componentPackageManager ?? null,
-      userId: params.userId,
-      realUserId: params.realUserId ?? null,
-      changes,
     })
 
     if (records.length === 0) {
       throw createError({ statusCode: 404, message: `No unlinked component matching '${params.componentName}' (with the given group/package manager) was found` })
     }
 
-    return records[0]!.get('name')
+    const name = records[0]!.get('name')
+
+    await this.attachAuditLogBestEffort('technologies/attach-audit-log.cypher', {
+      name,
+      operation: 'CREATE',
+      changedFields: ['name', 'type', 'domain', 'vendor', 'componentName'],
+      changes,
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
+    return name
   }
 
   /**
@@ -268,17 +264,43 @@ export class TechnologyRepository extends BaseRepository {
   }
 
   async update(params: UpdateTechnologyParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<string> {
-    const query = await loadQueryWithAudit('technologies/update.cypher')
-    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
+    const query = await loadQuery('technologies/update.cypher')
+    const { records } = await this.executeQuery(query, params)
     if (records.length === 0) {
       throw createError({ statusCode: 404, message: `Technology '${params.name}' not found` })
     }
-    return records[0]!.get('name')
+    const name = records[0]!.get('name')
+
+    await this.attachAuditLogBestEffort('technologies/attach-audit-log.cypher', {
+      name,
+      operation: 'UPDATE',
+      changedFields: ['type', 'domain', 'vendor', 'ownerTeam', 'lastReviewed'],
+      changes: JSON.stringify(params.changes),
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
+    return name
   }
 
+  /**
+   * The audit-log attach must happen BEFORE the delete — once the
+   * Technology node is gone there's nothing left to link an :AUDITS
+   * relationship to. Still best-effort: a failure here is logged and the
+   * delete proceeds regardless.
+   */
   async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
-    const query = await loadQueryWithAudit('technologies/delete.cypher')
-    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
+    await this.attachAuditLogBestEffort('technologies/attach-audit-log.cypher', {
+      name,
+      operation: 'DELETE',
+      changedFields: [],
+      changes: JSON.stringify(changes),
+      userId,
+      realUserId: realUserId ?? null
+    })
+
+    const query = await loadQuery('technologies/delete.cypher')
+    await this.executeQuery(query, { name })
   }
 
   /**
@@ -418,13 +440,6 @@ export class TechnologyRepository extends BaseRepository {
       eolDate: toDateString(a.eolDate)
     }))
 
-    const versionApprovals = record.get('versionApprovals').filter((a: { team?: string }) => a.team).map((a: { approvedAt?: unknown; deprecatedAt?: unknown; eolDate?: unknown }) => ({
-      ...a,
-      approvedAt: toDateString(a.approvedAt),
-      deprecatedAt: toDateString(a.deprecatedAt),
-      eolDate: toDateString(a.eolDate)
-    }))
-
     const components = record.get('components').filter((c: { name?: string }) => c.name)
 
     return {
@@ -441,7 +456,6 @@ export class TechnologyRepository extends BaseRepository {
       systems: this.deriveSystemsFromComponents(components),
       constraints: record.get('constraints').filter((c: { name?: string }) => c.name),
       technologyApprovals,
-      versionApprovals,
       lifecycleSummary: undefined,
       versionLifecycles: undefined
     }

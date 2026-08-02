@@ -100,7 +100,7 @@
             <UBadge
               v-for="lic in selectedNode.licenses"
               :key="lic.id ?? lic.name"
-              :color="lic.allowed === false ? 'error' : 'success'"
+              :color="lic.allowed !== true ? 'error' : 'success'"
               variant="subtle"
               size="sm"
             >{{ lic.id ?? lic.name }}</UBadge>

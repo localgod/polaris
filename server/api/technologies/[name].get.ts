@@ -54,10 +54,6 @@ import { technologyService } from '../../services/singletons'
  *                               type: array
  *                               items:
  *                                 type: object
- *                             versionApprovals:
- *                               type: array
- *                               items:
- *                                 type: object
  *             example:
  *               success: true
  *               data:

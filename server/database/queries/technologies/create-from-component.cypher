@@ -31,17 +31,4 @@ OPTIONAL MATCH (team:Team {name: $ownerTeam})
 FOREACH (_ IN CASE WHEN team IS NOT NULL THEN [1] ELSE [] END |
   CREATE (team)-[:STEWARDED_BY]->(t)
 )
-WITH t, linkedCount, {
-  operation: 'CREATE',
-  entityType: 'Technology',
-  entityId: t.name,
-  entityLabel: t.name,
-  changedFields: ['name', 'type', 'domain', 'vendor', 'componentName'],
-  changes: $changes,
-  source: 'API',
-  userId: $userId,
-  realUserId: $realUserId
-} AS auditFields
-{{AUDIT_LOG_WRITE}}
-CREATE (a)-[:AUDITS]->(t)
 RETURN t.name as name, linkedCount

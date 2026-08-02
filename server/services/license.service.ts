@@ -218,16 +218,6 @@ export class LicenseService {
   }
 
   /**
-   * Check if a license is allowed
-   * 
-   * @param id - License ID
-   * @returns True if license is allowed
-   */
-  async isAllowed(id: string): Promise<boolean> {
-    return this.licenseRepo.isAllowed(id)
-  }
-
-  /**
    * Check if a license exists
    * 
    * @param id - License ID

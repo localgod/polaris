@@ -157,8 +157,10 @@ export class SBOMRepository extends BaseRepository {
     realUserId?: string | null
     correlationId?: string | null
   }): Promise<void> {
-    const query = await loadQueryWithAudit('sboms/create-audit-log.cypher')
-    await this.executeQuery(query, {
+    // Best-effort: SBOM data is already durably persisted by the time this
+    // runs, so a failure here must be logged and swallowed, not surfaced as
+    // an import failure for data that actually succeeded.
+    await this.attachAuditLogBestEffort('sboms/create-audit-log.cypher', {
       systemName: params.systemName,
       userId: params.userId,
       realUserId: params.realUserId ?? null,
@@ -181,10 +183,12 @@ export class SBOMRepository extends BaseRepository {
   }): Promise<void> {
     if (params.components.length === 0) return
 
-    const query = await loadQueryWithAudit('sboms/create-component-added-audit-logs.cypher')
     for (let i = 0; i < params.components.length; i += SBOMRepository.BATCH_SIZE) {
       const batch = params.components.slice(i, i + SBOMRepository.BATCH_SIZE)
-      await this.executeQuery(query, {
+      // Best-effort per batch: SBOM data is already durably persisted, so a
+      // failure here must be logged and swallowed, not surfaced as an
+      // import failure for data that actually succeeded.
+      await this.attachAuditLogBestEffort('sboms/create-component-added-audit-logs.cypher', {
         systemName: params.systemName,
         userId: params.userId,
         realUserId: params.realUserId ?? null,
