@@ -1,7 +1,7 @@
 import { BaseRepository } from './base.repository'
 import type { Record as Neo4jRecord } from 'neo4j-driver'
 import { buildOrderByClause, type SortConfig } from '../utils/sorting'
-import { loadQuery, loadQueryWithAudit, injectWhereConditions, injectOrderBy, injectPlaceholder } from '../utils/query-loader'
+import { loadQuery, injectWhereConditions, injectOrderBy, injectPlaceholder } from '../utils/query-loader'
 
 export interface License {
   id: string
@@ -211,10 +211,27 @@ export class LicenseRepository extends BaseRepository {
    * @returns True if license was updated
    */
   async updateAllowedStatus(id: string, allowed: boolean, userId?: string, realUserId?: string | null): Promise<boolean> {
-    const query = await loadQueryWithAudit('licenses/update-allowed-status.cypher')
+    const query = await loadQuery('licenses/update-allowed-status.cypher')
 
-    const { records } = await this.executeQuery(query, { id, allowed, userId: userId || null, realUserId: realUserId ?? null })
-    return records[0]?.get('updated').toNumber() > 0
+    const { records } = await this.executeQuery(query, { id, allowed })
+    const updated = (records[0]?.get('updated').toNumber() ?? 0) > 0
+
+    if (updated) {
+      const previousAllowed = records[0]!.get('previousAllowed')
+      await this.attachAuditLogBestEffort('licenses/attach-audit-log.cypher', {
+        items: [{
+          id,
+          entityLabel: records[0]!.get('name'),
+          operation: allowed ? 'ENABLE' : 'DISABLE',
+          previousStatus: previousAllowed === true ? 'enabled' : 'disabled',
+          newStatus: allowed ? 'enabled' : 'disabled'
+        }],
+        userId: userId || null,
+        realUserId: realUserId ?? null
+      })
+    }
+
+    return updated
   }
 
   /**
@@ -224,19 +241,6 @@ export class LicenseRepository extends BaseRepository {
    */
   async getAllowedLicenses(): Promise<License[]> {
     return this.findAll({ allowed: true })
-  }
-
-  /**
-   * Check if a license is allowed
-   * 
-   * @param id - License ID
-   * @returns True if license is allowed
-   */
-  async isAllowed(id: string): Promise<boolean> {
-    const query = await loadQuery('licenses/is-allowed.cypher')
-
-    const { records } = await this.executeQuery(query, { id })
-    return records[0]?.get('allowed') || false
   }
 
   /**
@@ -253,22 +257,35 @@ export class LicenseRepository extends BaseRepository {
   async bulkUpdateAllowedStatus(licenseIds: string[], allowed: boolean, userId?: string, realUserId?: string | null): Promise<number> {
     if (licenseIds.length === 0) return 0
 
-    const query = await loadQueryWithAudit('licenses/bulk-update-allowed-status.cypher')
+    const query = await loadQuery('licenses/bulk-update-allowed-status.cypher')
 
-    const { records } = await this.executeQueryWithSession(query, { licenseIds, allowed, userId: userId || null, realUserId: realUserId ?? null })
-    
+    const { records } = await this.executeQueryWithSession(query, { licenseIds, allowed })
+
     // If no records returned, it means some licenses don't exist
     if (records.length === 0) {
       throw new Error('One or more licenses not found')
     }
-    
+
     const updatedCount = records[0]?.get('updated')?.toNumber() || 0
-    
+
     // Additional check: if we expected to update licenses but got 0, something went wrong
     if (updatedCount === 0 && licenseIds.length > 0) {
       throw new Error('One or more licenses not found')
     }
-    
+
+    const updatedLicenses = records[0]!.get('updatedLicenses') as Array<{ id: string; name: string; previousAllowed: boolean | null }>
+    await this.attachAuditLogBestEffort('licenses/attach-audit-log.cypher', {
+      items: updatedLicenses.map(l => ({
+        id: l.id,
+        entityLabel: l.name,
+        operation: allowed ? 'ENABLE' : 'DISABLE',
+        previousStatus: l.previousAllowed === true ? 'enabled' : 'disabled',
+        newStatus: allowed ? 'enabled' : 'disabled'
+      })),
+      userId: userId || null,
+      realUserId: realUserId ?? null
+    })
+
     return updatedCount
   }
 
@@ -378,8 +395,7 @@ export class LicenseRepository extends BaseRepository {
     }
 
     if (filters.allowed !== undefined) {
-      conditions.push('l.allowed = $allowed')
-      params.allowed = filters.allowed
+      conditions.push(filters.allowed ? 'l.allowed = true' : 'coalesce(l.allowed, false) = false')
     }
 
     if (filters.search) {

@@ -65,5 +65,4 @@ RETURN t.name as name,
          notes: techApproval.notes,
          approvedBy: techApproval.approvedBy,
          approvedByName: approvedByUser.name
-       }) as technologyApprovals,
-       [] as versionApprovals
+       }) as technologyApprovals

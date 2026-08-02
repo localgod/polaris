@@ -89,6 +89,44 @@ describe('[pin] VersionSprawlService', () => {
       expect(withEol.hasEolVersion).toBe(true)
       expect(withoutEol.hasEolVersion).toBe(false)
       expect(withEol.sprawlScore).toBeGreaterThan(withoutEol.sprawlScore)
+
+      // makeGroup()'s versionCount (3) is 'medium' on its own — an EOL
+      // version in the mix must bump that up a tier, not just the score.
+      expect(withoutEol.severity).toBe('medium')
+      expect(withEol.severity).toBe('high')
+    })
+
+    it('bumps a low-version-count group to medium severity when a version is EOL', async () => {
+      const service = new VersionSprawlService(
+        { findVersionSprawl: vi.fn(async () => [makeGroup({ versions: ['16.8.0', '17.0.2'], versionCount: 2 })]) } as never,
+        {
+          getEOLStatus: vi.fn(async ({ version }: { version: string }) =>
+            version === '16.8.0' ? unsupportedStatus : activeStatus)
+        } as never
+      )
+
+      const [detection] = await service.detect()
+
+      expect(detection.severity).toBe('medium')
+    })
+
+    it('keeps a high-version-count group at high severity when a version is EOL', async () => {
+      const service = new VersionSprawlService(
+        {
+          findVersionSprawl: vi.fn(async () => [makeGroup({
+            versions: ['1.0.0', '2.0.0', '3.0.0', '4.0.0', '5.0.0'],
+            versionCount: 5
+          })])
+        } as never,
+        {
+          getEOLStatus: vi.fn(async ({ version }: { version: string }) =>
+            version === '1.0.0' ? unsupportedStatus : activeStatus)
+        } as never
+      )
+
+      const [detection] = await service.detect()
+
+      expect(detection.severity).toBe('high')
     })
 
     it('sorts detections by sprawl score descending', async () => {

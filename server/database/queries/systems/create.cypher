@@ -20,18 +20,4 @@ FOREACH (repo IN CASE WHEN size(repos) > 0 THEN repos ELSE [] END |
     SET rel2.since = COALESCE(rel2.since, datetime())
 )
 
-WITH s, {
-  operation: 'CREATE',
-  entityType: 'System',
-  entityId: s.name,
-  entityLabel: s.name,
-  changedFields: ['name', 'domain', 'businessCriticality', 'environment'],
-  changes: $changes,
-  source: 'API',
-  userId: $userId,
-  realUserId: $realUserId
-} AS auditFields
-{{AUDIT_LOG_WRITE}}
-CREATE (a)-[:AUDITS]->(s)
-
 RETURN s.name as name

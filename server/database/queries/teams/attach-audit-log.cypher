@@ -1,0 +1,23 @@
+// Best-effort AuditLog write for Team mutations, run as a separate
+// transaction AFTER the primary mutation has already committed (see
+// BaseRepository.attachAuditLogBestEffort). For delete, the caller must run
+// this BEFORE removing the node, since there's nothing left to attach an
+// :AUDITS relationship to afterwards.
+//
+// Fixes a pre-existing gap: create.cypher/update.cypher/delete.cypher
+// previously wrote the AuditLog node but never linked it to the Team via
+// :AUDITS, unlike every other domain's audit writes.
+MATCH (t:Team {name: $name})
+WITH t, {
+  operation: $operation,
+  entityType: 'Team',
+  entityId: t.name,
+  entityLabel: t.name,
+  changedFields: $changedFields,
+  changes: $changes,
+  source: 'API',
+  userId: $userId,
+  realUserId: $realUserId
+} AS auditFields
+{{AUDIT_LOG_WRITE}}
+CREATE (a)-[:AUDITS]->(t)

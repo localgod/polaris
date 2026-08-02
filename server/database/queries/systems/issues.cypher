@@ -34,7 +34,7 @@ OPTIONAL MATCH (c)-[:HAS_HEALTH_SNAPSHOT]->(h:HealthSnapshot)
 
 WITH c, h,
      [a IN rawAdvisories WHERE a.id IS NOT NULL] AS advisories,
-     [l IN rawLicenses WHERE l.id IS NOT NULL AND l.allowed = false] AS disallowedLicenses,
+     [l IN rawLicenses WHERE l.id IS NOT NULL AND coalesce(l.allowed, false) = false] AS disallowedLicenses,
      coalesce(u.isDirect, false) AS isDirect
 
 WHERE size(advisories) > 0

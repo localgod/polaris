@@ -38,7 +38,7 @@ describe('TeamService', () => {
         team: 'Platform', usage: [], summary: { totalTechnologies: 0, compliant: 0, unapproved: 0, violations: 0, migrationNeeded: 0 }
       })
       vi.mocked(TeamRepository.prototype.findApprovals).mockResolvedValue({
-        team: 'Platform', technologyApprovals: [], versionApprovals: []
+        team: 'Platform', technologyApprovals: []
       })
     })
 
@@ -73,8 +73,7 @@ describe('TeamService', () => {
       })
       vi.mocked(TeamRepository.prototype.findApprovals).mockResolvedValue({
         team: 'Platform',
-        technologyApprovals: [{ technology: 'React', type: 'framework', vendor: null, time: 'invest', approvedAt: '2024-01-15', deprecatedAt: null, eolDate: null, migrationTarget: null, notes: null, approvedBy: 'jsf' }],
-        versionApprovals: []
+        technologyApprovals: [{ technology: 'React', type: 'framework', vendor: null, time: 'invest', approvedAt: '2024-01-15', deprecatedAt: null, eolDate: null, migrationTarget: null, notes: null, approvedBy: 'jsf' }]
       })
 
       const result = await service.findByName('Platform')
@@ -236,7 +235,6 @@ describe('TeamService', () => {
       vi.mocked(TeamRepository.prototype.findApprovals).mockResolvedValue({
         team: 'Platform',
         technologyApprovals: [],
-        versionApprovals: [],
       })
 
       const result = await service.findApprovals('Platform')
@@ -292,17 +290,16 @@ describe('TeamService', () => {
         technology: 'Node.js',
         type: null,
         vendor: null,
-        version: null,
         approval: {
           level: 'technology',
           time: 'Tolerate',
         },
       })
 
-      const result = await service.checkApproval('Platform', 'Node.js', '20.0.0', 'production')
+      const result = await service.checkApproval('Platform', 'Node.js', 'production')
 
       expect(result.approval.level).toBe('technology')
-      expect(TeamRepository.prototype.checkApproval).toHaveBeenCalledWith('Platform', 'Node.js', '20.0.0', 'production')
+      expect(TeamRepository.prototype.checkApproval).toHaveBeenCalledWith('Platform', 'Node.js', 'production')
     })
   })
 })

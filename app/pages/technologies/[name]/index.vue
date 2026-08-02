@@ -381,7 +381,6 @@ interface TechnologyDetailData {
   systems: SystemUsage[]
   constraints: ConstraintRef[]
   technologyApprovals: TechnologyApproval[]
-  versionApprovals: TechnologyApproval[]
   lifecycleSummary: TechnologyLifecycleSummary
   versionLifecycles: TechnologyVersionLifecycle[]
 }

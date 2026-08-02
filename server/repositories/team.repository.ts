@@ -65,24 +65,9 @@ export interface TechnologyApproval {
   approvedBy: string | null
 }
 
-export interface VersionApproval {
-  technology: string
-  version: string
-  type: string | null
-  vendor: string | null
-  time: string | null
-  approvedAt: string | null
-  deprecatedAt: string | null
-  eolDate: string | null
-  migrationTarget: string | null
-  notes: string | null
-  approvedBy: string | null
-}
-
 export interface TeamApprovalsResult {
   team: string
   technologyApprovals: TechnologyApproval[]
-  versionApprovals: VersionApproval[]
 }
 
 export interface TeamConstraint {
@@ -149,9 +134,8 @@ export interface ApprovalStatus {
   technology: string
   type: string | null
   vendor: string | null
-  version: string | null
   approval: {
-    level: 'version' | 'technology' | 'default'
+    level: 'technology' | 'default'
     time: string
     approvedAt?: string | null
     deprecatedAt?: string | null
@@ -241,14 +225,25 @@ export class TeamRepository extends BaseRepository {
     userId: string
     realUserId?: string | null
   }): Promise<string> {
-    const query = await loadQueryWithAudit('teams/create.cypher')
+    const query = await loadQuery('teams/create.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       email: params.email,
       responsibilityArea: params.responsibilityArea,
     }))
-    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes })
-    return records[0]!.get('name')
+    const { records } = await this.executeQuery(query, params)
+    const name = records[0]!.get('name')
+
+    await this.attachAuditLogBestEffort('teams/attach-audit-log.cypher', {
+      name,
+      operation: 'CREATE',
+      changedFields: ['name', 'email', 'responsibilityArea'],
+      changes,
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
+    return name
   }
 
   /**
@@ -267,12 +262,23 @@ export class TeamRepository extends BaseRepository {
     userId: string
     realUserId?: string | null
   }): Promise<string> {
-    const query = await loadQueryWithAudit('teams/update.cypher')
-    const { records } = await this.executeQuery(query, { ...params, realUserId: params.realUserId ?? null, changes: JSON.stringify(params.changes) })
+    const query = await loadQuery('teams/update.cypher')
+    const { records } = await this.executeQuery(query, params)
     if (records.length === 0) {
       throw new Error(`Team '${params.name}' not found`)
     }
-    return records[0]!.get('name')
+    const name = records[0]!.get('name')
+
+    await this.attachAuditLogBestEffort('teams/attach-audit-log.cypher', {
+      name,
+      operation: 'UPDATE',
+      changedFields: params.changedFields,
+      changes: JSON.stringify(params.changes),
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
+    return name
   }
 
   /**
@@ -325,9 +331,23 @@ export class TeamRepository extends BaseRepository {
    * 
    * @param name - Team name
    */
+  /**
+   * The audit-log attach must happen BEFORE the delete — once the Team node
+   * is gone there's nothing left to link an :AUDITS relationship to. Still
+   * best-effort: a failure here is logged and the delete proceeds regardless.
+   */
   async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
-    const query = await loadQueryWithAudit('teams/delete.cypher')
-    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
+    await this.attachAuditLogBestEffort('teams/attach-audit-log.cypher', {
+      name,
+      operation: 'DELETE',
+      changedFields: [],
+      changes: JSON.stringify(changes),
+      userId,
+      realUserId: realUserId ?? null
+    })
+
+    const query = await loadQuery('teams/delete.cypher')
+    await this.executeQuery(query, { name })
   }
 
   /**
@@ -348,8 +368,7 @@ export class TeamRepository extends BaseRepository {
     
     return {
       team: record.get('teamName'),
-      technologyApprovals: record.get('technologyApprovals').filter((a: TechnologyApproval) => a.technology),
-      versionApprovals: record.get('versionApprovals').filter((a: VersionApproval) => a.technology)
+      technologyApprovals: record.get('technologyApprovals').filter((a: TechnologyApproval) => a.technology)
     }
   }
 
@@ -382,29 +401,27 @@ export class TeamRepository extends BaseRepository {
   }
 
   /**
-   * Check approval status for a technology (and optionally version) for a team
-   * 
+   * Check approval status for a technology for a team
+   *
    * @param team - Team name
    * @param technology - Technology name
-   * @param version - Optional version
    * @returns Approval status
    */
-  async checkApproval(team: string, technology: string, version?: string, environment?: string | null): Promise<ApprovalStatus | null> {
+  async checkApproval(team: string, technology: string, environment?: string | null): Promise<ApprovalStatus | null> {
     const query = await loadQuery('teams/check-approval.cypher')
-    const { records } = await this.executeQuery(query, { team, technology, version: version || null, environment: environment ?? null })
-    
+    const { records } = await this.executeQuery(query, { team, technology, environment: environment ?? null })
+
     if (records.length === 0) {
       return null
     }
-    
+
     const record = records[0]!
-    
+
     return {
       team: record.get('teamName'),
       technology: record.get('technologyName'),
       type: record.get('type'),
       vendor: record.get('vendor'),
-      version: record.get('version'),
       approval: record.get('approval')
     }
   }

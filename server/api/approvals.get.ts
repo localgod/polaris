@@ -6,19 +6,22 @@
  *       - Approvals
  *     summary: Check technology approval status
  *     description: |
- *       Checks if a technology (and optionally a specific version) is approved for a team.
- *       
+ *       Checks if a technology is approved for a team.
+ *
  *       **Approval Hierarchy:**
- *       1. Version-specific approval (highest priority) - `level: "version"`
- *       2. Technology-level approval - `level: "technology"`
- *       3. Default (not approved) - `level: "default"`, `time: "eliminate"`
- *       
+ *       1. Technology-level approval - `level: "technology"`
+ *       2. Default (no approval recorded) - `level: "default"`, `time: "unclassified"`
+ *
+ *       Both an explicit `eliminate` vote and the `unclassified` default are treated as
+ *       compliance violations elsewhere in Polaris (see ADR-0005), but they are kept
+ *       distinguishable here rather than collapsed into the same value.
+ *
  *       **TIME Framework Values:**
- *       - `adopt` - Recommended for use
- *       - `trial` - Experimental use allowed
- *       - `assess` - Under evaluation
- *       - `hold` - Do not use for new projects
+ *       - `invest` - Strategic technologies receiving active investment
+ *       - `tolerate` - Legacy technologies being phased out
+ *       - `migrate` - Technologies being actively replaced
  *       - `eliminate` - Must be removed
+ *       - `unclassified` - No team approval has been recorded (default-check only)
  *     parameters:
  *       - in: query
  *         name: team
@@ -34,13 +37,6 @@
  *           type: string
  *         description: Technology name
  *         example: react
- *       - in: query
- *         name: version
- *         required: false
- *         schema:
- *           type: string
- *         description: Specific version to check
- *         example: "18.2.0"
  *       - in: query
  *         name: environment
  *         required: false
@@ -69,17 +65,15 @@
  *                           type: string
  *                         vendor:
  *                           type: string
- *                         version:
- *                           type: string
  *                         approval:
  *                           type: object
  *                           properties:
  *                             level:
  *                               type: string
- *                               enum: [version, technology, default]
+ *                               enum: [technology, default]
  *                             time:
  *                               type: string
- *                               enum: [adopt, trial, assess, hold, eliminate]
+ *                               enum: [tolerate, invest, migrate, eliminate, unclassified]
  *                             approvedAt:
  *                               type: string
  *                             approvedBy:
@@ -93,10 +87,9 @@
  *                 technology: react
  *                 type: framework
  *                 vendor: Meta
- *                 version: "18.2.0"
  *                 approval:
- *                   level: version
- *                   time: adopt
+ *                   level: technology
+ *                   time: invest
  *                   approvedAt: "2024-01-15T10:00:00Z"
  *                   approvedBy: architecture-team
  *                   notes: Approved for production use
@@ -111,18 +104,17 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const team = query.team as string
   const technology = query.technology as string
-  const version = query.version as string | undefined
   const environment = (query.environment as string | undefined) ?? null
-  
+
   if (!team || !technology) {
     throw createError({
       statusCode: 400,
       message: 'Team and technology parameters are required'
     })
   }
-  
+
   try {
-    const result = await teamService.checkApproval(team, technology, version, environment)
+    const result = await teamService.checkApproval(team, technology, environment)
     
     return {
       success: true,

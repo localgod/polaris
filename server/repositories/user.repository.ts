@@ -251,8 +251,10 @@ export class UserRepository extends BaseRepository {
     ]
     
     if (auditEvents.length > 0) {
-      const auditQuery = await loadQueryWithAudit('users/create-team-audit-events.cypher')
-      await this.executeQuery(auditQuery, {
+      // Already a standalone query, independent of the membership mutations
+      // above — just needs to be best-effort so a write failure here can't
+      // surface as an error for an operation that already succeeded.
+      await this.attachAuditLogBestEffort('users/create-team-audit-events.cypher', {
         userId,
         events: auditEvents,
         performedBy: performedBy || 'anonymous',
@@ -319,12 +321,24 @@ export class UserRepository extends BaseRepository {
    * Create a pending user with an invite token
    */
   async createPendingUser(params: CreatePendingUserParams): Promise<PendingUser> {
-    const query = await loadQueryWithAudit('users/create-pending.cypher')
-    const { records } = await this.executeQuery(query, {
-      ...params,
+    const query = await loadQuery('users/create-pending.cypher')
+    const { records } = await this.executeQuery(query, params)
+    const user = records[0]!.get('user') as PendingUser
+
+    await this.attachAuditLogBestEffort('users/attach-audit-log.cypher', {
+      userId: user.id,
+      operation: 'CREATE_INVITE',
+      entityLabel: params.githubUsername,
+      previousStatus: null,
+      newStatus: 'pending',
+      changedFields: ['status'],
+      reason: `Invite created for GitHub user @${params.githubUsername}`,
+      source: 'API',
+      performedBy: params.createdBy,
       realUserId: params.realUserId ?? null
     })
-    return records[0]!.get('user') as PendingUser
+
+    return user
   }
 
   /**
@@ -352,8 +366,22 @@ export class UserRepository extends BaseRepository {
    * and activate the user
    */
   async claimInvite(params: ClaimInviteParams): Promise<void> {
-    const query = await loadQueryWithAudit('users/claim-invite.cypher')
-    await this.executeQuery(query, params)
+    const query = await loadQuery('users/claim-invite.cypher')
+    const { records } = await this.executeQuery(query, params)
+    const githubUsername = records[0]?.get('githubUsername') as string | undefined
+
+    await this.attachAuditLogBestEffort('users/attach-audit-log.cypher', {
+      userId: params.realId,
+      operation: 'CLAIM_INVITE',
+      entityLabel: params.name ?? params.email,
+      previousStatus: 'pending',
+      newStatus: 'active',
+      changedFields: ['status', 'id'],
+      reason: `Invite claimed by GitHub user @${githubUsername}`,
+      source: 'OAuth',
+      performedBy: null,
+      realUserId: null
+    })
   }
 
   /**
@@ -368,16 +396,24 @@ export class UserRepository extends BaseRepository {
     const current = await this.findById(userId)
     if (!current) return null
 
-    const query = await loadQueryWithAudit('users/update-role.cypher')
-    const { records } = await this.executeQuery(query, {
+    const query = await loadQuery('users/update-role.cypher')
+    const { records } = await this.executeQuery(query, { userId, role })
+
+    if (records.length === 0) return null
+
+    await this.attachAuditLogBestEffort('users/attach-audit-log.cypher', {
       userId,
-      role,
-      previousRole: current.role,
+      operation: 'CHANGE_ROLE',
+      entityLabel: current.name ?? current.email,
+      previousStatus: current.role,
+      newStatus: role,
+      changedFields: ['role'],
+      reason: `Role changed from ${current.role} to ${role}`,
+      source: 'API',
       performedBy,
       realUserId: realUserId ?? null
     })
 
-    if (records.length === 0) return null
     return this.mapToUser(records[0]!)
   }
 

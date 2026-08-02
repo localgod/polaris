@@ -86,7 +86,7 @@ export class PlatformRepository extends BaseRepository {
   }
 
   async create(params: CreatePlatformParams): Promise<string> {
-    const query = await loadQueryWithAudit('platforms/create.cypher')
+    const query = await loadQuery('platforms/create.cypher')
     const changes = JSON.stringify(buildCreateChanges({
       name: params.name,
       type: params.type,
@@ -99,16 +99,24 @@ export class PlatformRepository extends BaseRepository {
       domain: params.domain || null,
       vendor: params.vendor || null,
       stewardTeam: params.stewardTeam || null,
-      userId: params.userId,
-      realUserId: params.realUserId ?? null,
-      changes,
     })
 
     if (records.length === 0) {
       throw new Error('Failed to create platform')
     }
 
-    return records[0]!.get('name')
+    const name = records[0]!.get('name')
+
+    await this.attachAuditLogBestEffort('platforms/attach-audit-log.cypher', {
+      name,
+      operation: 'CREATE',
+      changedFields: ['name', 'type', 'domain', 'vendor'],
+      changes,
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
+    return name
   }
 
   /**
@@ -129,17 +137,43 @@ export class PlatformRepository extends BaseRepository {
   }
 
   async update(params: UpdatePlatformParams & { changes: Record<string, { before: unknown; after: unknown }> }): Promise<string> {
-    const query = await loadQueryWithAudit('platforms/update.cypher')
-    const { records } = await this.executeQuery(query, { ...params, changes: JSON.stringify(params.changes) })
+    const query = await loadQuery('platforms/update.cypher')
+    const { records } = await this.executeQuery(query, params)
     if (records.length === 0) {
       throw createError({ statusCode: 404, message: `Platform '${params.name}' not found` })
     }
-    return records[0]!.get('name')
+    const name = records[0]!.get('name')
+
+    await this.attachAuditLogBestEffort('platforms/attach-audit-log.cypher', {
+      name,
+      operation: 'UPDATE',
+      changedFields: ['type', 'domain', 'vendor', 'stewardTeam'],
+      changes: JSON.stringify(params.changes),
+      userId: params.userId,
+      realUserId: params.realUserId ?? null
+    })
+
+    return name
   }
 
+  /**
+   * The audit-log attach must happen BEFORE the delete — once the Platform
+   * node is gone there's nothing left to link an :AUDITS relationship to.
+   * Still best-effort: a failure here is logged and the delete proceeds
+   * regardless.
+   */
   async delete(name: string, userId: string, changes: Record<string, { before: unknown; after: unknown }>, realUserId?: string | null): Promise<void> {
-    const query = await loadQueryWithAudit('platforms/delete.cypher')
-    await this.executeQuery(query, { name, userId, realUserId: realUserId ?? null, changes: JSON.stringify(changes) })
+    await this.attachAuditLogBestEffort('platforms/attach-audit-log.cypher', {
+      name,
+      operation: 'DELETE',
+      changedFields: [],
+      changes: JSON.stringify(changes),
+      userId,
+      realUserId: realUserId ?? null
+    })
+
+    const query = await loadQuery('platforms/delete.cypher')
+    await this.executeQuery(query, { name })
   }
 
   /**

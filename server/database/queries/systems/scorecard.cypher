@@ -42,7 +42,7 @@ CALL {
 CALL {
   WITH sys
   OPTIONAL MATCH (sys)-[u:USES]->(comp:Component)-[:HAS_LICENSE]->(lic:License)
-    WHERE u.isDirect = true AND lic.allowed = false
+    WHERE u.isDirect = true AND coalesce(lic.allowed, false) = false
   RETURN count(DISTINCT comp) AS licenseViolationCount
 }
 

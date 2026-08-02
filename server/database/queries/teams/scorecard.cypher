@@ -18,7 +18,7 @@ CALL {
 CALL {
   WITH t
   OPTIONAL MATCH (t)-[:OWNS]->(sys2:System)-[:USES]->(comp:Component)-[:HAS_LICENSE]->(lic:License)
-    WHERE lic.allowed = false
+    WHERE coalesce(lic.allowed, false) = false
   RETURN count(DISTINCT comp) AS licenseViolationCount
 }
 
