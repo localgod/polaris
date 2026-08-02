@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.91] - 2026-08-02
+
+## What's Changed
+
+* feat(governance): violation lifecycle tracking and waiver/risk-acceptance workflow @localgod (#811)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.90...v0.6.91
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
