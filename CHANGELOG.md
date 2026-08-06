@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.93] - 2026-08-06
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump postcss from 8.5.21 to 8.5.25 @[dependabot[bot]](https://github.com/apps/dependabot) (#822)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.92...v0.6.93
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
