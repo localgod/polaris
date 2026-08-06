@@ -1,5 +1,5 @@
 import { gitHubOrgImportService } from '../../../../services/singletons'
-import { getServerSession } from '#auth'
+import { getToken } from '#auth'
 
 /**
  * @openapi
@@ -51,8 +51,8 @@ import { getServerSession } from '#auth'
  */
 export default defineEventHandler(async (event) => {
   await requireSuperuser(event)
-  const session = await getServerSession(event)
-  const githubToken = session?.user?.githubToken
+  const token = await getToken({ req: event.node.req })
+  const githubToken = token?.accessToken as string | undefined
   const body = await readBody(event) || {}
 
   const owner = typeof body.owner === 'string'

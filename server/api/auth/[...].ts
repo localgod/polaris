@@ -40,16 +40,20 @@ import GithubProvider from 'next-auth/providers/github'
 import { userService } from '../../services/singletons'
 import { logger } from '../../utils/logger'
 
+if (!process.env.AUTH_SECRET) {
+  throw new Error('AUTH_SECRET environment variable is required — refusing to start with an unsigned JWT secret')
+}
+
 if (process.env.AUTH_ORIGIN && !process.env.NEXTAUTH_URL) {
   process.env.NEXTAUTH_URL = process.env.AUTH_ORIGIN
 }
 
-if (process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+if (!process.env.NEXTAUTH_SECRET) {
   process.env.NEXTAUTH_SECRET = process.env.AUTH_SECRET
 }
 
 export default NuxtAuthHandler({
-  secret: process.env.AUTH_SECRET || 'replace-me-in-production',
+  secret: process.env.AUTH_SECRET,
   
   cookies: {
     sessionToken: {
@@ -108,7 +112,6 @@ export default NuxtAuthHandler({
         session.user.provider = token.provider as string
         session.user.role = (token.role as 'user' | 'superuser') || 'user'
         session.user.teams = (token.teams as Array<{ name: string; email: string | null }>) || []
-        session.user.githubToken = token.accessToken as string | undefined
       }
       return session
     },

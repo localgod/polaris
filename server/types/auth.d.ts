@@ -10,7 +10,6 @@ declare module 'next-auth' {
         name: string
         email: string | null
       }>
-      githubToken?: string
     } & DefaultSession['user']
   }
 

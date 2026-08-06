@@ -1,11 +1,11 @@
 import { gitHubImportService, systemService } from '../../../../services/singletons'
-import { getServerSession } from '#auth'
+import { getToken } from '#auth'
 import { auditFailedOperation } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
-  const session = await getServerSession(event)
-  const githubToken = session?.user?.githubToken
+  const token = await getToken({ req: event.node.req })
+  const githubToken = token?.accessToken as string | undefined
 
   const rawName = getRouterParam(event, 'name')
 
