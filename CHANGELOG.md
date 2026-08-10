@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.96] - 2026-08-10
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump nuxt from 4.5.0 to 4.5.1 @[dependabot[bot]](https://github.com/apps/dependabot) (#826)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.95...v0.6.96
+
 ## [0.6.85] - 2026-07-27
 
 ## What's Changed
