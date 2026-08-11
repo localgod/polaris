@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.103] - 2026-08-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump ip-address from 10.2.0 to 10.5.0 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#835)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.102...v0.6.103
 
 ## [0.6.85] - 2026-07-27
 
