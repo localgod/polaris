@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.104] - 2026-08-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump the production-dependencies group with 6 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#838)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.103...v0.6.104
 
 ## [0.6.85] - 2026-07-27
 
