@@ -177,52 +177,21 @@ jobs:
         if: matrix.test-layer == 'app-e2e'
         run: npx playwright install chromium --with-deps
 
-      - name: Wait for Neo4j to be ready
-        run: |
-          echo "Waiting for Neo4j to be ready..."
-          for i in {1..30}; do
-            if npm run migrate:status > /dev/null 2>&1; then
-              echo "✅ Neo4j is ready!"
-              exit 0
-            fi
-            echo "Attempt $i/30: Neo4j not ready yet, waiting..."
-            sleep 2
-          done
-          echo "❌ Neo4j failed to become ready"
-          exit 1
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-
-      - name: Migrate database schema
-        run: npm run migrate:up
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-
-      - name: Seed database
-        run: npm run seed:clear
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
+      - name: Neo4j setup
+        uses: ./.github/actions/neo4j-setup
 
       - name: Start dev server (E2E and HTTP integration tests)
         if: matrix.test-layer == 'app-e2e' || matrix.test-layer == 'integration'
         run: |
           npm run dev &
-          echo "Waiting for dev server to be ready..."
           for i in {1..30}; do
             if curl -s http://localhost:3000 > /dev/null; then
-              echo "✅ Dev server is ready!"
               exit 0
             fi
             echo "Attempt $i/30: Dev server not ready yet, waiting..."
             sleep 2
           done
-          echo "❌ Dev server failed to start"
+          echo "Dev server failed to start"
           exit 1
         env:
           NEO4J_URI: bolt://localhost:7687
@@ -264,158 +233,42 @@ jobs:
           node-version: 'lts/*'
           cache: 'npm'
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           path: coverage-artifacts/
 
-      - name: List downloaded artifacts
-        run: |
-          echo "Downloaded coverage artifacts:"
-          ls -la coverage-artifacts/
-          echo ""
-          echo "Contents of each artifact:"
-          for dir in coverage-artifacts/*/; do
-            echo "=== $dir ==="
-            ls -la "$dir"
-          done
-
       - name: Merge coverage reports
         run: |
-          # Install nyc globally for coverage merging
-          npm install -g nyc
+          mkdir -p .nyc_output coverage
 
-          # Create output directory
-          mkdir -p coverage
-
-          # Find and merge all coverage-final.json files
-          echo "Merging coverage reports from all test layers..."
-
-          # Copy all coverage-final.json files to a temp directory
-          mkdir -p .nyc_output
           find coverage-artifacts -name 'coverage-final.json' -type f | while read file; do
-            layer=$(echo "$file" | sed 's|coverage-artifacts/coverage-||' | sed 's|/.*||')
-            echo "Found coverage from: $layer"
-            cp "$file" ".nyc_output/coverage-${layer}.json"
+            layer=$(basename $(dirname "$file"))
+            cp "$file" ".nyc_output/${layer}.json"
           done
 
-          # List what we're merging
-          echo ""
-          echo "Coverage files to merge:"
-          ls -la .nyc_output/
+          npx nyc merge .nyc_output coverage/coverage-final.json
+          npx nyc report \
+            --temp-dir .nyc_output \
+            --report-dir coverage \
+            --reporter=json-summary \
+            --reporter=json \
+            --reporter=lcov \
+            --reporter=html \
+            --reporter=text
 
-          # Merge all coverage files
-          if [ -n "$(ls -A .nyc_output/*.json 2>/dev/null)" ]; then
-            echo ""
-            echo "Merging coverage reports..."
-            nyc merge .nyc_output coverage/coverage-final.json
+      - name: Check coverage thresholds
+        run: node scripts/check-coverage-thresholds.mjs
 
-            # Generate reports in multiple formats
-            echo ""
-            echo "Generating coverage reports..."
-            nyc report \
-              --temp-dir .nyc_output \
-              --report-dir coverage \
-              --reporter=json-summary \
-              --reporter=json \
-              --reporter=lcov \
-              --reporter=html \
-              --reporter=text
-
-            echo ""
-            echo "✅ Coverage reports merged successfully"
-
-            # Show summary
-            if [ -f "coverage/coverage-summary.json" ]; then
-              echo ""
-              echo "Coverage Summary:"
-              cat coverage/coverage-summary.json | grep -A 10 '"total"' || true
-            fi
-          else
-            echo "❌ No coverage files found to merge"
-            exit 1
-          fi
-
-      - name: Report Coverage
+      - name: Report coverage to PR
         uses: davelosert/vitest-coverage-report-action@v2
         with:
           json-summary-path: ./coverage/coverage-summary.json
           json-final-path: ./coverage/coverage-final.json
-
-  coverage-check:
-    runs-on: ubuntu-latest
-    needs: [detect-changes, test]
-    if: always() && needs.detect-changes.outputs.run-tests == 'true'
-
-    services:
-      neo4j:
-        image: neo4j:5-community
-        env:
-          NEO4J_AUTH: neo4j/testpassword
-          NEO4J_PLUGINS: '["apoc"]'
-          NEO4J_dbms_security_procedures_unrestricted: apoc.*
-        ports:
-          - 7474:7474
-          - 7687:7687
-        options: >-
-          --health-cmd "cypher-shell -u neo4j -p testpassword 'RETURN 1'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 30s
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Wait for Neo4j to be ready
-        run: |
-          echo "Waiting for Neo4j to be ready..."
-          for i in {1..30}; do
-            if npm run migrate:status > /dev/null 2>&1; then
-              echo "✅ Neo4j is ready!"
-              exit 0
-            fi
-            echo "Attempt $i/30: Neo4j not ready yet, waiting..."
-            sleep 2
-          done
-          echo "❌ Neo4j failed to become ready"
-          exit 1
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-
-      - name: Migrate database schema
-        run: npm run migrate:up
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-
-      - name: Seed database
-        run: npm run seed:clear
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-
-      - name: Run full suite with coverage thresholds
-        run: npm run test:coverage:check
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
 
   build:
     runs-on: ubuntu-latest
@@ -483,37 +336,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Wait for Neo4j to be ready
-        run: |
-          echo "Waiting for Neo4j to be ready..."
-          for i in {1..30}; do
-            if npm run migrate:status > /dev/null 2>&1; then
-              echo "✅ Neo4j is ready!"
-              exit 0
-            fi
-            echo "Attempt $i/30: Neo4j not ready yet, waiting..."
-            sleep 2
-          done
-          echo "❌ Neo4j failed to become ready"
-          exit 1
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-
-      - name: Migrate database schema
-        run: npm run migrate:up
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-
-      - name: Seed database
-        run: npm run seed:clear
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
+      - name: Neo4j setup
+        uses: ./.github/actions/neo4j-setup
 
       - name: Build
         run: npm run build
@@ -527,16 +351,14 @@ jobs:
       - name: Start preview server
         run: |
           npm run preview -- -p 3000 &
-          echo "Waiting for preview server to be ready..."
           for i in {1..30}; do
             if curl -s http://localhost:3000 > /dev/null; then
-              echo "✅ Preview server is ready!"
               exit 0
             fi
             echo "Attempt $i/30: Preview server not ready yet, waiting..."
             sleep 2
           done
-          echo "❌ Preview server failed to start"
+          echo "Preview server failed to start"
           exit 1
         env:
           NEO4J_URI: bolt://localhost:7687

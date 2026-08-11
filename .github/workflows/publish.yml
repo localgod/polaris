@@ -73,11 +73,3 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ steps.version.outputs.major }}
           cache-from: type=gha,scope=${{ matrix.cache }}
           cache-to: type=gha,mode=max,scope=${{ matrix.cache }}
-
-  publish-complete:
-    name: Publish complete
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - name: Done
-        run: echo "Both images published successfully."

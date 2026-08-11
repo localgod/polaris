@@ -1,0 +1,46 @@
+name: Neo4j Setup
+description: Wait for Neo4j to be ready, run migrations, and seed the database.
+
+inputs:
+  neo4j-uri:
+    default: bolt://localhost:7687
+  neo4j-username:
+    default: neo4j
+  neo4j-password:
+    default: testpassword
+
+runs:
+  using: composite
+  steps:
+    - name: Wait for Neo4j
+      shell: bash
+      env:
+        NEO4J_URI: ${{ inputs.neo4j-uri }}
+        NEO4J_USERNAME: ${{ inputs.neo4j-username }}
+        NEO4J_PASSWORD: ${{ inputs.neo4j-password }}
+      run: |
+        for i in {1..30}; do
+          if npm run migrate:status > /dev/null 2>&1; then
+            exit 0
+          fi
+          echo "Attempt $i/30: Neo4j not ready yet, waiting..."
+          sleep 2
+        done
+        echo "Neo4j failed to become ready"
+        exit 1
+
+    - name: Migrate database schema
+      shell: bash
+      env:
+        NEO4J_URI: ${{ inputs.neo4j-uri }}
+        NEO4J_USERNAME: ${{ inputs.neo4j-username }}
+        NEO4J_PASSWORD: ${{ inputs.neo4j-password }}
+      run: npm run migrate:up
+
+    - name: Seed database
+      shell: bash
+      env:
+        NEO4J_URI: ${{ inputs.neo4j-uri }}
+        NEO4J_USERNAME: ${{ inputs.neo4j-username }}
+        NEO4J_PASSWORD: ${{ inputs.neo4j-password }}
+      run: npm run seed:clear

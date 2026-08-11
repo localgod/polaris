@@ -114,6 +114,7 @@
     "swagger-jsdoc": "^6.3.0",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
+    "nyc": "^15.1.0",
     "vitest": "^4.1.10"
   }
 }
