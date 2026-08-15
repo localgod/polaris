@@ -10,6 +10,17 @@ services:
 
   neo4j:
     image: neo4j:5-community
+    # Name deliberately identical to docker-compose-local.yml. Docker refuses to
+    # start a second container under a name already in use, and both files
+    # bind-mount the same ../.data/neo4j directory, so the shared name is what
+    # keeps two databases off one data directory.
+    #
+    # On Ona this is inert: docker-in-docker gives each workspace its own daemon
+    # with a single Neo4j, so no collision is possible. The name is set here for
+    # the case that made it matter — this file being run against a local Docker
+    # Desktop daemon alongside docker-compose-local.yml, where the two containers
+    # fight over the store lock and ports 7474/7687 and one restart-loops.
+    container_name: polaris-neo4j
     restart: unless-stopped
     environment:
       NEO4J_AUTH: neo4j/devpassword

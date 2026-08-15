@@ -3,11 +3,22 @@ services:
     image: mcr.microsoft.com/devcontainers/typescript-node:1-22
     volumes:
       - ..:/workspaces/polaris:cached
+      # devcontainer.json declares the docker-out feature, which installs the
+      # docker CLI but cannot supply a daemon on its own. Without this mount
+      # /var/run/docker.sock is a dead stub and every docker command inside the
+      # container fails with "Cannot connect to the Docker daemon" — including
+      # the `docker compose ps/logs` you need to diagnose a sick neo4j service.
+      # Ona uses docker-in-docker instead, so this mount is local-only.
+      - /var/run/docker.sock:/var/run/docker.sock
     command: sleep infinity
     network_mode: host
 
   neo4j:
     image: neo4j:5-community
+    # See the matching comment in docker-compose.yml — the shared name is what
+    # stops the Ona and local compose projects from running two Neo4j containers
+    # against the same ../.data/neo4j directory.
+    container_name: polaris-neo4j
     restart: unless-stopped
     environment:
       NEO4J_AUTH: neo4j/devpassword
