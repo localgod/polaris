@@ -167,15 +167,6 @@
               <UBadge color="warning" variant="subtle">no steward</UBadge>
             </NuxtLink>
             <NuxtLink
-              v-for="name in attention.stewardshipGaps.samplePlatforms"
-              :key="`platform-${name}`"
-              :to="`/platforms/${encodeURIComponent(name)}`"
-              class="flex items-center justify-between gap-2 hover:text-(--ui-color-primary-500)"
-            >
-              <span class="truncate">{{ name }}</span>
-              <UBadge color="warning" variant="subtle">no steward</UBadge>
-            </NuxtLink>
-            <NuxtLink
               v-for="name in attention.stewardshipGaps.sampleSystems"
               :key="`system-${name}`"
               :to="`/systems/${encodeURIComponent(name)}`"
@@ -185,11 +176,11 @@
               <UBadge color="warning" variant="subtle">no owner</UBadge>
             </NuxtLink>
             <p class="text-xs text-(--ui-text-muted)">
-              {{ attention.stewardshipGaps.unstewardedTechnologies + attention.stewardshipGaps.unstewardedPlatforms }} unstewarded,
+              {{ attention.stewardshipGaps.unstewardedTechnologies }} unstewarded,
               {{ attention.stewardshipGaps.unownedSystems }} unowned.
             </p>
           </div>
-          <p v-else class="text-sm text-(--ui-text-muted)">Every technology, platform, and system has an accountable team.</p>
+          <p v-else class="text-sm text-(--ui-text-muted)">Every technology and system has an accountable team.</p>
         </UCard>
 
         <UCard>
@@ -330,10 +321,8 @@ const emptyAttention: DashboardAttentionSummary = {
   componentLinkQueue: null,
   stewardshipGaps: {
     unstewardedTechnologies: 0,
-    unstewardedPlatforms: 0,
     unownedSystems: 0,
     sampleTechnologies: [],
-    samplePlatforms: [],
     sampleSystems: []
   }
 }
@@ -342,7 +331,6 @@ const attention = computed(() => attentionData.value?.data || emptyAttention)
 
 const hasStewardshipGaps = computed(() =>
   attention.value.stewardshipGaps.sampleTechnologies.length > 0
-  || attention.value.stewardshipGaps.samplePlatforms.length > 0
   || attention.value.stewardshipGaps.sampleSystems.length > 0
 )
 

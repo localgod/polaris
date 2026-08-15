@@ -9,7 +9,7 @@
       color="info"
       variant="subtle"
       icon="i-lucide-info"
-      description="This queue is the only way to create a new Technology. A Technology must always be backed by at least one directly-used Component discovered via SBOM scanning — for infrastructure that can never be observed this way (databases, cloud services, etc.), declare a Platform instead."
+      description="This queue is the only way to create a new Technology. A Technology must always be backed by at least one directly-used Component discovered via SBOM scanning."
     />
 
     <UAlert
