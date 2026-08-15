@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.107] - 2026-08-15
+
+## What's Changed
+
+* fix(devcontainer): stop duplicate neo4j containers sharing one data dir @localgod (#850)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.106...v0.6.107
 
 ## [0.6.85] - 2026-07-27
 
