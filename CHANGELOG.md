@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.109] - 2026-08-15
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump @hono/node-server from 1.19.14 to 1.19.17 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#849)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.108...v0.6.109
 
 ## [0.6.85] - 2026-07-27
 
