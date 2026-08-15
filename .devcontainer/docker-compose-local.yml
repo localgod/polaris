@@ -4,11 +4,14 @@ services:
     volumes:
       - ..:/workspaces/polaris:cached
       # devcontainer.json declares the docker-out feature, which installs the
-      # docker CLI but cannot supply a daemon on its own. Without this mount
-      # /var/run/docker.sock is a dead stub and every docker command inside the
-      # container fails with "Cannot connect to the Docker daemon" — including
-      # the `docker compose ps/logs` you need to diagnose a sick neo4j service.
-      # Ona uses docker-in-docker instead, so this mount is local-only.
+      # docker CLI but cannot supply a daemon on its own.
+      #
+      # SECURITY: mounting /var/run/docker.sock gives this container effectively
+      # root-equivalent control over the host's Docker daemon. Keep this local-only.
+      #
+      # Without this mount /var/run/docker.sock is a dead stub and every docker
+      # command inside the container fails with "Cannot connect to the Docker daemon"
+      # — including the `docker compose ps/logs` you need to diagnose a sick neo4j service.
       - /var/run/docker.sock:/var/run/docker.sock
     command: sleep infinity
     network_mode: host
