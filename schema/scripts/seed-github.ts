@@ -545,7 +545,7 @@ async function seedFromGitHub(options: SeedOptions): Promise<void> {
   console.log('\n🌟 GitHub SBOM Seeding\n')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
   
-  // Seed fixtures first (teams, Platforms for non-SBOM-observable infrastructure)
+  // Seed fixtures first (teams)
   // SBOM-discoverable technologies (React, Vue, etc.) are created later from components
   // This must run before ensureTechnicalUserExists because --clear deletes all non-Migration nodes
   await seedFixtures(options.clear)
