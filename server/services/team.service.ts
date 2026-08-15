@@ -26,7 +26,7 @@ export class TeamService {
   }
 
   /**
-   * Technologies/Platforms with no steward and Systems with no owner.
+   * Technologies with no steward and Systems with no owner.
    */
   async getStewardshipGaps(): Promise<StewardshipGaps> {
     return await this.teamRepo.findStewardshipGaps()

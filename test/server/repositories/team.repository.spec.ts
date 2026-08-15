@@ -423,16 +423,6 @@ describe('TeamRepository', () => {
       expect(after.unstewardedTechnologies).toBe(before.unstewardedTechnologies)
     })
 
-    it('counts a newly created unstewarded Platform', async () => {
-      if (!ctx.neo4jAvailable) return
-      const before = await repo.findStewardshipGaps()
-
-      await seed(ctx.driver, `CREATE (:Platform { name: $platform })`, { platform: `${PREFIX}orphan-platform` })
-
-      const after = await repo.findStewardshipGaps()
-      expect(after.unstewardedPlatforms).toBe(before.unstewardedPlatforms + 1)
-    })
-
     it('counts a newly created unowned System', async () => {
       if (!ctx.neo4jAvailable) return
       const before = await repo.findStewardshipGaps()

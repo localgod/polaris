@@ -94,8 +94,6 @@ export interface TeamConstraintsResult {
 export interface StewardshipGaps {
   unstewardedTechnologies: number
   sampleTechnologies: string[]
-  unstewardedPlatforms: number
-  samplePlatforms: string[]
   unownedSystems: number
   sampleSystems: string[]
 }
@@ -308,7 +306,7 @@ export class TeamRepository extends BaseRepository {
   }
 
   /**
-   * Technologies/Platforms with no STEWARDED_BY team and Systems with no
+   * Technologies with no STEWARDED_BY team and Systems with no
    * OWNS team — a small sample of each, for a "needs attention" view.
    */
   async findStewardshipGaps(): Promise<StewardshipGaps> {
@@ -319,8 +317,6 @@ export class TeamRepository extends BaseRepository {
     return {
       unstewardedTechnologies: record?.get('unstewardedTechnologies').toNumber() || 0,
       sampleTechnologies: (record?.get('sampleTechnologies') || []) as string[],
-      unstewardedPlatforms: record?.get('unstewardedPlatforms').toNumber() || 0,
-      samplePlatforms: (record?.get('samplePlatforms') || []) as string[],
       unownedSystems: record?.get('unownedSystems').toNumber() || 0,
       sampleSystems: (record?.get('sampleSystems') || []) as string[]
     }

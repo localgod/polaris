@@ -11,7 +11,6 @@
  */
 
 import { TechnologyService } from './technology.service'
-import { PlatformService } from './platform.service'
 import { TeamService } from './team.service'
 import { SystemService } from './system.service'
 import { UserService } from './user.service'
@@ -37,7 +36,6 @@ import { ViolationService } from './violation.service'
 import { WaiverService } from './waiver.service'
 
 export const technologyService = new TechnologyService()
-export const platformService = new PlatformService()
 export const teamService = new TeamService()
 export const systemService = new SystemService()
 export const userService = new UserService()
