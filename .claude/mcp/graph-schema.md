@@ -3,7 +3,6 @@
 ## Nodes
 
 **Technology** `name, type, vendor, domain, lastReviewed:DATE` — requires >=1 linked Component (via IS_VERSION_OF); can only be created by claiming an existing, unlinked Component
-**Platform** `name, type, vendor, domain` — manually-declared, non-SBOM-observable technology (databases, cloud services); superuser-only to create, no Component relationship
 **System** `name, environment, businessCriticality, domain`
 **Team** `name, responsibilityArea, email`
 **Component** `name, version, type, purl, packageManager, group, bomRef, description, createdAt, updatedAt`
@@ -27,9 +26,7 @@
 ```
 (Team)-[:OWNS]->(System)
 (Team)-[:APPROVES {time, approvedAt:DATETIME, approvedBy, deprecatedAt:DATETIME, migrationTarget, notes}]->(Technology)
-(Team)-[:APPROVES {time, approvedAt:DATETIME, approvedBy, deprecatedAt:DATETIME, migrationTarget, notes}]->(Platform)
 (Team)-[:STEWARDED_BY]->(Technology)
-(Team)-[:STEWARDED_BY]->(Platform)
 (Team)-[:MAINTAINS {since:DATETIME}]->(Repository)
 (Team)-[:SUBJECT_TO]->(VersionConstraint)
 (VersionConstraint)-[:GOVERNS]->(Technology)
@@ -42,7 +39,7 @@
 (Component)-[:HAS_LICENSE {source, expression}]->(License)
 (Component)-[:HAS_HASH]->(Hash)
 (Component)-[:HAS_EXTERNAL_REF]->(ExternalReference)
-(AuditLog)-[:AUDITS]->(Technology|Platform|Team|VersionConstraint|System)
+(AuditLog)-[:AUDITS]->(Technology|Team|VersionConstraint|System)
 (AuditLog)-[:PERFORMED_BY]->(User)
 (User)-[:MEMBER_OF]->(Team)
 (User)-[:CAN_MANAGE]->(Team)
@@ -58,7 +55,7 @@
 - `USES.isDirect` — true if the component is a direct dependency of the system (not transitive)
 - `Component.purl` is the unique identifier (Package URL format)
 - `HealthSnapshot` is 1:1 with Component — always use `HAS_HEALTH_SNAPSHOT` to join
-- A `Technology` can never exist without >=1 `Component` linked via `IS_VERSION_OF` — Neo4j Community Edition can't enforce this as a DB constraint, so it's enforced only in `TechnologyService.createFromComponent()`. `Platform` is the manually-declared escape valve for non-SBOM-observable technology; see `docs/architecture/decisions/0004-technology-requires-component.md`.
+- A `Technology` can never exist without >=1 `Component` linked via `IS_VERSION_OF` — Neo4j Community Edition can't enforce this as a DB constraint, so it's enforced only in `TechnologyService.createFromComponent()`. See `docs/architecture/decisions/0004-technology-requires-component.md`. (A manually-declared `Platform` escape valve for non-SBOM-observable technology existed briefly but was removed — see `docs/architecture/decisions/0007-remove-platform-concept.md`.)
 - `VersionConstraint` was renamed from `Policy`; there is no `Policy` label any more.
 - There is no `Version` node — version-level data (release/EOL dates, approval) lives on `Component`/`APPROVES` at the Technology level only. A prior `Technology-[:HAS_VERSION]->Version` design was retired (schema/migrations/common/20260729_090000_remove_version_node) since nothing ever populated it.
 - Node/relationship counts change frequently — query live counts (`MATCH (n) RETURN labels(n), count(*)`) rather than trusting a hardcoded snapshot here.

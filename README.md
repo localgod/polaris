@@ -10,7 +10,6 @@ An enterprise technology catalog built with Nuxt 4 and Neo4j graph database. Tra
 
 Polaris helps organizations manage their technology landscape by:
 - **Technology Catalog**: Track approved technologies and their versions — every Technology is backed by at least one real, SBOM-discovered Component, so the catalog reflects what's actually running, not just what's been proposed
-- **Platform Catalog**: Track infrastructure and services SBOM scanning can never observe (databases, cloud platforms) as a separate, superuser-declared catalog
 - **Team-Specific Approvals**: Different approval policies per team with version-specific controls
 - **System Inventory**: Map systems and their technology dependencies
 - **Team Ownership**: Link technologies and systems to responsible teams
@@ -158,7 +157,6 @@ The API documentation includes:
 - **Systems**: System management and CRUD operations
 - **Components**: Component catalog and dependency tracking
 - **Technologies**: Evidence-backed technology catalog with version management — creation requires an existing, unlinked Component
-- **Platforms**: Manually-declared catalog for infrastructure SBOM scanning can't observe
 - **Teams**: Team management and ownership
 - **Policies**: Policy and compliance management
 - **Repositories**: Source code repository tracking
@@ -328,7 +326,7 @@ Polaris tracks all data changes with complete context for compliance, security, 
 - **Rich Context**: Capture IP address, session, reason, and metadata
 
 **What Gets Audited:**
-- CRUD operations on all entities (Technology, Platform, System, Team, Policy, Component, User)
+- CRUD operations on all entities (Technology, System, Team, Policy, Component, User)
 - Approval operations with TIME framework decisions
 - SBOM uploads and component tracking
 - Relationship changes (ownership, stewardship)
