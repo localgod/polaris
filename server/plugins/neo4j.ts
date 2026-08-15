@@ -12,7 +12,7 @@ const RETRY_DELAY_MS = 3000
  */
 export default defineNitroPlugin(async (nitroApp) => {
   const driver = useDriver()
-  const uri = process.env.NEO4J_URI || 'bolt://localhost:7687'
+  const uri = useRuntimeConfig().neo4j?.uri || process.env.NEO4J_URI || 'bolt://localhost:7687'
 
   for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
     try {
