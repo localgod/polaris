@@ -184,11 +184,17 @@ jobs:
         if: matrix.test-layer == 'app-e2e' || matrix.test-layer == 'integration'
         run: |
           npm run dev &
+          ready=0
           for i in {1..30}; do
-            if curl -s http://localhost:3000 > /dev/null; then
-              exit 0
+            if curl -sf http://localhost:3000/api/version > /dev/null; then
+              ready=$((ready + 1))
+              if [ "$ready" -ge 2 ]; then
+                exit 0
+              fi
+            else
+              ready=0
+              echo "Attempt $i/30: Dev server not ready yet, waiting..."
             fi
-            echo "Attempt $i/30: Dev server not ready yet, waiting..."
             sleep 2
           done
           echo "Dev server failed to start"
