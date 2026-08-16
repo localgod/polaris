@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.111] - 2026-08-16
+
+## What's Changed
+
+* Fix navigation UX and License Administration page @localgod (#858)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.110...v0.6.111
 
 ## [0.6.85] - 2026-07-27
 
