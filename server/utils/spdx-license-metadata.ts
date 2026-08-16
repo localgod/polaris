@@ -18,8 +18,8 @@ const spdxRegistry = spdxFull as Record<string, { name: string; url?: string; os
 // public-domain/other). Anything unmatched falls back to 'other', same as
 // the original hand-picked classification this replaces.
 const COPYLEFT_PATTERN = /^(A?L?GPL|MPL|EPL|CDDL|EUPL|OSL|CPL|SLEEPYCAT|CECILL)/i
-const PERMISSIVE_PATTERN = /^(MIT|BSD|APACHE|ISC|ZLIB|PYTHON|BOOST|BLUEOAK|NCSA|X11)/i
-const PUBLIC_DOMAIN_IDS = new Set(['CC0-1.0', 'Unlicense', 'Public Domain', '0BSD'])
+const PERMISSIVE_PATTERN = /^(MIT|BSD|0BSD|APACHE|ISC|ZLIB|PYTHON|BOOST|BLUEOAK|NCSA|X11)/i
+const PUBLIC_DOMAIN_IDS = new Set(['CC0-1.0', 'Unlicense', 'Public Domain'])
 
 export function classifyLicenseCategory(licenseId: string): LicenseCategory {
   if (PUBLIC_DOMAIN_IDS.has(licenseId)) return 'public-domain'
