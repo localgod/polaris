@@ -66,10 +66,10 @@ export class SBOMRepository extends BaseRepository {
         // Same id the Cypher MERGE keys the License node on — enrich against
         // that so free-text entries without a real SPDX id still classify.
         const meta = getSpdxLicenseMetadata(l.id ?? l.name)
-        return {
-          id: l.id, name: l.name, url: l.url, expression: l.expression,
-          spdxId: meta.spdxId, category: meta.category, osiApproved: meta.osiApproved
-        }
+      return {
+        id: l.id, name: l.name ?? meta.name, url: l.url, expression: l.expression,
+        spdxId: meta.spdxId, category: meta.category, osiApproved: meta.osiApproved
+      }
       }),
       externalReferences: comp.externalReferences.map(r => ({ type: r.type, url: r.url })),
     }))
