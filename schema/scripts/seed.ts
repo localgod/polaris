@@ -25,34 +25,6 @@ interface FixtureData {
     email: string
     responsibilityArea: string
   }>
-  // Manually-declared, non-SBOM-observable technology (databases, runtimes,
-  // container tooling) -- npm run seed never has real Component data
-  // available (that only exists after `npm run seed:github` scans real
-  // repos), so nothing it creates can honestly be an evidence-backed
-  // Technology. Real Technology fixtures live in component_technologies
-  // below, seeded separately by seed-github.ts once Components exist.
-  platforms: Array<{
-    name: string
-    type: string
-    domain?: string
-    vendor: string
-  }>
-  relationships: {
-    team_platforms: Array<{ team: string; platform: string }>
-  }
-  approvals: {
-    team_platform_approvals: Array<{
-      team: string
-      platform: string
-      time: string
-      approvedAt?: string
-      deprecatedAt?: string
-      eolDate?: string
-      migrationTarget?: string
-      notes?: string
-      approvedBy?: string
-    }>
-  }
 }
 
 async function getDriver() {
@@ -103,92 +75,6 @@ async function seedTeams(driver: neo4j.Driver, teams: FixtureData['teams']) {
   }
 }
 
-async function seedPlatforms(driver: neo4j.Driver, platforms: FixtureData['platforms']) {
-  const session = driver.session()
-  try {
-    console.log('🔧 Seeding platforms...')
-
-    for (const platform of platforms) {
-      await session.run(
-        `
-        MERGE (p:Platform {name: $name})
-        SET p.type = $type,
-            p.domain = $domain,
-            p.vendor = $vendor
-        `,
-        platform
-      )
-    }
-
-    console.log(`✅ Seeded ${platforms.length} platforms`)
-  } finally {
-    await session.close()
-  }
-}
-
-async function seedRelationships(driver: neo4j.Driver, relationships: FixtureData['relationships']) {
-  const session = driver.session()
-  try {
-    console.log('🔗 Creating relationships...')
-
-    // Team -> Platform (stewardship)
-    for (const rel of relationships.team_platforms) {
-      await session.run(
-        `
-        MATCH (team:Team {name: $team})
-        MATCH (platform:Platform {name: $platform})
-        MERGE (team)-[:STEWARDED_BY]->(platform)
-        `,
-        rel
-      )
-    }
-    console.log(`✅ Created ${relationships.team_platforms.length} team stewardship relationships`)
-
-  } finally {
-    await session.close()
-  }
-}
-
-async function seedApprovals(driver: neo4j.Driver, approvals: FixtureData['approvals']) {
-  const session = driver.session()
-  try {
-    console.log('✅ Seeding team approvals...')
-
-    // Team -> Platform approvals
-    for (const approval of approvals.team_platform_approvals) {
-      await session.run(
-        `
-        MATCH (team:Team {name: $team})
-        MATCH (platform:Platform {name: $platform})
-        MERGE (team)-[a:APPROVES]->(platform)
-        SET a.time = $time,
-            a.approvedAt = CASE WHEN $approvedAt IS NOT NULL THEN datetime($approvedAt) ELSE datetime() END,
-            a.deprecatedAt = CASE WHEN $deprecatedAt IS NOT NULL THEN datetime($deprecatedAt) ELSE null END,
-            a.eolDate = CASE WHEN $eolDate IS NOT NULL THEN date($eolDate) ELSE null END,
-            a.migrationTarget = $migrationTarget,
-            a.notes = $notes,
-            a.approvedBy = $approvedBy
-        `,
-        {
-          team: approval.team,
-          platform: approval.platform,
-          time: approval.time,
-          approvedAt: approval.approvedAt || null,
-          deprecatedAt: approval.deprecatedAt || null,
-          eolDate: approval.eolDate || null,
-          migrationTarget: approval.migrationTarget || null,
-          notes: approval.notes || null,
-          approvedBy: approval.approvedBy || null
-        }
-      )
-    }
-    console.log(`✅ Created ${approvals.team_platform_approvals.length} team-platform approvals`)
-
-  } finally {
-    await session.close()
-  }
-}
-
 async function seed(options: { clear?: boolean } = {}) {
   const driver = await getDriver()
 
@@ -207,14 +93,6 @@ async function seed(options: { clear?: boolean } = {}) {
 
     // Seed nodes
     await seedTeams(driver, fixtureData.teams)
-    await seedPlatforms(driver, fixtureData.platforms)
-    // Seed relationships
-    await seedRelationships(driver, fixtureData.relationships)
-
-    console.log('')
-
-    // Seed approvals
-    await seedApprovals(driver, fixtureData.approvals)
 
     console.log('\n✅ Database seeding completed successfully!\n')
 
@@ -222,16 +100,13 @@ async function seed(options: { clear?: boolean } = {}) {
     const session = driver.session()
     try {
       const result = await session.run(`
-        MATCH (t:Team) WITH count(t) as teams
-        MATCH (p:Platform) WITH teams, count(p) as platforms
-        RETURN teams, platforms
+        MATCH (t:Team) RETURN count(t) as teams
       `)
 
       if (result.records.length > 0) {
         const record = result.records[0]
         console.log('📊 Summary:')
         console.log(`   Teams: ${record.get('teams')}`)
-        console.log(`   Platforms: ${record.get('platforms')}`)
         console.log('')
         console.log('💡 To add systems, repositories, components, and evidence-backed')
         console.log('   Technologies (React, Vue, etc.), run:')

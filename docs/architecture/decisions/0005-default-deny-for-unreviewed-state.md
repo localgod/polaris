@@ -12,7 +12,7 @@ Two independent parts of Polaris already implement the same posture without ever
 to it in writing:
 
 - `TeamRepository.checkApproval()` — when a team has never recorded a TIME stance on a
-  technology or platform, the check doesn't return "unknown" or "pending" — it returns
+  technology, the check doesn't return "unknown" or "pending" — it returns
   `eliminate`, the same value as if the team had actively voted to eliminate it.
 - `LicenseRepository.isAllowed()` — when a license has no explicit `allowed` property set at
   all, it's treated as **not allowed**, the same outcome as a license someone reviewed and
@@ -64,7 +64,7 @@ violation reporting until someone actively decides?
 absent.** Concretely:
 
 1. `TeamRepository.checkApproval()` continues to return `eliminate` when no explicit TIME
-   approval exists for a team/technology (or team/platform) pair. This is now a documented
+   approval exists for a team/technology pair. This is now a documented
    rule, not an implementation accident.
 2. `LicenseRepository.isAllowed()` continues to return `false` when a license has no explicit
    `allowed` value recorded. Same status change: documented, not incidental.
@@ -92,7 +92,7 @@ this decision, without anyone revisiting the ADR.
 On review, the 3-state model is the better fit and is now the standing rule for TIME approvals:
 
 - **`TeamRepository.checkApproval()` (`GET /api/approvals`) now returns `time: 'unclassified'`**
-  (not `'eliminate'`) when no explicit approval exists for the team/technology (or team/platform)
+  (not `'eliminate'`) when no explicit approval exists for the team/technology
   pair, matching the Radar/scorecard/compliance precedent. `level: 'default'` is unchanged.
 - This does **not** weaken default-deny: an `unclassified` result is still meant to be treated as a
   compliance problem by any caller checking approval status, exactly as `eliminate` is. The

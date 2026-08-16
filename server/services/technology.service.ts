@@ -162,7 +162,6 @@ export class TechnologyService {
    * Create a new technology by claiming an existing, currently-unlinked
    * Component. A Technology can never exist without at least one linked
    * Component — see docs/architecture/decisions/0004-technology-requires-component.md.
-   * Manually-declared, non-SBOM-observable technology belongs in Platform instead.
    *
    * @param input - Technology creation input
    * @returns Created technology name

@@ -244,7 +244,7 @@ export async function getUserTeams(event: H3Event): Promise<string[]> {
 /**
  * Validate that a system belongs to one of the user's teams.
  *
- * Technology/Platform ownership checks are inlined at their call sites
+ * Technology ownership checks are inlined at their call sites
  * instead (they compare against findOwnerTeam()/findStewardTeam()) rather
  * than going through this helper.
  */

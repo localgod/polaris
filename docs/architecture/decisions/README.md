@@ -61,6 +61,7 @@ Examples:
 - [ADR-0004: Technology Requires a Component](0004-technology-requires-component.md) - Accepted
 - [ADR-0005: Default-Deny for Unreviewed Governance State](0005-default-deny-for-unreviewed-state.md) - Accepted
 - [ADR-0006: Governance Applies to Direct Dependencies Only](0006-governance-applies-to-direct-dependencies-only.md) - Accepted
+- [ADR-0007: Remove the Platform Concept](0007-remove-platform-concept.md) - Accepted
 
 ## References
 

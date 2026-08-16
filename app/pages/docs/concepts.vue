@@ -16,7 +16,7 @@
           variant="subtle"
           icon="i-lucide-info"
           title="Core distinction"
-          description="A Technology is confirmed from a Component that SBOM scanning actually discovered in your systems — it can never exist without that evidence. A Platform is the deliberate exception: infrastructure and services (databases, cloud platforms) that SBOM scanning can never observe, declared manually by a superuser instead. Polaris uses this discovery-first model to keep governance grounded in what's actually running, not just what's been typed into a form."
+          description="A Technology is confirmed from a Component that SBOM scanning actually discovered in your systems — it can never exist without that evidence. Polaris uses this discovery-first model to keep governance grounded in what's actually running, not just what's been typed into a form."
         />
       </div>
     </UCard>
@@ -134,38 +134,6 @@
         </UCard>
       </div>
     </div>
-
-    <!-- Platform -->
-    <UCard>
-      <template #header>
-        <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-server" class="w-5 h-5 text-(--ui-primary)" />
-          <h2 class="text-lg font-semibold">Platform</h2>
-        </div>
-      </template>
-      <div class="space-y-6">
-        <p class="text-(--ui-text-muted)">
-          A <strong>Platform</strong> is the deliberate exception to Technology's evidence requirement: infrastructure and services that SBOM scanning can never observe from a source repository, no matter how real their usage is.
-        </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <UPageFeature
-            v-for="char in platformCharacteristics"
-            :key="char.title"
-            :icon="char.icon"
-            :title="char.title"
-            :description="char.description"
-            orientation="horizontal"
-          />
-        </div>
-        <UAlert
-          color="warning"
-          variant="subtle"
-          icon="i-lucide-shield-alert"
-          title="Why superuser-only?"
-          description="Platform is the one place a governance record can exist without evidence behind it. Restricting creation to superusers keeps that exception rare and deliberate, rather than becoming a backdoor around the Technology catalog's evidence requirement."
-        />
-      </div>
-    </UCard>
 
     <!-- How Polaris Works -->
     <UCard>
@@ -408,18 +376,18 @@ const technologyCharacteristics = [
   { icon: 'i-lucide-link', title: 'Requires a component', description: 'Can only be created by claiming at least one discovered, unlinked software component — never created from scratch' },
 ]
 
-// This same type/domain vocabulary is shared by Technology and Platform — it
-// describes a technology's category/shape, which is orthogonal to how it was
-// discovered. Examples below are split accordingly: Technology examples are
-// real npm/Maven/etc. packages a SBOM scan can surface; Platform examples are
-// infrastructure/services that can't be, however they're categorized.
+// This type/domain vocabulary describes a technology's category/shape. Some
+// values (container, platform, infrastructure, data-platform, etc.) describe
+// infrastructure-flavored technology — these only appear as real Technology
+// entries when a SBOM scan genuinely surfaces them as a Component (e.g., an
+// OS image or container scan), not by manual declaration.
 const technologyTypes = [
   { name: 'application', description: 'Standalone software applications (e.g., a packaged CLI tool)' },
   { name: 'framework', description: 'Application frameworks (e.g., React, Vue, Express)' },
   { name: 'library', description: 'Reusable code libraries (e.g., Lodash, TypeScript)' },
-  { name: 'container', description: 'Container runtimes and images — almost always a Platform (e.g., Docker)' },
-  { name: 'platform', description: 'Runtimes and infrastructure platforms — almost always a Platform, not a Technology (e.g., Node.js, PostgreSQL, Redis, Kubernetes)' },
-  { name: 'operating-system', description: 'Operating systems — a Platform unless a container/OS image scan genuinely surfaces it as a Component (e.g., Alpine Linux, Ubuntu)' },
+  { name: 'container', description: 'Container runtimes and images (e.g., Docker), when discovered as a Component' },
+  { name: 'platform', description: 'Runtimes and infrastructure platforms (e.g., Node.js, PostgreSQL, Redis, Kubernetes), when discovered as a Component' },
+  { name: 'operating-system', description: 'Operating systems, when a container/OS image scan genuinely surfaces one as a Component (e.g., Alpine Linux, Ubuntu)' },
   { name: 'device', description: 'Hardware devices' },
   { name: 'device-driver', description: 'Device drivers' },
   { name: 'firmware', description: 'Firmware' },
@@ -429,13 +397,13 @@ const technologyTypes = [
 ]
 
 const technologyDomains = [
-  { name: 'foundational-runtime', description: 'Core execution environments — almost always a Platform (e.g., Node.js, JVM, .NET, Python)' },
+  { name: 'foundational-runtime', description: 'Core execution environments (e.g., Node.js, JVM, .NET, Python), when discovered as a Component' },
   { name: 'framework', description: 'Application frameworks (e.g., React, Vue, Express)' },
-  { name: 'data-platform', description: 'Databases and data storage — almost always a Platform (e.g., PostgreSQL, Neo4j, Redis, MongoDB)' },
-  { name: 'integration-platform', description: 'Messaging and integration — often a Platform (e.g., Kafka, RabbitMQ), though a client library like a gRPC codegen package can be a real Technology' },
-  { name: 'security-identity', description: 'Authentication, authorization, and security (e.g., an OAuth2 client library as Technology; Keycloak or Vault as Platform)' },
-  { name: 'infrastructure', description: 'Deployment and infrastructure — almost always a Platform (e.g., Docker, Kubernetes, Terraform)' },
-  { name: 'observability', description: 'Monitoring and observability (e.g., an OpenTelemetry SDK as Technology; Prometheus or Grafana as Platform)' },
+  { name: 'data-platform', description: 'Databases and data storage (e.g., PostgreSQL, Neo4j, Redis, MongoDB), when discovered as a Component' },
+  { name: 'integration-platform', description: 'Messaging and integration (e.g., Kafka, RabbitMQ), though a client library like a gRPC codegen package can be a more typical Technology' },
+  { name: 'security-identity', description: 'Authentication, authorization, and security (e.g., an OAuth2 client library, or Keycloak/Vault when discovered as a Component)' },
+  { name: 'infrastructure', description: 'Deployment and infrastructure (e.g., Docker, Kubernetes, Terraform), when discovered as a Component' },
+  { name: 'observability', description: 'Monitoring and observability (e.g., an OpenTelemetry SDK, or Prometheus/Grafana when discovered as a Component)' },
   { name: 'developer-tooling', description: 'Build tools, linters, and dev utilities — usually real Technology, since these are typically real dependencies (e.g., ESLint, Webpack, TypeScript)' },
   { name: 'other', description: "Technologies that don't fit other domains" },
 ]
@@ -452,15 +420,6 @@ const componentCharacteristics = [
   { icon: 'i-lucide-shield', title: 'Compliance tracked', description: 'Monitored for compliance, security, and licensing' },
   { icon: 'i-lucide-link-2', title: 'Optional technology link', description: 'May or may not map to a governed Technology' },
   { icon: 'i-lucide-server', title: 'System-specific', description: 'Used in one or more systems across the organization' },
-]
-
-const platformCharacteristics = [
-  { icon: 'i-lucide-shield-off', title: 'No evidence required', description: 'Unlike Technology, never needs a linked Component — that is the entire point of the entity' },
-  { icon: 'i-lucide-user-cog', title: 'Superuser-only creation', description: 'The deliberate, narrow exception to evidence-based governance' },
-  { icon: 'i-lucide-users', title: 'Same stewardship model', description: 'One team stewards each Platform, same as Technology' },
-  { icon: 'i-lucide-clock', title: 'Same TIME framework', description: 'Tracked through Tolerate, Invest, Migrate, Eliminate, same as Technology' },
-  { icon: 'i-lucide-database', title: 'Typical examples', description: 'Databases, cloud services, container runtimes — PostgreSQL, MongoDB, Docker' },
-  { icon: 'i-lucide-ban', title: 'No version tracking yet', description: 'Version/EOL tracking for Platforms is not yet built — a known gap, not an oversight' },
 ]
 
 const comparisonRows = [

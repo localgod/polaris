@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted**
+**Accepted** — Decision point 3 (the `Platform` exception) and its associated Consequences are **superseded by [ADR-0007](0007-remove-platform-concept.md)**. The rest of this decision (Technology requires a Component) stands.
 
 Date: 2026-07-02
 

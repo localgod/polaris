@@ -46,8 +46,6 @@ const healthSummary = {
 const stewardshipGaps = {
   unstewardedTechnologies: 2,
   sampleTechnologies: ['Orphan Tech'],
-  unstewardedPlatforms: 0,
-  samplePlatforms: [],
   unownedSystems: 1,
   sampleSystems: ['Orphan System']
 }

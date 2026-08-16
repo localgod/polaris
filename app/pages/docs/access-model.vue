@@ -185,7 +185,6 @@ const accessRows = [
   { element: 'Repositories', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Added to systems; viewed as part of system detail' },
   { element: 'Components', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Created only via SBOM ingestion, never directly. Deleting a System cascades to the Components used only by that System — ones shared with other Systems are preserved.' },
   { element: 'Technologies', view: 'Public', create: 'Superuser', edit: 'Owner team*', delete: 'Owner team*', notes: 'Created via the component-links queue only, by claiming an unlinked Component. * Edit/delete: superusers or members of the technology\'s steward team' },
-  { element: 'Platforms', view: 'Public', create: 'Superuser', edit: 'Steward team*', delete: 'Steward team*', notes: 'No Component required — the deliberate exception for non-SBOM-observable infrastructure. * Superusers or members of the platform\'s steward team' },
   { element: 'Teams', view: 'Public', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Full team management is superuser-only. A team cannot be deleted while it still owns Systems — reassign or remove them first.' },
   { element: 'Users', view: 'Superuser', create: 'Superuser', edit: '—', delete: 'Superuser', notes: 'Technical users only; OAuth users are created on sign-in' },
   { element: 'API Tokens', view: 'Authenticated', create: 'Authenticated', edit: '—', delete: 'Authenticated', notes: 'Users manage their own tokens from /profile. Superusers also manage tokens for technical users. Token value shown once on creation. An expired token resolves to no session at all — there is no degraded or read-only fallback.' },
@@ -193,7 +192,7 @@ const accessRows = [
   { element: 'Licenses', view: 'Public', create: '—', edit: '—', delete: '—', notes: 'Discovered via SBOM ingestion; not directly managed' },
   { element: 'License Allow/Deny', view: 'Superuser', create: 'Superuser', edit: 'Superuser', delete: 'Superuser', notes: 'Superusers manage the organization license whitelist. A license with no recorded decision defaults to not allowed. Bulk status updates are all-or-nothing — if any license in the batch doesn\'t exist, none of the batch is applied.' },
   { element: 'Violations', view: 'Authenticated', create: '—', edit: '—', delete: '—', notes: 'Compliance and version constraint violations; read-only for authenticated users' },
-  { element: 'Approvals', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Team members approve technologies or platforms for their team. Superusers can record an approval on behalf of any team, bypassing the membership check.' },
+  { element: 'Approvals', view: 'Public', create: 'Authenticated', edit: '—', delete: '—', notes: 'Team members approve technologies for their team. Superusers can record an approval on behalf of any team, bypassing the membership check.' },
   { element: 'SBOMs', view: '—', create: 'Authenticated', edit: '—', delete: '—', notes: 'Submitted via API; creates/updates components and licenses. The repositoryUrl must already match a registered System — submission never creates a System implicitly.' },
   { element: 'Audit Logs', view: 'Authenticated', create: '—', edit: '—', delete: '—', notes: 'Automatically generated; read-only' },
   { element: 'GitHub Import', view: '—', create: 'Superuser', edit: '—', delete: '—', notes: 'Creates a system from a GitHub repo without cloning' },
@@ -212,7 +211,6 @@ const creationRows = [
   { element: 'Repositories', method: 'Added when creating or editing a system, or via GitHub import' },
   { element: 'Components', method: 'Discovered automatically when an SBOM is submitted — never created directly' },
   { element: 'Technologies', method: 'Confirmed from an unlinked SBOM-discovered Component via the /admin/component-links queue (superuser-only)' },
-  { element: 'Platforms', method: 'Created via the UI form by superusers — no Component required' },
   { element: 'Teams', method: 'Created via the UI by superusers' },
   { element: 'Users (OAuth)', method: 'Created automatically on first sign-in via GitHub OAuth' },
   { element: 'Users (Technical)', method: 'Created via the UI by superusers for API access' },
@@ -220,7 +218,7 @@ const creationRows = [
   { element: 'API Tokens (technical users)', method: 'Generated via the Users admin page by superusers' },
   { element: 'Version Constraints', method: 'Created via the UI by authenticated users' },
   { element: 'Licenses', method: 'Discovered automatically from SBOM component metadata' },
-  { element: 'Approvals', method: 'Created when a team member approves a technology or platform for their team' },
+  { element: 'Approvals', method: 'Created when a team member approves a technology for their team' },
   { element: 'Audit Logs', method: 'Generated automatically on every create, update, and delete operation' },
 ]
 

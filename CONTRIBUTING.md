@@ -858,14 +858,8 @@ The project implements a Technology Catalog with SBOM support.
 **Technology** - Governed software entities requiring approval
 - Strategic architectural decisions
 - Subject to policies and TIME framework
-- Requires at least one linked Component (SBOM-observed evidence of real usage) — see Platform below for technology that can never have that evidence
+- Requires at least one linked Component (SBOM-observed evidence of real usage)
 - Examples: React, Vue, TypeScript
-
-**Platform** - Manually-declared technology that can never be SBOM-observed
-- Databases, cloud services, container runtimes, and other infrastructure a source-manifest SBOM scan cannot surface
-- Superuser-only to create — the deliberate "no evidence required" exception, kept separate from Technology's evidence-only catalog
-- Carries the same stewardship and TIME-approval shape as Technology, but no Component/Version relationship
-- Examples: PostgreSQL, MongoDB, Docker
 
 **Version** - Specific versions with approval status
 - Version numbers and release dates
@@ -923,9 +917,9 @@ The project implements a Technology Catalog with SBOM support.
 ### Key Relationships
 
 **Governance:**
-- `(Team)-[:STEWARDED_BY]->(Technology|Platform)` - Technical governance
+- `(Team)-[:STEWARDED_BY]->(Technology)` - Technical governance
 - `(Team)-[:OWNS]->(System)` - Operational ownership
-- `(Team)-[:APPROVES]->(Technology|Platform|Version)` - Usage approval with TIME category
+- `(Team)-[:APPROVES]->(Technology|Version)` - Usage approval with TIME category
 - `(Team)-[:USES]->(Technology)` - Actual usage (auto-inferred)
 - `(Policy)-[:APPLIES_TO]->(Technology)` - Policy enforcement
 
@@ -948,7 +942,8 @@ The project implements a Technology Catalog with SBOM support.
 ### Documentation
 
 - `app/pages/docs/architecture/graph-model.vue` - Complete graph model documentation (in-app page, `/docs/architecture/graph-model`)
-- `docs/architecture/decisions/0004-technology-requires-component.md` - Why Technology requires a Component and Platform exists
+- `docs/architecture/decisions/0004-technology-requires-component.md` - Why Technology requires a Component
+- `docs/architecture/decisions/0007-remove-platform-concept.md` - Why the (now-removed) Platform exception was dropped
 - `docs/sbom-schema-design.md` - SBOM schema design
 - `schema/fixtures/example-queries.cypher` - Query examples
 

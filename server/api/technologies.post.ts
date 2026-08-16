@@ -13,8 +13,7 @@ import { auditFailedOperation } from '../utils/audit'
  *       Creates a new technology by claiming an existing, currently-unlinked Component —
  *       a Technology can never exist without at least one linked Component. All Component
  *       nodes sharing `componentName` that aren't already linked to a Technology are
- *       linked in the same operation. For technology that can never be observed by SBOM
- *       scanning (databases, cloud services, etc.), use POST /platforms instead.
+ *       linked in the same operation.
  *
  *       Superuser only — this mirrors the gate already on linking a component to an
  *       *existing* technology (POST /technologies/{name}/components), so creating a new
