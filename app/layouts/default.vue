@@ -7,7 +7,7 @@
       :rail="true"
       class="border-r border-default bg-(--ui-bg-elevated)"
     >
-      <template #header="{ state }">
+      <template #header="{ state, close }">
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 min-w-0">
           <UIcon name="i-lucide-zap" class="w-6 h-6 shrink-0 text-(--ui-primary)" />
@@ -19,6 +19,15 @@
             <div v-if="state === 'expanded'" class="w-8 h-8" />
           </template>
         </ClientOnly>
+        <UButton
+          icon="i-lucide-x"
+          variant="ghost"
+          color="neutral"
+          size="xs"
+          class="sm:hidden"
+          aria-label="Close menu"
+          @click="close"
+        />
       </template>
 
       <!-- Default slot: navigation body -->
@@ -213,6 +222,14 @@ const { public: { appVersion } } = useRuntimeConfig()
 const { data: session, status, signOut } = useAuth()
 const { impersonation, impersonationLoading, fetchImpersonationStatus, startImpersonating, stopImpersonating } = useImpersonation()
 const { isSuperuser } = useEffectiveRole()
+const route = useRoute()
+
+// A parent nav item stays highlighted for its child/detail routes too (e.g. /technologies/TypeScript
+// keeps "Technologies" active) since these are sibling routes, not nested ones, so vue-router's own
+// active-route matching can't bridge them.
+function isNavActive(to: string) {
+  return to === '/' ? route.path === '/' : route.path.startsWith(to)
+}
 
 // Sidebar open state — persisted across reloads
 const sidebarOpen = useLocalStorage('polaris:sidebar:open', true)
@@ -268,42 +285,50 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
     {
       label: 'Home',
       icon: 'i-lucide-home',
-      to: '/'
+      to: '/',
+      active: isNavActive('/')
     },
     {
       label: 'Technologies',
       icon: 'i-lucide-settings',
-      to: '/technologies'
+      to: '/technologies',
+      active: isNavActive('/technologies')
     },
     {
       label: 'Systems',
       icon: 'i-lucide-cpu',
-      to: '/systems'
+      to: '/systems',
+      active: isNavActive('/systems')
     },
     {
       label: 'Components',
       icon: 'i-lucide-box',
-      to: '/components'
+      to: '/components',
+      active: isNavActive('/components')
     },
     {
       label: 'Licenses',
       icon: 'i-lucide-scale',
-      to: '/licenses'
+      to: '/licenses',
+      active: isNavActive('/licenses')
     },
     {
       label: 'Teams',
       icon: 'i-lucide-users',
-      to: '/teams'
+      to: '/teams',
+      active: isNavActive('/teams')
     },
     {
       label: 'Version Constraints',
       icon: 'i-lucide-file-text',
-      to: '/version-constraints'
+      to: '/version-constraints',
+      active: isNavActive('/version-constraints')
     },
     {
       label: 'Version Sprawl',
       icon: 'i-lucide-layers',
-      to: '/version-sprawl'
+      to: '/version-sprawl',
+      active: isNavActive('/version-sprawl')
     }
   ]
 
@@ -312,12 +337,14 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
       {
         label: 'Violations',
         icon: 'i-lucide-alert-triangle',
-        to: '/violations'
+        to: '/violations',
+        active: isNavActive('/violations')
       },
       {
         label: 'Audit Log',
         icon: 'i-lucide-clipboard-list',
-        to: '/audit'
+        to: '/audit',
+        active: isNavActive('/audit')
       }
     )
   }
@@ -325,24 +352,38 @@ const mainMenuItems = computed<NavigationMenuItem[][]>(() => {
   // Add admin items for superusers (hidden when impersonating a non-superuser)
   if (isSuperuser.value) {
     items.push({
+      label: 'Admin',
+      type: 'label'
+    })
+    items.push({
       label: 'Users',
       icon: 'i-lucide-user-cog',
-      to: '/users'
+      to: '/users',
+      active: isNavActive('/users')
     })
     items.push({
       label: 'Component Links',
       icon: 'i-lucide-link',
-      to: '/admin/component-links'
+      to: '/admin/component-links',
+      active: isNavActive('/admin/component-links')
     })
     items.push({
       label: 'Dismissed Components',
       icon: 'i-lucide-undo-2',
-      to: '/admin/dismissed-links'
+      to: '/admin/dismissed-links',
+      active: isNavActive('/admin/dismissed-links')
     })
     items.push({
       label: 'Background Jobs',
       icon: 'i-lucide-download',
-      to: '/admin/import-jobs'
+      to: '/admin/import-jobs',
+      active: isNavActive('/admin/import-jobs')
+    })
+    items.push({
+      label: 'License Administration',
+      icon: 'i-lucide-shield-check',
+      to: '/admin/licenses',
+      active: isNavActive('/admin/licenses')
     })
     items.push({
       label: 'Impersonate User',

@@ -16,6 +16,7 @@
     </UAlert>
 
     <template v-else-if="user">
+      <UBreadcrumb :items="[{ label: 'Users', to: '/users' }, { label: user.name || user.email }]" />
       <!-- Header -->
       <div class="flex justify-between items-start">
         <UPageHeader
@@ -55,7 +56,7 @@
             />
           </div>
         </template>
-        <UTabs :items="tabItems">
+        <UTabs v-model="activeTab" :items="tabItems">
           <template #teams>
             <UTable :data="user.teams" :columns="teamColumns" class="mt-3">
               <template #empty>
@@ -149,6 +150,7 @@ import { h } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 
 const route = useRoute()
+const router = useRouter()
 const { isSuperuser } = useEffectiveRole()
 const toast = useToast()
 
@@ -212,14 +214,19 @@ const accountItems = computed(() => [
 ])
 
 const tabItems = computed(() => {
-  const items: { label: string; slot: 'teams' | 'tokens' | 'activity' }[] = [
-    { label: `Teams (${user.value?.teams?.length ?? 0})`, slot: 'teams' }
+  const items: { label: string; slot: 'teams' | 'tokens' | 'activity'; value: string }[] = [
+    { label: `Teams (${user.value?.teams?.length ?? 0})`, slot: 'teams', value: 'teams' }
   ]
   if (user.value?.provider === 'technical') {
-    items.push({ label: `API Tokens (${user.value?.tokens?.length ?? 0})`, slot: 'tokens' })
+    items.push({ label: `API Tokens (${user.value?.tokens?.length ?? 0})`, slot: 'tokens', value: 'tokens' })
   }
-  items.push({ label: `Recent Activity (${user.value?.recentActivity?.length ?? 0})`, slot: 'activity' })
+  items.push({ label: `Recent Activity (${user.value?.recentActivity?.length ?? 0})`, slot: 'activity', value: 'activity' })
   return items
+})
+
+const activeTab = ref((route.query.tab as string) || 'teams')
+watch(activeTab, (value) => {
+  router.replace({ query: { ...route.query, tab: value } })
 })
 
 // Team columns

@@ -16,6 +16,7 @@
     </UAlert>
 
     <template v-else-if="data?.data">
+      <UBreadcrumb :items="[{ label: 'Version Constraints', to: '/version-constraints' }, { label: data.data.name }]" />
       <div class="flex justify-between items-center">
         <UPageHeader
           :title="data.data.name"

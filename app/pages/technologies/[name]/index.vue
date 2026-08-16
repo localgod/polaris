@@ -16,6 +16,7 @@
     </UAlert>
 
     <template v-else-if="tech">
+      <UBreadcrumb :items="[{ label: 'Technologies', to: '/technologies' }, { label: tech.name }]" />
       <div class="flex items-center justify-between gap-3">
         <UPageHeader
           :title="tech.name"

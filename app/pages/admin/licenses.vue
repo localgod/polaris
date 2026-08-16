@@ -1,9 +1,12 @@
 <template>
   <div class="space-y-6">
-    <UPageHeader
-      title="License Administration"
-      description="Manage license definitions and allowed status"
-    />
+    <div class="flex items-center justify-between gap-3">
+      <UPageHeader
+        title="License Administration"
+        description="Manage license definitions and allowed status"
+      />
+      <USwitch v-model="directOnly" label="Direct only" size="sm" />
+    </div>
 
     <UAlert
       v-if="error"
@@ -38,32 +41,43 @@ import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse } from '~~/types/api'
 
 const { getSortableHeader } = useSortableTable()
+const toast = useToast()
 
 interface License {
-  spdxId: string
+  id: string
   name: string
   category: string
   osiApproved: boolean
+  allowed: boolean
 }
 
 const UBadge = resolveComponent('UBadge')
-const UButton = resolveComponent('UButton')
+const USwitch = resolveComponent('USwitch')
+const NuxtLink = resolveComponent('NuxtLink')
 
 const columns: TableColumn<License>[] = [
   {
-    accessorKey: 'spdxId',
+    accessorKey: 'id',
     header: ({ column }) => getSortableHeader(column, 'SPDX ID'),
-    cell: ({ row }) => h('code', {}, row.getValue('spdxId') as string)
+    cell: ({ row }) => {
+      const license = row.original
+      return h(NuxtLink, {
+        to: `/licenses/${encodeURIComponent(license.id)}`,
+        class: 'hover:underline'
+      }, () => h('code', {}, license.id))
+    }
   },
   {
     accessorKey: 'name',
-    header: ({ column }) => getSortableHeader(column, 'Name')
+    header: ({ column }) => getSortableHeader(column, 'Name'),
+    cell: ({ row }) => (row.getValue('name') as string) || h('span', { class: 'text-(--ui-text-muted)' }, '—')
   },
   {
     accessorKey: 'category',
     header: ({ column }) => getSortableHeader(column, 'Category'),
     cell: ({ row }) => {
       const category = row.getValue('category') as string
+      if (!category) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
       return h(UBadge, { color: getCategoryColor(category), variant: 'subtle' }, () => category)
     }
   },
@@ -76,17 +90,40 @@ const columns: TableColumn<License>[] = [
     }
   },
   {
-    id: 'actions',
-    header: 'Actions',
+    accessorKey: 'allowed',
+    header: 'Allowed',
     enableSorting: false,
-    cell: () => h(UButton, { variant: 'outline', size: 'xs', label: 'Edit' })
+    cell: ({ row }) => {
+      const license = row.original
+      return h(USwitch, {
+        modelValue: license.allowed,
+        'onUpdate:modelValue': () => toggleAllowed(license)
+      })
+    }
   }
 ]
 
-const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting()
+async function toggleAllowed(license: License) {
+  try {
+    await $fetch('/api/admin/licenses/whitelist', {
+      method: 'PUT',
+      body: { licenseId: license.id, allowed: !license.allowed }
+    })
+    await refreshNuxtData()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string }; message?: string }
+    toast.add({ title: 'Error', description: err.data?.message || err.message || 'Failed to update license status', color: 'error' })
+  }
+}
+
+const directOnly = ref(true)
+
+const { sorting, page, pageSize, offset, sortBy, sortOrder } = usePaginatedSorting({
+  resetOn: [directOnly]
+})
 
 const { data, pending, error } = await useFetch<ApiResponse<License>>('/api/licenses', {
-  query: { limit: pageSize, offset, sortBy, sortOrder }
+  query: { limit: pageSize, offset, sortBy, sortOrder, direct: directOnly }
 })
 
 const licenses = useApiData(data)

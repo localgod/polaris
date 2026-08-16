@@ -43,7 +43,13 @@
       description="Turn off 'Direct only' above to see them."
     />
 
-    <UTabs v-else :items="tabItems" class="-mt-1">
+    <UTabs
+      v-else
+      :model-value="modelValue"
+      :items="tabItems"
+      class="-mt-1"
+      @update:model-value="(value) => emit('update:modelValue', String(value))"
+    >
       <template #vulnerabilities>
         <UTable :data="visibleVulnerabilities" :columns="vulnColumns" class="mt-3">
           <template #empty>
@@ -120,7 +126,8 @@ interface SystemIssues {
   healthIssues: ComponentIssueRow[]
 }
 
-const props = defineProps<{ issues: SystemIssues }>()
+const props = defineProps<{ issues: SystemIssues; modelValue?: string }>()
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const UBadge = resolveComponent('UBadge')
 const NuxtLink = resolveComponent('NuxtLink')
@@ -160,18 +167,21 @@ const tabItems = computed(() => [
       ? `Vulnerabilities (${visibleVulnerabilities.value.length})`
       : 'Vulnerabilities',
     slot: 'vulnerabilities' as const,
+    value: 'vulnerabilities',
   },
   {
     label: visibleLicenseIssues.value.length
       ? `License Issues (${visibleLicenseIssues.value.length})`
       : 'License Issues',
     slot: 'licenses' as const,
+    value: 'licenses',
   },
   {
     label: visibleHealthIssues.value.length
       ? `Health Issues (${visibleHealthIssues.value.length})`
       : 'Health Issues',
     slot: 'health' as const,
+    value: 'health',
   },
 ])
 

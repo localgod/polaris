@@ -16,6 +16,7 @@
     </UAlert>
 
     <template v-else-if="data?.data">
+      <UBreadcrumb :items="[{ label: 'Teams', to: '/teams' }, { label: data.data.name }]" />
       <UPageHeader
         :title="data.data.name"
         :description="data.data.description"
@@ -30,7 +31,7 @@
       <ComplianceScorecard v-if="scorecardData?.data" :scorecard="scorecardData.data" />
 
       <UCard>
-        <UTabs :items="tabItems">
+        <UTabs v-model="activeTab" :items="tabItems">
           <template #members>
             <UTable v-model:sorting="memberSorting" :data="data.data.members" :columns="memberColumns" class="mt-3">
               <template #empty>
@@ -77,6 +78,7 @@ const systemSorting = ref([])
 const approvalSorting = ref([])
 
 const route = useRoute()
+const router = useRouter()
 
 interface Member {
   name: string
@@ -241,17 +243,22 @@ const { data: scorecardData } = useFetch<ScorecardResponse>(
 )
 
 const statItems = computed(() => [
-  { label: 'Technologies Owned', value: data.value?.data?.technologyCount || 0 },
+  { label: 'Technologies Stewarded', value: data.value?.data?.technologyCount || 0 },
   { label: 'Systems', value: data.value?.data?.systemCount || 0 },
   { label: 'Members', value: data.value?.data?.memberCount || 0 }
 ])
 
 const tabItems = computed(() => [
-  { label: `Members (${data.value?.data?.members?.length ?? 0})`, slot: 'members' as const },
-  { label: `Technologies (${data.value?.data?.technologies?.length ?? 0})`, slot: 'technologies' as const },
-  { label: `Systems (${data.value?.data?.systems?.length ?? 0})`, slot: 'systems' as const },
-  { label: `Approvals (${data.value?.data?.approvals?.length ?? 0})`, slot: 'approvals' as const }
+  { label: `Members (${data.value?.data?.members?.length ?? 0})`, slot: 'members' as const, value: 'members' },
+  { label: `Technologies (${data.value?.data?.technologies?.length ?? 0})`, slot: 'technologies' as const, value: 'technologies' },
+  { label: `Systems (${data.value?.data?.systems?.length ?? 0})`, slot: 'systems' as const, value: 'systems' },
+  { label: `Approvals (${data.value?.data?.approvals?.length ?? 0})`, slot: 'approvals' as const, value: 'approvals' }
 ])
+
+const activeTab = ref((route.query.tab as string) || 'members')
+watch(activeTab, (value) => {
+  router.replace({ query: { ...route.query, tab: value } })
+})
 
 useHead({
   title: computed(() => data.value?.data ? `${data.value.data.name} - Polaris` : 'Team - Polaris')
