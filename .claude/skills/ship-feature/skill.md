@@ -23,26 +23,21 @@ checks pass.
    gets committed.
 3. **Lint**: run `run_lint` (no `fix`, read-only check). Stop and report
    grouped issues on failure.
-4. **Tests**: run `run_tests` once per layer, never with `layer: "all"` — a
-   single combined run over the whole suite has proven unreliable through the
-   local model (silent truncation, hallucinated file/test names). Run each
-   layer as its own call, in order, stopping at the first failure and
-   reporting its diagnosis before continuing:
-   1. `layer: "utils"`
-   2. `layer: "services"`
-   3. `layer: "repositories"`
-   4. `layer: "api"`
-   5. `layer: "app"`
-   6. `path: "test/schema"`
-   7. `path: "test/app/e2e"`
+4. **Tests**: invoke the `test-runner` subagent (Agent tool,
+   `subagent_type: "test-runner"`) once per layer, never over the whole suite
+   in one call — this keeps each run's output small enough to summarize
+   accurately. Run each layer as its own call, in order, stopping at the
+   first failure and reporting its diagnosis before continuing:
+   1. `npm run test:server:utils`
+   2. `npm run test:server:services`
+   3. `npm run test:server:repositories`
+   4. `npm run test:server:api`
+   5. `npm run test:app`
+   6. `npx vitest run test/schema`
+   7. `npx vitest run test/app/e2e`
 
    Together these cover the same suite as `npm run test` (everything except
-   `test/integration/**`), just split so each call stays small enough for the
-   local model to summarize accurately. If a layer's result looks suspicious
-   (references files, test names, or paths that don't match this repo, or
-   claims a timeout with no matching evidence), re-verify that layer directly
-   with `npx vitest run <path>` before trusting it — do not report a stale or
-   hallucinated result as a passing/failing check.
+   `test/integration/**`).
 5. **Docs**: run `generate_docs`. This may modify `public/openapi.json`,
    which is tracked and should be included in the commit.
 6. **Stage**: review `git status --porcelain` — flag anything unexpected

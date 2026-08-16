@@ -20,10 +20,6 @@
         "NEO4J_PASSWORD": "devpassword"
       }
     },
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest", "--headless", "--no-sandbox", "--isolated"]
-    },
     "chrome-devtools": {
       "command": "npx",
       "args": [
