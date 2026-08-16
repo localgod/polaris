@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.110] - 2026-08-16
+
+## What's Changed
+
+* Remove the Platform concept (ADR-0007) @localgod (#856)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.109...v0.6.110
 
 ## [0.6.85] - 2026-07-27
 
