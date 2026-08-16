@@ -16,6 +16,7 @@
     </UAlert>
 
     <template v-else-if="data?.data">
+      <UBreadcrumb :items="[{ label: 'Systems', to: '/systems' }, { label: data.data.name }]" />
       <UPageHeader
         :title="data.data.name"
         :links="[{ label: 'Back to Systems', to: '/systems', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
@@ -54,7 +55,7 @@
 
       <ComplianceScorecard v-if="scorecardData?.data" :scorecard="scorecardData.data" />
 
-      <SystemIssues v-if="issuesData?.data" :issues="issuesData.data" />
+      <SystemIssues v-if="issuesData?.data" v-model="activeIssuesTab" :issues="issuesData.data" />
 
       <PaginatedTable
         v-if="repositories.length > 0"
@@ -98,7 +99,13 @@ import type { TableColumn } from '@nuxt/ui'
 import type { Scorecard } from '~~/types/api'
 
 const route = useRoute()
+const router = useRouter()
 const { getSortableHeader } = useSortableTable()
+
+const activeIssuesTab = ref((route.query.tab as string) || 'vulnerabilities')
+watch(activeIssuesTab, (value) => {
+  router.replace({ query: { ...route.query, tab: value } })
+})
 
 const AsyncSystemDependencyGraph = defineAsyncComponent(() => import('../../../components/SystemDependencyGraph.vue'))
 

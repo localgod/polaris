@@ -1,7 +1,7 @@
-export default defineNuxtRouteMiddleware(() => {
+export default defineNuxtRouteMiddleware((to) => {
   const { status } = useAuth()
 
   if (status.value !== 'authenticated') {
-    return navigateTo('/auth/signin')
+    return navigateTo({ path: '/auth/signin', query: { callbackUrl: to.fullPath } })
   }
 })

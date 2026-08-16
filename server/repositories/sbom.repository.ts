@@ -1,5 +1,6 @@
 import { BaseRepository } from './base.repository'
 import type { PersistSBOMParams, PersistSBOMResult, AddedComponent, ComponentDependency } from '../types/sbom'
+import { getSpdxLicenseMetadata } from '../utils/spdx-license-metadata'
 
 /**
  * Repository for SBOM-related data access
@@ -61,7 +62,15 @@ export class SBOMRepository extends BaseRepository {
       name: comp.name,
       version: comp.version,
       hashes: comp.hashes.map(h => ({ algorithm: h.algorithm, value: h.value })),
-      licenses: comp.licenses.map(l => ({ id: l.id, name: l.name, url: l.url, expression: l.expression })),
+      licenses: comp.licenses.map((l) => {
+        // Same id the Cypher MERGE keys the License node on — enrich against
+        // that so free-text entries without a real SPDX id still classify.
+        const meta = getSpdxLicenseMetadata(l.id ?? l.name)
+        return {
+          id: l.id, name: l.name, url: l.url, expression: l.expression,
+          spdxId: meta.spdxId, category: meta.category, osiApproved: meta.osiApproved
+        }
+      }),
       externalReferences: comp.externalReferences.map(r => ({ type: r.type, url: r.url })),
     }))
 

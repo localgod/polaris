@@ -16,6 +16,7 @@
     </UAlert>
 
     <template v-else-if="license">
+      <UBreadcrumb :items="[{ label: 'Licenses', to: '/licenses' }, { label: license.name || license.id }]" />
       <div class="flex justify-between items-start">
         <UPageHeader
           :title="license.name || license.id"

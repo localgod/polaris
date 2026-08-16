@@ -15,8 +15,11 @@ DELETE oldLicRel
 WITH c, comp
 FOREACH (lic IN comp.licenses |
   MERGE (l:License {id: COALESCE(lic.id, lic.name)})
-  ON CREATE SET l.name = lic.name, l.url = lic.url, l.text = lic.text, l.expression = lic.expression
-  ON MATCH SET l.name = COALESCE(lic.name, l.name), l.url = COALESCE(lic.url, l.url)
+  ON CREATE SET l.name = lic.name, l.url = lic.url, l.text = lic.text, l.expression = lic.expression,
+                l.spdxId = lic.spdxId, l.category = lic.category, l.osiApproved = lic.osiApproved
+  ON MATCH SET l.name = COALESCE(lic.name, l.name), l.url = COALESCE(lic.url, l.url),
+               l.spdxId = COALESCE(l.spdxId, lic.spdxId), l.category = COALESCE(l.category, lic.category),
+               l.osiApproved = COALESCE(l.osiApproved, lic.osiApproved)
   FOREACH (_ IN CASE WHEN lic.allowed IS NOT NULL THEN [1] ELSE [] END | SET l.allowed = lic.allowed)
   MERGE (c)-[:HAS_LICENSE]->(l)
 )

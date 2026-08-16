@@ -15,30 +15,30 @@
     />
 
     <template v-else>
-      <EntityStatStrip v-if="summary" :items="summaryStats" />
-
       <PaginatedTable
         :data="detections"
         :columns="columns"
         :loading="pending"
       >
         <template #header>
-          <div class="flex flex-wrap items-center gap-2">
-            <USelect
-              v-model="severityFilter"
-              :items="severityItems"
-              placeholder="All severities"
-              class="w-40"
-            />
-            <UButton
-              v-if="severityFilter"
-              label="Clear"
-              variant="ghost"
-              color="neutral"
-              icon="i-lucide-x"
-              @click="severityFilter = undefined"
-            />
-          </div>
+          <TableSearchHeader v-model="searchInput">
+            <template #filters>
+              <USelect
+                v-model="severityFilter"
+                :items="severityItems"
+                placeholder="All severities"
+                class="w-40"
+              />
+              <UButton
+                v-if="severityFilter"
+                label="Clear"
+                variant="ghost"
+                color="neutral"
+                icon="i-lucide-x"
+                @click="severityFilter = undefined"
+              />
+            </template>
+          </TableSearchHeader>
         </template>
         <template #empty>
           <div class="text-center py-8">
@@ -64,6 +64,7 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 const severityItems = ['high', 'medium', 'low']
 const severityFilter = ref<string | undefined>(undefined)
+const searchInput = ref('')
 
 const queryParams = computed(() => {
   const params: Record<string, string> = {}
@@ -75,23 +76,12 @@ const { data, pending, error } = await useFetch<ApiResponse<VersionSprawlDetecti
   query: queryParams
 })
 
-interface SummaryResponse {
-  success: boolean
-  data: { high: number; medium: number; low: number; total: number }
-}
-
-const { data: summaryData } = await useFetch<SummaryResponse>('/api/version-sprawl/summary')
-
-const detections = useApiData(data)
-const summary = computed(() => summaryData.value?.data)
-const summaryStats = computed(() => summary.value
-  ? [
-      { label: 'Total', value: summary.value.total },
-      { label: 'High', value: summary.value.high },
-      { label: 'Medium', value: summary.value.medium },
-      { label: 'Low', value: summary.value.low }
-    ]
-  : [])
+const allDetections = useApiData(data)
+const detections = computed(() => {
+  const term = searchInput.value.trim().toLowerCase()
+  if (!term) return allDetections.value
+  return allDetections.value.filter(d => d.technologyName.toLowerCase().includes(term))
+})
 
 const columns: TableColumn<VersionSprawlDetection>[] = [
   {

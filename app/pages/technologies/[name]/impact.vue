@@ -16,6 +16,13 @@
     </UAlert>
 
     <template v-else>
+      <UBreadcrumb
+        :items="[
+          { label: 'Technologies', to: '/technologies' },
+          { label: name, to: `/technologies/${encodeURIComponent(name)}` },
+          { label: 'Impact' },
+        ]"
+      />
       <UPageHeader
         :title="`${name} — Impact`"
         description="Systems using this technology, their owning teams, and TIME governance status."
