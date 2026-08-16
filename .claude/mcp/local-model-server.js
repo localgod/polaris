@@ -17,14 +17,18 @@ const POLARIS_CONTEXT = `You are a coding assistant supporting development of "P
 
 Tech stack: Nuxt 4, Vue 3, TypeScript, Neo4j graph database, @nuxt/ui, Vitest, Zod.
 Architecture: 3-layer API (endpoints → services → repositories), Cypher queries in .cypher files.
-Graph model: Technology, System, Team, Component, Policy nodes; OWNS, APPROVES, USES, DEPENDS_ON relationships.`;
+Graph model: Technology, Component, System, Team, VersionConstraint, AuditLog, ImportJob, HealthSnapshot nodes.
+Key relationships: STEWARDED_BY (Team→Technology), OWNS (Team→System), APPROVES (Team→Technology, carries TIME framework attributes), IS_VERSION_OF (Component→Technology), USES (System→Component), DEPENDS_ON (Component→Component), GOVERNS (VersionConstraint→Technology).
+There is no Platform node (removed, ADR-0007) and no Policy node (renamed to VersionConstraint) — do not reference either.`;
 
-async function callModel(system, prompt) {
+async function callModel(system, prompt, { maxTokens = 1024, temperature = 0.1 } = {}) {
   const res = await fetch(MODEL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: DEFAULT_MODEL,
+      temperature,
+      max_tokens: maxTokens,
       messages: [
         { role: "system", content: system },
         { role: "user", content: prompt },
@@ -34,6 +38,23 @@ async function callModel(system, prompt) {
   if (!res.ok) throw new Error(`Model request failed (${res.status}): ${await res.text()}`);
   const data = await res.json();
   return data.choices?.[0]?.message?.content ?? "(no response)";
+}
+
+// Anchors truncation on the first failure/error marker instead of blindly
+// keeping the tail — long passing-test noise before a failure can otherwise
+// push the actual assertion diff out of the window, leaving the model to
+// guess at a root cause it was never shown. Falls back to a plain tail
+// slice when no marker is found.
+function extractDiagnostics(raw, maxChars, markerRegex) {
+  const markerIdx = raw.search(markerRegex);
+  if (markerIdx === -1) return raw.slice(-maxChars);
+
+  const summaryBudget = Math.min(1500, Math.floor(maxChars / 4));
+  const summary = raw.slice(-summaryBudget);
+  const bodyStart = Math.max(0, markerIdx - 200);
+  const body = raw.slice(bodyStart, bodyStart + (maxChars - summaryBudget));
+
+  return body.includes(summary.trim()) ? body : `${body}\n...\n${summary}`;
 }
 
 function runCommand(command, args, cwd = PROJECT_ROOT, timeoutMs = 120000) {
@@ -175,7 +196,9 @@ Scope examples: technology, sbom, auth, neo4j, ci, components, api
 Subject: imperative mood ("add" not "added"), no period at end.
 Output the commit message only — no preamble.`;
 
-    return text(await callModel(system, context ? `Intent: ${context}\n\nDiff:\n${diff}` : `Diff:\n${diff}`));
+    return text(
+      await callModel(system, context ? `Intent: ${context}\n\nDiff:\n${diff}` : `Diff:\n${diff}`, { maxTokens: 300 })
+    );
   }
 );
 
@@ -214,54 +237,11 @@ TITLE: <suggested PR title, max 70 chars, imperative mood, no period>
 Then a blank line, then the filled PR body.`;
 
     const prompt = `${context ? `Context: ${context}\n\n` : ""}PR Template:\n${template}\n\nDiff:\n${diff.slice(0, 12000)}`;
-    return text(await callModel(system, prompt));
+    return text(await callModel(system, prompt, { maxTokens: 1500 }));
   }
 );
 
-// 7. Run tests and diagnose
-server.tool(
-  "run_tests",
-  "Run the test suite (or a specific file/layer) and return a diagnosis of any failures. Prefer this over running npm test manually.",
-  {
-    path: z.string().optional().describe("Specific test file or directory (e.g. 'test/server/api/components.spec.ts')"),
-    layer: z.enum(["api", "services", "repositories", "utils", "app", "all"]).optional().describe("Shorthand to run a specific layer (ignored if path is provided)"),
-  },
-  async ({ path, layer }) => {
-    const layerCommands = {
-      api: ["test:server:api"],
-      services: ["test:server:services"],
-      repositories: ["test:server:repositories"],
-      utils: ["test:server:utils"],
-      app: ["test:app"],
-    };
-
-    const [command, args] = path
-      ? ["npx", ["vitest", "run", path]]
-      : ["npm", ["run", layer && layer !== "all" ? layerCommands[layer][0] : "test"]];
-
-    const { stdout, stderr, exitCode } = await runCommand(command, args);
-    const raw = (stdout + "\n" + stderr).trim();
-
-    if (exitCode === 0) {
-      const summary = raw.match(/Tests\s+[^\n]+/)?.[0] ?? "All tests passed.";
-      return text(summary);
-    }
-
-    const system = `${POLARIS_CONTEXT}
-
-Analyze Vitest test output and summarize failures:
-- List each failing test: filename + test name + root cause in one sentence
-- Group tests that fail for the same reason
-- For each failure, suggest the most likely fix (wrong mock return shape, missing stub, assertion mismatch, etc.)
-- Note if a failure is in beforeAll/beforeEach setup vs the test itself
-
-Be specific — include actual vs expected values where visible. No preamble. Bullet list.`;
-
-    return text(await callModel(system, `Test output:\n${raw.slice(-8000)}`));
-  }
-);
-
-// 8. Run lint and summarize
+// 7. Run lint and summarize
 server.tool(
   "run_lint",
   "Run ESLint and return a grouped summary of issues. More actionable than reading raw ESLint output.",
@@ -287,11 +267,12 @@ Analyze ESLint output and produce a grouped, actionable summary:
 
 No preamble. Bullet list.`;
 
-    return text(await callModel(system, `ESLint output:\n${raw.slice(-6000)}`));
+    const diagnostics = extractDiagnostics(raw, 6000, /\berror\b|\bwarning\b/i);
+    return text(await callModel(system, `ESLint output:\n${diagnostics}`));
   }
 );
 
-// 9. Run markdown lint and summarize
+// 8. Run markdown lint and summarize
 server.tool(
   "run_mdlint",
   "Run markdownlint and return a grouped summary of issues. Prefer this over running npm run mdlint manually.",
@@ -317,11 +298,12 @@ Analyze markdownlint output and produce a grouped, actionable summary:
 
 No preamble. Bullet list.`;
 
-    return text(await callModel(system, `markdownlint output:\n${raw.slice(-6000)}`));
+    const diagnostics = extractDiagnostics(raw, 6000, /MD\d{3}/i);
+    return text(await callModel(system, `markdownlint output:\n${diagnostics}`));
   }
 );
 
-// 10. Generate OpenAPI docs
+// 9. Generate OpenAPI docs
 server.tool(
   "generate_docs",
   "Generate the OpenAPI docs (public/openapi.json) and report whether anything changed, or diagnose the failure. Prefer this over running npm run docs:api manually.",
@@ -345,7 +327,8 @@ Analyze the error output from generating OpenAPI docs (server/scripts/generate-o
 
 No preamble. Bullet list.`;
 
-    return text(await callModel(system, `Output:\n${raw.slice(-8000)}`));
+    const diagnostics = extractDiagnostics(raw, 8000, /error/i);
+    return text(await callModel(system, `Output:\n${diagnostics}`));
   }
 );
 

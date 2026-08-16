@@ -149,31 +149,26 @@ Migration files go in `schema/migrations/common/` (all envs), `dev/`, or `prod/`
 
 ## MCP Servers
 
-Five MCP servers are configured in `.mcp.json`:
+Four MCP servers are configured in `.mcp.json`:
 
 | Server | Purpose |
 | ------ | ------- |
-| `local-model` | Local Qwen 2.5 7B (Docker Model Runner) — offloads mechanical tasks (tests, lint, docs, commit/PR text, Cypher drafting, snippet review) so the main model doesn't burn context on raw tool output |
+| `local-model` | Local Qwen 2.5 7B (Docker Model Runner) — offloads mechanical tasks (lint, docs, commit/PR text, Cypher drafting, snippet review) so the main model doesn't burn context on raw tool output. Test diagnosis is *not* handled here — see `test-runner` under Agents below |
 | `code-review-graph` | Persistent Tree-sitter–derived knowledge graph of this repo — structural code search, impact analysis, and review context, cheaper and more accurate than Grep/Read for "who calls/imports/tests this" questions |
 | `neo4j` | Direct Bolt connection to the live application database (`bolt://localhost:7687`) — raw Cypher access for exploring or mutating actual `Technology`/`Component`/`Team`/... data, distinct from the code-review-graph's internal graph |
-| `playwright` | Official Microsoft Playwright MCP — drives a real (headless) browser via accessibility-tree snapshots for clicking, filling forms, and navigating. Default choice for verifying a UI change actually works end-to-end (e.g. a modal save button) instead of trusting a code read alone |
-| `chrome-devtools` | Google's Chrome DevTools MCP — same headless Chromium binary as `playwright` (reused from `~/.cache/ms-playwright` to avoid a second download), but exposes DevTools protocol tools: network request inspection, performance traces, console output. Reach for this over `playwright` when a task needs network/perf/console visibility (e.g. the LCP/chunk-loading investigation in issue #693), not just interaction |
+| `chrome-devtools` | Google's Chrome DevTools MCP — drives a real headless Chromium binary (from `~/.cache/ms-playwright`) via accessibility-tree snapshots for clicking, filling forms, and navigating, plus DevTools protocol tools: network request inspection, performance traces, console output. Default choice for verifying a UI change actually works end-to-end (e.g. a modal save button) instead of trusting a code read alone |
 
-Both browser servers run headless/sandboxless (`--no-sandbox`) since the devcontainer has no display — this is standard practice for containerized browser automation, not a security relaxation of the app itself.
+The browser server runs headless/sandboxless (`--no-sandbox`) since the devcontainer has no display — this is standard practice for containerized browser automation, not a security relaxation of the app itself.
 
 ### local-model
 
 **IMPORTANT: these are deferred MCP tools — always load their schema with
-`ToolSearch("select:run_tests,run_lint,run_mdlint")` (etc.) up front and use
-them. Do NOT run `npm test` / `npm run lint` / `npm run mdlint` via Bash;
+`ToolSearch("select:run_lint,run_mdlint")` (etc.) up front and use
+them. Do NOT run `npm run lint` / `npm run mdlint` via Bash;
 that is a fallback only, never the default.**
 
 | Tool | Use instead of |
 | ---- | -------------- |
-
-| Tool | Use instead of |
-| ---- | -------------- |
-| `run_tests` | `npm test` via Bash — returns a diagnosis, not raw output |
 | `run_lint` | `npm run lint` via Bash — returns grouped issues |
 | `run_mdlint` | `npm run mdlint` via Bash — returns grouped issues |
 | `generate_docs` | `npm run docs:api` via Bash — reports what changed or diagnoses the failure |
@@ -257,3 +252,29 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.
 5. If the graph reports it was built on a different branch than the current one, run `build_or_update_graph` before trusting results.
+
+## Agents
+
+### test-runner
+
+A Haiku-backed subagent defined in `.claude/agents/test-runner.md`. Use it
+(via the Agent tool, `subagent_type: "test-runner"`) instead of `npm test` /
+`npx vitest` via Bash, and instead of the local model — it replaced a
+`run_tests` local-model MCP tool that was unreliable for this: a small
+quantized model summarizing large Vitest output would silently truncate or
+invent file/test names that didn't exist. Haiku costs real tokens but is
+accurate enough to trust the diagnosis without re-verifying it.
+
+Invoke it once per layer or file, never over the whole suite in one call —
+this keeps each run's output small enough to summarize accurately:
+
+1. `npm run test:server:api`
+2. `npm run test:server:services`
+3. `npm run test:server:repositories`
+4. `npm run test:server:utils`
+5. `npm run test:app`
+6. `npx vitest run test/schema`
+7. `npx vitest run test/app/e2e`
+
+Together these cover the same suite as `npm run test` (everything except
+`test/integration/**`).
