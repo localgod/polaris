@@ -27,7 +27,7 @@
             <NuxtLink
               v-if="check.link"
               :to="{ path: check.link.path, query: check.link.query }"
-              class="text-(--ui-color-primary-500) hover:underline"
+              class="text-primary-700 dark:text-primary-300 hover:underline"
             >
               {{ check.detail }}
             </NuxtLink>

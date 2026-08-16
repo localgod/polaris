@@ -271,6 +271,7 @@ const actionsColumn: TableColumn<Team> = {
       default: () => h(resolveComponent('UButton'), {
         icon: 'i-lucide-ellipsis-vertical',
         color: 'neutral',
+        'aria-label': `Actions for ${team.name}`,
         variant: 'ghost',
         size: 'sm'
       })

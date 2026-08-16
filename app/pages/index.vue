@@ -31,7 +31,7 @@
               <p class="text-xl font-bold">{{ attention.vulnerabilityExposure.affectedSystems }}</p>
             </div>
           </div>
-          <NuxtLink to="/components" class="text-sm text-(--ui-color-primary-500) mt-3 block">Review vulnerable components →</NuxtLink>
+          <NuxtLink to="/components" class="text-sm text-primary-700 dark:text-primary-300 mt-3 block">Review vulnerable components →</NuxtLink>
         </UCard>
 
         <UCard>
@@ -71,7 +71,7 @@
               v-for="(violation, idx) in attention.complianceViolations.topViolations"
               :key="`${violation.team}-${violation.technology}-${idx}`"
               :to="`/teams/${encodeURIComponent(violation.team)}`"
-              class="flex items-center justify-between gap-3 hover:text-(--ui-color-primary-500)"
+              class="flex items-center justify-between gap-3 hover:text-primary-700 dark:text-primary-300"
             >
               <div class="min-w-0">
                 <p class="font-medium truncate">{{ violation.team }} · {{ violation.technology }}</p>
@@ -107,7 +107,7 @@
               <p class="text-xl font-bold">{{ attention.versionConstraintViolations.warning }}</p>
             </div>
           </div>
-          <NuxtLink to="/violations" class="text-sm text-(--ui-color-primary-500) mt-3 block">Review violations →</NuxtLink>
+          <NuxtLink to="/violations" class="text-sm text-primary-700 dark:text-primary-300 mt-3 block">Review violations →</NuxtLink>
         </UCard>
 
         <UCard>
@@ -132,7 +132,7 @@
             </div>
           </div>
           <p v-else class="text-sm text-(--ui-text-muted)">Nothing past end-of-life.</p>
-          <NuxtLink :to="{ path: '/components', query: { lifecycleRisk: 'true' } }" class="text-sm text-(--ui-color-primary-500) mt-3 block">
+          <NuxtLink :to="{ path: '/components', query: { lifecycleRisk: 'true' } }" class="text-sm text-primary-700 dark:text-primary-300 mt-3 block">
             {{ attention.eolExposure.total }} component{{ attention.eolExposure.total === 1 ? '' : 's' }} past EOL →
           </NuxtLink>
         </UCard>
@@ -141,12 +141,12 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Component Link Queue</h3>
-              <UIcon name="i-lucide-link" class="size-5 text-(--ui-color-primary-500)" />
+              <UIcon name="i-lucide-link" class="size-5 text-(--ui-primary)" />
             </div>
           </template>
           <p class="text-xl font-bold text-center">{{ attention.componentLinkQueue.total }}</p>
           <p class="text-sm text-(--ui-text-muted) text-center">component{{ attention.componentLinkQueue.total === 1 ? '' : 's' }} awaiting a technology claim</p>
-          <NuxtLink to="/admin/component-links" class="text-sm text-(--ui-color-primary-500) mt-3 block">Triage queue →</NuxtLink>
+          <NuxtLink to="/admin/component-links" class="text-sm text-primary-700 dark:text-primary-300 mt-3 block">Triage queue →</NuxtLink>
         </UCard>
 
         <UCard>
@@ -161,7 +161,7 @@
               v-for="name in attention.stewardshipGaps.sampleTechnologies"
               :key="`tech-${name}`"
               :to="`/technologies/${encodeURIComponent(name)}`"
-              class="flex items-center justify-between gap-2 hover:text-(--ui-color-primary-500)"
+              class="flex items-center justify-between gap-2 hover:text-primary-700 dark:text-primary-300"
             >
               <span class="truncate">{{ name }}</span>
               <UBadge color="warning" variant="subtle">no steward</UBadge>
@@ -170,7 +170,7 @@
               v-for="name in attention.stewardshipGaps.sampleSystems"
               :key="`system-${name}`"
               :to="`/systems/${encodeURIComponent(name)}`"
-              class="flex items-center justify-between gap-2 hover:text-(--ui-color-primary-500)"
+              class="flex items-center justify-between gap-2 hover:text-primary-700 dark:text-primary-300"
             >
               <span class="truncate">{{ name }}</span>
               <UBadge color="warning" variant="subtle">no owner</UBadge>
@@ -187,7 +187,7 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Refresh Coverage</h3>
-              <UIcon name="i-lucide-refresh-cw" class="size-5 text-(--ui-color-primary-500)" />
+              <UIcon name="i-lucide-refresh-cw" class="size-5 text-(--ui-primary)" />
             </div>
           </template>
           <div class="grid grid-cols-3 gap-2 text-center">
@@ -212,19 +212,19 @@
     <!-- Catalog -->
     <UCard>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-        <NuxtLink to="/technologies" class="hover:text-(--ui-color-primary-500)">
+        <NuxtLink to="/technologies" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.technologies }}</p>
           <p class="text-sm text-(--ui-text-muted)">Technologies</p>
         </NuxtLink>
-        <NuxtLink to="/systems" class="hover:text-(--ui-color-primary-500)">
+        <NuxtLink to="/systems" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.systems }}</p>
           <p class="text-sm text-(--ui-text-muted)">Systems</p>
         </NuxtLink>
-        <NuxtLink to="/components" class="hover:text-(--ui-color-primary-500)">
+        <NuxtLink to="/components" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.components }}</p>
           <p class="text-sm text-(--ui-text-muted)">Components</p>
         </NuxtLink>
-        <NuxtLink to="/version-constraints" class="hover:text-(--ui-color-primary-500)">
+        <NuxtLink to="/version-constraints" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.versionConstraints }}</p>
           <p class="text-sm text-(--ui-text-muted)">Version Constraints</p>
         </NuxtLink>

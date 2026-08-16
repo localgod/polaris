@@ -714,7 +714,8 @@ const columns: TableColumn<User>[] = [
           icon: 'i-lucide-ellipsis-vertical',
           color: 'neutral',
           variant: 'ghost',
-          size: 'sm'
+          size: 'sm',
+          'aria-label': `Actions for ${user.name || user.email}`
         })
       })
     }
