@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.113] - 2026-08-16
+
+## What's Changed
+
+* fix(a11y): fix Lighthouse accessibility and SEO gaps across list pages @localgod (#862)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.112...v0.6.113
 
 ## [0.6.85] - 2026-07-27
 
