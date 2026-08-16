@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.112] - 2026-08-16
+
+## What's Changed
+
+* Replace run\_tests local-model tool with Haiku-backed test-runner subagent @localgod (#860)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.111...v0.6.112
 
 ## [0.6.85] - 2026-07-27
 
