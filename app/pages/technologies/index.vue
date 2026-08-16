@@ -235,7 +235,7 @@ const columns: TableColumn<Technology>[] = [
       }
 
       return h(resolveComponent('UDropdownMenu'), { items, content: { align: 'end' } }, {
-        default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
+        default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm', 'aria-label': `Actions for ${tech.name}` })
       })
     }
   }

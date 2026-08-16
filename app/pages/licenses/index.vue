@@ -137,7 +137,7 @@ const columns: TableColumn<License>[] = [
           : [])
       ]]
       return h(resolveComponent('UDropdownMenu'), { items: menuItems, content: { align: 'end' as const } }, {
-        default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm' })
+        default: () => h(resolveComponent('UButton'), { icon: 'i-lucide-ellipsis-vertical', color: 'neutral', variant: 'ghost', size: 'sm', 'aria-label': `Actions for ${license.id}` })
       })
     }
   }
