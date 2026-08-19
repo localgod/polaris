@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.116] - 2026-08-19
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump tsx from 4.23.10 to 4.23.12 in the production-dependencies group @[dependabot[bot]](https://github.com/apps/dependabot) (#864)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.115...v0.6.116
 
 ## [0.6.85] - 2026-07-27
 
