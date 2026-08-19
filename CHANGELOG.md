@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.114] - 2026-08-19
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps-dev): bump nyc from 15.1.0 to 18.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#866)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.113...v0.6.114
 
 ## [0.6.85] - 2026-07-27
 
