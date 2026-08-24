@@ -78,7 +78,7 @@ export function buildCustomCiSnippet({ systemName, polarisUrl, repoUrl }: CiSetu
     '# Run on every push to your default branch. Set POLARIS_URL / POLARIS_TOKEN',
     "# as protected CI variables/secrets — don't hardcode the token in your CI config.",
     `export POLARIS_URL="${polarisUrl}"`,
-    'export POLARIS_TOKEN="<your-generated-token>"',
+    ': "${POLARIS_TOKEN:?Set POLARIS_TOKEN in CI secrets}"',
     `export POLARIS_SYSTEM="${systemName}"`,
     `export POLARIS_REPO_URL="${repoUrl || '<your-repository-url>'}"`,
     '',
