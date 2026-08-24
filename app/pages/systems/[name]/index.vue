@@ -17,9 +17,25 @@
 
     <template v-else-if="data?.data">
       <UBreadcrumb :items="[{ label: 'Systems', to: '/systems' }, { label: data.data.name }]" />
-      <UPageHeader
-        :title="data.data.name"
-        :links="[{ label: 'Back to Systems', to: '/systems', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+      <div class="flex items-center justify-between gap-3">
+        <UPageHeader
+          :title="data.data.name"
+          :links="[{ label: 'Back to Systems', to: '/systems', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
+        />
+        <UButton
+          label="Set Up CI"
+          icon="i-lucide-plug"
+          variant="outline"
+          @click="openCiSetupModal()"
+        />
+      </div>
+
+      <AsyncSystemCiSetupModal
+        v-if="showCiSetupModal"
+        v-model:open="showCiSetupModal"
+        :system-name="data.data.name"
+        :repositories="repositories"
+        :initial-repo-url="ciSetupInitialRepoUrl"
       />
 
       <UCard>
@@ -108,6 +124,15 @@ watch(activeIssuesTab, (value) => {
 })
 
 const AsyncSystemDependencyGraph = defineAsyncComponent(() => import('../../../components/SystemDependencyGraph.vue'))
+const AsyncSystemCiSetupModal = defineAsyncComponent(() => import('../../../components/SystemCiSetupModal.vue'))
+
+const showCiSetupModal = ref(false)
+const ciSetupInitialRepoUrl = ref<string | undefined>(undefined)
+
+function openCiSetupModal(repoUrl?: string) {
+  ciSetupInitialRepoUrl.value = repoUrl
+  showCiSetupModal.value = true
+}
 
 interface System {
   name: string
@@ -263,7 +288,14 @@ const repositoryColumns: TableColumn<Repository>[] = [
     header: ({ column }) => getSortableHeader(column, 'Last Scan'),
     cell: ({ row }) => {
       const scanDate = row.original.lastSbomScanAt
-      return scanDate ? formatDate(scanDate) : h('span', { class: 'text-(--ui-text-muted)' }, 'Not scanned')
+      if (scanDate) return formatDate(scanDate)
+      return h(resolveComponent('UButton'), {
+        label: 'Set Up CI',
+        icon: 'i-lucide-plug',
+        variant: 'subtle',
+        size: 'xs',
+        onClick: () => openCiSetupModal(row.original.url)
+      })
     }
   }
 ]

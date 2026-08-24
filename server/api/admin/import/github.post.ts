@@ -59,7 +59,7 @@ import { getToken } from '#auth'
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
   const realUserId = await getImpersonatorId(event)
-  const token = await getToken({ req: event.node.req })
+  const token = await getToken({ event })
   const githubToken = token?.accessToken as string | undefined
 
   const body = await readBody(event) || {}

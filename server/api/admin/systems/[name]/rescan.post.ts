@@ -4,7 +4,7 @@ import { auditFailedOperation } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
   const user = await requireSuperuser(event)
-  const token = await getToken({ req: event.node.req })
+  const token = await getToken({ event })
   const githubToken = token?.accessToken as string | undefined
 
   const rawName = getRouterParam(event, 'name')
