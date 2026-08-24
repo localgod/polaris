@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.119] - 2026-08-24
+
+## What's Changed
+
+* Add self-service "Set Up CI" wizard and fix related server handlers @localgod (#874)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.118...v0.6.119
+
 ## [0.6.116] - 2026-08-19
 
 ## What's Changed
