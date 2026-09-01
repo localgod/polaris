@@ -1,9 +1,12 @@
-// Find teams using technologies without approval or with eliminate status,
-// resolving environment-specific approvals per system.
+// Find teams using technologies with a violating effective TIME value.
 //
-// For each (team, technology) pair, collect the systems that use the technology
-// and determine the most specific approval for each system's environment.
-// A violation exists when at least one system's resolved approval is absent or 'eliminate'.
+// Effective TIME is resolved deterministically:
+//   1. Active org TechnologyPolicy for the technology
+//   2. Valid PolicyException for this team (unrevoked, unexpired) — environment qualified
+//   3. No active policy → null (unclassified)
+//
+// A violation exists when the resolved TIME is null ('unclassified') or 'eliminate'.
+//
 // Optional filters:
 //   $directOnly (boolean) — restrict to systems that use the technology via a direct dep
 //   $depScope   (string)  — restrict to systems that use the technology via a dep with this scope
@@ -19,45 +22,47 @@ WITH team, tech, u,
      collect(DISTINCT CASE WHEN sys IS NOT NULL THEN {name: sys.name, environment: sys.environment} END) AS systemInfos
 WHERE size(systemInfos) > 0
 
-// Resolve approval per system via explicit OPTIONAL MATCH so the planner can inspect costs.
-// UNWIND to one row per system, look up approvals, then re-collect.
+// Resolve the active org policy for this technology
+OPTIONAL MATCH (:Organization {name: 'default'})-[:SETS]->(p:TechnologyPolicy {status: 'active'})-[:GOVERNS]->(tech)
+
+// UNWIND to resolve per-system (environment can affect exception applicability)
 UNWIND systemInfos AS si
 
-// Environment-specific approval takes precedence
-OPTIONAL MATCH (team)-[envA:APPROVES]->(tech)
-  WHERE si.environment IS NOT NULL AND envA.environment = si.environment
-// Blanket approval (no environment set) as fallback
-OPTIONAL MATCH (team)-[blankA:APPROVES]->(tech)
-  WHERE blankA.environment IS NULL
-WITH team, tech, u, si,
-     head(collect(DISTINCT envA.time)) AS envTime,
-     head(collect(DISTINCT blankA.time)) AS blankTime
-WITH team, tech, u,
+// Team-scoped exception with optional environment qualifier
+OPTIONAL MATCH (p)<-[:OVERRIDES]-(e:PolicyException {scope: 'team', scopeName: team.name})
+  WHERE e.revokedAt IS NULL
+    AND datetime(e.expiresAt) > datetime()
+    AND (si.environment IS NULL OR e.environment IS NULL OR e.environment = si.environment)
+
+WITH team, tech, u, si, p, e,
+     CASE
+       WHEN e IS NOT NULL THEN e.time
+       WHEN p IS NOT NULL THEN p.time
+       ELSE null
+     END AS resolvedTime
+
+WITH team, tech, u, p,
      collect({
        name: si.name,
        environment: si.environment,
-       resolvedTime: coalesce(envTime, blankTime)
+       resolvedTime: resolvedTime
      }) AS systemApprovals
 
-// A violation exists when at least one system has no approval or an 'eliminate' approval
-WITH team, tech, u, systemApprovals,
+// A violation exists when at least one system has no policy or an 'eliminate' policy
+WITH team, tech, u, p, systemApprovals,
      [sa IN systemApprovals WHERE sa.resolvedTime IS NULL OR sa.resolvedTime = 'eliminate' | sa] AS violatingSystems
 WHERE size(violatingSystems) > 0
 
-// Use the blanket approval for top-level notes/migrationTarget display (best-effort)
-OPTIONAL MATCH (team)-[blanket:APPROVES]->(tech)
-  WHERE blanket.environment IS NULL
-WITH team, tech, u, blanket,
+WITH team, tech, u, p,
      [sa IN systemApprovals | sa.name] AS systems,
      CASE
-       WHEN blanket IS NULL AND all(sa IN violatingSystems WHERE sa.resolvedTime IS NULL) THEN 'unapproved'
-       WHEN blanket.time = 'eliminate' OR any(sa IN violatingSystems WHERE sa.resolvedTime = 'eliminate') THEN 'eliminated'
-       ELSE 'unapproved'
+       WHEN p IS NULL OR all(sa IN violatingSystems WHERE sa.resolvedTime IS NULL) THEN 'unapproved'
+       ELSE 'eliminated'
      END AS violationType
 
 OPTIONAL MATCH (:ComplianceViolation {naturalKey: team.name + '|' + tech.name})<-[:WAIVES]-(w:Waiver)
   WHERE w.revokedAt IS NULL AND w.expiresAt > datetime()
-WITH team, tech, u, blanket, systems, violationType, w
+WITH team, tech, u, p, systems, violationType, w
 WHERE $includeWaived = true OR w IS NULL
 
 RETURN
@@ -67,8 +72,8 @@ RETURN
   u.systemCount AS systemCount,
   systems,
   violationType,
-  blanket.notes AS notes,
-  blanket.migrationTarget AS migrationTarget,
+  p.rationale AS notes,
+  p.migrationTarget AS migrationTarget,
   w.id as waiverId,
   w.reason as waiverReason,
   w.expiresAt as waiverExpiresAt

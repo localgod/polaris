@@ -298,71 +298,36 @@ describe('TechnologyService', () => {
     })
   })
 
+  // [contract] findForRadar() — contracts for majority-vote behavior removed per ADR-0008.
+  // TIME is now read directly from the active org TechnologyPolicy; voting is gone.
   describe('[contract] findForRadar()', () => {
     const mockRows = [
-      { name: 'React',   type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'invest' }, { team: 'B', time: 'invest' }] },
-      { name: 'Angular', type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'migrate' }, { team: 'B', time: 'invest' }] },
-      { name: 'Vue',     type: 'framework', domain: 'framework',    approvals: [{ team: 'A', time: 'eliminate' }, { team: 'B', time: 'migrate' }, { team: 'C', time: 'migrate' }] },
-      { name: 'Svelte',  type: 'framework', domain: 'developer-tooling', approvals: [] },
-      // Team D holds two environment-scoped APPROVES edges to the same
-      // Technology (a blanket 'invest' plus a prod-scoped 'eliminate') — must
-      // count as exactly one vote (the more restrictive), not two.
-      { name: 'Node.js', type: 'platform', domain: 'foundational-runtime', approvals: [{ team: 'D', time: 'invest' }, { team: 'D', time: 'eliminate' }] },
+      { name: 'React',   type: 'framework', domain: 'framework',         policyTime: 'invest',    policyId: 'p-1' },
+      { name: 'Angular', type: 'framework', domain: 'framework',         policyTime: 'migrate',   policyId: 'p-2' },
+      { name: 'Vue',     type: 'framework', domain: 'framework',         policyTime: 'eliminate', policyId: 'p-3' },
+      { name: 'Svelte',  type: 'framework', domain: 'developer-tooling', policyTime: null,        policyId: null  },
     ]
 
     beforeEach(() => {
       vi.mocked(TechnologyRepository.prototype.findForRadar).mockResolvedValue(mockRows)
     })
 
-    it('returns all technologies with unclassified for no approvals', async () => {
+    it('returns timeValue from the active org policy', async () => {
       const result = await service.findForRadar()
-      const svelte = result.find(r => r.name === 'Svelte')
-      expect(svelte?.timeValue).toBe('unclassified')
-      expect(svelte?.approvalCount).toBe(0)
-    })
-
-    it('uses majority vote when no team filter', async () => {
-      const result = await service.findForRadar()
-      // React: 2x invest → invest
-      expect(result.find(r => r.name === 'React')?.timeValue).toBe('invest')
-    })
-
-    it('breaks ties by severity (eliminate > migrate > tolerate > invest)', async () => {
-      const result = await service.findForRadar()
-      // Angular: 1x migrate, 1x invest → tie → migrate wins (more severe)
-      expect(result.find(r => r.name === 'Angular')?.timeValue).toBe('migrate')
-      // Vue: 1x eliminate, 2x migrate → migrate wins (majority)
-      expect(result.find(r => r.name === 'Vue')?.timeValue).toBe('migrate')
-    })
-
-    it('filters by team when team param provided', async () => {
-      const result = await service.findForRadar('A')
       expect(result.find(r => r.name === 'React')?.timeValue).toBe('invest')
       expect(result.find(r => r.name === 'Angular')?.timeValue).toBe('migrate')
       expect(result.find(r => r.name === 'Vue')?.timeValue).toBe('eliminate')
     })
 
-    it('marks unclassified when team has no approval for a technology', async () => {
-      const result = await service.findForRadar('Z')
-      expect(result.every(r => r.timeValue === 'unclassified')).toBe(true)
-    })
-
-    it('includes approvalCount', async () => {
+    it('returns unclassified when no active policy exists for a technology', async () => {
       const result = await service.findForRadar()
-      expect(result.find(r => r.name === 'React')?.approvalCount).toBe(2)
-      expect(result.find(r => r.name === 'Svelte')?.approvalCount).toBe(0)
+      expect(result.find(r => r.name === 'Svelte')?.timeValue).toBe('unclassified')
     })
 
-    it('counts one vote per team even when a team holds multiple environment-scoped approvals, resolving to the most restrictive', async () => {
+    it('exposes the policyId for each technology', async () => {
       const result = await service.findForRadar()
-      const nodeJs = result.find(r => r.name === 'Node.js')
-      expect(nodeJs?.approvalCount).toBe(1)
-      expect(nodeJs?.timeValue).toBe('eliminate')
-    })
-
-    it('resolves a team-filtered lookup deterministically when that team holds multiple approvals', async () => {
-      const result = await service.findForRadar('D')
-      expect(result.find(r => r.name === 'Node.js')?.timeValue).toBe('eliminate')
+      expect(result.find(r => r.name === 'React')?.policyId).toBe('p-1')
+      expect(result.find(r => r.name === 'Svelte')?.policyId).toBeNull()
     })
   })
 

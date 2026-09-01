@@ -513,6 +513,47 @@ export type TechnologyDomain =
 
 export type TimeValue = 'tolerate' | 'invest' | 'migrate' | 'eliminate'
 
+export type PolicyStatus = 'draft' | 'active' | 'archived'
+export type ExceptionScope = 'team' | 'system'
+export type PolicyResolutionSource = 'policy' | 'exception' | 'unclassified'
+
+export interface TechnologyPolicy {
+  id: string
+  time: TimeValue
+  rationale?: string | null
+  migrationTarget?: string | null
+  status: PolicyStatus
+  effectiveDate?: string | null
+  expiryDate?: string | null
+  createdBy: string
+  createdByName?: string | null
+  createdAt: string
+  updatedAt: string
+  exceptions?: PolicyException[]
+}
+
+export interface PolicyException {
+  id: string
+  time: TimeValue
+  reason: string
+  approver: string
+  scope: ExceptionScope
+  scopeName: string
+  environment?: string | null
+  effectiveDate: string
+  expiresAt: string
+  createdAt: string
+  revokedAt?: string | null
+  revokedBy?: string | null
+}
+
+export interface PolicyResolution {
+  time: TimeValue | 'unclassified'
+  source: PolicyResolutionSource
+  policyId?: string | null
+  exceptionId?: string | null
+}
+
 export type BusinessCriticality = 'critical' | 'high' | 'medium' | 'low'
 
 export type SystemEnvironment = 'dev' | 'test' | 'staging' | 'prod'
@@ -595,6 +636,7 @@ export interface User {
   email: string
   name: string | null
   role: string
+  orgAdmin: boolean
   provider: string
   avatarUrl: string | null
   lastLogin: string | null

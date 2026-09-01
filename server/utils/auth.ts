@@ -31,6 +31,7 @@ async function getRealUser(event: H3Event) {
           id: resolved.user.id,
           email: resolved.user.email,
           role: resolved.user.role,
+          orgAdmin: resolved.user.orgAdmin ?? false,
           teams: resolved.user.teams || []
         }
       }
@@ -65,6 +66,7 @@ export async function getCurrentUser(event: H3Event) {
         id: impersonateUserId,
         email: authData.email,
         role: authData.role,
+        orgAdmin: authData.orgAdmin ?? false,
         teams: authData.teams || []
       }
     }
@@ -127,6 +129,23 @@ export async function requireSuperuser(event: H3Event) {
     })
   }
   
+  return user
+}
+
+/**
+ * Check if the current user is an org-admin (or superuser, who can do everything)
+ */
+export async function requireOrgAdmin(event: H3Event) {
+  const user = await requireAuth(event)
+
+  if (user.role !== 'superuser' && !user.orgAdmin) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+      message: 'Organization admin access required'
+    })
+  }
+
   return user
 }
 

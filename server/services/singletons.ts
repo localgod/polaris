@@ -34,6 +34,7 @@ import { ScorecardService } from './scorecard.service'
 import { VersionSprawlService } from './version-sprawl.service'
 import { ViolationService } from './violation.service'
 import { WaiverService } from './waiver.service'
+import { PolicyService } from './policy.service'
 
 export const technologyService = new TechnologyService()
 export const teamService = new TeamService()
@@ -59,3 +60,4 @@ export const scorecardService = new ScorecardService()
 export const versionSprawlService = new VersionSprawlService()
 export const violationService = new ViolationService()
 export const waiverService = new WaiverService()
+export const policyService = new PolicyService()

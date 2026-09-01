@@ -63,15 +63,6 @@
 
       <!-- Radar view -->
       <template v-if="viewMode === 'radar'">
-        <div class="flex items-center gap-3 mb-4">
-          <label class="text-sm font-medium text-(--ui-text)">Team</label>
-          <USelect
-            v-model="radarTeam"
-            :items="radarTeamItems"
-            class="w-56"
-          />
-          <UBadge v-if="radarPending" color="neutral" variant="subtle">Loading…</UBadge>
-        </div>
         <UCard>
           <AsyncTechnologyRadar :data="radarData" />
         </UCard>
@@ -100,14 +91,6 @@
       @deleted="refreshNuxtData()"
     />
 
-    <AsyncSetTimeModal
-      v-if="timeModalOpen"
-      v-model:open="timeModalOpen"
-      :tech="timeModalTech"
-      :team-options="teamOptions"
-      @saved="refreshNuxtData()"
-    />
-
     <AsyncLinkComponentModal
       v-if="linkModalOpen"
       v-model:open="linkModalOpen"
@@ -131,7 +114,6 @@ const AsyncTechnologyRadar = defineAsyncComponent(() => import('../../components
 const AsyncEditTechnologyModal = defineAsyncComponent(() => import('../../components/EditTechnologyModal.vue'))
 const AsyncCreateVersionConstraintModal = defineAsyncComponent(() => import('../../components/CreateVersionConstraintModal.vue'))
 const AsyncDeleteTechnologyModal = defineAsyncComponent(() => import('../../components/DeleteTechnologyModal.vue'))
-const AsyncSetTimeModal = defineAsyncComponent(() => import('../../components/SetTimeModal.vue'))
 const AsyncLinkComponentModal = defineAsyncComponent(() => import('../../components/LinkComponentModal.vue'))
 
 const userTeams = computed(() =>
@@ -203,12 +185,6 @@ const columns: TableColumn<Technology>[] = [
       ]
       const items: { label: string; icon: string; onSelect: () => void }[][] = [viewGroup]
 
-      if (canSetTime.value) {
-        items.push([
-          { label: 'Set TIME', icon: 'i-lucide-clock', onSelect: () => openTimeModal(tech) }
-        ])
-      }
-
       // Any authenticated user can create a version constraint for a technology
       if (session.value?.user) {
         items.push([
@@ -247,8 +223,6 @@ const teamOptions = computed(() =>
   (teamsData.value?.data || []).map(t => t.name).sort()
 )
 
-const canSetTime = computed(() => isSuperuser.value || userTeams.value.length > 0)
-
 // Edit modal
 const editModalOpen = ref(false)
 const editTech = ref<Technology | null>(null)
@@ -274,15 +248,6 @@ const deleteTechName = ref('')
 function openDeleteModal(name: string) {
   deleteTechName.value = name
   deleteModalOpen.value = true
-}
-
-// Set TIME modal
-const timeModalOpen = ref(false)
-const timeModalTech = ref<Technology | null>(null)
-
-function openTimeModal(tech: Technology) {
-  timeModalTech.value = tech
-  timeModalOpen.value = true
 }
 
 // Link Component modal
@@ -326,24 +291,8 @@ onMounted(() => {
 })
 
 // ── Radar data ────────────────────────────────────────────────────────────────
-const ALL_TEAMS_VALUE = '__all__'
-const radarTeam = ref<string>(ALL_TEAMS_VALUE)
 
-const radarTeamItems = computed(() => [
-  { label: 'All teams', value: ALL_TEAMS_VALUE },
-  ...(teamsData.value?.data || []).map(t => ({ label: t.name, value: t.name })).sort((a, b) => a.label.localeCompare(b.label))
-])
-
-const radarQuery = computed(() => radarTeam.value !== ALL_TEAMS_VALUE ? { team: radarTeam.value } : {})
-
-const { data: radarResponse, pending: radarPending } = useLazyFetch<ApiResponse<RadarTechnology>>(
-  '/api/technologies/radar',
-  {
-    query: radarQuery,
-    watch: [radarQuery],
-  }
-)
-
+const { data: radarResponse } = useLazyFetch<ApiResponse<RadarTechnology>>('/api/technologies/radar')
 const radarData = computed(() => radarResponse.value?.data || [])
 
 useHead({ title: 'Technologies - Polaris' })

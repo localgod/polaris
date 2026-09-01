@@ -6,6 +6,7 @@ declare module 'next-auth' {
       id: string
       provider: string
       role: 'user' | 'superuser'
+      orgAdmin: boolean
       teams: Array<{
         name: string
         email: string | null
@@ -17,6 +18,7 @@ declare module 'next-auth' {
     id: string
     provider?: string
     role?: 'user' | 'superuser'
+    orgAdmin?: boolean
     teams?: Array<{
       name: string
       email: string | null
@@ -29,6 +31,7 @@ declare module 'next-auth/jwt' {
     userId?: string
     provider?: string
     role?: string
+    orgAdmin?: boolean
     teams?: Array<{
       name: string
       email: string | null

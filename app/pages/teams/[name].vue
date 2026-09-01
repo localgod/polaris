@@ -53,13 +53,6 @@
               </template>
             </UTable>
           </template>
-          <template #approvals>
-            <UTable v-model:sorting="approvalSorting" :data="data.data.approvals" :columns="approvalColumns" class="mt-3">
-              <template #empty>
-                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No technology approvals yet.</p>
-              </template>
-            </UTable>
-          </template>
         </UTabs>
       </UCard>
     </template>
@@ -75,7 +68,6 @@ const { getSortableHeader } = useSortableTable()
 const memberSorting = ref([])
 const technologySorting = ref([])
 const systemSorting = ref([])
-const approvalSorting = ref([])
 
 const route = useRoute()
 const router = useRouter()
@@ -99,13 +91,6 @@ interface System {
   environment: string
 }
 
-interface Approval {
-  technologyName: string
-  timeCategory: string
-  approvedAt: string
-  approvedBy: string
-}
-
 interface TeamDetail {
   name: string
   description: string
@@ -116,7 +101,6 @@ interface TeamDetail {
   members: Member[]
   technologies: Technology[]
   systems: System[]
-  approvals: Approval[]
 }
 
 interface TeamResponse {
@@ -201,41 +185,6 @@ const systemColumns: TableColumn<System>[] = [
   }
 ]
 
-const approvalColumns: TableColumn<Approval>[] = [
-  {
-    accessorKey: 'technologyName',
-    header: ({ column }) => getSortableHeader(column, 'Technology'),
-    cell: ({ row }) => {
-      const name = row.getValue('technologyName') as string
-      return h(resolveComponent('NuxtLink'), {
-        to: `/technologies/${encodeURIComponent(name)}`,
-        class: 'font-medium hover:underline'
-      }, () => name)
-    }
-  },
-  {
-    accessorKey: 'timeCategory',
-    header: ({ column }) => getSortableHeader(column, 'TIME Category'),
-    cell: ({ row }) => {
-      const cat = row.getValue('timeCategory') as string
-      if (!cat) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
-      return h(resolveComponent('UBadge'), { color: getTimeCategoryColor(cat), variant: 'subtle' }, () => cat)
-    }
-  },
-  {
-    accessorKey: 'approvedAt',
-    header: ({ column }) => getSortableHeader(column, 'Approved'),
-    cell: ({ row }) => {
-      const date = row.getValue('approvedAt') as string
-      return date ? new Date(date).toLocaleDateString() : '—'
-    }
-  },
-  {
-    accessorKey: 'approvedBy',
-    header: ({ column }) => getSortableHeader(column, 'Approved By')
-  }
-]
-
 const { data, pending, error } = await useFetch<TeamResponse>(() => `/api/teams/${encodeURIComponent(route.params.name as string)}`)
 
 const { data: scorecardData } = useFetch<ScorecardResponse>(
@@ -251,8 +200,7 @@ const statItems = computed(() => [
 const tabItems = computed(() => [
   { label: `Members (${data.value?.data?.members?.length ?? 0})`, slot: 'members' as const, value: 'members' },
   { label: `Technologies (${data.value?.data?.technologies?.length ?? 0})`, slot: 'technologies' as const, value: 'technologies' },
-  { label: `Systems (${data.value?.data?.systems?.length ?? 0})`, slot: 'systems' as const, value: 'systems' },
-  { label: `Approvals (${data.value?.data?.approvals?.length ?? 0})`, slot: 'approvals' as const, value: 'approvals' }
+  { label: `Systems (${data.value?.data?.systems?.length ?? 0})`, slot: 'systems' as const, value: 'systems' }
 ])
 
 const activeTab = ref((route.query.tab as string) || 'members')

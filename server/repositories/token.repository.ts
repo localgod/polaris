@@ -34,6 +34,7 @@ export interface TokenWithUser {
     id: string
     email: string
     role: string
+    orgAdmin: boolean
     teams: Array<{ name: string; email: string | null }>
   }
 }

@@ -95,6 +95,7 @@ export default NuxtAuthHandler({
           if (authData) {
             token.role = authData.role
             token.email = authData.email
+            token.orgAdmin = authData.orgAdmin
             token.teams = authData.teams
           }
         } catch (error) {
@@ -111,6 +112,7 @@ export default NuxtAuthHandler({
         session.user.id = token.userId as string
         session.user.provider = token.provider as string
         session.user.role = (token.role as 'user' | 'superuser') || 'user'
+        session.user.orgAdmin = (token.orgAdmin as boolean) ?? false
         session.user.teams = (token.teams as Array<{ name: string; email: string | null }>) || []
       }
       return session

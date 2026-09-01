@@ -2930,6 +2930,33 @@
         }
       }
     },
+    "/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user details",
+        "description": "Returns full user details including teams, tokens (technical users), and recent audit activity. Superuser only.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "tags": [
@@ -3037,116 +3064,6 @@
           },
           "500": {
             "description": "Failed to fetch users"
-          }
-        }
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "tags": [
-          "Users"
-        ],
-        "summary": "Get user details",
-        "description": "Returns full user details including teams, tokens (technical users), and recent audit activity. Superuser only.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User details"
-          },
-          "404": {
-            "description": "User not found"
-          }
-        }
-      }
-    },
-    "/technologies/radar": {
-      "get": {
-        "tags": [
-          "Technologies"
-        ],
-        "summary": "Get technologies shaped for the radar visualization",
-        "description": "Returns all technologies with a resolved TIME value for the radar view. When `team` is provided each technology is placed in the ring matching that team's TIME approval. Without `team` the dominant TIME value across all approvals is used (majority vote; ties broken by severity). Technologies with no applicable approval are marked 'unclassified'.\n",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "team",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "Filter TIME values by this team name"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved radar data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "type": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "domain": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "timeValue": {
-                                "type": "string",
-                                "enum": [
-                                  "invest",
-                                  "tolerate",
-                                  "migrate",
-                                  "eliminate",
-                                  "unclassified"
-                                ]
-                              },
-                              "approvalCount": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to fetch radar data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -3398,6 +3315,187 @@
         }
       }
     },
+    "/technologies/radar": {
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Get technologies shaped for the radar visualization",
+        "description": "Returns all technologies with a resolved TIME value for the radar view. When `team` is provided each technology is placed in the ring matching that team's TIME approval. Without `team` the dominant TIME value across all approvals is used (majority vote; ties broken by severity). Technologies with no applicable approval are marked 'unclassified'.\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "team",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Filter TIME values by this team name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved radar data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "domain": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "timeValue": {
+                                "type": "string",
+                                "enum": [
+                                  "invest",
+                                  "tolerate",
+                                  "migrate",
+                                  "eliminate",
+                                  "unclassified"
+                                ]
+                              },
+                              "approvalCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch radar data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/technologies/{name}/policy": {
+      "post": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Propose or update a draft TIME policy for a technology",
+        "description": "Creates or updates a draft TechnologyPolicy. Only the technology's steward team or an org-admin may call this.\nThe draft must be activated (via POST /policy/activate) by an org-admin before it becomes authoritative.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "time"
+                ],
+                "properties": {
+                  "time": {
+                    "type": "string",
+                    "enum": [
+                      "tolerate",
+                      "invest",
+                      "migrate",
+                      "eliminate"
+                    ]
+                  },
+                  "rationale": {
+                    "type": "string"
+                  },
+                  "migrationTarget": {
+                    "type": "string"
+                  },
+                  "effectiveDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "expiryDate": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft policy created or updated"
+          },
+          "403": {
+            "description": "User is not the steward or org-admin"
+          },
+          "404": {
+            "description": "Technology not found"
+          },
+          "422": {
+            "description": "Invalid TIME value"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Get the active organization TIME policy for a technology",
+        "description": "Returns the single active TechnologyPolicy for the given technology, including any unrevoked, unexpired exceptions.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active policy (null data if no active policy exists)"
+          },
+          "404": {
+            "description": "Technology not found"
+          }
+        }
+      }
+    },
     "/technologies/{name}/graph": {
       "get": {
         "tags": [
@@ -3556,8 +3654,58 @@
         "tags": [
           "Technologies"
         ],
-        "summary": "Set a team's TIME approval for a technology",
-        "description": "Creates or updates a team's APPROVES relationship on a technology. The user must be a member of the specified team or a superuser.",
+        "summary": "[Deprecated] Set a team's TIME approval for a technology",
+        "description": "**This endpoint is deprecated and no longer accepts writes.**\n\nTeam-level TIME approvals have been replaced by organization-level TechnologyPolicy.\nUse `POST /api/technologies/{name}/policy` to propose a policy and\n`POST /api/technologies/{name}/policy/activate` to activate it.\n\nSee ADR-0008 for the rationale.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "responses": {
+          "410": {
+            "description": "Gone — team-level approvals replaced by org-level TechnologyPolicy"
+          }
+        }
+      }
+    },
+    "/technologies/{name}/policy/history": {
+      "get": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Get full TIME policy history for a technology",
+        "description": "Returns all TechnologyPolicy records (draft, active, archived) ordered newest first.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Policy history list"
+          }
+        }
+      }
+    },
+    "/technologies/{name}/policy/exceptions": {
+      "post": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Create a scoped exception to the active TIME policy",
+        "description": "Creates a PolicyException that temporarily overrides the active TechnologyPolicy for a\nspecific team or system. Exceptions must have an expiry date and carry a mandatory reason.\nRequires org-admin role.\n",
         "parameters": [
           {
             "in": "path",
@@ -3576,13 +3724,15 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "teamName",
-                  "time"
+                  "time",
+                  "reason",
+                  "approver",
+                  "scope",
+                  "scopeName",
+                  "effectiveDate",
+                  "expiresAt"
                 ],
                 "properties": {
-                  "teamName": {
-                    "type": "string"
-                  },
                   "time": {
                     "type": "string",
                     "enum": [
@@ -3592,7 +3742,89 @@
                       "eliminate"
                     ]
                   },
-                  "notes": {
+                  "reason": {
+                    "type": "string"
+                  },
+                  "approver": {
+                    "type": "string"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "team",
+                      "system"
+                    ]
+                  },
+                  "scopeName": {
+                    "type": "string"
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "dev",
+                      "test",
+                      "staging",
+                      "prod"
+                    ]
+                  },
+                  "effectiveDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exception created"
+          },
+          "403": {
+            "description": "Org-admin access required"
+          },
+          "409": {
+            "description": "No active policy exists for this technology"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/technologies/{name}/policy/archive": {
+      "post": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Archive the active or draft TIME policy for a technology",
+        "description": "Sets the policy status to 'archived'. The technology will return to 'unclassified'\nuntil a new policy is proposed and activated. Requires org-admin role.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "policyId"
+                ],
+                "properties": {
+                  "policyId": {
                     "type": "string"
                   }
                 }
@@ -3602,19 +3834,103 @@
         },
         "responses": {
           "200": {
-            "description": "Approval set"
-          },
-          "400": {
-            "description": "Missing required fields"
+            "description": "Policy archived"
           },
           "403": {
-            "description": "User is not a member of the specified team"
+            "description": "Org-admin access required"
           },
           "404": {
-            "description": "Technology not found"
+            "description": "Policy not found"
+          }
+        }
+      }
+    },
+    "/technologies/{name}/policy/activate": {
+      "post": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Activate the draft TIME policy for a technology",
+        "description": "Transitions the draft TechnologyPolicy to active status, making it the authoritative\norganization-level TIME decision for this technology. Any previously active policy is\nautomatically archived. Requires org-admin role.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "policyId"
+                ],
+                "properties": {
+                  "policyId": {
+                    "type": "string",
+                    "description": "ID of the draft policy to activate"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Policy activated"
           },
-          "422": {
-            "description": "Invalid TIME value"
+          "403": {
+            "description": "Org-admin access required"
+          },
+          "404": {
+            "description": "Draft policy not found"
+          }
+        }
+      }
+    },
+    "/technologies/{name}/policy/exceptions/{exceptionId}": {
+      "delete": {
+        "tags": [
+          "Technologies"
+        ],
+        "summary": "Revoke a policy exception",
+        "description": "Marks the exception as revoked. The org policy becomes effective immediately for the\npreviously excepted scope. Requires org-admin role.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Technology name"
+          },
+          {
+            "in": "path",
+            "name": "exceptionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Exception ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exception revoked"
+          },
+          "403": {
+            "description": "Org-admin access required"
+          },
+          "404": {
+            "description": "Exception not found or already revoked"
           }
         }
       }
@@ -4696,6 +5012,103 @@
         }
       }
     },
+    "/licenses/{id}": {
+      "get": {
+        "tags": [
+          "Licenses",
+          "License Compliance"
+        ],
+        "summary": "Get license details",
+        "description": "Retrieves detailed information about a specific license including\nusage statistics and full license text from the SPDX license list.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "License ID (SPDX identifier)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "spdxId": {
+                                "type": "string"
+                              },
+                              "osiApproved": {
+                                "type": "boolean"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "licenseText": {
+                                "type": "string"
+                              },
+                              "deprecated": {
+                                "type": "boolean"
+                              },
+                              "componentCount": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "License not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch license",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/licenses/violations": {
       "get": {
         "tags": [
@@ -4890,103 +5303,6 @@
         }
       }
     },
-    "/licenses/{id}": {
-      "get": {
-        "tags": [
-          "Licenses",
-          "License Compliance"
-        ],
-        "summary": "Get license details",
-        "description": "Retrieves detailed information about a specific license including\nusage statistics and full license text from the SPDX license list.\n",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "License ID (SPDX identifier)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved license",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccessResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "spdxId": {
-                                "type": "string"
-                              },
-                              "osiApproved": {
-                                "type": "boolean"
-                              },
-                              "url": {
-                                "type": "string"
-                              },
-                              "category": {
-                                "type": "string"
-                              },
-                              "licenseText": {
-                                "type": "string"
-                              },
-                              "deprecated": {
-                                "type": "boolean"
-                              },
-                              "componentCount": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "License not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to fetch license",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/licenses/{id}/components": {
       "get": {
         "tags": [
@@ -5080,6 +5396,119 @@
         "responses": {
           "200": {
             "description": "Attention summary retrieved successfully"
+          }
+        }
+      }
+    },
+    "/components/{key}": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "summary": "Get component details",
+        "description": "Retrieves a single component by its encoded component identity key.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Encoded component identity from the components list."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Component details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/Component"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "systems": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "scope": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                          "required",
+                                          "optional",
+                                          "excluded",
+                                          "dev",
+                                          "test",
+                                          "runtime",
+                                          "provided"
+                                        ]
+                                      },
+                                      "isDirect": {
+                                        "type": "boolean",
+                                        "nullable": true
+                                      }
+                                    }
+                                  }
+                                },
+                                "directDependencies": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/ComponentDirectDependency"
+                                  }
+                                },
+                                "eol": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "packageMetadata": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "maintenanceHealth": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "securityScorecard": {
+                                  "type": "object",
+                                  "nullable": true
+                                },
+                                "vulnerabilities": {
+                                  "type": "object",
+                                  "nullable": true
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Component key is missing or invalid"
+          },
+          "404": {
+            "description": "Component not found"
           }
         }
       }
@@ -5621,119 +6050,6 @@
           },
           "400": {
             "description": "Missing required parameters"
-          }
-        }
-      }
-    },
-    "/components/{key}": {
-      "get": {
-        "tags": [
-          "Components"
-        ],
-        "summary": "Get component details",
-        "description": "Retrieves a single component by its encoded component identity key.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Encoded component identity from the components list."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Component details retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSingleResourceResponse"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "allOf": [
-                            {
-                              "$ref": "#/components/schemas/Component"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "systems": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "name": {
-                                        "type": "string"
-                                      },
-                                      "scope": {
-                                        "type": "string",
-                                        "nullable": true,
-                                        "enum": [
-                                          "required",
-                                          "optional",
-                                          "excluded",
-                                          "dev",
-                                          "test",
-                                          "runtime",
-                                          "provided"
-                                        ]
-                                      },
-                                      "isDirect": {
-                                        "type": "boolean",
-                                        "nullable": true
-                                      }
-                                    }
-                                  }
-                                },
-                                "directDependencies": {
-                                  "type": "array",
-                                  "items": {
-                                    "$ref": "#/components/schemas/ComponentDirectDependency"
-                                  }
-                                },
-                                "eol": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "packageMetadata": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "maintenanceHealth": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "securityScorecard": {
-                                  "type": "object",
-                                  "nullable": true
-                                },
-                                "vulnerabilities": {
-                                  "type": "object",
-                                  "nullable": true
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Component key is missing or invalid"
-          },
-          "404": {
-            "description": "Component not found"
           }
         }
       }
@@ -6480,6 +6796,69 @@
         }
       }
     },
+    "/admin/users/{userId}/org-admin": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update user org-admin flag",
+        "description": "Grants or revokes organization admin access for a user.\nOrg-admins can activate and archive TechnologyPolicies and manage PolicyExceptions.\n\n**Authorization:** Superuser\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "User ID"
+          }
+        ],
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "orgAdmin"
+                ],
+                "properties": {
+                  "orgAdmin": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "orgAdmin": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Org-admin status updated successfully"
+          },
+          "400": {
+            "description": "Invalid body or missing parameters"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
     "/admin/users/{userId}": {
       "delete": {
         "tags": [
@@ -6541,6 +6920,31 @@
           },
           "404": {
             "description": "Token not found"
+          }
+        }
+      }
+    },
+    "/admin/policies/review-queue": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get technologies flagged for manual policy review",
+        "description": "Returns technologies whose legacy team TIME approvals conflicted during the\nmigration to org-level TechnologyPolicy. These must be reviewed manually by\nan org-admin who will propose and activate an appropriate policy.\n\n**Authorization:** Superuser\n",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of review queue entries"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Superuser access required"
           }
         }
       }
@@ -6992,63 +7396,6 @@
         }
       }
     },
-    "/admin/import/jobs": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "List GitHub import jobs",
-        "description": "Paginated, filterable listing of all import jobs for the admin monitoring view. Superuser only.",
-        "security": [
-          {
-            "sessionAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "schema": {
-              "type": "integer",
-              "default": 0
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "default": 20,
-              "maximum": 100
-            }
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Comma-separated list of statuses to include (queued, running, completed, failed, cancelled)"
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Case-insensitive substring match on organization"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Import jobs retrieved successfully"
-          },
-          "403": {
-            "description": "Superuser access required"
-          }
-        }
-      }
-    },
     "/admin/import/jobs/{jobId}": {
       "get": {
         "tags": [
@@ -7115,6 +7462,63 @@
           },
           "409": {
             "description": "Job is still queued/running and must be cancelled first"
+          }
+        }
+      }
+    },
+    "/admin/import/jobs": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List GitHub import jobs",
+        "description": "Paginated, filterable listing of all import jobs for the admin monitoring view. Superuser only.",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of statuses to include (queued, running, completed, failed, cancelled)"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on organization"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import jobs retrieved successfully"
+          },
+          "403": {
+            "description": "Superuser access required"
           }
         }
       }
@@ -7224,63 +7628,6 @@
         }
       }
     },
-    "/admin/health-refresh/jobs": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "List health-refresh jobs",
-        "description": "Paginated, filterable listing of all health-refresh jobs for the admin monitoring view. Superuser only.",
-        "security": [
-          {
-            "sessionAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "schema": {
-              "type": "integer",
-              "default": 0
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "default": 20,
-              "maximum": 100
-            }
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Comma-separated list of statuses to include (queued, running, completed, failed, cancelled)"
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Case-insensitive substring match on system name"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Health-refresh jobs retrieved successfully"
-          },
-          "403": {
-            "description": "Superuser access required"
-          }
-        }
-      }
-    },
     "/admin/health-refresh/jobs/{jobId}": {
       "get": {
         "tags": [
@@ -7347,6 +7694,63 @@
           },
           "409": {
             "description": "Job is still queued/running and must be cancelled first"
+          }
+        }
+      }
+    },
+    "/admin/health-refresh/jobs": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List health-refresh jobs",
+        "description": "Paginated, filterable listing of all health-refresh jobs for the admin monitoring view. Superuser only.",
+        "security": [
+          {
+            "sessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of statuses to include (queued, running, completed, failed, cancelled)"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case-insensitive substring match on system name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health-refresh jobs retrieved successfully"
+          },
+          "403": {
+            "description": "Superuser access required"
           }
         }
       }

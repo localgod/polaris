@@ -219,6 +219,7 @@ describe('[contract] getCurrentUser()', () => {
     vi.mocked(userService.getAuthData).mockResolvedValue({
       email: 'imp@example.com',
       role: 'user',
+      orgAdmin: false,
       teams: [{ name: 'Platform' }],
     })
 
@@ -228,6 +229,7 @@ describe('[contract] getCurrentUser()', () => {
       id: 'target-user',
       email: 'imp@example.com',
       role: 'user',
+      orgAdmin: false,
       teams: [{ name: 'Platform' }],
     })
   })

@@ -15,5 +15,13 @@ export function useEffectiveRole() {
     return session.value?.user?.role === 'superuser'
   })
 
-  return { isSuperuser }
+  // orgAdmin is always the real user's status regardless of impersonation.
+  // Superusers are implicitly org-admins (matching requireOrgAdmin on the server).
+  const isOrgAdmin = computed(() => {
+    const role = session.value?.user?.role
+    const orgAdmin = (session.value?.user as { orgAdmin?: boolean } | undefined)?.orgAdmin
+    return role === 'superuser' || orgAdmin === true
+  })
+
+  return { isSuperuser, isOrgAdmin }
 }
