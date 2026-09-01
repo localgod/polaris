@@ -24,7 +24,9 @@
  *       410:
  *         description: Gone — team-level approvals replaced by org-level TechnologyPolicy
  */
-export default defineEventHandler(async (_event) => {
+export default defineEventHandler(async (event) => {
+  await requireAuth(event)
+
   throw createError({
     statusCode: 410,
     statusMessage: 'Gone',
