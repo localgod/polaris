@@ -86,10 +86,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'You can only view your own audit history' })
   }
 
+  // Non-superusers with no userId filter get scoped to their own history —
+  // otherwise the unfiltered query returns the whole org's audit log, which
+  // carries PII (impersonation target emails, token owner emails, actor names).
+  const scopedUserId = (query.userId as string | undefined) ?? (user.role !== 'superuser' ? user.id : undefined)
+
   const filters = {
     entityType: query.entityType as string | undefined,
     operation: query.operation as string | undefined,
-    userId: query.userId as string | undefined,
+    userId: scopedUserId,
     limit: query.limit ? parseInt(query.limit as string, 10) : 100,
     offset: query.offset ? parseInt(query.offset as string, 10) : 0,
     sortBy: query.sortBy as string | undefined,
