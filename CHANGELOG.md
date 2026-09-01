@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.122] - 2026-09-01
+
+## What's Changed
+
+* feat: centralize TIME governance at organization level (#829) @localgod (#882)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.121...v0.6.122
 
 ## [0.6.116] - 2026-08-19
 
