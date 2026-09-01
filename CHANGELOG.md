@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.123] - 2026-09-01
+
+## What's Changed
+
+* Fix audit log endpoint PII exposure @localgod (#884)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.122...v0.6.123
 
 ## [0.6.116] - 2026-08-19
 
