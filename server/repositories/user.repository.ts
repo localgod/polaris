@@ -24,6 +24,7 @@ export interface User {
   email: string
   name: string | null
   role: string
+  orgAdmin: boolean
   provider: string
   avatarUrl: string | null
   lastLogin: string | null
@@ -58,6 +59,13 @@ export interface AssignTeamsParams {
 export interface UpdateRoleParams {
   userId: string
   role: 'user' | 'superuser'
+  performedBy: string
+  realUserId?: string | null
+}
+
+export interface UpdateOrgAdminParams {
+  userId: string
+  orgAdmin: boolean
   performedBy: string
   realUserId?: string | null
 }
@@ -110,6 +118,7 @@ export interface CreateOrUpdateUserParams {
 export interface UserAuthData {
   role: string
   email: string
+  orgAdmin: boolean
   teams: UserTeam[]
 }
 
@@ -182,6 +191,7 @@ export class UserRepository extends BaseRepository {
     return {
       role: record.get('role'),
       email: record.get('email'),
+      orgAdmin: record.get('orgAdmin') ?? false,
       teams: record.get('teams').filter((t: UserTeam) => t.name !== null)
     }
   }
@@ -409,6 +419,39 @@ export class UserRepository extends BaseRepository {
       newStatus: role,
       changedFields: ['role'],
       reason: `Role changed from ${current.role} to ${role}`,
+      source: 'API',
+      performedBy,
+      realUserId: realUserId ?? null
+    })
+
+    return this.mapToUser(records[0]!)
+  }
+
+  /**
+   * Update a user's org-admin flag and write an audit log entry
+   *
+   * @param params - Org-admin update parameters
+   * @returns Updated user, or null if the user was not found
+   */
+  async updateOrgAdmin(params: UpdateOrgAdminParams): Promise<User | null> {
+    const { userId, orgAdmin, performedBy, realUserId } = params
+
+    const current = await this.findById(userId)
+    if (!current) return null
+
+    const query = await loadQuery('users/update-org-admin.cypher')
+    const { records } = await this.executeQuery(query, { userId, orgAdmin })
+
+    if (records.length === 0) return null
+
+    await this.attachAuditLogBestEffort('users/attach-audit-log.cypher', {
+      userId,
+      operation: 'CHANGE_ORG_ADMIN',
+      entityLabel: current.name ?? current.email,
+      previousStatus: String(current.orgAdmin ?? false),
+      newStatus: String(orgAdmin),
+      changedFields: ['orgAdmin'],
+      reason: `orgAdmin changed to ${orgAdmin}`,
       source: 'API',
       performedBy,
       realUserId: realUserId ?? null

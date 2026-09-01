@@ -1,4 +1,4 @@
-import { UserRepository, type User, type UserSummary, type AssignTeamsParams, type CreateOrUpdateUserParams, type UserAuthData, type UpdateRoleParams, type CreatePendingUserParams, type ClaimInviteParams, type PendingUser } from '../repositories/user.repository'
+import { UserRepository, type User, type UserSummary, type AssignTeamsParams, type CreateOrUpdateUserParams, type UserAuthData, type UpdateRoleParams, type UpdateOrgAdminParams, type CreatePendingUserParams, type ClaimInviteParams, type PendingUser } from '../repositories/user.repository'
 import type { SortParams } from '../utils/sorting'
 
 /**
@@ -120,6 +120,20 @@ export class UserService {
    */
   async updateRole(params: UpdateRoleParams): Promise<User | null> {
     return await this.userRepo.updateRole(params)
+  }
+
+  /**
+   * Update a user's org-admin flag
+   *
+   * Business rules:
+   * - Only superusers can call this
+   * - A superuser cannot remove their own org-admin status
+   *
+   * @param params - Org-admin update parameters
+   * @returns Updated user or null if not found
+   */
+  async updateOrgAdmin(params: UpdateOrgAdminParams): Promise<User | null> {
+    return await this.userRepo.updateOrgAdmin(params)
   }
 
   /**

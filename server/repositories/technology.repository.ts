@@ -249,7 +249,8 @@ export class TechnologyRepository extends BaseRepository {
     name: string
     type: string | null
     domain: string | null
-    approvals: Array<{ team: string; time: string }>
+    policyTime: string | null
+    policyId: string | null
   }>> {
     const query = await loadQuery('technologies/find-for-radar.cypher')
     const { records } = await this.executeQuery(query, {})
@@ -257,9 +258,8 @@ export class TechnologyRepository extends BaseRepository {
       name: record.get('name') as string,
       type: record.get('type') as string | null,
       domain: record.get('domain') as string | null,
-      approvals: (record.get('approvals') as Array<{ team?: string; time?: string }>)
-        .filter(a => a.team && a.time)
-        .map(a => ({ team: a.team!, time: a.time! })),
+      policyTime: record.get('policyTime') as string | null,
+      policyId: record.get('policyId') as string | null,
     }))
   }
 

@@ -10,18 +10,9 @@ import { technologyService } from '../../services/singletons'
  *       - Technologies
  *     summary: Get technologies shaped for the radar visualization
  *     description: >
- *       Returns all technologies with a resolved TIME value for the radar view.
- *       When `team` is provided each technology is placed in the ring matching
- *       that team's TIME approval. Without `team` the dominant TIME value across
- *       all approvals is used (majority vote; ties broken by severity).
- *       Technologies with no applicable approval are marked 'unclassified'.
- *     parameters:
- *       - in: query
- *         name: team
- *         schema:
- *           type: string
- *         required: false
- *         description: Filter TIME values by this team name
+ *       Returns all technologies with the TIME value resolved from the active
+ *       organization TechnologyPolicy. Technologies with no active policy are
+ *       marked 'unclassified'.
  *     responses:
  *       200:
  *         description: Successfully retrieved radar data
@@ -48,8 +39,9 @@ import { technologyService } from '../../services/singletons'
  *                           timeValue:
  *                             type: string
  *                             enum: [invest, tolerate, migrate, eliminate, unclassified]
- *                           approvalCount:
- *                             type: integer
+ *                           policyId:
+ *                             type: string
+ *                             nullable: true
  *       500:
  *         description: Failed to fetch radar data
  *         content:
@@ -57,12 +49,9 @@ import { technologyService } from '../../services/singletons'
  *             schema:
  *               $ref: '#/components/schemas/ApiErrorResponse'
  */
-export default defineEventHandler(async (event): Promise<ApiResponse<RadarTechnology>> => {
+export default defineEventHandler(async (_event): Promise<ApiResponse<RadarTechnology>> => {
   try {
-    const query = getQuery(event)
-    const team = typeof query.team === 'string' ? query.team.trim() || undefined : undefined
-
-    const data = await technologyService.findForRadar(team)
+    const data = await technologyService.findForRadar()
 
     return { success: true, data, count: data.length }
   } catch (error: unknown) {

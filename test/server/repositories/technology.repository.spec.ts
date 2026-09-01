@@ -224,21 +224,20 @@ describe('TechnologyRepository', () => {
   })
 
   describe('[pin] findForRadar()', () => {
-    it('should include only approvals with both team and time', async () => {
+    it('should include the active org policy time and id', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (t:Technology { name: $tech, type: 'library', domain: 'app' })
-        CREATE (good:Team { name: $goodTeam })
-        CREATE (bad:Team { name: $badTeam })
-        CREATE (good)-[:APPROVES { time: 'tolerate' }]->(t)
-        CREATE (bad)-[:APPROVES { notes: 'missing-time' }]->(t)
-      `, { tech: `${PREFIX}radar-tech`, goodTeam: `${PREFIX}good`, badTeam: `${PREFIX}bad` })
+        MERGE (o:Organization { name: 'default' })
+        CREATE (o)-[:SETS]->(:TechnologyPolicy { id: $policyId, status: 'active', time: 'tolerate' })-[:GOVERNS]->(t)
+      `, { tech: `${PREFIX}radar-tech`, policyId: `${PREFIX}radar-policy` })
 
       const rows = await repo.findForRadar()
       const row = rows.find(r => r.name === `${PREFIX}radar-tech`)
 
       expect(row).toBeDefined()
-      expect(row!.approvals).toEqual([{ team: `${PREFIX}good`, time: 'tolerate' }])
+      expect(row!.policyTime).toBe('tolerate')
+      expect(row!.policyId).toBe(`${PREFIX}radar-policy`)
     })
   })
 

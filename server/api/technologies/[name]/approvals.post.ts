@@ -1,14 +1,18 @@
-import { technologyService } from '../../../services/singletons'
-import { auditFailedOperation } from '../../../utils/audit'
-
 /**
  * @openapi
  * /technologies/{name}/approvals:
  *   post:
  *     tags:
  *       - Technologies
- *     summary: Set a team's TIME approval for a technology
- *     description: Creates or updates a team's APPROVES relationship on a technology. The user must be a member of the specified team or a superuser.
+ *     summary: "[Deprecated] Set a team's TIME approval for a technology"
+ *     description: |
+ *       **This endpoint is deprecated and no longer accepts writes.**
+ *
+ *       Team-level TIME approvals have been replaced by organization-level TechnologyPolicy.
+ *       Use `POST /api/technologies/{name}/policy` to propose a policy and
+ *       `POST /api/technologies/{name}/policy/activate` to activate it.
+ *
+ *       See ADR-0008 for the rationale.
  *     parameters:
  *       - in: path
  *         name: name
@@ -16,95 +20,19 @@ import { auditFailedOperation } from '../../../utils/audit'
  *         schema:
  *           type: string
  *         description: Technology name
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - teamName
- *               - time
- *             properties:
- *               teamName:
- *                 type: string
- *               time:
- *                 type: string
- *                 enum: [tolerate, invest, migrate, eliminate]
- *               notes:
- *                 type: string
  *     responses:
- *       200:
- *         description: Approval set
- *       400:
- *         description: Missing required fields
- *       403:
- *         description: User is not a member of the specified team
- *       404:
- *         description: Technology not found
- *       422:
- *         description: Invalid TIME value
+ *       410:
+ *         description: Gone — team-level approvals replaced by org-level TechnologyPolicy
  */
-
-interface SetApprovalRequest {
-  teamName: string
-  time: string
-  environment?: string | null
-  notes?: string
-}
-
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event)
-  const realUserId = await getImpersonatorId(event)
+  await requireAuth(event)
 
-  const rawName = getRouterParam(event, 'name')
-  if (!rawName) {
-    throw createError({ statusCode: 400, message: 'Technology name is required' })
-  }
-  const technologyName = decodeURIComponent(rawName)
-
-  const body = await readBody<SetApprovalRequest>(event)
-
-  if (!body?.teamName || !body?.time) {
-    throw createError({ statusCode: 400, message: 'teamName and time are required' })
-  }
-
-  try {
-    // Verify user is a member of the team or a superuser
-    if (user.role !== 'superuser') {
-      const userTeamNames = user.teams?.map((t: { name: string }) => t.name) || []
-      if (!userTeamNames.includes(body.teamName)) {
-        throw createError({
-          statusCode: 403,
-          message: `You must be a member of '${body.teamName}' to set its TIME approval`
-        })
-      }
-    }
-
-    const result = await technologyService.setApproval({
-      technologyName,
-      teamName: body.teamName,
-      time: body.time,
-      environment: body.environment ?? null,
-      notes: body.notes,
-      userId: user.id,
-      realUserId,
-      correlationId: event.context.correlationId
-    })
-
-    return {
-      success: true,
-      data: result
-    }
-  } catch (error) {
-    await auditFailedOperation(event, {
-      operation: 'APPROVE',
-      entityType: 'Technology',
-      entityId: technologyName,
-      reason: error instanceof Error ? error.message : 'Failed to set technology approval',
-      userId: user.id,
-      realUserId
-    })
-    throw error
-  }
+  throw createError({
+    statusCode: 410,
+    statusMessage: 'Gone',
+    message:
+      'Team-level TIME approvals are no longer supported. ' +
+      'Use POST /api/technologies/{name}/policy to propose an org-level policy. ' +
+      'See ADR-0008 for details.'
+  })
 })

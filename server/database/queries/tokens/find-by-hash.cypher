@@ -15,5 +15,6 @@ u {
   .id,
   .email,
   .role,
+  orgAdmin: coalesce(u.orgAdmin, false),
   teams: teams
 } as user

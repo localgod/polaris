@@ -292,7 +292,7 @@ describe('TeamRepository', () => {
   })
 
   describe('[pin] findUsage()', () => {
-    it('should derive compliance summary from usage and approvals', async () => {
+    it('should derive compliance summary from usage and active org policy', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (team:Team { name: $team })
@@ -300,8 +300,14 @@ describe('TeamRepository', () => {
         CREATE (t2:Technology { name: $t2, type: 'library', domain: 'app' })
         CREATE (team)-[:USES { systemCount: 3 }]->(t1)
         CREATE (team)-[:USES { systemCount: 1 }]->(t2)
-        CREATE (team)-[:APPROVES { time: 'tolerate' }]->(t1)
-      `, { team: `${PREFIX}usage-team`, t1: `${PREFIX}tech-approved`, t2: `${PREFIX}tech-unapproved` })
+        MERGE (o:Organization { name: 'default' })
+        CREATE (o)-[:SETS]->(:TechnologyPolicy { id: $policyId, status: 'active', time: 'tolerate' })-[:GOVERNS]->(t1)
+      `, {
+        team: `${PREFIX}usage-team`,
+        t1: `${PREFIX}tech-approved`,
+        t2: `${PREFIX}tech-unapproved`,
+        policyId: `${PREFIX}usage-policy`
+      })
 
       const result = await repo.findUsage(`${PREFIX}usage-team`)
 
@@ -312,10 +318,11 @@ describe('TeamRepository', () => {
   })
 
   describe('[contract] checkApproval()', () => {
-    // Per ADR-0005 (amended): no recorded approval is 'unclassified', a distinct
-    // state from an explicit 'eliminate' vote — both are compliance violations,
-    // but they are no longer collapsed into the literal same value.
-    it('should return default unclassified when no explicit approval exists', async () => {
+    // Per ADR-0008: with no active org TechnologyPolicy, effective TIME is
+    // 'unclassified' — a distinct state from an explicit 'eliminate' policy.
+    // Both are compliance violations, but they are not collapsed into the
+    // same value.
+    it('should return unclassified when no active org policy exists', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
         CREATE (:Team { name: $team })
@@ -325,22 +332,23 @@ describe('TeamRepository', () => {
       const result = await repo.checkApproval(`${PREFIX}default-team`, `${PREFIX}default-tech`)
 
       expect(result).not.toBeNull()
-      expect(result!.approval.level).toBe('default')
+      expect(result!.approval.level).toBe('unclassified')
       expect(result!.approval.time).toBe('unclassified')
     })
 
-    it('should distinguish an explicit eliminate vote from no approval at all', async () => {
+    it('should distinguish an explicit eliminate policy from no policy at all', async () => {
       if (!ctx.neo4jAvailable) return
       await seed(ctx.driver, `
-        CREATE (t:Team { name: $team })
+        CREATE (:Team { name: $team })
         CREATE (tech:Technology { name: $tech, type: 'library' })
-        CREATE (t)-[:APPROVES { time: 'eliminate' }]->(tech)
-      `, { team: `${PREFIX}elim-team`, tech: `${PREFIX}elim-tech` })
+        MERGE (o:Organization { name: 'default' })
+        CREATE (o)-[:SETS]->(:TechnologyPolicy { id: $policyId, status: 'active', time: 'eliminate' })-[:GOVERNS]->(tech)
+      `, { team: `${PREFIX}elim-team`, tech: `${PREFIX}elim-tech`, policyId: `${PREFIX}elim-policy` })
 
       const result = await repo.checkApproval(`${PREFIX}elim-team`, `${PREFIX}elim-tech`)
 
       expect(result).not.toBeNull()
-      expect(result!.approval.level).toBe('technology')
+      expect(result!.approval.level).toBe('policy')
       expect(result!.approval.time).toBe('eliminate')
     })
   })

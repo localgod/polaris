@@ -23,6 +23,7 @@ export interface ResolvedToken {
     id: string
     email: string
     role: string
+    orgAdmin: boolean
     name?: string | null
     teams?: Array<{ name: string; email: string | null }>
   }
@@ -151,6 +152,7 @@ export class TokenService {
         id: user.id,
         email: user.email,
         role: user.role,
+        orgAdmin: user.orgAdmin ?? false,
         teams: user.teams || []
       },
       tokenId: token.id,

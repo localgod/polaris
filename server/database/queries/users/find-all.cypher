@@ -9,6 +9,7 @@ RETURN u {
   .email,
   .name,
   .role,
+  orgAdmin: coalesce(u.orgAdmin, false),
   .provider,
   .avatarUrl,
   .lastLogin,
