@@ -8,7 +8,9 @@ MATCH (team:Team {name: $teamName})-[u:USES]->(tech:Technology)
 OPTIONAL MATCH (:Organization {name: 'default'})-[:SETS]->(p:TechnologyPolicy {status: 'active'})-[:GOVERNS]->(tech)
 // Team-scoped exception (no environment qualifier — team-level view is environment-agnostic)
 OPTIONAL MATCH (p)<-[:OVERRIDES]-(e:PolicyException {scope: 'team', scopeName: team.name})
-  WHERE e.revokedAt IS NULL AND datetime(e.expiresAt) > datetime()
+  WHERE e.revokedAt IS NULL
+    AND e.expiresAt > datetime()
+    AND (e.effectiveDate IS NULL OR e.effectiveDate <= datetime())
 WITH team, tech, u, p, e,
      CASE
        WHEN e IS NOT NULL THEN e.time

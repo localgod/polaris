@@ -16,13 +16,15 @@ OPTIONAL MATCH (o:Organization {name: 'default'})-[:SETS]->(p:TechnologyPolicy {
 OPTIONAL MATCH (p)<-[:OVERRIDES]-(eSystem:PolicyException {scope: 'system', scopeName: $systemName})
   WHERE $systemName IS NOT NULL
     AND eSystem.revokedAt IS NULL
-    AND datetime(eSystem.expiresAt) > datetime()
+    AND eSystem.expiresAt > datetime()
+    AND (eSystem.effectiveDate IS NULL OR eSystem.effectiveDate <= datetime())
     AND ($environment IS NULL OR eSystem.environment IS NULL OR eSystem.environment = $environment)
 // Team-scoped exception (lower specificity than system)
 OPTIONAL MATCH (p)<-[:OVERRIDES]-(eTeam:PolicyException {scope: 'team', scopeName: $teamName})
   WHERE $teamName IS NOT NULL
     AND eTeam.revokedAt IS NULL
-    AND datetime(eTeam.expiresAt) > datetime()
+    AND eTeam.expiresAt > datetime()
+    AND (eTeam.effectiveDate IS NULL OR eTeam.effectiveDate <= datetime())
     AND ($environment IS NULL OR eTeam.environment IS NULL OR eTeam.environment = $environment)
 WITH p,
      CASE WHEN eSystem IS NOT NULL THEN eSystem ELSE eTeam END AS matchedException

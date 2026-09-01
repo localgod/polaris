@@ -31,7 +31,8 @@ UNWIND systemInfos AS si
 // Team-scoped exception with optional environment qualifier
 OPTIONAL MATCH (p)<-[:OVERRIDES]-(e:PolicyException {scope: 'team', scopeName: team.name})
   WHERE e.revokedAt IS NULL
-    AND datetime(e.expiresAt) > datetime()
+    AND e.expiresAt > datetime()
+    AND (e.effectiveDate IS NULL OR e.effectiveDate <= datetime())
     AND (si.environment IS NULL OR e.environment IS NULL OR e.environment = si.environment)
 
 WITH team, tech, u, si, p, e,

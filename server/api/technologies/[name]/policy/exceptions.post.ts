@@ -25,7 +25,6 @@
  *             required:
  *               - time
  *               - reason
- *               - approver
  *               - scope
  *               - scopeName
  *               - effectiveDate
@@ -35,8 +34,6 @@
  *                 type: string
  *                 enum: [tolerate, invest, migrate, eliminate]
  *               reason:
- *                 type: string
- *               approver:
  *                 type: string
  *               scope:
  *                 type: string
@@ -69,7 +66,6 @@ import { auditFailedOperation } from '../../../../utils/audit'
 interface CreateExceptionRequest {
   time: string
   reason: string
-  approver: string
   scope: string
   scopeName: string
   environment?: string | null
@@ -86,8 +82,8 @@ export default defineEventHandler(async (event) => {
   const technologyName = decodeURIComponent(rawName)
 
   const body = await readBody<CreateExceptionRequest>(event)
-  if (!body?.time || !body?.reason || !body?.approver || !body?.scope || !body?.scopeName || !body?.effectiveDate || !body?.expiresAt) {
-    throw createError({ statusCode: 400, message: 'time, reason, approver, scope, scopeName, effectiveDate, and expiresAt are required' })
+  if (!body?.time || !body?.reason || !body?.scope || !body?.scopeName || !body?.effectiveDate || !body?.expiresAt) {
+    throw createError({ statusCode: 400, message: 'time, reason, scope, scopeName, effectiveDate, and expiresAt are required' })
   }
 
   try {
@@ -95,7 +91,7 @@ export default defineEventHandler(async (event) => {
       technologyName,
       time: body.time,
       reason: body.reason,
-      approver: body.approver,
+      approver: user.name ?? user.email,
       scope: body.scope,
       scopeName: body.scopeName,
       environment: body.environment ?? null,

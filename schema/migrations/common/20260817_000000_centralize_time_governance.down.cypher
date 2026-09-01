@@ -12,7 +12,7 @@ MATCH (e:PolicyException) DETACH DELETE e;
 MATCH (p:TechnologyPolicy) DETACH DELETE p;
 MATCH (o:Organization) DETACH DELETE o;
 
-DROP INDEX technology_policy_governs_status IF EXISTS;
+DROP INDEX technology_policy_status IF EXISTS;
 DROP CONSTRAINT policy_review_queue_id_unique IF EXISTS;
 DROP CONSTRAINT policy_exception_id_unique IF EXISTS;
 DROP CONSTRAINT technology_policy_id_unique IF EXISTS;

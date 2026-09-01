@@ -2,7 +2,9 @@
 // plus all unrevoked, unexpired exceptions for that policy.
 MATCH (o:Organization {name: 'default'})-[:SETS]->(p:TechnologyPolicy {status: 'active'})-[:GOVERNS]->(t:Technology {name: $technologyName})
 OPTIONAL MATCH (p)<-[:OVERRIDES]-(e:PolicyException)
-  WHERE e.revokedAt IS NULL AND datetime(e.expiresAt) > datetime()
+  WHERE e.revokedAt IS NULL
+    AND e.expiresAt > datetime()
+    AND (e.effectiveDate IS NULL OR e.effectiveDate <= datetime())
 OPTIONAL MATCH (e)-[:APPLIES_TO]->(target)
 WITH p, collect(
   CASE WHEN e IS NOT NULL THEN {

@@ -30,7 +30,8 @@ CALL {
   OPTIONAL MATCH (p)<-[:OVERRIDES]-(e:PolicyException {scope: 'team', scopeName: owner.name})
     WHERE owner IS NOT NULL AND tech IS NOT NULL
       AND e.revokedAt IS NULL
-      AND datetime(e.expiresAt) > datetime()
+      AND e.expiresAt > datetime()
+      AND (e.effectiveDate IS NULL OR e.effectiveDate <= datetime())
       AND (sys.environment IS NULL OR e.environment IS NULL OR e.environment = sys.environment)
   WITH owner, tech,
        CASE

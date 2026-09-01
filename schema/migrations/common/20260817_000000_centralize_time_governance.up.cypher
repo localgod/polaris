@@ -41,9 +41,9 @@ FOR (p:TechnologyPolicy)
 REQUIRE p.id IS UNIQUE;
 
 // Fast lookup of the active policy for a given Technology
-CREATE INDEX technology_policy_governs_status IF NOT EXISTS
-FOR ()-[r:GOVERNS]-()
-ON (r.status);
+CREATE INDEX technology_policy_status IF NOT EXISTS
+FOR (p:TechnologyPolicy)
+ON (p.status);
 
 // ── PolicyException ───────────────────────────────────────────────────────────
 

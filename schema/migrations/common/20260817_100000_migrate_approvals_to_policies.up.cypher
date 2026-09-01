@@ -35,14 +35,16 @@ SET stamp.migratedAt = datetime()
 WITH o, tech, timeValues,
      [v IN timeValues WHERE v IN ['tolerate', 'invest', 'migrate', 'eliminate']] AS validValues
 
-// Unanimous: create a draft policy
+// Unanimous: create a draft policy. MERGE matches on the (o)-[:SETS]->(p)-[:GOVERNS]->(tech)
+// pattern rather than a fresh id, so re-running the migration finds the
+// existing draft instead of creating a duplicate.
 FOREACH (_ IN CASE WHEN size(validValues) = 1 THEN [1] ELSE [] END |
-  MERGE (o)-[:SETS]->(p:TechnologyPolicy {id: randomUUID()})-[:GOVERNS]->(tech)
+  MERGE (o)-[:SETS]->(p:TechnologyPolicy {status: 'draft'})-[:GOVERNS]->(tech)
   ON CREATE SET
+    p.id = randomUUID(),
     p.time = validValues[0],
     p.rationale = 'Migrated from unanimous team approvals',
     p.migrationTarget = null,
-    p.status = 'draft',
     p.effectiveDate = null,
     p.expiryDate = null,
     p.createdBy = 'migration',
@@ -51,11 +53,13 @@ FOREACH (_ IN CASE WHEN size(validValues) = 1 THEN [1] ELSE [] END |
     p.updatedAt = datetime()
 )
 
-// Conflicting or missing: create a review queue entry
+// Conflicting or missing: create a review queue entry. MERGE matches on
+// technologyName (one entry per Technology) so re-running the migration
+// doesn't pile up duplicate queue entries.
 FOREACH (_ IN CASE WHEN size(validValues) <> 1 THEN [1] ELSE [] END |
-  MERGE (q:PolicyReviewQueue {id: randomUUID()})
+  MERGE (q:PolicyReviewQueue {technologyName: tech.name})
   ON CREATE SET
-    q.technologyName = tech.name,
+    q.id = randomUUID(),
     q.conflictingValues = validValues,
     q.reviewedAt = null,
     q.createdAt = datetime()

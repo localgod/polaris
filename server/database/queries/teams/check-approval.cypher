@@ -14,7 +14,8 @@ MATCH (tech:Technology {name: $technology})
 OPTIONAL MATCH (:Organization {name: 'default'})-[:SETS]->(p:TechnologyPolicy {status: 'active'})-[:GOVERNS]->(tech)
 OPTIONAL MATCH (p)<-[:OVERRIDES]-(e:PolicyException {scope: 'team', scopeName: $team})
   WHERE e.revokedAt IS NULL
-    AND datetime(e.expiresAt) > datetime()
+    AND e.expiresAt > datetime()
+    AND (e.effectiveDate IS NULL OR e.effectiveDate <= datetime())
     AND ($environment IS NULL OR e.environment IS NULL OR e.environment = $environment)
 WITH team, tech, p, e
 RETURN team.name as teamName,

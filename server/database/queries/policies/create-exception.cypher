@@ -1,8 +1,11 @@
 // Create a PolicyException for the active policy of a given Technology.
 MATCH (o:Organization {name: 'default'})-[:SETS]->(p:TechnologyPolicy {status: 'active'})-[:GOVERNS]->(t:Technology {name: $technologyName})
 OPTIONAL MATCH (target)
-  WHERE ($scope = 'team' AND target:Team {name: $scopeName})
-     OR ($scope = 'system' AND target:System {name: $scopeName})
+  WHERE target.name = $scopeName
+    AND (
+      ($scope = 'team' AND target:Team)
+      OR ($scope = 'system' AND target:System)
+    )
 WITH p, t, target
 CREATE (e:PolicyException {
   id: randomUUID(),

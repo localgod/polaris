@@ -43,7 +43,7 @@ import { auditFailedOperation } from '../../../../utils/audit'
  *       401:
  *         description: Authentication required
  *       403:
- *         description: Superuser access required
+ *         description: Superuser access required, or attempting to revoke your own org-admin access
  *       404:
  *         description: User not found
  */
@@ -64,6 +64,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // Prevent a superuser from revoking their own org-admin status
+    const actingAs = realUserId ?? currentUser.id
+    if (orgAdmin === false && actingAs === userId) {
+      throw createError({ statusCode: 403, statusMessage: 'Forbidden', message: 'You cannot remove your own org-admin access' })
+    }
+
     const user = await userService.updateOrgAdmin({
       userId,
       orgAdmin,

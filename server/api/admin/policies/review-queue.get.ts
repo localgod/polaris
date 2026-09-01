@@ -10,7 +10,7 @@
  *       migration to org-level TechnologyPolicy. These must be reviewed manually by
  *       an org-admin who will propose and activate an appropriate policy.
  *
- *       **Authorization:** Superuser
+ *       **Authorization:** Org-admin or superuser
  *     security:
  *       - sessionAuth: []
  *     responses:
@@ -19,13 +19,13 @@
  *       401:
  *         description: Authentication required
  *       403:
- *         description: Superuser access required
+ *         description: Organization admin access required
  */
 import { policyService } from '../../../services/singletons'
 import { sendSuccess } from '../../../utils/response'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperuser(event)
+  await requireOrgAdmin(event)
   const queue = await policyService.getReviewQueue()
   return sendSuccess(event, queue)
 })

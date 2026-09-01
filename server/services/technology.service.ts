@@ -476,7 +476,7 @@ export class TechnologyService {
    * but is no longer used — the Radar shows the authoritative org-level decision.
    * Technologies with no active policy are marked 'unclassified'.
    */
-  async findForRadar(_team?: string): Promise<RadarTechnology[]> {
+  async findForRadar(): Promise<RadarTechnology[]> {
     const rows = await this.techRepo.findForRadar()
 
     return rows.map(row => ({
