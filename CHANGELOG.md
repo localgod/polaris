@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.125] - 2026-09-05
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump qs from 6.15.2 to 6.16.0 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#888)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.124...v0.6.125
 
 ## [0.6.116] - 2026-08-19
 
