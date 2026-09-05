@@ -55,6 +55,18 @@ export class WaiverRepository extends BaseRepository {
     return records[0]?.get('teamName') ?? null
   }
 
+  /**
+   * Resolve the owning team for a compliance waiver request from the
+   * persisted ComplianceViolation node — returns null if no violation with
+   * this naturalKey has been detected yet, so the caller can 404 rather
+   * than authorizing (and the create query below MATCHing) a phantom one.
+   */
+  async findOwningTeamForCompliance(teamName: string, technologyName: string): Promise<string | null> {
+    const query = await loadQuery('violations/find-compliance-violation-team.cypher')
+    const { records } = await this.executeQuery(query, { teamName, technologyName })
+    return records[0]?.get('teamName') ?? null
+  }
+
   async create(
     violationType: ViolationType,
     naturalKey: NaturalKey,
@@ -68,6 +80,9 @@ export class WaiverRepository extends BaseRepository {
       createdBy: params.createdBy
     })
 
+    if (records.length === 0) {
+      throw createError({ statusCode: 404, message: 'Could not find the referenced violation to waive' })
+    }
     const record = records[0]!
     const waiver: Waiver = {
       id: record.get('id'),

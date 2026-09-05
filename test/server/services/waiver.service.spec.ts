@@ -14,10 +14,21 @@ describe('WaiverService', () => {
   })
 
   describe('[contract] resolveOwningTeam()', () => {
-    it('returns naturalKey.teamName directly for compliance violations, without a repository lookup', async () => {
+    it('resolves compliance violations via the persisted ComplianceViolation node, not the caller-supplied teamName', async () => {
+      vi.mocked(WaiverRepository.prototype.findOwningTeamForCompliance).mockResolvedValue('Platform')
+
       const result = await service.resolveOwningTeam('compliance', { teamName: 'Platform', technologyName: 'jQuery' })
+
       expect(result).toBe('Platform')
-      expect(WaiverRepository.prototype.findOwningTeamForSystem).not.toHaveBeenCalled()
+      expect(WaiverRepository.prototype.findOwningTeamForCompliance).toHaveBeenCalledWith('Platform', 'jQuery')
+    })
+
+    it('returns null for a compliance naturalKey with no matching violation, even though the caller supplied a teamName (regression for #880)', async () => {
+      vi.mocked(WaiverRepository.prototype.findOwningTeamForCompliance).mockResolvedValue(null)
+
+      const result = await service.resolveOwningTeam('compliance', { teamName: 'Platform', technologyName: 'never-seen-tech' })
+
+      expect(result).toBeNull()
     })
 
     it('resolves via System-OWNS lookup for license violations', async () => {

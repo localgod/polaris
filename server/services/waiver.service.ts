@@ -27,12 +27,17 @@ export class WaiverService {
   /**
    * Resolve the owning team for a natural key, for the API layer to run
    * requireTeamAccess() against before any write happens. Compliance
-   * violations carry teamName directly; license/version-constraint
-   * violations are keyed by System and need a graph lookup.
+   * violations carry teamName directly in the natural key, but that value
+   * is caller-supplied — it's resolved against the persisted
+   * ComplianceViolation node (not trusted verbatim) so a request can't
+   * authorize itself against a violation that doesn't exist yet (issue
+   * #880). License/version-constraint violations are keyed by System and
+   * need a graph lookup regardless.
    */
   async resolveOwningTeam(violationType: ViolationType, naturalKey: NaturalKey): Promise<string | null> {
     if (violationType === 'compliance') {
-      return (naturalKey as ComplianceNaturalKey).teamName
+      const key = naturalKey as ComplianceNaturalKey
+      return this.waiverRepo.findOwningTeamForCompliance(key.teamName, key.technologyName)
     }
     return this.waiverRepo.findOwningTeamForSystem((naturalKey as LicenseNaturalKey | VersionConstraintNaturalKey).systemName)
   }

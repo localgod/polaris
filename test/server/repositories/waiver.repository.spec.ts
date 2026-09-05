@@ -71,10 +71,16 @@ describe('WaiverRepository', () => {
       expect(record.records[0]!.get('status')).toBe('open')
     })
 
-    it('creates a ComplianceViolation waiver keyed by team+technology', async () => {
+    it('attaches a Waiver to an existing ComplianceViolation matched by team+technology', async () => {
       if (!ctx.neo4jAvailable) return
 
-      const waiver = await repo.create('compliance', { teamName: `${PREFIX}team`, technologyName: `${PREFIX}tech` }, {
+      const teamName = `${PREFIX}team`
+      const technologyName = `${PREFIX}tech`
+      await session.run(`
+        CREATE (cv:ComplianceViolation {naturalKey: $key, teamName: $team, technologyName: $tech, status: 'open'})
+      `, { key: `${teamName}|${technologyName}`, team: teamName, tech: technologyName })
+
+      const waiver = await repo.create('compliance', { teamName, technologyName }, {
         reason: 'known gap, tracked externally',
         expiresAt: '2099-01-01T00:00:00.000Z',
         createdBy: `${PREFIX}user`
@@ -83,9 +89,27 @@ describe('WaiverRepository', () => {
       const record = await session.run(`
         MATCH (cv:ComplianceViolation {naturalKey: $key})<-[:WAIVES]-(w:Waiver {id: $id})
         RETURN cv
-      `, { key: `${PREFIX}team|${PREFIX}tech`, id: waiver.id })
+      `, { key: `${teamName}|${technologyName}`, id: waiver.id })
 
       expect(record.records.length).toBe(1)
+    })
+
+    it('throws 404 and does not fabricate a ComplianceViolation for an arbitrary team+technology pair (regression for #880)', async () => {
+      if (!ctx.neo4jAvailable) return
+
+      const teamName = `${PREFIX}phantom-team`
+      const technologyName = `${PREFIX}phantom-tech`
+
+      await expect(repo.create('compliance', { teamName, technologyName }, {
+        reason: 'pre-approved',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        createdBy: `${PREFIX}user`
+      })).rejects.toMatchObject({ statusCode: 404 })
+
+      const record = await session.run('MATCH (cv:ComplianceViolation {naturalKey: $key}) RETURN cv', {
+        key: `${teamName}|${technologyName}`
+      })
+      expect(record.records.length).toBe(0)
     })
   })
 
@@ -112,18 +136,30 @@ describe('WaiverRepository', () => {
 
     it('resolves the owning team directly for a compliance waiver', async () => {
       if (!ctx.neo4jAvailable) return
-      const waiver = await repo.create('compliance', { teamName: `${PREFIX}team2`, technologyName: `${PREFIX}tech2` }, {
+      const teamName = `${PREFIX}team2`
+      const technologyName = `${PREFIX}tech2`
+      await session.run(`
+        CREATE (cv:ComplianceViolation {naturalKey: $key, teamName: $team, technologyName: $tech, status: 'open'})
+      `, { key: `${teamName}|${technologyName}`, team: teamName, tech: technologyName })
+
+      const waiver = await repo.create('compliance', { teamName, technologyName }, {
         reason: 'r', expiresAt: '2099-01-01T00:00:00.000Z', createdBy: `${PREFIX}user`
       })
 
       const forRevoke = await repo.findForRevoke(waiver.id)
-      expect(forRevoke?.teamName).toBe(`${PREFIX}team2`)
+      expect(forRevoke?.teamName).toBe(teamName)
       expect(forRevoke?.violationType).toBe('ComplianceViolation')
     })
 
     it('revokes a waiver, setting revokedAt/revokedBy, and reports it on subsequent lookups', async () => {
       if (!ctx.neo4jAvailable) return
-      const waiver = await repo.create('compliance', { teamName: `${PREFIX}team3`, technologyName: `${PREFIX}tech3` }, {
+      const teamName = `${PREFIX}team3`
+      const technologyName = `${PREFIX}tech3`
+      await session.run(`
+        CREATE (cv:ComplianceViolation {naturalKey: $key, teamName: $team, technologyName: $tech, status: 'open'})
+      `, { key: `${teamName}|${technologyName}`, team: teamName, tech: technologyName })
+
+      const waiver = await repo.create('compliance', { teamName, technologyName }, {
         reason: 'r', expiresAt: '2099-01-01T00:00:00.000Z', createdBy: `${PREFIX}user`
       })
 
