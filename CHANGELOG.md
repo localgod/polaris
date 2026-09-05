@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.127] - 2026-09-05
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump fast-uri from 3.1.5 to 3.1.7 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#886)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.126...v0.6.127
 
 ## [0.6.116] - 2026-08-19
 
