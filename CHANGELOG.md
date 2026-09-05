@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.129] - 2026-09-05
+
+## What's Changed
+
+* Fix local model tool calls by updating Ollama endpoint and token budgets @localgod (#896)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.128...v0.6.129
 
 ## [0.6.116] - 2026-08-19
 
