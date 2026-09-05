@@ -5,8 +5,8 @@ import { z } from "zod";
 import { spawn } from "child_process";
 import { readFile } from "fs/promises";
 
-const MODEL_URL = "http://host.docker.internal:12434/engines/v1/chat/completions";
-const DEFAULT_MODEL = "docker.io/ai/qwen2.5:7B-Q4_K_M";
+const MODEL_URL = "http://host.docker.internal:11434/v1/chat/completions";
+const DEFAULT_MODEL = "qwen3:30b";
 const PROJECT_ROOT = "/workspaces/polaris";
 const PR_TEMPLATE_PATH = `${PROJECT_ROOT}/.github/PULL_REQUEST_TEMPLATE.md`;
 const GRAPH_SCHEMA_PATH = `${PROJECT_ROOT}/.claude/mcp/graph-schema.md`;
@@ -21,7 +21,12 @@ Graph model: Technology, Component, System, Team, VersionConstraint, AuditLog, I
 Key relationships: STEWARDED_BY (Team→Technology), OWNS (Team→System), APPROVES (Team→Technology, carries TIME framework attributes), IS_VERSION_OF (Component→Technology), USES (System→Component), DEPENDS_ON (Component→Component), GOVERNS (VersionConstraint→Technology).
 There is no Platform node (removed, ADR-0007) and no Policy node (renamed to VersionConstraint) — do not reference either.`;
 
-async function callModel(system, prompt, { maxTokens = 1024, temperature = 0.1 } = {}) {
+// qwen3 is a "thinking" model — it spends a variable, often large, chunk of
+// the token budget on chain-of-thought (returned separately as `reasoning`)
+// before emitting the actual answer in `content`. Budgets must leave room
+// for that or `content` comes back truncated/empty even though the request
+// succeeded.
+async function callModel(system, prompt, { maxTokens = 3000, temperature = 0.1 } = {}) {
   const res = await fetch(MODEL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -197,7 +202,7 @@ Subject: imperative mood ("add" not "added"), no period at end.
 Output the commit message only — no preamble.`;
 
     return text(
-      await callModel(system, context ? `Intent: ${context}\n\nDiff:\n${diff}` : `Diff:\n${diff}`, { maxTokens: 300 })
+      await callModel(system, context ? `Intent: ${context}\n\nDiff:\n${diff}` : `Diff:\n${diff}`, { maxTokens: 2000 })
     );
   }
 );
@@ -237,7 +242,7 @@ TITLE: <suggested PR title, max 70 chars, imperative mood, no period>
 Then a blank line, then the filled PR body.`;
 
     const prompt = `${context ? `Context: ${context}\n\n` : ""}PR Template:\n${template}\n\nDiff:\n${diff.slice(0, 12000)}`;
-    return text(await callModel(system, prompt, { maxTokens: 1500 }));
+    return text(await callModel(system, prompt, { maxTokens: 4000 }));
   }
 );
 
