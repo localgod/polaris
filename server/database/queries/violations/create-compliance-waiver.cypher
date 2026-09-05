@@ -1,11 +1,12 @@
-// See create-license-waiver.cypher for the MERGE-then-attach rationale.
-MERGE (cv:ComplianceViolation {naturalKey: $teamName + '|' + $technologyName})
-  ON CREATE SET
-    cv.teamName = $teamName,
-    cv.technologyName = $technologyName,
-    cv.status = 'open',
-    cv.firstDetectedAt = datetime(),
-    cv.lastSeenAt = datetime()
+// Unlike license/version-constraint violations (keyed by an owned System —
+// see create-license-waiver.cypher for that MERGE-then-attach rationale),
+// a compliance violation's naturalKey embeds the caller-supplied teamName
+// directly with no independent graph anchor. MERGE-creating it here would
+// let any team member fabricate a violation for any team+technology pair
+// and pre-attach a waiver before one is real (issue #880). The violation
+// must already exist — created by the compliance reconcile job from actual
+// detected violations — so this MATCHes rather than MERGEs.
+MATCH (cv:ComplianceViolation {naturalKey: $teamName + '|' + $technologyName})
 CREATE (w:Waiver {
   id: randomUUID(),
   reason: $reason,
