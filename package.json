@@ -103,7 +103,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vitest/coverage-v8": "^4.1.11",
-    "@vitest/ui": "^4.1.11",
+    "@vitest/ui": "^5.0.0",
     "@vue/test-utils": "^2.5.0",
     "chrome-launcher": "^1.2.1",
     "eslint": "^10.9.1",
