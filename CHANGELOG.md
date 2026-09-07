@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.133] - 2026-09-07
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps-dev): bump @vitest/coverage-v8 from 4.1.11 to 5.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#900)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.132...v0.6.133
 
 ## [0.6.116] - 2026-08-19
 
