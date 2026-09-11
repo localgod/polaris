@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.136] - 2026-09-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump svgo from 4.0.2 to 4.1.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#907)
+* chore(deps)(deps): bump js-yaml @[dependabot[bot]](https://github.com/apps/dependabot) (#913)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.135...v0.6.136
 
 ## [0.6.116] - 2026-08-19
 
