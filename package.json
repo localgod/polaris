@@ -88,7 +88,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@amiceli/vitest-cucumber": "^7.0.0",
+    "@amiceli/vitest-cucumber": "^8.0.0",
     "@cucumber/cucumber": "^13.2.1",
     "@cucumber/gherkin": "^42.0.1",
     "@cucumber/messages": "^34.2.1",
