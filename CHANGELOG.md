@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.138] - 2026-09-14
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps-dev): bump @amiceli/vitest-cucumber from 7.0.0 to 8.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#918)
+* chore(deps)(deps): bump mermaid from 11.17.2 to 12.0.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#919)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.137...v0.6.138
 
 ## [0.6.116] - 2026-08-19
 
