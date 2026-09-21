@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.143] - 2026-09-21
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump devalue from 5.9.0 to 5.9.2 @[dependabot[bot]](https://github.com/apps/dependabot) (#923)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.142...v0.6.143
 
 ## [0.6.116] - 2026-08-19
 
