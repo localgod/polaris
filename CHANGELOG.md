@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.149] - 2026-10-09
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump shell-quote from 1.10.0 to 1.12.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#940)
+* chore(deps)(deps): bump sharp from 0.35.4 to 0.35.5 @[dependabot[bot]](https://github.com/apps/dependabot) (#939)
+* chore(deps)(deps-dev): bump markdown-it from 14.3.0 to 14.3.2 @[dependabot[bot]](https://github.com/apps/dependabot) (#934)
+* chore(deps)(deps): bump source-map-js from 1.2.1 to 1.2.2 @[dependabot[bot]](https://github.com/apps/dependabot) (#941)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.148...v0.6.149
 
 ## [0.6.116] - 2026-08-19
 
