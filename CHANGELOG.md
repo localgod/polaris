@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.155] - 2026-10-09
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump brace-expansion from 2.1.4 to 2.1.7 @[dependabot[bot]](https://github.com/apps/dependabot) (#954)
+* chore: release v0.6.153 [skip ci] @[github-actions[bot]](https://github.com/apps/github-actions) (#950)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.154...v0.6.155
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
