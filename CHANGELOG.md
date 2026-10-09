@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.156] - 2026-10-09
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump postcss-selector-parser from 7.1.5 to 7.1.6 @[dependabot[bot]](https://github.com/apps/dependabot) (#947)
+* chore(deps)(deps): bump fast-uri from 3.1.7 to 3.1.8 @[dependabot[bot]](https://github.com/apps/dependabot) (#953)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.155...v0.6.156
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
