@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.165] - 2026-10-18
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore: move the server and deploy to localgod/infra @localgod (#971)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.164...v0.6.165
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
