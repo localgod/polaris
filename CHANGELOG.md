@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.160] - 2026-10-18
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump hono from 4.13.1 to 4.13.7 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#908)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.159...v0.6.160
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
