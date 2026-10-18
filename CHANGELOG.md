@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.161] - 2026-10-18
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump @modelcontextprotocol/sdk from 1.29.0 to 1.31.0 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#957)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.160...v0.6.161
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
