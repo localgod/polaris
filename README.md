@@ -375,6 +375,7 @@ Tests run in **parallel** in GitHub Actions:
 - **[Gitpod Automations](.ona/README.md)** - Automation configuration for cloud development
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
 - **[Agent Instructions](AGENTS.md)** - Guidelines for AI agents working on this project
+- **Deployment** - This repository publishes the `polaris` and `polaris-migrator` images to Docker Hub; the production server, its configuration and the deploy workflow live in the private repository [localgod/infra](https://github.com/localgod/infra), which the Publish workflow triggers
 
 ### In-App Documentation
 
