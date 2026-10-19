@@ -6,7 +6,7 @@ import { spawn } from "child_process";
 import { readFile } from "fs/promises";
 
 const MODEL_URL = "http://host.docker.internal:11434/v1/chat/completions";
-const DEFAULT_MODEL = "qwen3:30b";
+const DEFAULT_MODEL = "qwen3:14b";
 const PROJECT_ROOT = "/workspaces/polaris";
 const PR_TEMPLATE_PATH = `${PROJECT_ROOT}/.github/PULL_REQUEST_TEMPLATE.md`;
 const GRAPH_SCHEMA_PATH = `${PROJECT_ROOT}/.claude/mcp/graph-schema.md`;

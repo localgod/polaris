@@ -154,7 +154,7 @@ Four MCP servers are configured in `.mcp.json`:
 
 | Server | Purpose |
 | ------ | ------- |
-| `local-model` | Local Qwen3 30B served by Ollama on the host (`host.docker.internal:11434`) — offloads mechanical tasks (lint, docs, commit/PR text, Cypher drafting, snippet review) so the main model doesn't burn context on raw tool output. Test diagnosis is *not* handled here — see `test-runner` under Agents below |
+| `local-model` | Local Qwen3 14B served by Ollama on the host (`host.docker.internal:11434`) — offloads mechanical tasks (lint, docs, commit/PR text, Cypher drafting, snippet review) so the main model doesn't burn context on raw tool output. Test diagnosis is *not* handled here — see `test-runner` under Agents below |
 | `code-review-graph` | Persistent Tree-sitter–derived knowledge graph of this repo — structural code search, impact analysis, and review context, cheaper and more accurate than Grep/Read for "who calls/imports/tests this" questions |
 | `neo4j` | Direct Bolt connection to the live application database (`bolt://localhost:7687`) — raw Cypher access for exploring or mutating actual `Technology`/`Component`/`Team`/... data, distinct from the code-review-graph's internal graph |
 | `chrome-devtools` | Google's Chrome DevTools MCP — drives a real headless Chromium binary (Playwright's, resolved at launch by `.claude/mcp/chrome-devtools.sh`) via accessibility-tree snapshots for clicking, filling forms, and navigating, plus DevTools protocol tools: network request inspection, performance traces, console output. Default choice for verifying a UI change actually works end-to-end (e.g. a modal save button) instead of trusting a code read alone |
