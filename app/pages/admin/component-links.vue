@@ -53,41 +53,37 @@
         <TableSearchHeader v-model="searchInput" />
       </template>
       <template #empty>
-        <div class="text-center text-(--ui-text-muted) py-12">
+        <div class="text-center text-muted py-12">
           No unlinked components — all caught up!
         </div>
       </template>
     </PaginatedTable>
 
     <!-- Confirm link / create modal -->
-    <UModal v-model:open="confirmModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Link Component to Technology</h3>
-      </template>
+    <UModal v-model:open="confirmModalOpen" :ui="{ footer: 'justify-end' }" title="Link Component to Technology">
       <template #body>
         <div class="space-y-4">
-          <div class="text-sm text-(--ui-text-muted)">
+          <div class="text-sm text-muted">
             Component: <code>{{ confirmItem?.group ? `${confirmItem.group}/${confirmItem.name}` : confirmItem?.name }}</code>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium mb-1">Technology</label>
+          <UFormField label="Technology">
             <UInput
               v-model="techSearch"
               placeholder="Type to search technologies…"
               icon="i-lucide-search"
               @input="onTechSearchInput"
             />
-          </div>
+          </UFormField>
 
-          <div v-if="techSearchResults.length > 0" class="max-h-52 overflow-y-auto border border-(--ui-border) rounded-md divide-y divide-(--ui-border)">
+          <div v-if="techSearchResults.length > 0" class="max-h-52 overflow-y-auto border border-default rounded-md divide-y divide-default">
             <UButton
               v-for="name in techSearchResults"
               :key="name"
               variant="ghost"
               color="neutral"
               class="w-full justify-start px-3 py-2"
-              :class="{ 'bg-(--ui-bg-elevated)': selectedTech === name }"
+              :class="{ 'bg-elevated': selectedTech === name }"
               @click="selectExisting(name)"
             >
               {{ name }}
@@ -107,20 +103,26 @@
               description="Create it from this component instead."
             />
 
-            <div class="space-y-4 border border-(--ui-border) rounded-md p-4">
-              <UFormField label="Type" required>
+            <UForm
+              id="create-technology-form"
+              :schema="createTechnologySchema"
+              :state="createForm"
+              class="space-y-4 border border-default rounded-md p-4"
+              @submit="submitCreateNew"
+            >
+              <UFormField name="type" label="Type" required>
                 <USelect v-model="createForm.type" :items="typeItems" placeholder="Select a type" />
               </UFormField>
-              <UFormField label="Domain">
+              <UFormField name="domain" label="Domain">
                 <USelect v-model="createForm.domain" :items="domainItems" placeholder="Select a domain (optional)" />
               </UFormField>
-              <UFormField label="Vendor">
+              <UFormField name="vendor" label="Vendor">
                 <UInput v-model="createForm.vendor" placeholder="e.g., Meta, Google" />
               </UFormField>
-              <UFormField label="Owner Team">
+              <UFormField name="ownerTeam" label="Owner Team">
                 <USelect v-model="createForm.ownerTeam" :items="teamItems" placeholder="Select a team (optional)" />
               </UFormField>
-            </div>
+            </UForm>
           </template>
 
           <UAlert
@@ -132,8 +134,8 @@
           />
         </div>
       </template>
-      <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="confirmModalOpen = false" />
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton
           v-if="selectedTech"
           :loading="confirmLoading"
@@ -142,10 +144,11 @@
         />
         <UButton
           v-else
+          type="submit"
+          form="create-technology-form"
           :loading="confirmLoading"
           :label="confirmLoading ? 'Creating…' : `Create '${techSearch.trim()}' & Link`"
-          :disabled="techSearch.trim().length < 2 || !createForm.type"
-          @click="submitCreateNew"
+          :disabled="techSearch.trim().length < 2"
         />
       </template>
     </UModal>
@@ -154,6 +157,7 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
+import * as z from 'zod'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse } from '~~/types/api'
 
@@ -239,12 +243,12 @@ const columns: TableColumn<LinkSuggestion>[] = [
       const nameEl = description
         ? h(UTooltip, { text: description }, () => h('span', { class: 'inline-flex items-center gap-1.5 font-medium' }, [
             displayName,
-            h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-(--ui-text-muted)' })
+            h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-muted' })
           ]))
         : h('span', { class: 'font-medium' }, displayName)
       return h('div', {}, [
         nameEl,
-        h('div', { class: 'text-xs text-(--ui-text-muted) font-mono truncate' }, purl)
+        h('div', { class: 'text-xs text-muted font-mono truncate' }, purl)
       ])
     }
   },
@@ -259,7 +263,7 @@ const columns: TableColumn<LinkSuggestion>[] = [
     cell: ({ row }) => {
       const item = row.original
       const techs = item.suggestedTechnologies
-      if (!techs?.length) return h('span', { class: 'text-(--ui-text-muted) text-sm' }, 'None')
+      if (!techs?.length) return h('span', { class: 'text-muted text-sm' }, 'None')
       return h('div', { class: 'flex flex-wrap gap-1' }, techs.slice(0, 3).map(name =>
         h(UBadge, {
           key: name,
@@ -306,6 +310,12 @@ const techSearchResults = ref<string[]>([])
 const confirmLoading = ref(false)
 const confirmError = ref('')
 
+const createTechnologySchema = z.object({
+  type: z.string().min(1, 'Type is required'),
+  domain: z.string().optional(),
+  vendor: z.string().optional(),
+  ownerTeam: z.string().optional()
+})
 const createForm = reactive({
   type: '',
   domain: '',

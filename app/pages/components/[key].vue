@@ -40,7 +40,7 @@
           <UCard>
             <template #header>
               <h2 class="text-lg font-semibold">Overview</h2>
-              <p class="text-sm text-(--ui-text-muted)">Canonical component data stored by Polaris.</p>
+              <p class="text-sm text-muted">Canonical component data stored by Polaris.</p>
             </template>
 
             <EntityDescriptionList :items="overviewItems">
@@ -55,7 +55,7 @@
                     {{ license.id || license.name }}
                   </UBadge>
                 </div>
-                <p v-else class="font-medium text-(--ui-text-muted)">{{ item.value }}</p>
+                <p v-else class="font-medium text-muted">{{ item.value }}</p>
               </template>
               <template #technology="{ item }">
                 <p v-if="component.technologyName" class="font-medium mt-0.5">
@@ -63,7 +63,7 @@
                     {{ component.technologyName }}
                   </NuxtLink>
                 </p>
-                <p v-else class="text-(--ui-text-muted) mt-0.5">{{ item.value }}</p>
+                <p v-else class="text-muted mt-0.5">{{ item.value }}</p>
               </template>
               <template #externalSignals>
                 <div class="mt-1 flex flex-wrap gap-2">
@@ -79,7 +79,7 @@
                   <UBadge v-if="component.vulnerabilities?.status === 'available'" :color="vulnerabilityCount > 0 ? 'warning' : 'success'" variant="subtle">
                     OSV.dev
                   </UBadge>
-                  <span v-if="!hasExternalSignals" class="font-medium text-(--ui-text-muted)">None</span>
+                  <span v-if="!hasExternalSignals" class="font-medium text-muted">None</span>
                 </div>
               </template>
               <template #purl="{ item }">
@@ -122,12 +122,12 @@
           </UCard>
 
           <UCard>
-            <div class="divide-y divide-(--ui-border)">
+            <div class="divide-y divide-default">
               <div class="first:pt-0 last:pb-0 py-6">
                 <div class="flex items-center justify-between gap-3 mb-4">
                   <div>
                     <h3 class="text-base font-semibold">Maintenance</h3>
-                    <p class="text-xs text-(--ui-text-muted)">Derived from available component and registry data</p>
+                    <p class="text-xs text-muted">Derived from available component and registry data</p>
                   </div>
                   <UBadge :color="getMaintenanceHealthColor(component.maintenanceHealth?.status)" variant="subtle">
                     {{ getMaintenanceHealthLabel(component.maintenanceHealth?.status) }}
@@ -146,25 +146,25 @@
 
                   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">Confidence</span>
+                      <span class="text-sm text-muted">Confidence</span>
                       <p class="font-medium">{{ getMaintenanceConfidenceLabel(component.maintenanceHealth?.confidence) }}</p>
                     </div>
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">Version Age</span>
+                      <span class="text-sm text-muted">Version Age</span>
                       <p class="font-medium">{{ formatAge(component.maintenanceHealth?.ageInDays) }}</p>
                     </div>
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">Update Status</span>
+                      <span class="text-sm text-muted">Update Status</span>
                       <p class="font-medium">{{ getMaintenanceUpdateLabel(component.maintenanceHealth?.updateType) }}</p>
                     </div>
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">Recent Activity</span>
+                      <span class="text-sm text-muted">Recent Activity</span>
                       <p class="font-medium">{{ formatNullableBoolean(component.maintenanceHealth?.recentActivity) }}</p>
                     </div>
                   </div>
 
                   <div v-if="component.maintenanceHealth?.reasonCodes.length">
-                    <span class="text-sm text-(--ui-text-muted)">Reasons</span>
+                    <span class="text-sm text-muted">Reasons</span>
                     <div class="mt-2 flex flex-wrap gap-2">
                       <UBadge
                         v-for="reason in component.maintenanceHealth.reasonCodes.slice(0, 3)"
@@ -183,7 +183,7 @@
                 <div class="flex items-center justify-between gap-3 mb-4">
                   <div>
                     <h3 class="text-base font-semibold">Lifecycle</h3>
-                    <p class="text-xs text-(--ui-text-muted)">Source: endoflife.date</p>
+                    <p class="text-xs text-muted">Source: endoflife.date</p>
                   </div>
                   <UBadge :color="getEolColor(component.eol?.status)" variant="subtle">
                     {{ getEolLabel(component.eol?.status) }}
@@ -202,27 +202,27 @@
 
                   <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div v-if="showLifecycleProduct">
-                      <span class="text-sm text-(--ui-text-muted)">Matched Product</span>
+                      <span class="text-sm text-muted">Matched Product</span>
                       <p class="font-medium">{{ lifecycleProductLabel }}</p>
                     </div>
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">Matched Cycle</span>
+                      <span class="text-sm text-muted">Matched Cycle</span>
                       <p class="font-medium">{{ component.eol.matchedCycle || '—' }}</p>
                     </div>
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">End of Life</span>
+                      <span class="text-sm text-muted">End of Life</span>
                       <p class="font-medium">{{ component.eol.eolDate ? formatDate(component.eol.eolDate) : '—' }}</p>
                     </div>
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">Active Support Ends</span>
+                      <span class="text-sm text-muted">Active Support Ends</span>
                       <p class="font-medium">{{ component.eol.supportEndDate ? formatDate(component.eol.supportEndDate) : '—' }}</p>
                     </div>
                     <div>
-                      <span class="text-sm text-(--ui-text-muted)">LTS</span>
+                      <span class="text-sm text-muted">LTS</span>
                       <p class="font-medium">{{ component.eol.lts === null ? '—' : component.eol.lts ? 'Yes' : 'No' }}</p>
                     </div>
                     <div v-if="showEolLatestVersion">
-                      <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
+                      <span class="text-sm text-muted">Latest Version</span>
                       <p class="font-medium">{{ component.eol.latestVersion || '—' }}</p>
                     </div>
                   </div>
@@ -244,7 +244,7 @@
                 <div class="flex items-center justify-between gap-3 mb-4">
               <div>
                 <h3 class="text-base font-semibold">Registry</h3>
-                <p class="text-xs text-(--ui-text-muted)">Source: {{ getPackageSourceLabel(component.packageMetadata?.source.name) }}</p>
+                <p class="text-xs text-muted">Source: {{ getPackageSourceLabel(component.packageMetadata?.source.name) }}</p>
               </div>
               <UBadge :color="getPackageMetadataColor(component.packageMetadata?.status)" variant="subtle">
                 {{ getPackageMetadataLabel(component.packageMetadata?.status) }}
@@ -273,29 +273,29 @@
 
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <span class="text-sm text-(--ui-text-muted)">Ecosystem</span>
+                  <span class="text-sm text-muted">Ecosystem</span>
                   <p class="font-medium">{{ component.packageMetadata.system || '—' }}</p>
                 </div>
                 <div v-if="showPackageLatestVersion">
-                  <span class="text-sm text-(--ui-text-muted)">Latest Version</span>
+                  <span class="text-sm text-muted">Latest Version</span>
                   <p class="font-medium break-all">{{ component.packageMetadata.latestVersion || '—' }}</p>
                 </div>
                 <div>
-                  <span class="text-sm text-(--ui-text-muted)">Published</span>
+                  <span class="text-sm text-muted">Published</span>
                   <p class="font-medium">{{ component.packageMetadata.publishedAt ? formatDate(component.packageMetadata.publishedAt) : '—' }}</p>
                 </div>
                 <div>
-                  <span class="text-sm text-(--ui-text-muted)">Recent Releases</span>
+                  <span class="text-sm text-muted">Recent Releases</span>
                   <p class="font-medium">{{ component.packageMetadata.recentReleases ?? '—' }}</p>
                 </div>
                 <div>
-                  <span class="text-sm text-(--ui-text-muted)">Advisories</span>
+                  <span class="text-sm text-muted">Advisories</span>
                   <p class="font-medium">{{ component.packageMetadata.advisoryCount ?? '—' }}</p>
                 </div>
               </div>
 
               <div v-if="showRegistryLicenses">
-                <span class="text-sm text-(--ui-text-muted)">Licenses</span>
+                <span class="text-sm text-muted">Licenses</span>
                 <div v-if="component.packageMetadata.licenses.length > 0" class="mt-2 flex flex-wrap gap-2">
                   <UBadge
                     v-for="license in component.packageMetadata.licenses"
@@ -310,7 +310,7 @@
               </div>
 
               <div v-if="component.packageMetadata.advisories.length > 0">
-                <span class="text-sm text-(--ui-text-muted)">Advisory Links</span>
+                <span class="text-sm text-muted">Advisory Links</span>
                 <div class="mt-2 flex flex-wrap gap-2">
                   <UButton
                     v-for="advisory in component.packageMetadata.advisories"
@@ -345,7 +345,7 @@
                 <div class="flex items-center justify-between gap-3 mb-4">
               <div>
                 <h3 class="text-base font-semibold">Known Vulnerabilities</h3>
-                <p class="text-xs text-(--ui-text-muted)">Source: OSV.dev</p>
+                <p class="text-xs text-muted">Source: OSV.dev</p>
               </div>
               <UBadge :color="getVulnerabilityColor(component.vulnerabilities?.status, vulnerabilityCount)" variant="subtle">
                 {{ getVulnerabilityLabel(component.vulnerabilities?.status, vulnerabilityCount) }}
@@ -375,12 +375,12 @@
               <div
                 v-for="vulnerability in component.vulnerabilities.vulnerabilities"
                 :key="vulnerability.id"
-                class="space-y-2 border-b border-(--ui-border) pb-4 last:border-b-0 last:pb-0"
+                class="space-y-2 border-b border-default pb-4 last:border-b-0 last:pb-0"
               >
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p class="font-medium">{{ vulnerability.id }}</p>
-                    <p v-if="vulnerability.summary" class="text-sm text-(--ui-text-muted)">{{ vulnerability.summary }}</p>
+                    <p v-if="vulnerability.summary" class="text-sm text-muted">{{ vulnerability.summary }}</p>
                   </div>
                   <UBadge color="warning" variant="subtle">
                     {{ getVulnerabilitySeverityLabel(vulnerability) }}
@@ -388,7 +388,7 @@
                 </div>
 
                 <div v-if="vulnerability.affectedRanges.length > 0">
-                  <span class="text-sm text-(--ui-text-muted)">Affected Versions</span>
+                  <span class="text-sm text-muted">Affected Versions</span>
                   <div class="mt-2 flex flex-wrap gap-2">
                     <UBadge
                       v-for="range in vulnerability.affectedRanges.slice(0, 3)"
@@ -434,7 +434,7 @@
                 <div class="flex items-center justify-between gap-3 mb-4">
               <div>
                 <h3 class="text-base font-semibold">Security</h3>
-                <p class="text-xs text-(--ui-text-muted)">Source: OpenSSF Scorecard</p>
+                <p class="text-xs text-muted">Source: OpenSSF Scorecard</p>
               </div>
               <UBadge :color="getSecurityScorecardColor(component.securityScorecard?.score, component.securityScorecard?.status)" variant="subtle">
                 {{ getSecurityScorecardLabel(component.securityScorecard?.score, component.securityScorecard?.status) }}
@@ -454,23 +454,23 @@
             <template v-else>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <span class="text-sm text-(--ui-text-muted)">Repository</span>
+                  <span class="text-sm text-muted">Repository</span>
                   <p class="font-medium break-all">
                     {{ component.securityScorecard.repository ? `${component.securityScorecard.repository.owner}/${component.securityScorecard.repository.name}` : '—' }}
                   </p>
                 </div>
                 <div>
-                  <span class="text-sm text-(--ui-text-muted)">Overall Score</span>
+                  <span class="text-sm text-muted">Overall Score</span>
                   <p class="font-medium">{{ formatScore(component.securityScorecard.score) }}</p>
                 </div>
                 <div>
-                  <span class="text-sm text-(--ui-text-muted)">Scanned</span>
+                  <span class="text-sm text-muted">Scanned</span>
                   <p class="font-medium">{{ component.securityScorecard.scannedAt ? formatDate(component.securityScorecard.scannedAt) : '—' }}</p>
                 </div>
               </div>
 
               <div v-if="component.securityScorecard.checks.length > 0">
-                <span class="text-sm text-(--ui-text-muted)">Selected Checks</span>
+                <span class="text-sm text-muted">Selected Checks</span>
                 <div class="mt-2 space-y-2">
                   <div
                     v-for="check in component.securityScorecard.checks"
@@ -479,7 +479,7 @@
                   >
                     <div>
                       <p class="font-medium">{{ check.name }}</p>
-                      <p v-if="check.reason" class="text-sm text-(--ui-text-muted)">{{ check.reason }}</p>
+                      <p v-if="check.reason" class="text-sm text-muted">{{ check.reason }}</p>
                     </div>
                     <UBadge :color="getSecurityCheckColor(check.score)" variant="subtle">
                       {{ formatScore(check.score) }}
@@ -533,7 +533,7 @@
               <div class="flex flex-col gap-3">
                 <div>
                   <h2 class="text-lg font-semibold">Dependencies</h2>
-                  <p class="text-sm text-(--ui-text-muted)">
+                  <p class="text-sm text-muted">
                     {{ directDependencyCount }} {{ directDependencyCount === 1 ? 'direct dependency' : 'direct dependencies' }}
                   </p>
                 </div>

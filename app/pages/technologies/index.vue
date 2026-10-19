@@ -8,7 +8,7 @@
       />
       <div class="flex items-center gap-2">
         <!-- View mode toggle -->
-        <div class="flex gap-1 bg-(--ui-bg-elevated) rounded-md p-1">
+        <div class="flex gap-1 bg-elevated rounded-md p-1">
           <UButton
             icon="i-lucide-table"
             :color="viewMode === 'table' ? 'primary' : 'neutral'"
@@ -55,7 +55,7 @@
           <TableSearchHeader v-model="searchInput" />
         </template>
         <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
+          <div class="text-center text-muted py-12">
             No technologies found.
           </div>
         </template>
@@ -142,7 +142,7 @@ const columns: TableColumn<Technology>[] = [
     header: ({ column }) => getSortableHeader(column, 'Type'),
     cell: ({ row }) => {
       const type = row.getValue('type') as string | undefined
-      if (!type) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!type) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle' }, () => type)
     }
   },
@@ -151,7 +151,7 @@ const columns: TableColumn<Technology>[] = [
     header: ({ column }) => getSortableHeader(column, 'Domain'),
     cell: ({ row }) => {
       const domain = row.getValue('domain') as string | undefined
-      if (!domain) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!domain) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: 'info', variant: 'subtle' }, () => domain)
     }
   },
@@ -160,7 +160,7 @@ const columns: TableColumn<Technology>[] = [
     header: ({ column }) => getSortableHeader(column, 'Components'),
     cell: ({ row }) => {
       const count = row.original.componentCount
-      if (!count) return h('span', { class: 'text-(--ui-text-muted)' }, '0')
+      if (!count) return h('span', { class: 'text-muted' }, '0')
       return String(count)
     }
   },
@@ -169,7 +169,7 @@ const columns: TableColumn<Technology>[] = [
     header: ({ column }) => getSortableHeader(column, 'Constraints'),
     cell: ({ row }) => {
       const count = row.original.constraintCount
-      if (!count) return h('span', { class: 'text-(--ui-text-muted)' }, '0')
+      if (!count) return h('span', { class: 'text-muted' }, '0')
       return String(count)
     }
   },

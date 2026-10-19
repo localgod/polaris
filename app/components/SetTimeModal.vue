@@ -1,8 +1,5 @@
 <template>
-  <UModal :open="open" :ui="{ footer: 'justify-end' }" @update:open="emit('update:open', $event)">
-    <template #header>
-      <h3 class="text-lg font-semibold">Set TIME: {{ tech?.name }}</h3>
-    </template>
+  <UModal :open="open" :ui="{ footer: 'justify-end' }" :title="`Set TIME: ${tech?.name ?? ''}`" @update:open="emit('update:open', $event)">
     <template #body>
       <UForm id="time-form" :schema="schema" :state="state" class="space-y-4" @submit="onSubmit">
         <UFormField name="teamName" label="Team" required>

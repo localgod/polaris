@@ -1,17 +1,17 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-(--ui-bg)">
+  <div class="min-h-screen flex items-center justify-center bg-default">
     <UCard class="w-full max-w-md">
       <!-- Loading -->
       <div v-if="pending" class="flex flex-col items-center gap-4 py-8">
-        <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-(--ui-text-muted)" />
-        <p class="text-sm text-(--ui-text-muted)">Validating invite…</p>
+        <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-muted" />
+        <p class="text-sm text-muted">Validating invite…</p>
       </div>
 
       <!-- Error -->
       <div v-else-if="error" class="flex flex-col items-center gap-4 py-8 text-center">
-        <UIcon name="i-lucide-circle-x" class="size-10 text-(--ui-color-error-500)" />
+        <UIcon name="i-lucide-circle-x" class="size-10 text-error" />
         <h2 class="text-lg font-semibold">Invite unavailable</h2>
-        <p class="text-sm text-(--ui-text-muted)">{{ errorMessage }}</p>
+        <p class="text-sm text-muted">{{ errorMessage }}</p>
         <UButton label="Go to sign in" variant="outline" to="/auth/signin" />
       </div>
 
@@ -31,7 +31,7 @@
 
         <div class="space-y-1">
           <h2 class="text-xl font-semibold">You've been invited to Polaris</h2>
-          <p class="text-sm text-(--ui-text-muted)">
+          <p class="text-sm text-muted">
             Sign in with your GitHub account
             <strong>@{{ invite.githubUsername }}</strong> to accept.
           </p>
@@ -46,7 +46,7 @@
           @click="signInWithGitHub"
         />
 
-        <p v-if="expiresInDays" class="text-xs text-(--ui-text-muted)">
+        <p v-if="expiresInDays" class="text-xs text-muted">
           This invite expires {{ expiresInDays }}.
         </p>
       </div>

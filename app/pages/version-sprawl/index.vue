@@ -42,9 +42,9 @@
         </template>
         <template #empty>
           <div class="text-center py-8">
-            <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
+            <UIcon name="i-lucide-check-circle" class="text-5xl text-success" />
             <h3 class="mt-4">No Version Sprawl Detected!</h3>
-            <p class="text-(--ui-text-muted) mt-2">No technology has more than one version declared as a direct dependency.</p>
+            <p class="text-muted mt-2">No technology has more than one version declared as a direct dependency.</p>
           </div>
         </template>
       </PaginatedTable>
@@ -114,7 +114,7 @@ const columns: TableColumn<VersionSprawlDetection>[] = [
     header: ({ column }) => getSortableHeader(column, 'Versions'),
     cell: ({ row }) => h('div', {}, [
       h('span', {}, `${row.original.versionCount} versions`),
-      h('p', { class: 'text-sm text-(--ui-text-muted)' }, `${row.original.versionRange.oldest} → ${row.original.versionRange.newest}`)
+      h('p', { class: 'text-sm text-muted' }, `${row.original.versionRange.oldest} → ${row.original.versionRange.newest}`)
     ])
   },
   {
@@ -135,7 +135,7 @@ const columns: TableColumn<VersionSprawlDetection>[] = [
     header: 'EOL',
     cell: ({ row }) => row.original.hasEolVersion
       ? h(UBadge, { color: 'error', variant: 'subtle' }, () => 'EOL version in use')
-      : h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      : h('span', { class: 'text-muted' }, '—')
   }
 ]
 

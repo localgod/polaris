@@ -7,74 +7,64 @@
     @update:open="emit('update:open', $event)"
   >
     <template #body>
-      <div v-if="groupedComponent" class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-(--ui-border)">
-          <thead>
-            <tr class="text-left text-xs font-medium text-(--ui-text-muted) uppercase tracking-normal">
-              <th class="px-3 py-2">Version</th>
-              <th class="px-3 py-2">Package Manager</th>
-              <th class="px-3 py-2">License</th>
-              <th class="px-3 py-2">Type</th>
-              <th class="px-3 py-2 text-right">Systems</th>
-              <th class="px-3 py-2 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-(--ui-border)">
-            <tr v-for="version in groupedComponent.versionDetails" :key="versionKey(version)">
-              <td class="px-3 py-2 whitespace-nowrap">
-                <NuxtLink :to="componentDetailTarget(version)" class="font-medium hover:underline">
-                  <code>{{ version.version }}</code>
-                </NuxtLink>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <span v-if="version.packageManager" class="inline-flex items-center gap-1">
-                  <UIcon :name="pmIcon(version.packageManager)" :style="{ color: pmColor(version.packageManager) }" class="size-4 flex-shrink-0" />
-                  {{ version.packageManager }}
-                </span>
-                <span v-else class="text-(--ui-text-muted)">-</span>
-              </td>
-              <td class="px-3 py-2">
-                <div v-if="version.licenses.length" class="flex flex-wrap gap-1">
-                  <UBadge
-                    v-for="license in version.licenses.slice(0, 2)"
-                    :key="license.id || license.name"
-                    color="neutral"
-                    variant="subtle"
-                  >
-                    {{ license.id || license.name || 'Unknown' }}
-                  </UBadge>
-                  <span v-if="version.licenses.length > 2" class="text-sm text-(--ui-text-muted)">
-                    +{{ version.licenses.length - 2 }}
-                  </span>
-                </div>
-                <span v-else class="text-(--ui-text-muted)">-</span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <UBadge v-if="version.type" color="primary" variant="subtle">
-                  {{ version.type }}
-                </UBadge>
-                <span v-else class="text-(--ui-text-muted)">-</span>
-              </td>
-              <td class="px-3 py-2 text-right tabular-nums">
-                {{ version.systemCount || 0 }}
-              </td>
-              <td class="px-3 py-2 text-right">
-                <UDropdownMenu :items="versionActions(version)" :content="{ align: 'end' }">
-                  <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="sm" />
-                </UDropdownMenu>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <UTable
+        v-if="groupedComponent"
+        :data="groupedComponent.versionDetails"
+        :columns="columns"
+        :get-row-id="versionKey"
+      >
+        <template #version-cell="{ row }">
+          <NuxtLink :to="componentDetailTarget(row.original)" class="font-medium hover:underline">
+            <code>{{ row.original.version }}</code>
+          </NuxtLink>
+        </template>
+        <template #packageManager-cell="{ row }">
+          <span v-if="row.original.packageManager" class="inline-flex items-center gap-1">
+            <UIcon :name="pmIcon(row.original.packageManager)" :style="{ color: pmColor(row.original.packageManager) }" class="size-4 flex-shrink-0" />
+            {{ row.original.packageManager }}
+          </span>
+          <span v-else class="text-muted">-</span>
+        </template>
+        <template #licenses-cell="{ row }">
+          <div v-if="row.original.licenses.length" class="flex flex-wrap gap-1">
+            <UBadge
+              v-for="license in row.original.licenses.slice(0, 2)"
+              :key="license.id || license.name"
+              color="neutral"
+              variant="subtle"
+            >
+              {{ license.id || license.name || 'Unknown' }}
+            </UBadge>
+            <span v-if="row.original.licenses.length > 2" class="text-sm text-muted">
+              +{{ row.original.licenses.length - 2 }}
+            </span>
+          </div>
+          <span v-else class="text-muted">-</span>
+        </template>
+        <template #type-cell="{ row }">
+          <UBadge v-if="row.original.type" color="primary" variant="subtle">
+            {{ row.original.type }}
+          </UBadge>
+          <span v-else class="text-muted">-</span>
+        </template>
+        <template #systemCount-cell="{ row }">
+          {{ row.original.systemCount || 0 }}
+        </template>
+        <template #actions-cell="{ row }">
+          <UDropdownMenu :items="versionActions(row.original)" :content="{ align: 'end' }">
+            <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="sm" />
+          </UDropdownMenu>
+        </template>
+      </UTable>
     </template>
-    <template #footer>
-      <UButton label="Close" color="neutral" variant="outline" @click="emit('update:open', false)" />
+    <template #footer="{ close }">
+      <UButton label="Close" color="neutral" variant="outline" @click="close" />
     </template>
   </UModal>
 </template>
 
 <script setup lang="ts">
+import type { TableColumn } from '@nuxt/ui'
 import type { GroupedComponent, GroupedComponentVersion } from '~~/types/api'
 import { encodeComponentKey } from '~~/utils/component-identity'
 
@@ -109,6 +99,15 @@ const PM_ICONS: Record<string, string> = {
   go:       'i-simple-icons-go',
   composer: 'i-simple-icons-composer',
 }
+
+const columns: TableColumn<GroupedComponentVersion>[] = [
+  { accessorKey: 'version', header: 'Version', meta: { class: { td: 'whitespace-nowrap' } } },
+  { accessorKey: 'packageManager', header: 'Package Manager', meta: { class: { td: 'whitespace-nowrap' } } },
+  { accessorKey: 'licenses', header: 'License' },
+  { accessorKey: 'type', header: 'Type', meta: { class: { td: 'whitespace-nowrap' } } },
+  { accessorKey: 'systemCount', header: 'Systems', meta: { class: { th: 'text-right', td: 'text-right tabular-nums' } } },
+  { id: 'actions', header: 'Actions', meta: { class: { th: 'text-right', td: 'text-right' } } }
+]
 
 const componentTitle = computed(() => {
   if (!props.groupedComponent) return 'Component Versions'

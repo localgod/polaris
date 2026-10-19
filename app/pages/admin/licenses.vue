@@ -27,7 +27,7 @@
       :page-size="pageSize"
     >
       <template #empty>
-        <div class="text-center text-(--ui-text-muted) py-12">
+        <div class="text-center text-muted py-12">
           No licenses found.
         </div>
       </template>
@@ -70,14 +70,14 @@ const columns: TableColumn<License>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => getSortableHeader(column, 'Name'),
-    cell: ({ row }) => (row.getValue('name') as string) || h('span', { class: 'text-(--ui-text-muted)' }, '—')
+    cell: ({ row }) => (row.getValue('name') as string) || h('span', { class: 'text-muted' }, '—')
   },
   {
     accessorKey: 'category',
     header: ({ column }) => getSortableHeader(column, 'Category'),
     cell: ({ row }) => {
       const category = row.getValue('category') as string
-      if (!category) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!category) return h('span', { class: 'text-muted' }, '—')
       return h(UBadge, { color: getCategoryColor(category), variant: 'subtle' }, () => category)
     }
   },

@@ -41,10 +41,10 @@
       <UCard v-else-if="systemRows.length > 0">
         <template #header>
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-share-2" class="w-5 h-5 text-(--ui-primary)" />
+            <UIcon name="i-lucide-share-2" class="w-5 h-5 text-primary" />
             <h2 class="text-lg font-semibold">Impact Graph</h2>
           </div>
-          <p class="text-sm text-(--ui-text-muted) mt-1">
+          <p class="text-sm text-muted mt-1">
             Diamond = technology. Circles = owning teams, colored by TIME status. Smaller circles = systems using it;
             dashed gray = no approval from the owning team.
           </p>
@@ -67,7 +67,7 @@
           <h2 class="text-lg font-semibold">Affected Systems ({{ systemRows.length }})</h2>
         </template>
         <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-8">
+          <div class="text-center text-muted py-8">
             No systems use this technology.
           </div>
         </template>
@@ -120,7 +120,7 @@ const columns: TableColumn<TechnologyImpactSystemRow>[] = [
     header: ({ column }) => getSortableHeader(column, 'Owning Team'),
     cell: ({ row }) => {
       const team = row.original.ownerTeamName
-      if (!team) return h('span', { class: 'text-(--ui-text-muted)' }, 'Unowned')
+      if (!team) return h('span', { class: 'text-muted' }, 'Unowned')
       return h(resolveComponent('NuxtLink'), {
         to: `/teams/${encodeURIComponent(team)}`,
         class: 'font-medium hover:underline'
@@ -132,7 +132,7 @@ const columns: TableColumn<TechnologyImpactSystemRow>[] = [
     header: ({ column }) => getSortableHeader(column, 'TIME'),
     cell: ({ row }) => {
       const time = row.original.time
-      if (!time) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!time) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: getTimeCategoryColor(time), variant: 'subtle' }, () => time)
     }
   },

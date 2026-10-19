@@ -6,7 +6,7 @@
         :key="scope"
         :model-value="modelValue.includes(scope)"
         :label="scope"
-        class="rounded-md border border-(--ui-border) px-3 py-1.5 text-sm"
+        class="rounded-md border border-default px-3 py-1.5 text-sm"
         @update:model-value="toggleScope(scope)"
       />
     </div>

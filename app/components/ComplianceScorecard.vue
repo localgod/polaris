@@ -3,7 +3,7 @@
     <template #header>
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-shield-check" class="w-5 h-5 text-(--ui-text-muted)" />
+          <UIcon name="i-lucide-shield-check" class="w-5 h-5 text-muted" />
           <h2 class="text-lg font-semibold">Compliance Scorecard</h2>
         </div>
         <UBadge :color="scoreColor" variant="subtle">
@@ -18,12 +18,12 @@
       <li v-for="check in scorecard.checks" :key="check.id" class="flex items-start gap-2">
         <UIcon
           :name="check.passed ? 'i-lucide-check-circle-2' : 'i-lucide-x-circle'"
-          :class="check.passed ? 'text-(--ui-success)' : 'text-(--ui-error)'"
+          :class="check.passed ? 'text-success' : 'text-error'"
           class="w-5 h-5 mt-0.5 shrink-0"
         />
         <div>
           <p class="font-medium text-sm">{{ check.label }}</p>
-          <p class="text-sm text-(--ui-text-muted)">
+          <p class="text-sm text-muted">
             <NuxtLink
               v-if="check.link"
               :to="{ path: check.link.path, query: check.link.query }"

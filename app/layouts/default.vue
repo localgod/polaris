@@ -5,12 +5,12 @@
       v-model:open="sidebarOpen"
       collapsible="icon"
       :rail="true"
-      class="border-r border-default bg-(--ui-bg-elevated)"
+      class="border-r border-default bg-elevated"
     >
       <template #header="{ state, close }">
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 min-w-0">
-          <UIcon name="i-lucide-zap" class="w-6 h-6 shrink-0 text-(--ui-primary)" />
+          <UIcon name="i-lucide-zap" class="w-6 h-6 shrink-0 text-primary" />
           <span v-show="state === 'expanded'" class="text-xl font-bold truncate">Polaris</span>
         </NuxtLink>
         <ClientOnly>
@@ -118,7 +118,7 @@
     <!-- Main Content -->
     <main class="flex-1 overflow-auto min-w-0">
       <!-- Mobile top bar -->
-      <div class="sm:hidden flex items-center gap-3 px-4 py-3 border-b border-default bg-(--ui-bg-elevated)">
+      <div class="sm:hidden flex items-center gap-3 px-4 py-3 border-b border-default bg-elevated">
         <UButton
           icon="i-lucide-menu"
           color="neutral"
@@ -128,7 +128,7 @@
           @click="sidebarOpen = true"
         />
         <NuxtLink to="/" class="flex items-center gap-2">
-          <UIcon name="i-lucide-zap" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-zap" class="w-5 h-5 text-primary" />
           <span class="text-lg font-bold">Polaris</span>
         </NuxtLink>
         <div class="ml-auto">
@@ -139,36 +139,31 @@
       </div>
 
       <!-- Impersonation Banner -->
-      <div
+      <UBanner
         v-if="impersonation.active && impersonation.user"
-        class="bg-amber-500 dark:bg-amber-600 text-white px-6 py-2 flex items-center justify-between text-sm"
+        icon="i-lucide-eye"
+        color="warning"
+        :actions="[{
+          label: 'Stop Impersonating',
+          color: 'neutral',
+          variant: 'solid',
+          size: 'xs',
+          loading: impersonationLoading,
+          onClick: stopImpersonating
+        }]"
       >
-        <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-eye" class="w-4 h-4" />
-          <span>
-            Viewing as <strong>{{ impersonation.user.name || impersonation.user.email }}</strong>
-            ({{ impersonation.user.role }})
-          </span>
-        </div>
-        <UButton
-          label="Stop Impersonating"
-          color="neutral"
-          variant="solid"
-          size="xs"
-          :loading="impersonationLoading"
-          @click="stopImpersonating"
-        />
-      </div>
+        <template #title>
+          Viewing as <strong>{{ impersonation.user.name || impersonation.user.email }}</strong>
+          ({{ impersonation.user.role }})
+        </template>
+      </UBanner>
       <div class="p-6">
         <slot />
       </div>
     </main>
 
     <!-- Impersonate User Modal -->
-    <UModal v-model:open="impersonateModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Impersonate User</h3>
-      </template>
+    <UModal v-model:open="impersonateModalOpen" :ui="{ footer: 'justify-end' }" title="Impersonate User">
       <template #body>
         <p class="text-sm text-muted mb-4">
           Select a user to view the application as them. All permission checks will use their role and team memberships.

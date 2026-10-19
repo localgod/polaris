@@ -60,14 +60,14 @@
           <template #teams>
             <UTable :data="user.teams" :columns="teamColumns" class="mt-3">
               <template #empty>
-                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No team memberships.</p>
+                <p class="text-sm text-muted py-4 text-center">No team memberships.</p>
               </template>
             </UTable>
           </template>
           <template v-if="user.provider === 'technical'" #tokens>
             <UTable :data="user.tokens || []" :columns="tokenColumns" class="mt-3">
               <template #empty>
-                <div class="text-center text-(--ui-text-muted) py-8">
+                <div class="text-center text-muted py-8">
                   No API tokens generated yet.
                 </div>
               </template>
@@ -76,7 +76,7 @@
           <template #activity>
             <UTable :data="user.recentActivity" :columns="activityColumns" class="mt-3">
               <template #empty>
-                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No recent activity.</p>
+                <p class="text-sm text-muted py-4 text-center">No recent activity.</p>
               </template>
             </UTable>
           </template>
@@ -86,20 +86,20 @@
       <!-- Generate Token Modal -->
       <UModal v-model:open="tokenModalOpen" title="Generate API Token" description="Create a new API token for this technical user.">
         <template #body>
-          <div class="space-y-4">
-            <UFormField label="Description (optional)">
-              <UInput v-model="tokenDescription" placeholder="e.g. CI/CD pipeline" />
+          <UForm id="token-form" :schema="technicalUserApiTokenSchema" :state="tokenForm" class="space-y-4" @submit="generateToken">
+            <UFormField name="description" label="Description (optional)">
+              <UInput v-model="tokenForm.description" placeholder="e.g. CI/CD pipeline" />
             </UFormField>
-            <UFormField label="Expires in (days, leave empty for no expiration)">
-              <UInput v-model="tokenExpiresInDays" type="number" placeholder="e.g. 90" />
+            <UFormField name="expiresInDays" label="Expires in (days, leave empty for no expiration)">
+              <UInput v-model="tokenForm.expiresInDays" type="number" placeholder="e.g. 90" />
             </UFormField>
             <UAlert v-if="tokenError" color="error" :title="tokenError" icon="i-lucide-circle-x" />
-          </div>
+          </UForm>
         </template>
-        <template #footer>
+        <template #footer="{ close }">
           <div class="flex justify-end gap-2">
-            <UButton label="Cancel" color="neutral" variant="outline" @click="tokenModalOpen = false" />
-            <UButton label="Generate" :loading="tokenLoading" @click="generateToken" />
+            <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+            <UButton type="submit" form="token-form" label="Generate" :loading="tokenLoading" />
           </div>
         </template>
       </UModal>
@@ -109,7 +109,7 @@
         <template #body>
           <div class="space-y-4">
             <UAlert color="warning" icon="i-lucide-alert-triangle" title="This token will only be shown once. Copy it now." />
-            <pre class="bg-(--ui-bg-elevated) p-4 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
+            <pre class="bg-elevated p-4 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
           </div>
         </template>
         <template #footer>
@@ -122,17 +122,14 @@
     </template>
 
     <!-- Revoke Token Confirmation Modal -->
-    <UModal v-model:open="revokeModalOpen">
-      <template #header>
-        <h3 class="text-lg font-semibold">Revoke Token</h3>
-      </template>
+    <UModal v-model:open="revokeModalOpen" title="Revoke Token">
       <template #body>
         <p>Are you sure you want to revoke this API token?</p>
-        <p class="text-sm text-(--ui-text-muted) mt-2">This action cannot be undone. Any integrations using this token will stop working.</p>
+        <p class="text-sm text-muted mt-2">This action cannot be undone. Any integrations using this token will stop working.</p>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="revokeModalOpen = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
           <UButton
             :label="revokeLoading ? 'Revoking...' : 'Revoke'"
             color="error"
@@ -332,16 +329,18 @@ const activityColumns: TableColumn<AuditEntry>[] = [
 
 // Token generation
 const tokenModalOpen = ref(false)
-const tokenDescription = ref('')
-const tokenExpiresInDays = ref('')
+const tokenForm = reactive({
+  description: '',
+  expiresInDays: ''
+})
 const tokenLoading = ref(false)
 const tokenError = ref('')
 const tokenDisplayOpen = ref(false)
 const generatedToken = ref('')
 
 function openTokenModal() {
-  tokenDescription.value = ''
-  tokenExpiresInDays.value = ''
+  tokenForm.description = ''
+  tokenForm.expiresInDays = ''
   tokenError.value = ''
   tokenModalOpen.value = true
 }
@@ -356,8 +355,8 @@ async function generateToken() {
       {
         method: 'POST',
         body: {
-          description: tokenDescription.value || undefined,
-          expiresInDays: tokenExpiresInDays.value ? parseInt(tokenExpiresInDays.value, 10) : undefined
+          description: tokenForm.description || undefined,
+          expiresInDays: tokenForm.expiresInDays ? parseInt(tokenForm.expiresInDays, 10) : undefined
         }
       }
     )

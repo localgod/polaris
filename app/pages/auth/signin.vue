@@ -3,7 +3,7 @@
     <div class="max-w-md w-full mx-auto">
       <div class="text-center">
         <h2 class="text-3xl font-bold">Sign in to Polaris</h2>
-        <p class="text-(--ui-text-muted) mt-1">Enterprise Technology Catalog</p>
+        <p class="text-muted mt-1">Enterprise Technology Catalog</p>
       </div>
 
       <UCard class="mt-8">

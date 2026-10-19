@@ -58,7 +58,7 @@
               </TableSearchHeader>
             </template>
             <template #empty>
-              <div class="text-center text-(--ui-text-muted) py-12">
+              <div class="text-center text-muted py-12">
                 No import jobs match these filters.
               </div>
             </template>
@@ -118,7 +118,7 @@
               </TableSearchHeader>
             </template>
             <template #empty>
-              <div class="text-center text-(--ui-text-muted) py-12">
+              <div class="text-center text-muted py-12">
                 No health-refresh jobs match these filters.
               </div>
             </template>
@@ -128,10 +128,7 @@
     </UTabs>
 
     <!-- GitHub import job detail modal -->
-    <UModal v-model:open="detailModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">{{ detailJob?.organization || 'Import Job' }}</h3>
-      </template>
+    <UModal v-model:open="detailModalOpen" :ui="{ footer: 'justify-end' }" :title="detailJob?.organization || 'Import Job'">
       <template #body>
         <USkeleton v-if="detailLoading" class="h-64 w-full" />
         <UAlert
@@ -144,27 +141,27 @@
         <div v-else-if="detailJob" class="space-y-4">
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span class="text-(--ui-text-muted)">Status</span>
+              <span class="text-muted">Status</span>
               <div><UBadge :color="jobStatusColor(detailJob.status)" variant="subtle">{{ detailJob.status }}</UBadge></div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Progress</span>
+              <span class="text-muted">Progress</span>
               <div>{{ detailJob.completed }}/{{ detailJob.total }} · {{ detailJob.failed }} failed · {{ detailJob.skipped }} skipped</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Created</span>
+              <span class="text-muted">Created</span>
               <div>{{ new Date(detailJob.createdAt).toLocaleString() }}</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Started</span>
+              <span class="text-muted">Started</span>
               <div>{{ detailJob.startedAt ? new Date(detailJob.startedAt).toLocaleString() : '—' }}</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Finished</span>
+              <span class="text-muted">Finished</span>
               <div>{{ detailJob.finishedAt ? new Date(detailJob.finishedAt).toLocaleString() : '—' }}</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Requested by</span>
+              <span class="text-muted">Requested by</span>
               <div class="font-mono text-xs truncate">{{ detailJob.requestedBy }}</div>
             </div>
           </div>
@@ -177,8 +174,8 @@
             :title="detailJob.error"
           />
 
-          <div class="max-h-72 overflow-auto divide-y divide-(--ui-border) rounded-md border border-(--ui-border)">
-            <div v-if="detailJob.items.length === 0" class="p-3 text-sm text-(--ui-text-muted)">
+          <div class="max-h-72 overflow-auto divide-y divide-default rounded-md border border-default">
+            <div v-if="detailJob.items.length === 0" class="p-3 text-sm text-muted">
               No repositories recorded for this job.
             </div>
             <div
@@ -188,14 +185,14 @@
             >
               <div class="min-w-0">
                 <div class="truncate text-sm font-medium">{{ item.repositoryFullName }}</div>
-                <div v-if="item.message" class="truncate text-xs text-(--ui-text-muted)">{{ item.message }}</div>
+                <div v-if="item.message" class="truncate text-xs text-muted">{{ item.message }}</div>
               </div>
               <UBadge :color="itemStatusColor(item.status)" variant="subtle">{{ item.status }}</UBadge>
             </div>
           </div>
         </div>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <UButton
           v-if="detailJob && (detailJob.status === 'queued' || detailJob.status === 'running')"
           label="Cancel Job"
@@ -211,15 +208,12 @@
           variant="outline"
           @click="openDeleteModal(detailJob)"
         />
-        <UButton label="Close" color="neutral" variant="outline" @click="detailModalOpen = false" />
+        <UButton label="Close" color="neutral" variant="outline" @click="close" />
       </template>
     </UModal>
 
     <!-- Health-refresh job detail modal -->
-    <UModal v-model:open="healthDetailModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">{{ healthDetailJob?.systemName || 'Scheduled Health Refresh' }}</h3>
-      </template>
+    <UModal v-model:open="healthDetailModalOpen" :ui="{ footer: 'justify-end' }" :title="healthDetailJob?.systemName || 'Scheduled Health Refresh'">
       <template #body>
         <USkeleton v-if="healthDetailLoading" class="h-64 w-full" />
         <UAlert
@@ -232,27 +226,27 @@
         <div v-else-if="healthDetailJob" class="space-y-4">
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span class="text-(--ui-text-muted)">Status</span>
+              <span class="text-muted">Status</span>
               <div><UBadge :color="jobStatusColor(healthDetailJob.status)" variant="subtle">{{ healthDetailJob.status }}</UBadge></div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Trigger</span>
+              <span class="text-muted">Trigger</span>
               <div>{{ healthDetailJob.trigger }}</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Progress</span>
+              <span class="text-muted">Progress</span>
               <div>{{ healthDetailJob.completedItems }}/{{ healthDetailJob.totalItems }} · {{ healthDetailJob.failedItems }} failed</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Created</span>
+              <span class="text-muted">Created</span>
               <div>{{ new Date(healthDetailJob.createdAt).toLocaleString() }}</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Started</span>
+              <span class="text-muted">Started</span>
               <div>{{ healthDetailJob.startedAt ? new Date(healthDetailJob.startedAt).toLocaleString() : '—' }}</div>
             </div>
             <div>
-              <span class="text-(--ui-text-muted)">Finished</span>
+              <span class="text-muted">Finished</span>
               <div>{{ healthDetailJob.finishedAt ? new Date(healthDetailJob.finishedAt).toLocaleString() : '—' }}</div>
             </div>
           </div>
@@ -265,8 +259,8 @@
             :title="healthDetailJob.error"
           />
 
-          <div class="max-h-72 overflow-auto divide-y divide-(--ui-border) rounded-md border border-(--ui-border)">
-            <div v-if="healthDetailJob.items.length === 0" class="p-3 text-sm text-(--ui-text-muted)">
+          <div class="max-h-72 overflow-auto divide-y divide-default rounded-md border border-default">
+            <div v-if="healthDetailJob.items.length === 0" class="p-3 text-sm text-muted">
               No components recorded for this job.
             </div>
             <div
@@ -276,14 +270,14 @@
             >
               <div class="min-w-0">
                 <div class="truncate text-sm font-medium">{{ item.componentName }}@{{ item.componentVersion }}</div>
-                <div v-if="item.errorSummary" class="truncate text-xs text-(--ui-text-muted)">{{ item.errorSummary }}</div>
+                <div v-if="item.errorSummary" class="truncate text-xs text-muted">{{ item.errorSummary }}</div>
               </div>
               <UBadge :color="healthItemStatusColor(item.status)" variant="subtle">{{ item.status }}</UBadge>
             </div>
           </div>
         </div>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <UButton
           v-if="healthDetailJob && (healthDetailJob.status === 'queued' || healthDetailJob.status === 'running')"
           label="Cancel Job"
@@ -299,21 +293,18 @@
           variant="outline"
           @click="openHealthDeleteModal(healthDetailJob)"
         />
-        <UButton label="Close" color="neutral" variant="outline" @click="healthDetailModalOpen = false" />
+        <UButton label="Close" color="neutral" variant="outline" @click="close" />
       </template>
     </UModal>
 
     <!-- Health-refresh delete confirmation modal -->
-    <UModal v-model:open="healthDeleteModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Delete Health-Refresh Job</h3>
-      </template>
+    <UModal v-model:open="healthDeleteModalOpen" :ui="{ footer: 'justify-end' }" title="Delete Health-Refresh Job">
       <template #body>
         <p class="text-sm">
           Are you sure you want to delete this health-refresh job for
           <strong>{{ healthDeleteTarget?.systemName || 'all systems' }}</strong>?
         </p>
-        <p class="text-sm text-(--ui-text-muted) mt-2">
+        <p class="text-sm text-muted mt-2">
           This permanently removes the job's run history and its per-component check results.
           Component health data itself is not affected. This cannot be undone.
         </p>
@@ -326,22 +317,19 @@
           class="mt-4"
         />
       </template>
-      <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="healthDeleteModalOpen = false" />
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton label="Delete" color="error" :loading="healthDeleteLoading" @click="confirmHealthDelete" />
       </template>
     </UModal>
 
     <!-- Delete confirmation modal -->
-    <UModal v-model:open="deleteModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Delete Import Job</h3>
-      </template>
+    <UModal v-model:open="deleteModalOpen" :ui="{ footer: 'justify-end' }" title="Delete Import Job">
       <template #body>
         <p class="text-sm">
           Are you sure you want to delete the import job for <strong>{{ deleteTarget?.organization }}</strong>?
         </p>
-        <p class="text-sm text-(--ui-text-muted) mt-2">
+        <p class="text-sm text-muted mt-2">
           This permanently removes the job's run history and its per-repository results.
           Any systems or components already imported are not affected. This cannot be undone.
         </p>
@@ -354,8 +342,8 @@
           class="mt-4"
         />
       </template>
-      <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="deleteModalOpen = false" />
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton label="Delete" color="error" :loading="deleteLoading" @click="confirmDelete" />
       </template>
     </UModal>
@@ -583,7 +571,7 @@ const githubColumns: TableColumn<ImportJobSummary>[] = [
     header: 'Created',
     cell: ({ row }) => h('div', {}, [
       h('div', { class: 'text-sm' }, new Date(row.original.createdAt).toLocaleString()),
-      h('div', { class: 'text-xs text-(--ui-text-muted)' }, ageLabel(row.original.createdAt))
+      h('div', { class: 'text-xs text-muted' }, ageLabel(row.original.createdAt))
     ])
   },
   {
@@ -757,7 +745,7 @@ const healthColumns: TableColumn<HealthRefreshJobSummary>[] = [
     header: 'Created',
     cell: ({ row }) => h('div', {}, [
       h('div', { class: 'text-sm' }, new Date(row.original.createdAt).toLocaleString()),
-      h('div', { class: 'text-xs text-(--ui-text-muted)' }, ageLabel(row.original.createdAt))
+      h('div', { class: 'text-xs text-muted' }, ageLabel(row.original.createdAt))
     ])
   },
   {

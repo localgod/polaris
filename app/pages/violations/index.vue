@@ -72,46 +72,40 @@
         </template>
         <template #empty>
           <div class="text-center py-8">
-            <UIcon name="i-lucide-check-circle" class="text-5xl text-(--ui-color-success-500)" />
+            <UIcon name="i-lucide-check-circle" class="text-5xl text-success" />
             <h3 class="mt-4">No Version Violations!</h3>
-            <p class="text-(--ui-text-muted) mt-2">All components are within allowed version ranges.</p>
+            <p class="text-muted mt-2">All components are within allowed version ranges.</p>
           </div>
         </template>
       </PaginatedTable>
     </template>
 
-    <UModal v-model:open="showWaiveModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Waive Violation</h3>
-      </template>
+    <UModal v-model:open="showWaiveModal" title="Waive Violation">
       <template #body>
-        <div class="space-y-4">
-          <UFormField label="Reason" required>
+        <UForm id="waive-form" :schema="waiverSchema" :state="waiveForm" class="space-y-4" @submit="confirmWaive">
+          <UFormField name="reason" label="Reason" required>
             <UTextarea v-model="waiveForm.reason" placeholder="Why is this risk accepted?" class="w-full" autofocus />
           </UFormField>
-          <UFormField label="Expires" required hint="Waivers cannot be indefinite — pick a re-review date">
+          <UFormField name="expiresAt" label="Expires" required hint="Waivers cannot be indefinite — pick a re-review date">
             <UInput v-model="waiveForm.expiresAt" type="date" class="w-full" />
           </UFormField>
-        </div>
+        </UForm>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2 w-full">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="showWaiveModal = false" />
-          <UButton color="primary" label="Waive" :loading="isWaiving" @click="confirmWaive" />
+          <UButton color="neutral" variant="outline" label="Cancel" @click="close" />
+          <UButton type="submit" form="waive-form" color="primary" label="Waive" :loading="isWaiving" />
         </div>
       </template>
     </UModal>
 
-    <UModal v-model:open="showRevokeModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Revoke Waiver</h3>
-      </template>
+    <UModal v-model:open="showRevokeModal" title="Revoke Waiver">
       <template #body>
         <p>This violation will reappear in the list immediately. Continue?</p>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2 w-full">
-          <UButton color="neutral" variant="outline" label="Cancel" @click="showRevokeModal = false" />
+          <UButton color="neutral" variant="outline" label="Cancel" @click="close" />
           <UButton color="error" label="Revoke" :loading="isRevoking" @click="confirmRevoke" />
         </div>
       </template>
@@ -205,7 +199,7 @@ const columns: TableColumn<Violation>[] = [
       return h('div', {}, [
         h('strong', {}, row.original.constraint.name),
         row.original.constraint.description
-          ? h('p', { class: 'text-sm text-(--ui-text-muted)' }, row.original.constraint.description)
+          ? h('p', { class: 'text-sm text-muted' }, row.original.constraint.description)
           : null
       ].filter(Boolean))
     }
@@ -239,7 +233,7 @@ const columns: TableColumn<Violation>[] = [
     header: ({ column }) => getSortableHeader(column, 'Required Range'),
     cell: ({ row }) => {
       const range = row.original.constraint.versionRange
-      if (!range) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!range) return h('span', { class: 'text-muted' }, '—')
       return h('code', { class: 'text-sm' }, range)
     }
   },
@@ -271,7 +265,7 @@ const columns: TableColumn<Violation>[] = [
     header: ({ column }) => getSortableHeader(column, 'Criticality'),
     cell: ({ row }) => {
       const value = row.original.systemBusinessCriticality
-      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!value) return h('span', { class: 'text-muted' }, '—')
       return h(UBadge, { color: getCriticalityColor(value), variant: 'subtle' }, () => value)
     }
   },
@@ -281,7 +275,7 @@ const columns: TableColumn<Violation>[] = [
     header: ({ column }) => getSortableHeader(column, 'Environment'),
     cell: ({ row }) => {
       const value = row.original.systemEnvironment
-      if (!value) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!value) return h('span', { class: 'text-muted' }, '—')
       return h(UBadge, { color: getEnvironmentColor(value), variant: 'subtle' }, () => value)
     }
   },

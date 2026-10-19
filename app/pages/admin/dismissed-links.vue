@@ -42,7 +42,7 @@
         <TableSearchHeader v-model="searchInput" />
       </template>
       <template #empty>
-        <div class="text-center text-(--ui-text-muted) py-12">
+        <div class="text-center text-muted py-12">
           No dismissed components.
         </div>
       </template>
@@ -90,12 +90,12 @@ const columns: TableColumn<DismissedComponent>[] = [
       const nameEl = description
         ? h(UTooltip, { text: description }, () => h('span', { class: 'inline-flex items-center gap-1.5 font-medium' }, [
             displayName,
-            h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-(--ui-text-muted)' })
+            h(UIcon, { name: 'i-lucide-info', class: 'size-3.5 text-muted' })
           ]))
         : h('span', { class: 'font-medium' }, displayName)
       return h('div', {}, [
         nameEl,
-        purl ? h('div', { class: 'text-xs text-(--ui-text-muted) font-mono truncate' }, purl) : null
+        purl ? h('div', { class: 'text-xs text-muted font-mono truncate' }, purl) : null
       ])
     }
   },

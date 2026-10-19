@@ -39,10 +39,10 @@
 
     <!-- No policy state -->
     <div v-if="!activePolicy && !latestDraft && !historyPending" class="text-center py-8">
-      <UIcon name="i-lucide-shield-off" class="size-10 text-(--ui-text-muted) mb-3 mx-auto" />
-      <p class="text-sm font-medium text-(--ui-text)">No policy set</p>
-      <p class="text-sm text-(--ui-text-muted) mt-1">
-        This technology is <span class="font-semibold text-(--ui-error)">unclassified</span> — it counts as a compliance violation.
+      <UIcon name="i-lucide-shield-off" class="size-10 text-muted mb-3 mx-auto" />
+      <p class="text-sm font-medium text-default">No policy set</p>
+      <p class="text-sm text-muted mt-1">
+        This technology is <span class="font-semibold text-error">unclassified</span> — it counts as a compliance violation.
       </p>
       <UButton
         v-if="canPropose"
@@ -91,27 +91,27 @@
 
         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div v-if="displayPolicy.rationale">
-            <dt class="text-(--ui-text-muted) font-medium">Rationale</dt>
+            <dt class="text-muted font-medium">Rationale</dt>
             <dd class="mt-0.5">{{ displayPolicy.rationale }}</dd>
           </div>
           <div v-if="displayPolicy.migrationTarget">
-            <dt class="text-(--ui-text-muted) font-medium">Migration target</dt>
+            <dt class="text-muted font-medium">Migration target</dt>
             <dd class="mt-0.5">{{ displayPolicy.migrationTarget }}</dd>
           </div>
           <div v-if="displayPolicy.effectiveDate">
-            <dt class="text-(--ui-text-muted) font-medium">Effective</dt>
+            <dt class="text-muted font-medium">Effective</dt>
             <dd class="mt-0.5">{{ formatDate(displayPolicy.effectiveDate) }}</dd>
           </div>
           <div v-if="displayPolicy.expiryDate">
-            <dt class="text-(--ui-text-muted) font-medium">Expires</dt>
+            <dt class="text-muted font-medium">Expires</dt>
             <dd class="mt-0.5">{{ formatDate(displayPolicy.expiryDate) }}</dd>
           </div>
           <div>
-            <dt class="text-(--ui-text-muted) font-medium">Set by</dt>
+            <dt class="text-muted font-medium">Set by</dt>
             <dd class="mt-0.5">{{ displayPolicy.createdByName || displayPolicy.createdBy }}</dd>
           </div>
           <div>
-            <dt class="text-(--ui-text-muted) font-medium">Last updated</dt>
+            <dt class="text-muted font-medium">Last updated</dt>
             <dd class="mt-0.5">{{ formatDate(displayPolicy.updatedAt) }}</dd>
           </div>
         </dl>
@@ -119,7 +119,7 @@
 
       <!-- Exceptions (active policy only) -->
       <template v-if="activePolicy">
-        <div class="border-t border-(--ui-border) pt-4 mt-4">
+        <div class="border-t border-default pt-4 mt-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold">
               Exceptions ({{ (activePolicy.exceptions ?? []).length }})
@@ -133,7 +133,7 @@
               @click="openExceptionModal"
             />
           </div>
-          <div v-if="(activePolicy.exceptions ?? []).length === 0" class="text-sm text-(--ui-text-muted)">
+          <div v-if="(activePolicy.exceptions ?? []).length === 0" class="text-sm text-muted">
             No active exceptions.
           </div>
           <UTable
@@ -146,99 +146,90 @@
     </div>
 
     <!-- Propose / Update draft modal -->
-    <UModal v-model:open="proposeModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">{{ latestDraft ? 'Update Draft Policy' : 'Propose Policy' }}</h3>
-      </template>
+    <UModal v-model:open="proposeModalOpen" :ui="{ footer: 'justify-end' }" :title="latestDraft ? 'Update Draft Policy' : 'Propose Policy'">
       <template #body>
-        <form class="space-y-4" @submit.prevent="submitPropose">
-          <UFormField label="TIME Classification" required>
+        <UForm id="propose-policy-form" :schema="proposeSchema" :state="proposeForm" class="space-y-4" @submit="submitPropose">
+          <UFormField name="time" label="TIME Classification" required>
             <USelect v-model="proposeForm.time" :items="timeOptions" placeholder="Select TIME value" />
           </UFormField>
-          <UFormField label="Rationale">
+          <UFormField name="rationale" label="Rationale">
             <UTextarea v-model="proposeForm.rationale" placeholder="Why this classification?" :rows="3" />
           </UFormField>
-          <UFormField v-if="proposeForm.time === 'migrate'" label="Migration target">
+          <UFormField v-if="proposeForm.time === 'migrate'" name="migrationTarget" label="Migration target">
             <UInput v-model="proposeForm.migrationTarget" placeholder="Which technology to migrate to?" />
           </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <UFormField label="Effective date">
+            <UFormField name="effectiveDate" label="Effective date">
               <UInput v-model="proposeForm.effectiveDate" type="date" />
             </UFormField>
-            <UFormField label="Expiry date">
+            <UFormField name="expiryDate" label="Expiry date">
               <UInput v-model="proposeForm.expiryDate" type="date" />
             </UFormField>
           </div>
           <UAlert v-if="proposeError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="proposeError" />
-        </form>
+        </UForm>
       </template>
-      <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="proposeModalOpen = false" />
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton
+          type="submit"
+          form="propose-policy-form"
           :label="latestDraft ? 'Update Draft' : 'Propose'"
           color="primary"
           :loading="loading"
-          :disabled="!proposeForm.time"
-          @click="submitPropose"
         />
       </template>
     </UModal>
 
     <!-- Create exception modal -->
-    <UModal v-model:open="exceptionModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Create Policy Exception</h3>
-      </template>
+    <UModal v-model:open="exceptionModalOpen" :ui="{ footer: 'justify-end' }" title="Create Policy Exception">
       <template #body>
-        <form class="space-y-4" @submit.prevent="submitException">
-          <UFormField label="Overriding TIME value" required>
+        <UForm id="policy-exception-form" :schema="exceptionSchema" :state="exceptionForm" class="space-y-4" @submit="submitException">
+          <UFormField name="time" label="Overriding TIME value" required>
             <USelect v-model="exceptionForm.time" :items="timeOptions" placeholder="Select TIME value" />
           </UFormField>
-          <UFormField label="Reason" required>
+          <UFormField name="reason" label="Reason" required>
             <UTextarea v-model="exceptionForm.reason" placeholder="Why is this exception needed?" :rows="2" />
           </UFormField>
-          <UFormField label="Approver" required>
+          <UFormField name="approver" label="Approver" required>
             <UInput v-model="exceptionForm.approver" placeholder="Name or email of approver" />
           </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <UFormField label="Scope" required>
+            <UFormField name="scope" label="Scope" required>
               <USelect v-model="exceptionForm.scope" :items="scopeOptions" placeholder="team or system" />
             </UFormField>
-            <UFormField label="Scope name" required>
+            <UFormField name="scopeName" label="Scope name" required>
               <UInput v-model="exceptionForm.scopeName" :placeholder="exceptionForm.scope === 'system' ? 'System name' : 'Team name'" />
             </UFormField>
           </div>
-          <UFormField label="Environment">
+          <UFormField name="environment" label="Environment">
             <USelect v-model="exceptionForm.environment" :items="environmentOptions" placeholder="All environments" />
           </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <UFormField label="Effective date" required>
+            <UFormField name="effectiveDate" label="Effective date" required>
               <UInput v-model="exceptionForm.effectiveDate" type="date" />
             </UFormField>
-            <UFormField label="Expires at" required>
+            <UFormField name="expiresAt" label="Expires at" required>
               <UInput v-model="exceptionForm.expiresAt" type="date" />
             </UFormField>
           </div>
           <UAlert v-if="exceptionError" color="error" variant="subtle" icon="i-lucide-alert-circle" :description="exceptionError" />
-        </form>
+        </UForm>
       </template>
-      <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="exceptionModalOpen = false" />
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton
+          type="submit"
+          form="policy-exception-form"
           label="Create Exception"
           color="primary"
           :loading="loading"
-          :disabled="!exceptionForm.time || !exceptionForm.reason || !exceptionForm.approver || !exceptionForm.scope || !exceptionForm.scopeName || !exceptionForm.effectiveDate || !exceptionForm.expiresAt"
-          @click="submitException"
         />
       </template>
     </UModal>
 
     <!-- Activate confirmation modal -->
-    <UModal v-model:open="activateModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Activate Policy</h3>
-      </template>
+    <UModal v-model:open="activateModalOpen" :ui="{ footer: 'justify-end' }" title="Activate Policy">
       <template #body>
         <p class="text-sm">
           Activating this draft policy will make
@@ -248,26 +239,23 @@
         </p>
         <UAlert v-if="activateError" color="error" variant="subtle" icon="i-lucide-alert-circle" class="mt-3" :description="activateError" />
       </template>
-      <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="activateModalOpen = false" />
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton label="Activate Policy" color="success" :loading="loading" @click="submitActivate" />
       </template>
     </UModal>
 
     <!-- Archive confirmation modal -->
-    <UModal v-model:open="archiveModalOpen" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Archive Policy</h3>
-      </template>
+    <UModal v-model:open="archiveModalOpen" :ui="{ footer: 'justify-end' }" title="Archive Policy">
       <template #body>
         <p class="text-sm">
           Archiving will remove the active policy for <strong>{{ technologyName }}</strong>.
-          The technology will be <strong class="text-(--ui-error)">unclassified</strong> (compliance violation) until a new policy is activated.
+          The technology will be <strong class="text-error">unclassified</strong> (compliance violation) until a new policy is activated.
         </p>
         <UAlert v-if="archiveError" color="error" variant="subtle" icon="i-lucide-alert-circle" class="mt-3" :description="archiveError" />
       </template>
-      <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="archiveModalOpen = false" />
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton label="Archive" color="warning" :loading="loading" @click="submitArchive" />
       </template>
     </UModal>
@@ -276,6 +264,7 @@
 
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
+import * as z from 'zod'
 import type { TableColumn } from '@nuxt/ui'
 import type { TechnologyPolicy, PolicyException } from '~~/types/api'
 
@@ -383,6 +372,13 @@ const loading = ref(false)
 
 const proposeModalOpen = ref(false)
 const proposeError = ref('')
+const proposeSchema = z.object({
+  time: z.string({ error: 'TIME classification is required' }).min(1, 'TIME classification is required'),
+  rationale: z.string().optional(),
+  migrationTarget: z.string().optional(),
+  effectiveDate: z.string().optional(),
+  expiryDate: z.string().optional()
+})
 const proposeForm = ref({
   time: '',
   rationale: '',
@@ -496,6 +492,17 @@ async function submitArchive() {
 
 const exceptionModalOpen = ref(false)
 const exceptionError = ref('')
+const requiredText = (label: string) => z.string({ error: `${label} is required` }).trim().min(1, `${label} is required`)
+const exceptionSchema = z.object({
+  time: requiredText('TIME value'),
+  reason: requiredText('Reason'),
+  approver: requiredText('Approver'),
+  scope: requiredText('Scope'),
+  scopeName: requiredText('Scope name'),
+  environment: z.string().nullish(),
+  effectiveDate: requiredText('Effective date'),
+  expiresAt: requiredText('Expiry date')
+})
 const exceptionForm = ref({
   time: '',
   reason: '',
