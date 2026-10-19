@@ -8,10 +8,17 @@ Neo4j is a service in the same compose project as the dev container, so opening
 the container starts it — `postCreateCommand` does not.
 
 `postCreateCommand` (`scripts/post-create.sh`) then:
-1. Creates the `.data/neo4j` bind-mount directories
+1. Marks `/workspaces/polaris` as a git `safe.directory`
 2. Creates `.env` from `.env.example` if it doesn't exist
-3. Installs npm dependencies if needed
-4. Registers the MCP servers
+3. Creates the `.data/neo4j` bind-mount directories
+4. Runs `npm ci` in the repo root and in `.claude/mcp` (local-model MCP server)
+5. Installs Playwright Chromium with its system dependencies
+6. Installs `uv`, then `code-review-graph` + `sentence-transformers` (CPU-only torch) as an isolated uv tool
+7. Installs the `mcp-neo4j` CLI globally
+8. Builds (first run) or incrementally updates the code knowledge graph
+
+The Claude Code CLI comes from the `claude-code` devcontainer feature. MCP servers
+are registered in the project's `.mcp.json`, not by the script.
 
 This ensures Neo4j is always running when you start working.
 
@@ -19,7 +26,7 @@ This ensures Neo4j is always running when you start working.
 
 ### Neo4j Database
 
-- **Version**: 5 Community Edition
+- **Version**: 5.26 Community Edition (pinned in `docker-compose-local.yml`)
 - **HTTP Port**: 7474 (Neo4j Browser)
 - **Bolt Port**: 7687 (Database connection)
 - **Default Credentials**:

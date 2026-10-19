@@ -10,21 +10,37 @@
 		"ghcr.io/wxw-matt/devcontainer-features/command_runner:0": {},
 		"ghcr.io/postfinance/devcontainer-features/docker-out:1": {},
 		"ghcr.io/srzstephen/devcontainer-features/act:1": {},
-		"ghcr.io/devcontainers/features/github-cli:1": {}
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		// Official Claude Code CLI install, so `claude` works in the terminal and not
+		// just via the VS Code extension (which bundles its own copy).
+		"ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
 	},
+
+	// Keep Claude Code's login, user settings and project memory across rebuilds.
+	// post-create.sh writes MCP server registrations to /home/node/.claude/settings.json
+	// and memory lives under /home/node/.claude/projects/ — without this volume every
+	// rebuild wipes the credentials, accumulated permissions and memory files.
+	// A fresh named volume mounts in root-owned, so post-create.sh chowns it to node.
+	"mounts": [
+		"source=polaris-claude-config-${devcontainerId},target=/home/node/.claude,type=volume"
+	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "bash /workspaces/polaris/.devcontainer/scripts/post-create.sh",
 
 	// Run as node user to avoid permission issues
 	"remoteUser": "node",
-	
-	// Allow node user to use sudo without password
+
+	// Reclaim node_modules if an earlier install left it root-owned, so the `npm ci`
+	// in post-create.sh (which runs as node) can replace it.
 	"updateContentCommand": "sudo chown -R node:node /workspaces/polaris/node_modules || true",
 
-	// Ensure node_modules has proper permissions
 	"containerEnv": {
-		"npm_config_cache": "/tmp/.npm"
+		// Keep the npm cache off the bind-mounted workspace
+		"npm_config_cache": "/tmp/.npm",
+		// Point Claude Code at the persisted volume above (also its default location,
+		// but set explicitly so the CLI and the VS Code extension agree).
+		"CLAUDE_CONFIG_DIR": "/home/node/.claude"
 	},
 
 	// Forward the dev server port so the host browser can reach it reliably.
@@ -44,7 +60,10 @@
 		"vscode": {
 			"extensions": [
 				"Anthropic.claude-code",
-				"Vue.volar"
+				"Vue.volar",
+				// Surfaces eslint.config.mjs violations inline instead of only on `npm run lint`.
+				"dbaeumer.vscode-eslint",
+				"usernamehw.errorlens"
 			]
 		}
 	}

@@ -1,0 +1,20 @@
+# Git hooks, installed automatically by lefthook's postinstall on `npm ci`
+# (skipped when CI=true). Run `npx lefthook install` to (re)install manually,
+# or bypass once with `git commit --no-verify`.
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      glob: "*.{js,mjs,cjs,ts,mts,cts,vue}"
+      run: npx eslint {staged_files}
+    markdownlint:
+      glob: "*.md"
+      run: npx markdownlint {staged_files}
+    # Replaces the hook code-review-graph used to install directly into
+    # .git/hooks/pre-commit — keeps the knowledge graph fresh on every commit.
+    code-review-graph:
+      run: |
+        if command -v code-review-graph >/dev/null 2>&1; then
+          code-review-graph update || true
+          code-review-graph detect-changes --brief || true
+        fi

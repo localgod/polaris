@@ -17,14 +17,14 @@ jobs:
   copilot-setup-steps:
     name: Setup Node and cache dependencies (copilot-setup-steps)
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: read
 
     # Neo4j service for database operations
     services:
       neo4j:
-        image: neo4j:5-community
+        image: neo4j:5.26-community
         env:
           NEO4J_AUTH: neo4j/testpassword
           NEO4J_PLUGINS: '["apoc"]'
@@ -41,16 +41,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Use Node.js 20 (LTS)
-        uses: actions/setup-node@v7
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --unsafe-perm
+        run: npm ci
 
       - name: Wait for Neo4j to be ready
         run: |

@@ -9,6 +9,7 @@ npm run dev               # Start Nuxt dev server (http://localhost:3000)
 npm run build             # Generates OpenAPI docs, then builds Nuxt + copies runtime assets
 npm run lint              # ESLint (Nuxt-configured)
 npm run lint:fix          # ESLint with auto-fix
+npm run typecheck         # nuxt typecheck (vue-tsc) — not yet clean, non-blocking in CI
 
 # Tests — run a specific layer to stay fast
 npm run test              # All unit tests (excludes integration)
@@ -153,10 +154,10 @@ Four MCP servers are configured in `.mcp.json`:
 
 | Server | Purpose |
 | ------ | ------- |
-| `local-model` | Local Qwen 2.5 7B (Docker Model Runner) — offloads mechanical tasks (lint, docs, commit/PR text, Cypher drafting, snippet review) so the main model doesn't burn context on raw tool output. Test diagnosis is *not* handled here — see `test-runner` under Agents below |
+| `local-model` | Local Qwen3 30B served by Ollama on the host (`host.docker.internal:11434`) — offloads mechanical tasks (lint, docs, commit/PR text, Cypher drafting, snippet review) so the main model doesn't burn context on raw tool output. Test diagnosis is *not* handled here — see `test-runner` under Agents below |
 | `code-review-graph` | Persistent Tree-sitter–derived knowledge graph of this repo — structural code search, impact analysis, and review context, cheaper and more accurate than Grep/Read for "who calls/imports/tests this" questions |
 | `neo4j` | Direct Bolt connection to the live application database (`bolt://localhost:7687`) — raw Cypher access for exploring or mutating actual `Technology`/`Component`/`Team`/... data, distinct from the code-review-graph's internal graph |
-| `chrome-devtools` | Google's Chrome DevTools MCP — drives a real headless Chromium binary (from `~/.cache/ms-playwright`) via accessibility-tree snapshots for clicking, filling forms, and navigating, plus DevTools protocol tools: network request inspection, performance traces, console output. Default choice for verifying a UI change actually works end-to-end (e.g. a modal save button) instead of trusting a code read alone |
+| `chrome-devtools` | Google's Chrome DevTools MCP — drives a real headless Chromium binary (Playwright's, resolved at launch by `.claude/mcp/chrome-devtools.sh`) via accessibility-tree snapshots for clicking, filling forms, and navigating, plus DevTools protocol tools: network request inspection, performance traces, console output. Default choice for verifying a UI change actually works end-to-end (e.g. a modal save button) instead of trusting a code read alone |
 
 The browser server runs headless/sandboxless (`--no-sandbox`) since the devcontainer has no display — this is standard practice for containerized browser automation, not a security relaxation of the app itself.
 

@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Polaris! This document provides g
 
 ### Prerequisites
 
-- Node.js 18+ (LTS recommended)
+- Node.js 24 (see `.nvmrc`)
 - Docker and Docker Compose
 - Git
 
@@ -465,7 +465,11 @@ npm run seed:clear       # Clear and reseed database
 # Code Quality
 npm run lint             # Run ESLint
 npm run lint:fix         # Fix ESLint issues
+npm run typecheck        # Type-check app + server (nuxt typecheck / vue-tsc)
 npm run mdlint           # Lint markdown files
+
+# Git hooks: lefthook (lefthook.yml) installs a pre-commit hook on `npm ci` that
+# lints staged files. Skip it once with `git commit --no-verify`.
 ```
 
 ### Using Neo4j in API Routes
@@ -568,17 +572,17 @@ Pull requests automatically receive:
 ### Dev Container Features
 
 The dev container automatically provides:
-- Yes Node.js LTS
-- Yes Docker-in-Docker
-- Yes Neo4j 5 Community Edition (auto-starts)
-- Yes Environment variables (`.env` auto-created)
-- Yes Dependencies (auto-installed)
-- Yes VS Code extensions:
-  - PlantUML
-  - Markdown Lint
+- Node.js 24
+- Docker CLI wired to the host daemon
+- Neo4j 5.26 Community Edition (auto-starts)
+- Environment variables (`.env` auto-created)
+- Dependencies (`npm ci`, auto-installed) and Playwright Chromium
+- Claude Code CLI plus the MCP servers in `.mcp.json`
+- VS Code extensions:
+  - Claude Code
+  - Vue (Official)
+  - ESLint
   - Error Lens
-  - Neo4j VS Code
-  - Vue Volar
 
 ### Neo4j Access
 

@@ -6,7 +6,7 @@ Focus reviews on **runtime failures and production risks**. Skip style, naming, 
 
 - Nuxt 4 (Vue 3 + TypeScript, `type: "module"`) + Neo4j 5 Community (Bolt protocol)
 - 3-layer server pattern: `server/api` → `server/services` → `server/repositories` → `server/database/queries/*.cypher`
-- Auth via `nuxt-auth-utils`; all API routes protected by server middleware in `server/middleware/`
+- Auth via `@sidebase/nuxt-auth` (GitHub OAuth) plus Bearer API tokens; handlers guard themselves with the `requireAuth` / `requireRole` / `requireSuperuser` auto-imported helpers — there is no global auth middleware
 - Idempotent migrations in `schema/`; test isolation via `test_<feature>_` node prefixes
 
 ---

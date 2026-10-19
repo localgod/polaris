@@ -34,3 +34,6 @@ gh.exe
 core
 # Added by code-review-graph
 .code-review-graph/
+
+# PyTorch compile cache (created by sentence-transformers via code-review-graph embed)
+torchinductor_node/
