@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.175] - 2026-10-19
+
+## What's Changed
+
+* fix(ci): never cancel a publish run, and never drop a release one @localgod (#993)
+
+## 🔧 Maintenance
+
+* chore: release v0.6.173 @[github-actions[bot]](https://github.com/apps/github-actions) (#991)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.174...v0.6.175
+
 ## [0.6.173] - 2026-10-19
 
 ## What's Changed
