@@ -19,6 +19,11 @@ export default defineConfig({
     environment: 'node',
     include: ['test/integration/**/*.spec.ts'],
     fileParallelism: false,
+    // Vitest 5 defaults clearMocks to true (4.x: false). vitest-cucumber runs each
+    // Gherkin step as a separate test, so the default would wipe mock call history
+    // between a When step and the Then step that asserts on it. Specs clear mocks
+    // explicitly in their Background steps instead.
+    clearMocks: false,
     // Server startup can take up to 60 s on a cold run
     testTimeout: 120_000,
     hookTimeout: 120_000,
