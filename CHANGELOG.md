@@ -19,6 +19,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.176] - 2026-10-19
+
+## What's Changed
+
+* fix(release): make each release PR cumulative and close the ones it supersedes @localgod (#995)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.175...v0.6.176
+
+## [0.6.175] - 2026-10-19
+
+## What's Changed
+
+* fix(ci): never cancel a publish run, and never drop a release one @localgod (#993)
+
+## 🔧 Maintenance
+
+* chore: release v0.6.173 @[github-actions[bot]](https://github.com/apps/github-actions) (#991)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.174...v0.6.175
+
+## [0.6.174] - 2026-10-19
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump the production-dependencies group across 1 directory with 5 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#985)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.173...v0.6.174
+
 ## [0.6.173] - 2026-10-19
 
 ## What's Changed
