@@ -26,7 +26,7 @@
     "vue"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=24.15.0"
   },
   "scripts": {
     "build": "npm run docs:api && nuxt build && npm run build:runtime-assets",
@@ -81,6 +81,7 @@
     "@sidebase/nuxt-auth": "1.4.0",
     "ajv": "^8.20.0",
     "d3": "^7.9.0",
+    "h3": "^1.15.11",
     "mermaid": "^12.2.0",
     "next-auth": "4.22.5",
     "nuxt": "4.6.1",

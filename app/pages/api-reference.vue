@@ -183,8 +183,11 @@ type MarkdownBlock =
 
 const expandedEndpoints = ref(new Set<string>())
 
-const { data: spec, status, error } = await useFetch<OpenAPISpec>('/api/openapi.json')
-const loading = computed(() => status.value === 'pending')
+// Client-only: the page needs the whole spec (~110 kB) in the browser anyway for
+// expandable endpoint schemas and the download button, so SSR-ing it only doubles
+// the bytes (rendered HTML + hydration payload). The skeleton covers the fetch.
+const { data: spec, status, error } = await useFetch<OpenAPISpec>('/api/openapi.json', { server: false })
+const loading = computed(() => status.value === 'idle' || status.value === 'pending')
 const overviewBlocks = computed(() => parseMarkdown(spec.value?.info?.description || ''))
 
 const MarkdownInline = defineComponent({
