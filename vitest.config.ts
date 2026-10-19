@@ -22,6 +22,11 @@ export default defineConfig({
     include: ['test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['test/integration/**'],
     fileParallelism: false,
+    // Vitest 5 defaults clearMocks to true (4.x: false). vitest-cucumber runs each
+    // Gherkin step as a separate test, so the default would wipe mock call history
+    // between a When step and the Then step that asserts on it. Specs clear mocks
+    // explicitly in their Background steps instead.
+    clearMocks: false,
     testTimeout: 60000, // 60 seconds for e2e tests
     hookTimeout: 60000, // 60 seconds for beforeAll/afterAll
     globalSetup: ['./test/setup/global-setup.ts'],
