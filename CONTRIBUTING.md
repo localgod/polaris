@@ -742,7 +742,7 @@ GITHUB_CLIENT_SECRET=<from GitHub OAuth app>
 # Superuser configuration
 SUPERUSER_EMAILS=admin@company.com,lead@company.com
 
-# Optional (auto-detected in Gitpod)
+# Optional - only needed behind a proxy or on a non-localhost URL
 AUTH_ORIGIN=https://your-domain.com/api/auth
 ```
 
@@ -752,7 +752,6 @@ AUTH_ORIGIN=https://your-domain.com/api/auth
 2. Create new OAuth App
 3. Set Authorization callback URL:
    - Local: `http://localhost:3000/api/auth/callback/github`
-   - Gitpod: `https://3000-yourworkspace.ws-region.gitpod.io/api/auth/callback/github`
 4. Copy Client ID and Client Secret to `.env`
 
 ### Protected API Endpoints
