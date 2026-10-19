@@ -61,11 +61,25 @@ jobs:
         run: |
           set -e
 
+          # Every merge to main publishes a release, but package.json only moves
+          # when a release PR merges. Add a CHANGELOG section for each release
+          # since then (oldest first, so the newest ends up on top), so this PR
+          # carries everything the release PRs it supersedes would have.
+          CURRENT=$(node -p "require('./package.json').version")
+          for V in $(gh release list --limit 100 --exclude-drafts --json tagName --jq '.[].tagName | ltrimstr("v")' | sort -V); do
+            [ "$V" != "$CURRENT" ] || continue
+            [ "$(printf '%s\n' "$CURRENT" "$V" | sort -V | tail -1)" = "$V" ] || continue
+            [ "$V" != "$RESOLVED_VERSION" ] || continue
+            RESOLVED_VERSION="$V" \
+              RELEASE_BODY="$(gh release view "v$V" --json body --jq .body)" \
+              RELEASE_DATE="$(gh release view "v$V" --json publishedAt --jq '.publishedAt[:10]')" \
+              node scripts/update-changelog.mjs
+          done
+          # The release just published last, from the action's own output
+          node scripts/update-changelog.mjs
+
           # Bump package.json without creating a git tag
           npm version "$RESOLVED_VERSION" --no-git-tag-version
-
-          # Update CHANGELOG.md
-          node scripts/update-changelog.mjs
 
           # Configure git identity for the commit
           git config user.name "github-actions[bot]"
@@ -80,14 +94,22 @@ jobs:
           git push origin "$BRANCH"
 
           # Open a PR — branch protection prevents direct pushes to main
-          gh pr create \
+          PR_URL=$(gh pr create \
             --title "chore: release v${RESOLVED_VERSION}" \
-            --body "Automated version bump and CHANGELOG update for v${RESOLVED_VERSION}." \
+            --body "Automated version bump and CHANGELOG update for v${RESOLVED_VERSION}, including any releases since the last merged release PR." \
             --base main \
             --head "$BRANCH" \
-            --label "chore"
+            --label "chore")
+
+          # Older release PRs now conflict with this one on package.json and
+          # CHANGELOG.md, and everything they carried is included here.
+          gh pr list --state open --json number,headRefName \
+            --jq ".[] | select(.headRefName | startswith(\"chore/release-v\")) | select(.headRefName != \"$BRANCH\") | .number" |
+            while read -r OLD; do
+              gh pr close "$OLD" --delete-branch --comment "Superseded by $PR_URL"
+            done
 
           # Events caused by GITHUB_TOKEN don't start workflows, so the PR gets no
-          # pull_request CI run. workflow_dispatch is the exception; its checks
-          # land on the branch head commit and satisfy required status checks.
+          # pull_request CI run. workflow_dispatch is the exception, so the
+          # release branch still gets a full CI run on its head commit.
           gh workflow run ci.yml --ref "$BRANCH"

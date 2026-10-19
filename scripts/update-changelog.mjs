@@ -4,7 +4,8 @@
  *  2. Prepends a fresh [Unreleased] section above it.
  *
  * Reads RESOLVED_VERSION and RELEASE_BODY from environment variables
- * (set by the release-drafter action in the release workflow).
+ * (set by the release-drafter action in the release workflow), and optionally
+ * RELEASE_DATE (YYYY-MM-DD) when adding a release published on an earlier day.
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 
@@ -16,7 +17,7 @@ if (!version) {
   process.exit(1)
 }
 
-const today = new Date().toISOString().slice(0, 10)
+const today = process.env.RELEASE_DATE || new Date().toISOString().slice(0, 10)
 
 let content = readFileSync('CHANGELOG.md', 'utf8')
 
