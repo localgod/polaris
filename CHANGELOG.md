@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [0.6.166] - 2026-10-19
+
+## What's Changed
+
+* fix(test): disable Vitest 5 default clearMocks so cucumber step assertions see mock calls @localgod (#974)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.165...v0.6.166
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
