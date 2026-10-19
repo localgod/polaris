@@ -5,10 +5,15 @@ on:
     branches:
       - main
 
-# Cancel any in-progress publish run for the same branch
+# Never cancel a running publish: a cancelled release merge would leave its
+# version tags to be pushed by a later merge, with newer code in the image.
+# Ordinary merges share one group, so a newer one still replaces a waiting one
+# and latest ends up on the newest commit. A release merge gets its own group,
+# because GitHub keeps only one waiting run per group and a later merge would
+# otherwise drop it before it starts.
 concurrency:
-  group: publish-${{ github.ref }}
-  cancel-in-progress: true
+  group: "publish-${{ github.ref }}${{ startsWith(github.event.head_commit.message, 'chore: release v') && format('-{0}', github.sha) || '' }}"
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
