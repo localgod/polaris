@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.168] - 2026-10-19
+
+## What's Changed
+
+* ci: run CI once per PR commit and on merges to main @localgod (#977)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.167...v0.6.168
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
