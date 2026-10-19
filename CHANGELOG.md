@@ -19,6 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.178] - 2026-10-19
+
+## What's Changed
+
+* refactor(ui): align app with Nuxt UI v4 skill conventions; AGENTS.md as shared agent guide @localgod (#998)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.177...v0.6.178
+
+## [0.6.177] - 2026-10-19
+
+## What's Changed
+
+* chore(nuxt): adopt Nuxt 4.6 opt-in features and pin h3 v1 @localgod (#997)
+
+## 🔧 Maintenance
+
+* chore: release v0.6.176 @[github-actions[bot]](https://github.com/apps/github-actions) (#996)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.176...v0.6.177
+
 ## [0.6.176] - 2026-10-19
 
 ## What's Changed
