@@ -9,6 +9,13 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  experimental: {
+    // Type-checks $fetch method/body/query against each server handler (default in Nuxt 5)
+    routeTypedFetch: true,
+    // Unmatched routes return 404 without creating the Vue app or running plugins/middleware
+    early404: true
+  },
+
   runtimeConfig: {
     eolApproachingDays: Number(process.env.EOL_APPROACHING_DAYS || 90),
     public: {
