@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <!-- Empty state -->
-    <div v-if="!hasNodes" class="text-center py-12 text-(--ui-text-muted)">
+    <div v-if="!hasNodes" class="text-center py-12 text-muted">
       <UIcon name="i-lucide-share-2" class="text-4xl mb-3" />
       <p>No components found for this system.</p>
     </div>
@@ -15,18 +15,18 @@
             class="flex-shrink-0 size-4"
             :style="{ color: pmColor(pm) }"
           />
-          <span class="text-(--ui-text-muted)">{{ pm }}</span>
+          <span class="text-muted">{{ pm }}</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="inline-block w-3 h-3 rounded-sm flex-shrink-0" style="background:var(--ui-primary);opacity:0.5" />
-          <span class="text-(--ui-text-muted)">technology</span>
+          <span class="text-muted">technology</span>
         </div>
       </div>
 
       <!-- SVG canvas -->
       <div
         ref="containerRef"
-        class="relative border border-(--ui-border) rounded-lg bg-(--ui-bg-elevated)"
+        class="relative border border-default rounded-lg bg-elevated"
         style="height:520px;overflow:hidden;"
         @dblclick="resetZoom"
       >
@@ -34,11 +34,11 @@
 
         <div
           v-if="tooltip.visible"
-          class="absolute pointer-events-none z-10 px-2 py-1 rounded text-xs bg-(--ui-bg) border border-(--ui-border) shadow-sm text-(--ui-text) max-w-48"
+          class="absolute pointer-events-none z-10 px-2 py-1 rounded text-xs bg-default border border-default shadow-sm text-default max-w-48"
           :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
         >{{ tooltip.text }}</div>
 
-        <p class="absolute bottom-2 right-3 text-xs text-(--ui-text-muted) pointer-events-none select-none">
+        <p class="absolute bottom-2 right-3 text-xs text-muted pointer-events-none select-none">
           Scroll to zoom · Drag to pan · Double-click to reset
         </p>
       </div>
@@ -49,14 +49,14 @@
           <div class="flex justify-between items-start">
             <div>
               <h3 class="font-semibold text-base">{{ selectedNode.label }}</h3>
-              <p v-if="selectedNode.version" class="text-sm text-(--ui-text-muted)">v{{ selectedNode.version }}</p>
+              <p v-if="selectedNode.version" class="text-sm text-muted">v{{ selectedNode.version }}</p>
             </div>
             <UButton icon="i-lucide-x" variant="ghost" size="xs" color="neutral" @click="selectedNode = null" />
           </div>
         </template>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
           <div v-if="selectedNode.packageManager">
-            <span class="text-(--ui-text-muted) block">Package Manager</span>
+            <span class="text-muted block">Package Manager</span>
             <span class="font-medium flex items-center gap-1">
               <UIcon
                 :name="pmIcon(selectedNode.packageManager)"
@@ -67,35 +67,35 @@
             </span>
           </div>
           <div v-if="selectedNode.componentType">
-            <span class="text-(--ui-text-muted) block">Type</span>
+            <span class="text-muted block">Type</span>
             <span class="font-medium">{{ selectedNode.componentType }}</span>
           </div>
           <div v-if="selectedNode.scope">
-            <span class="text-(--ui-text-muted) block">Scope</span>
+            <span class="text-muted block">Scope</span>
             <span class="font-medium">{{ selectedNode.scope }}</span>
           </div>
           <div v-if="selectedNode.technologyName">
-            <span class="text-(--ui-text-muted) block">Technology</span>
+            <span class="text-muted block">Technology</span>
             <NuxtLink
               :to="`/technologies/${encodeURIComponent(selectedNode.technologyName)}`"
-              class="font-medium hover:underline text-(--ui-primary)"
+              class="font-medium hover:underline text-primary"
             >{{ selectedNode.technologyName }}</NuxtLink>
           </div>
           <div v-if="selectedNode.purl" class="col-span-2 sm:col-span-3">
-            <span class="text-(--ui-text-muted) block">PURL</span>
+            <span class="text-muted block">PURL</span>
             <code class="text-xs break-all">{{ selectedNode.purl }}</code>
           </div>
           <div v-if="selectedNode.cpe" class="col-span-2 sm:col-span-3">
-            <span class="text-(--ui-text-muted) block">CPE</span>
+            <span class="text-muted block">CPE</span>
             <code class="text-xs break-all">{{ selectedNode.cpe }}</code>
           </div>
           <div v-if="selectedNode.description" class="col-span-2 sm:col-span-3">
-            <span class="text-(--ui-text-muted) block">Description</span>
+            <span class="text-muted block">Description</span>
             <span>{{ selectedNode.description }}</span>
           </div>
         </div>
         <div v-if="selectedNode.licenses && selectedNode.licenses.length > 0" class="mt-4">
-          <span class="text-(--ui-text-muted) text-sm block mb-1">Licenses</span>
+          <span class="text-muted text-sm block mb-1">Licenses</span>
           <div class="flex flex-wrap gap-2">
             <UBadge
               v-for="lic in selectedNode.licenses"

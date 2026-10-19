@@ -5,12 +5,12 @@
     <!-- Tooltip -->
     <div
       v-if="tooltip.visible"
-      class="absolute pointer-events-none z-10 px-2 py-1.5 rounded text-xs bg-(--ui-bg) border border-(--ui-border) shadow-md text-(--ui-text) max-w-56"
+      class="absolute pointer-events-none z-10 px-2 py-1.5 rounded text-xs bg-default border border-default shadow-md text-default max-w-56"
       :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px', transform: 'translate(-50%, -110%)' }"
     >
       <p class="font-medium">{{ tooltip.name }}</p>
-      <p v-if="tooltip.domain" class="text-(--ui-text-muted)">{{ tooltip.domain }}</p>
-      <p v-if="tooltip.type" class="text-(--ui-text-muted)">{{ tooltip.type }}</p>
+      <p v-if="tooltip.domain" class="text-muted">{{ tooltip.domain }}</p>
+      <p v-if="tooltip.type" class="text-muted">{{ tooltip.type }}</p>
     </div>
   </div>
 </template>

@@ -1,8 +1,5 @@
 <template>
-  <UModal :open="open" @update:open="emit('update:open', $event)">
-    <template #header>
-      <h3 class="text-lg font-semibold">Link Component to {{ techName }}</h3>
-    </template>
+  <UModal :open="open" :title="`Link Component to ${techName ?? ''}`" @update:open="emit('update:open', $event)">
     <template #body>
       <div class="space-y-4">
         <div>
@@ -13,20 +10,20 @@
             icon="i-lucide-search"
           />
         </div>
-        <div v-if="searching" class="text-sm text-(--ui-text-muted)">
+        <div v-if="searching" class="text-sm text-muted">
           Searching...
         </div>
-        <div v-else-if="search.length >= 2 && searchResults.length === 0" class="text-sm text-(--ui-text-muted)">
+        <div v-else-if="search.length >= 2 && searchResults.length === 0" class="text-sm text-muted">
           No components found.
         </div>
-        <div v-if="searchResults.length > 0" class="max-h-60 overflow-y-auto border border-(--ui-border) rounded-md divide-y divide-(--ui-border)">
+        <div v-if="searchResults.length > 0" class="max-h-60 overflow-y-auto border border-default rounded-md divide-y divide-default">
           <UButton
             v-for="comp in searchResults"
             :key="`${comp.packageManager}:${comp.group}:${comp.name}@${comp.version}`"
             variant="ghost"
             color="neutral"
             class="w-full justify-start px-3 py-2"
-            :class="{ 'bg-(--ui-bg-elevated)': isSelected(comp) }"
+            :class="{ 'bg-elevated': isSelected(comp) }"
             @click="selected = { name: comp.name, version: comp.version, group: comp.group ?? null, packageManager: comp.packageManager ?? null }"
           >
             <span class="font-medium">{{ displayName(comp) }}</span>
@@ -45,9 +42,9 @@
         />
       </div>
     </template>
-    <template #footer>
+    <template #footer="{ close }">
       <div class="flex justify-end gap-2">
-        <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="emit('update:open', false)" />
+        <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="close" />
         <UButton
           :loading="loading"
           :label="loading ? 'Linking...' : 'Link Component'"

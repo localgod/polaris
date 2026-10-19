@@ -8,9 +8,9 @@
     <!-- Not Authenticated -->
     <UCard v-if="status !== 'authenticated'">
       <div class="text-center py-12">
-        <UIcon name="i-lucide-user" class="text-5xl text-(--ui-text-muted)" />
+        <UIcon name="i-lucide-user" class="text-5xl text-muted" />
         <h3 class="mt-4">Not Signed In</h3>
-        <p class="text-(--ui-text-muted) mt-2">Sign in to view your profile</p>
+        <p class="text-muted mt-2">Sign in to view your profile</p>
         <div class="mt-6">
           <UButton label="Sign In" to="/auth/signin" color="primary" />
         </div>
@@ -39,19 +39,19 @@
 
           <div class="flex-1 space-y-3">
             <div>
-              <span class="text-sm text-(--ui-text-muted)">Name</span>
+              <span class="text-sm text-muted">Name</span>
               <p class="font-semibold text-lg">{{ session.user.name || 'Not provided' }}</p>
             </div>
             <div>
-              <span class="text-sm text-(--ui-text-muted)">Email</span>
+              <span class="text-sm text-muted">Email</span>
               <p>{{ session.user.email }}</p>
             </div>
             <div>
-              <span class="text-sm text-(--ui-text-muted)">Provider</span>
+              <span class="text-sm text-muted">Provider</span>
               <p>GitHub</p>
             </div>
             <div>
-              <span class="text-sm text-(--ui-text-muted)">User ID</span>
+              <span class="text-sm text-muted">User ID</span>
               <p><code>{{ session.user.id }}</code></p>
             </div>
           </div>
@@ -65,14 +65,14 @@
 
         <div class="space-y-3">
           <div>
-            <span class="text-sm text-(--ui-text-muted)">Role</span>
+            <span class="text-sm text-muted">Role</span>
             <div class="mt-1">
               <UBadge :color="session.user.role === 'superuser' ? 'error' : 'primary'" variant="subtle">
                 {{ session.user.role === 'superuser' ? 'Superuser' : 'User' }}
               </UBadge>
             </div>
           </div>
-          <p v-if="session.user.role === 'superuser'" class="text-sm text-(--ui-text-muted)">
+          <p v-if="session.user.role === 'superuser'" class="text-sm text-muted">
             As a superuser, you have full access to all features including user management.
           </p>
         </div>
@@ -87,13 +87,13 @@
           <div
             v-for="team in session.user.teams"
             :key="team.name"
-            class="p-3 rounded-lg bg-(--ui-bg-elevated)"
+            class="p-3 rounded-lg bg-elevated"
           >
             <strong>{{ team.name }}</strong>
-            <p v-if="team.responsibilityArea" class="text-sm text-(--ui-text-muted)">{{ team.responsibilityArea }}</p>
+            <p v-if="team.responsibilityArea" class="text-sm text-muted">{{ team.responsibilityArea }}</p>
           </div>
         </div>
-        <p v-else class="text-(--ui-text-muted)">You are not a member of any teams.</p>
+        <p v-else class="text-muted">You are not a member of any teams.</p>
       </UCard>
 
       <!-- API Tokens -->
@@ -111,7 +111,7 @@
         </template>
         <UTable :data="tokens" :columns="tokenColumns">
           <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-8">
+            <div class="text-center text-muted py-8">
               No API tokens yet. Generate one to use the API from scripts or CI pipelines.
             </div>
           </template>
@@ -126,23 +126,23 @@
     <!-- Generate Token Modal -->
     <UModal v-model:open="tokenModalOpen" title="Generate API Token" description="Create a new API token for your account.">
       <template #body>
-        <div class="space-y-4">
-          <UFormField label="Description" required>
-            <UInput v-model="tokenDescription" placeholder="e.g. CI/CD pipeline" />
+        <UForm id="token-form" :schema="apiTokenSchema" :state="tokenForm" class="space-y-4" @submit="generateToken">
+          <UFormField name="description" label="Description" required>
+            <UInput v-model="tokenForm.description" placeholder="e.g. CI/CD pipeline" />
           </UFormField>
-          <UFormField label="Type" description="Distinguishes automation tokens from personal ones in the audit trail.">
-            <USelect v-model="tokenType" :items="tokenTypeOptions" />
+          <UFormField name="type" label="Type" description="Distinguishes automation tokens from personal ones in the audit trail.">
+            <USelect v-model="tokenForm.type" :items="tokenTypeOptions" />
           </UFormField>
-          <UFormField label="Expires in (days, leave empty for no expiration)">
-            <UInput v-model="tokenExpiresInDays" type="number" placeholder="e.g. 90" />
+          <UFormField name="expiresInDays" label="Expires in (days, leave empty for no expiration)">
+            <UInput v-model="tokenForm.expiresInDays" type="number" placeholder="e.g. 90" />
           </UFormField>
           <UAlert v-if="tokenError" color="error" :title="tokenError" icon="i-lucide-circle-x" />
-        </div>
+        </UForm>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="tokenModalOpen = false" />
-          <UButton label="Generate" :loading="tokenLoading" @click="generateToken" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+          <UButton type="submit" form="token-form" label="Generate" :loading="tokenLoading" />
         </div>
       </template>
     </UModal>
@@ -152,7 +152,7 @@
       <template #body>
         <div class="space-y-4">
           <UAlert color="warning" icon="i-lucide-alert-triangle" title="This token will only be shown once. Copy it now." />
-          <pre class="bg-(--ui-bg-elevated) p-4 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
+          <pre class="bg-elevated p-4 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
         </div>
       </template>
       <template #footer>
@@ -164,17 +164,14 @@
     </UModal>
 
     <!-- Revoke Token Confirmation Modal -->
-    <UModal v-model:open="revokeModalOpen">
-      <template #header>
-        <h3 class="text-lg font-semibold">Revoke Token</h3>
-      </template>
+    <UModal v-model:open="revokeModalOpen" title="Revoke Token">
       <template #body>
         <p>Are you sure you want to revoke this API token?</p>
-        <p class="text-sm text-(--ui-text-muted) mt-2">This action cannot be undone. Any integrations using this token will stop working.</p>
+        <p class="text-sm text-muted mt-2">This action cannot be undone. Any integrations using this token will stop working.</p>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="revokeModalOpen = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
           <UButton
             :label="revokeLoading ? 'Revoking...' : 'Revoke'"
             color="error"
@@ -286,18 +283,20 @@ const tokenColumns: TableColumn<TokenInfo>[] = [
 
 // Token generation
 const tokenModalOpen = ref(false)
-const tokenDescription = ref('')
-const tokenType = ref<'user' | 'ci-cd' | 'service-account'>('user')
-const tokenExpiresInDays = ref('')
+const tokenForm = reactive({
+  description: '',
+  type: 'user' as 'user' | 'ci-cd' | 'service-account',
+  expiresInDays: ''
+})
 const tokenLoading = ref(false)
 const tokenError = ref('')
 const tokenDisplayOpen = ref(false)
 const generatedToken = ref('')
 
 function openTokenModal() {
-  tokenDescription.value = ''
-  tokenType.value = 'user'
-  tokenExpiresInDays.value = ''
+  tokenForm.description = ''
+  tokenForm.type = 'user'
+  tokenForm.expiresInDays = ''
   tokenError.value = ''
   tokenModalOpen.value = true
 }
@@ -312,9 +311,9 @@ async function generateToken() {
       {
         method: 'POST',
         body: {
-          description: tokenDescription.value,
-          type: tokenType.value,
-          expiresInDays: tokenExpiresInDays.value ? parseInt(tokenExpiresInDays.value, 10) : undefined
+          description: tokenForm.description,
+          type: tokenForm.type,
+          expiresInDays: tokenForm.expiresInDays ? parseInt(tokenForm.expiresInDays, 10) : undefined
         }
       }
     )

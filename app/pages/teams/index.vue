@@ -37,7 +37,7 @@
           <TableSearchHeader v-model="searchInput" />
         </template>
         <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
+          <div class="text-center text-muted py-12">
             No teams found.
           </div>
         </template>
@@ -45,32 +45,19 @@
     </template>
 
     <!-- Create Team Modal -->
-    <UModal v-model:open="showCreateModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Create Team</h3>
-      </template>
+    <UModal v-model:open="showCreateModal" title="Create Team" :ui="{ footer: 'justify-end' }">
       <template #body>
-        <form class="space-y-4" @submit.prevent="handleCreate">
-          <UFormField label="Team Name" required>
-            <UInput
-              v-model="createForm.name"
-              placeholder="e.g., Platform Team"
-            />
+        <UForm id="create-team-form" :schema="teamSchema" :state="createForm" class="space-y-4" @submit="handleCreate">
+          <UFormField name="name" label="Team Name" required>
+            <UInput v-model="createForm.name" placeholder="e.g., Platform Team" />
           </UFormField>
 
-          <UFormField label="Email">
-            <UInput
-              v-model="createForm.email"
-              type="email"
-              placeholder="team@example.com"
-            />
+          <UFormField name="email" label="Email">
+            <UInput v-model="createForm.email" type="email" placeholder="team@example.com" />
           </UFormField>
 
-          <UFormField label="Responsibility Area">
-            <UInput
-              v-model="createForm.responsibilityArea"
-              placeholder="e.g., Infrastructure, Frontend, Data"
-            />
+          <UFormField name="responsibilityArea" label="Responsibility Area">
+            <UInput v-model="createForm.responsibilityArea" placeholder="e.g., Infrastructure, Frontend, Data" />
           </UFormField>
 
           <UAlert
@@ -80,53 +67,33 @@
             icon="i-lucide-alert-circle"
             :description="createError"
           />
-
-          <div class="flex justify-end gap-2 pt-2">
-            <UButton
-              label="Cancel"
-              color="neutral"
-              variant="outline"
-              @click="showCreateModal = false"
-            />
-            <UButton
-              type="submit"
-              :loading="isCreating"
-              :label="isCreating ? 'Creating...' : 'Create'"
-              color="primary"
-              :disabled="!createForm.name"
-            />
-          </div>
-        </form>
+        </UForm>
+      </template>
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+        <UButton
+          type="submit"
+          form="create-team-form"
+          :loading="isCreating"
+          :label="isCreating ? 'Creating...' : 'Create'"
+        />
       </template>
     </UModal>
 
     <!-- Edit Team Modal -->
-    <UModal v-model:open="showEditModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Edit Team</h3>
-      </template>
+    <UModal v-model:open="showEditModal" title="Edit Team" :ui="{ footer: 'justify-end' }">
       <template #body>
-        <form class="space-y-4" @submit.prevent="handleUpdate">
-          <UFormField label="Team Name" required>
-            <UInput
-              v-model="editForm.name"
-              placeholder="Team name"
-            />
+        <UForm id="edit-team-form" :schema="teamSchema" :state="editForm" class="space-y-4" @submit="handleUpdate">
+          <UFormField name="name" label="Team Name" required>
+            <UInput v-model="editForm.name" placeholder="Team name" />
           </UFormField>
 
-          <UFormField label="Email">
-            <UInput
-              v-model="editForm.email"
-              type="email"
-              placeholder="team@example.com"
-            />
+          <UFormField name="email" label="Email">
+            <UInput v-model="editForm.email" type="email" placeholder="team@example.com" />
           </UFormField>
 
-          <UFormField label="Responsibility Area">
-            <UInput
-              v-model="editForm.responsibilityArea"
-              placeholder="e.g., Infrastructure, Frontend, Data"
-            />
+          <UFormField name="responsibilityArea" label="Responsibility Area">
+            <UInput v-model="editForm.responsibilityArea" placeholder="e.g., Infrastructure, Frontend, Data" />
           </UFormField>
 
           <UAlert
@@ -136,30 +103,21 @@
             icon="i-lucide-alert-circle"
             :description="editError"
           />
-
-          <div class="flex justify-end gap-2 pt-2">
-            <UButton
-              label="Cancel"
-              color="neutral"
-              variant="outline"
-              @click="showEditModal = false"
-            />
-            <UButton
-              type="submit"
-              :loading="isUpdating"
-              :label="isUpdating ? 'Saving...' : 'Save'"
-              color="primary"
-            />
-          </div>
-        </form>
+        </UForm>
+      </template>
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+        <UButton
+          type="submit"
+          form="edit-team-form"
+          :loading="isUpdating"
+          :label="isUpdating ? 'Saving...' : 'Save'"
+        />
       </template>
     </UModal>
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="showDeleteModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Delete Team</h3>
-      </template>
+    <UModal v-model:open="showDeleteModal" title="Delete Team" :ui="{ footer: 'justify-end' }">
       <template #body>
         <div class="space-y-4">
           <p>
@@ -174,22 +132,16 @@
             icon="i-lucide-alert-circle"
             :description="deleteError"
           />
-
-          <div class="flex justify-end gap-2 pt-2">
-            <UButton
-              label="Cancel"
-              color="neutral"
-              variant="outline"
-              @click="showDeleteModal = false"
-            />
-            <UButton
-              :loading="isDeleting"
-              :label="isDeleting ? 'Deleting...' : 'Delete'"
-              color="error"
-              @click="handleDelete"
-            />
-          </div>
         </div>
+      </template>
+      <template #footer="{ close }">
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+        <UButton
+          :loading="isDeleting"
+          :label="isDeleting ? 'Deleting...' : 'Delete'"
+          color="error"
+          @click="handleDelete"
+        />
       </template>
     </UModal>
   </div>
@@ -197,7 +149,8 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
-import type { TableColumn } from '@nuxt/ui'
+import * as z from 'zod'
+import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import type { ApiResponse, Team } from '~~/types/api'
 
 const { getSortableHeader } = useSortableTable()
@@ -214,7 +167,7 @@ const baseColumns: TableColumn<Team>[] = [
           to: `/teams/${encodeURIComponent(team.name)}`,
           class: 'font-medium hover:underline'
         }, () => team.name),
-        team.description ? h('p', { class: 'text-sm text-(--ui-text-muted)' }, team.description) : null
+        team.description ? h('p', { class: 'text-sm text-muted' }, team.description) : null
       ].filter(Boolean))
     }
   },
@@ -223,7 +176,7 @@ const baseColumns: TableColumn<Team>[] = [
     header: ({ column }) => getSortableHeader(column, 'Responsibility Area'),
     cell: ({ row }) => {
       const area = row.getValue('responsibilityArea') as string | undefined
-      if (!area) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!area) return h('span', { class: 'text-muted' }, '—')
       return area
     }
   },
@@ -307,32 +260,39 @@ const { data, pending, error } = await useFetch<ApiResponse<Team>>('/api/teams',
 const teams = useApiData(data)
 const total = useApiCount(data)
 
+const teamSchema = z.object({
+  name: z.string().trim().min(1, 'Team name is required'),
+  email: z.union([z.literal(''), z.email('Invalid email')]).optional(),
+  responsibilityArea: z.string().optional()
+})
+type TeamSchema = z.output<typeof teamSchema>
+
 // --- Create Team ---
 
 const showCreateModal = ref(false)
 const isCreating = ref(false)
 const createError = ref('')
 
-const createForm = ref({
+const createForm = reactive<Partial<TeamSchema>>({
   name: '',
   email: '',
   responsibilityArea: ''
 })
 
 function openCreateModal() {
-  createForm.value = { name: '', email: '', responsibilityArea: '' }
+  Object.assign(createForm, { name: '', email: '', responsibilityArea: '' })
   createError.value = ''
   showCreateModal.value = true
 }
 
-async function handleCreate() {
+async function handleCreate(event: FormSubmitEvent<TeamSchema>) {
   isCreating.value = true
   createError.value = ''
 
   try {
-    const body: Record<string, string> = { name: createForm.value.name }
-    if (createForm.value.email) body.email = createForm.value.email
-    if (createForm.value.responsibilityArea) body.responsibilityArea = createForm.value.responsibilityArea
+    const body: Record<string, string> = { name: event.data.name }
+    if (event.data.email) body.email = event.data.email
+    if (event.data.responsibilityArea) body.responsibilityArea = event.data.responsibilityArea
 
     const response = await $fetch<{ success: boolean }>('/api/teams', {
       method: 'POST',
@@ -358,7 +318,7 @@ const isUpdating = ref(false)
 const editError = ref('')
 const editOriginalName = ref('')
 
-const editForm = ref({
+const editForm = reactive<Partial<TeamSchema>>({
   name: '',
   email: '',
   responsibilityArea: ''
@@ -366,24 +326,23 @@ const editForm = ref({
 
 function openEditModal(team: Team) {
   editOriginalName.value = team.name
-  editForm.value = {
+  Object.assign(editForm, {
     name: team.name,
     email: (team as Team & { email?: string }).email || '',
     responsibilityArea: team.responsibilityArea || ''
-  }
+  })
   editError.value = ''
   showEditModal.value = true
 }
 
-async function handleUpdate() {
+async function handleUpdate(event: FormSubmitEvent<TeamSchema>) {
   isUpdating.value = true
   editError.value = ''
 
   try {
-    const body: Record<string, string> = {}
-    body.name = editForm.value.name
-    if (editForm.value.email !== undefined) body.email = editForm.value.email
-    if (editForm.value.responsibilityArea !== undefined) body.responsibilityArea = editForm.value.responsibilityArea
+    const body: Record<string, string> = { name: event.data.name }
+    if (event.data.email !== undefined) body.email = event.data.email
+    if (event.data.responsibilityArea !== undefined) body.responsibilityArea = event.data.responsibilityArea
 
     const response = await $fetch<{ success: boolean }>(`/api/teams/${encodeURIComponent(editOriginalName.value)}`, {
       method: 'PUT',

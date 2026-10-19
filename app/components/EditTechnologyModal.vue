@@ -1,8 +1,5 @@
 <template>
-  <UModal :open="open" :ui="{ footer: 'justify-end' }" @update:open="emit('update:open', $event)">
-    <template #header>
-      <h3 class="text-lg font-semibold">Edit Technology: {{ tech?.name }}</h3>
-    </template>
+  <UModal :open="open" :ui="{ footer: 'justify-end' }" :title="`Edit Technology: ${tech?.name ?? ''}`" @update:open="emit('update:open', $event)">
     <template #body>
       <UForm id="edit-tech-form" :schema="schema" :state="state" class="space-y-4" @submit="onSubmit">
         <UFormField name="type" label="Type" required>

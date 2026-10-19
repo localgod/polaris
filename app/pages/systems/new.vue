@@ -29,7 +29,7 @@
             placeholder="Select a team"
           />
           <template v-if="teamsError" #help>
-            <span class="text-(--ui-color-error-500)">Failed to load teams</span>
+            <span class="text-error">Failed to load teams</span>
           </template>
         </UFormField>
 
@@ -51,7 +51,7 @@
 
         <div>
           <h3 class="text-sm font-medium mb-1">SCM Repositories</h3>
-          <p class="text-sm text-(--ui-text-muted) mb-3">Add repository URLs for this system</p>
+          <p class="text-sm text-muted mb-3">Add repository URLs for this system</p>
           <div class="space-y-3">
             <UCard v-for="(repo, index) in state.repositories" :key="index" variant="subtle">
               <div class="flex justify-between items-center mb-3">
@@ -105,7 +105,7 @@
           :description="successMessage"
         />
 
-        <div class="flex items-center gap-4 pt-4 border-t border-(--ui-border)">
+        <div class="flex items-center gap-4 pt-4 border-t border-default">
           <UButton
             type="submit"
             :loading="isSubmitting"

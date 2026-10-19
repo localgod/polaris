@@ -3,7 +3,7 @@
     <div class="flex justify-between items-center">
       <div>
         <h1>API Reference</h1>
-        <p class="text-(--ui-text-muted)">{{ spec?.info?.title }} — v{{ spec?.info?.version }}</p>
+        <p class="text-muted">{{ spec?.info?.title }} — v{{ spec?.info?.version }}</p>
       </div>
       <UButton
         v-if="spec"
@@ -58,14 +58,14 @@
         <template #header>
           <div>
             <h2 class="text-lg font-semibold">{{ tag.name }}</h2>
-            <p class="text-sm text-(--ui-text-muted)">{{ tag.description }}</p>
+            <p class="text-sm text-muted">{{ tag.description }}</p>
           </div>
         </template>
 
         <div class="space-y-4">
           <div v-for="endpoint in getEndpointsByTag(tag.name)" :key="endpoint.path + endpoint.method">
             <div
-              class="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-(--ui-bg-elevated) transition-colors"
+              class="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-elevated transition-colors"
               @click="toggleEndpoint(endpoint.path + endpoint.method)"
             >
               <UBadge
@@ -76,14 +76,14 @@
                 {{ endpoint.method }}
               </UBadge>
               <code class="text-sm font-mono">{{ endpoint.path }}</code>
-              <span class="text-sm text-(--ui-text-muted) ml-auto">{{ endpoint.summary }}</span>
+              <span class="text-sm text-muted ml-auto">{{ endpoint.summary }}</span>
               <UBadge v-if="endpoint.security" color="warning" variant="subtle" size="xs">
                 Auth Required
               </UBadge>
             </div>
 
             <div v-if="expandedEndpoints.has(endpoint.path + endpoint.method)" class="mt-2 ml-2 space-y-3">
-              <div v-if="endpoint.description" class="text-sm text-(--ui-text-muted) px-3">
+              <div v-if="endpoint.description" class="text-sm text-muted px-3">
                 {{ endpoint.description }}
               </div>
 
@@ -121,7 +121,7 @@
                     >
                       {{ code }}
                     </UBadge>
-                    <span class="text-sm text-(--ui-text-muted)">{{ response.description }}</span>
+                    <span class="text-sm text-muted">{{ response.description }}</span>
                   </div>
                 </div>
               </div>

@@ -164,12 +164,16 @@ useHead({
 
 ## Styling
 
-The project uses Tailwind CSS for styling. Common patterns:
+The project uses [Nuxt UI](https://ui.nuxt.com) v4 on top of Tailwind CSS. Prefer components
+over hand-styled elements, and semantic color tokens over raw Tailwind palette colors:
 
-- **Layout**: `container mx-auto px-4 py-8`
-- **Cards**: `bg-white rounded-lg shadow p-6`
-- **Buttons**: `px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700`
-- **Status badges**: `px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold`
+- **Cards**: `<UCard>`
+- **Buttons**: `<UButton label="Save" />` — `color` / `variant` props instead of classes
+- **Status badges**: `<UBadge color="success" variant="subtle">`
+- **Forms**: `<UForm :schema>` + `<UFormField name>` (see `app/components/EditTechnologyModal.vue`)
+- **Colors**: `text-muted`, `bg-elevated`, `border-default`, `text-error`, … — never `text-gray-500`
+
+The `nuxt-ui` and `nuxt-ui-audit` skills in `.claude/skills/` have the full conventions.
 
 ## Best Practices
 

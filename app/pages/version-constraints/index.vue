@@ -36,7 +36,7 @@
           <TableSearchHeader v-model="searchInput" />
         </template>
         <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
+          <div class="text-center text-muted py-12">
             No version constraints found.
           </div>
         </template>
@@ -44,30 +44,27 @@
     </template>
 
     <!-- Create Modal -->
-    <UModal v-model:open="showCreateModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Create Version Constraint</h3>
-      </template>
+    <UModal v-model:open="showCreateModal" title="Create Version Constraint">
       <template #body>
-        <div class="space-y-4">
-          <UFormField label="Version Range" required>
+        <UForm id="create-vc-form" :schema="versionConstraintSchema" :state="createForm" class="space-y-4" @submit="handleCreate">
+          <UFormField name="versionRange" label="Version Range" required>
             <UInput v-model="createForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" class="w-full" autofocus />
           </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <UFormField label="Severity" required>
+            <UFormField name="severity" label="Severity" required>
               <USelect v-model="createForm.severity" :items="severityOptions" placeholder="Select severity" class="w-full" />
             </UFormField>
-            <UFormField label="Scope" required>
+            <UFormField name="scope" label="Scope" required>
               <USelect v-model="createForm.scope" :items="scopeOptions" class="w-full" />
             </UFormField>
           </div>
-          <UFormField v-if="createForm.scope === 'team'" label="Subject Team" required>
+          <UFormField v-if="createForm.scope === 'team'" name="subjectTeam" label="Subject Team" required>
             <USelect v-model="createForm.subjectTeam" :items="teamOptions" placeholder="Select team" class="w-full" />
           </UFormField>
-          <UFormField label="Governs Technology">
+          <UFormField name="governsTechnology" label="Governs Technology">
             <USelect v-model="createForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" class="w-full" />
           </UFormField>
-          <UFormField label="Name" required hint="Auto-generated — edit to customize">
+          <UFormField name="name" label="Name" required hint="Auto-generated — edit to customize">
             <UInput
               v-model="createForm.name"
               placeholder="e.g. react-min-version"
@@ -75,82 +72,78 @@
               @update:model-value="createNameEdited = true"
             />
           </UFormField>
-          <UFormField label="Rationale">
+          <UFormField name="description" label="Rationale">
             <UTextarea v-model="createForm.description" placeholder="Why does this constraint exist? (e.g. CVE-2024-XXXX, contractual requirement...)" class="w-full" />
           </UFormField>
-        </div>
+        </UForm>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="showCreateModal = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="close" />
           <UButton
+            type="submit"
+            form="create-vc-form"
             :loading="isCreating"
             :label="isCreating ? 'Creating...' : 'Create'"
-            @click="handleCreate"
           />
         </div>
       </template>
     </UModal>
 
     <!-- Edit Modal -->
-    <UModal v-model:open="showEditModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Edit Version Constraint</h3>
-      </template>
+    <UModal v-model:open="showEditModal" title="Edit Version Constraint">
       <template #body>
-        <div class="space-y-4">
-          <UFormField label="Version Range" required>
+        <UForm id="edit-vc-form" :schema="versionConstraintEditSchema" :state="editForm" class="space-y-4" @submit="handleEdit">
+          <UFormField name="versionRange" label="Version Range" required>
             <UInput v-model="editForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" class="w-full" autofocus />
           </UFormField>
           <div class="grid grid-cols-2 gap-4">
-            <UFormField label="Severity" required>
+            <UFormField name="severity" label="Severity" required>
               <USelect v-model="editForm.severity" :items="severityOptions" placeholder="Select severity" class="w-full" />
             </UFormField>
-            <UFormField label="Scope" required>
+            <UFormField name="scope" label="Scope" required>
               <USelect v-model="editForm.scope" :items="editScopeOptions" class="w-full" />
             </UFormField>
           </div>
-          <UFormField v-if="editForm.scope === 'team'" label="Subject Team" required>
+          <UFormField v-if="editForm.scope === 'team'" name="subjectTeam" label="Subject Team" required>
             <USelect v-model="editForm.subjectTeam" :items="teamOptions" placeholder="Select team" class="w-full" />
           </UFormField>
-          <UFormField label="Governs Technology">
+          <UFormField name="governsTechnology" label="Governs Technology">
             <USelect v-model="editForm.governsTechnology" :items="technologyOptions" placeholder="Select technology" class="w-full" />
           </UFormField>
-          <UFormField label="Status" required>
+          <UFormField name="status" label="Status" required>
             <USelect v-model="editForm.status" :items="statusOptions" class="w-full" />
           </UFormField>
-          <UFormField label="Name" hint="Fixed — identifiers can't be renamed">
+          <UFormField name="name" label="Name" hint="Fixed — identifiers can't be renamed">
             <UInput :model-value="editForm.name" disabled class="w-full" />
           </UFormField>
-          <UFormField label="Rationale">
+          <UFormField name="description" label="Rationale">
             <UTextarea v-model="editForm.description" placeholder="Why does this constraint exist? (e.g. CVE-2024-XXXX, contractual requirement...)" class="w-full" />
           </UFormField>
-        </div>
+        </UForm>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="showEditModal = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="close" />
           <UButton
+            type="submit"
+            form="edit-vc-form"
             :loading="isEditing"
             :label="isEditing ? 'Saving...' : 'Save'"
-            @click="handleEdit"
           />
         </div>
       </template>
     </UModal>
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="showDeleteModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Delete Version Constraint</h3>
-      </template>
+    <UModal v-model:open="showDeleteModal" title="Delete Version Constraint">
       <template #body>
         <p>Are you sure you want to delete <strong>{{ deleteTarget }}</strong>?</p>
-        <p class="text-sm text-(--ui-text-muted) mt-2">This action cannot be undone.</p>
+        <p class="text-sm text-muted mt-2">This action cannot be undone.</p>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="showDeleteModal = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" type="button" @click="close" />
           <UButton
             :label="isDeleting ? 'Deleting...' : 'Delete'"
             color="error"
@@ -206,7 +199,7 @@ const columns: TableColumn<VersionConstraint>[] = [
       const vc = row.original
       return h('div', {}, [
         h('strong', {}, vc.name),
-        vc.description ? h('p', { class: 'text-sm text-(--ui-text-muted)' }, vc.description) : null
+        vc.description ? h('p', { class: 'text-sm text-muted' }, vc.description) : null
       ].filter(Boolean))
     }
   },
@@ -215,7 +208,7 @@ const columns: TableColumn<VersionConstraint>[] = [
     header: ({ column }) => getSortableHeader(column, 'Severity'),
     cell: ({ row }) => {
       const severity = row.getValue('severity') as string | undefined
-      if (!severity) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!severity) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: getSeverityColor(severity), variant: 'subtle' }, () => severity)
     }
   },
@@ -224,7 +217,7 @@ const columns: TableColumn<VersionConstraint>[] = [
     header: 'Version Range',
     cell: ({ row }) => {
       const range = row.getValue('versionRange') as string | undefined
-      if (!range) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!range) return h('span', { class: 'text-muted' }, '—')
       return h('code', {}, range)
     }
   },
@@ -233,7 +226,7 @@ const columns: TableColumn<VersionConstraint>[] = [
     header: ({ column }) => getSortableHeader(column, 'Scope'),
     cell: ({ row }) => {
       const vc = row.original
-      if (!vc.scope) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!vc.scope) return h('span', { class: 'text-muted' }, '—')
       if (vc.scope === 'team' && vc.subjectTeam) {
         return h('span', {}, ['team: ', h('strong', {}, vc.subjectTeam)])
       }
@@ -245,7 +238,7 @@ const columns: TableColumn<VersionConstraint>[] = [
     header: ({ column }) => getSortableHeader(column, 'Status'),
     cell: ({ row }) => {
       const status = row.getValue('status') as string | undefined
-      if (!status) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!status) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: status === 'active' ? 'success' : 'neutral', variant: 'subtle' }, () => status)
     }
   },

@@ -19,7 +19,7 @@
       </template>
     </UTable>
 
-    <div v-if="showPagination" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+    <div v-if="showPagination" class="flex justify-center border-t border-default pt-4 mt-4">
       <UPagination
         :page="page"
         :total="total!"

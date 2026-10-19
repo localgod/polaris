@@ -1,8 +1,5 @@
 <template>
-  <UModal :open="open" @update:open="emit('update:open', $event)">
-    <template #header>
-      <h3 class="text-lg font-semibold">Delete Technology</h3>
-    </template>
+  <UModal :open="open" title="Delete Technology" @update:open="emit('update:open', $event)">
     <template #body>
       <p>
         Are you sure you want to delete <strong>{{ techName }}</strong>?
@@ -17,9 +14,9 @@
         class="mt-4"
       />
     </template>
-    <template #footer>
+    <template #footer="{ close }">
       <div class="flex justify-end gap-2">
-        <UButton label="Cancel" color="neutral" variant="outline" @click="emit('update:open', false)" />
+        <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
         <UButton
           label="Delete"
           color="error"

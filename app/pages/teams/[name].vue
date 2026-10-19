@@ -22,8 +22,8 @@
         :description="data.data.description"
         :links="[{ label: 'Back to Teams', to: '/teams', icon: 'i-lucide-arrow-left', variant: 'outline' as const }]"
       />
-      <p v-if="data.data.responsibilityArea" class="text-sm text-(--ui-text-muted) -mt-4">
-        Responsibility: <span class="text-(--ui-text)">{{ data.data.responsibilityArea }}</span>
+      <p v-if="data.data.responsibilityArea" class="text-sm text-muted -mt-4">
+        Responsibility: <span class="text-default">{{ data.data.responsibilityArea }}</span>
       </p>
 
       <EntityStatStrip :items="statItems" />
@@ -35,21 +35,21 @@
           <template #members>
             <UTable v-model:sorting="memberSorting" :data="data.data.members" :columns="memberColumns" class="mt-3">
               <template #empty>
-                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No members.</p>
+                <p class="text-sm text-muted py-4 text-center">No members.</p>
               </template>
             </UTable>
           </template>
           <template #technologies>
             <UTable v-model:sorting="technologySorting" :data="data.data.technologies" :columns="technologyColumns" class="mt-3">
               <template #empty>
-                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No technologies owned.</p>
+                <p class="text-sm text-muted py-4 text-center">No technologies owned.</p>
               </template>
             </UTable>
           </template>
           <template #systems>
             <UTable v-model:sorting="systemSorting" :data="data.data.systems" :columns="systemColumns" class="mt-3">
               <template #empty>
-                <p class="text-sm text-(--ui-text-muted) py-4 text-center">No systems.</p>
+                <p class="text-sm text-muted py-4 text-center">No systems.</p>
               </template>
             </UTable>
           </template>
@@ -153,7 +153,7 @@ const technologyColumns: TableColumn<Technology>[] = [
     header: ({ column }) => getSortableHeader(column, 'TIME'),
     cell: ({ row }) => {
       const cat = row.getValue('timeCategory') as string
-      if (!cat) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!cat) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: getTimeCategoryColor(cat), variant: 'subtle' }, () => cat)
     }
   },

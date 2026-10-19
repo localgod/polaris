@@ -46,7 +46,7 @@
         <TableSearchHeader v-model="searchInput" />
       </template>
       <template #empty>
-        <div class="text-center text-(--ui-text-muted) py-12">
+        <div class="text-center text-muted py-12">
           No users found.
         </div>
       </template>
@@ -56,15 +56,15 @@
     <UModal v-model:open="assignModalOpen" title="Manage Team Memberships" description="Toggle team memberships for this user.">
       <template #body>
         <div class="space-y-4">
-          <p class="text-sm text-(--ui-text-muted)">
+          <p class="text-sm text-muted">
             Managing teams for <strong>{{ assignTarget?.name || assignTarget?.email }}</strong>
           </p>
 
-          <div v-if="teamsLoading" class="text-center py-4 text-(--ui-text-muted)">
+          <div v-if="teamsLoading" class="text-center py-4 text-muted">
             Loading teams...
           </div>
 
-          <div v-else class="divide-y divide-(--ui-border)">
+          <div v-else class="divide-y divide-default">
             <div
               v-for="team in allTeams"
               :key="team"
@@ -78,7 +78,7 @@
             </div>
           </div>
 
-          <p v-if="!teamsLoading && allTeams.length === 0" class="text-sm text-(--ui-text-muted) text-center py-4">
+          <p v-if="!teamsLoading && allTeams.length === 0" class="text-sm text-muted text-center py-4">
             No teams available.
           </p>
 
@@ -117,20 +117,20 @@
     <!-- Create Technical User Modal -->
     <UModal v-model:open="createUserModalOpen" title="Create Technical User" description="Create a non-OAuth user for API access.">
       <template #body>
-        <div class="space-y-4">
-          <UFormField label="Name">
-            <UInput v-model="newUserName" placeholder="e.g. CI Pipeline" />
+        <UForm id="create-user-form" :schema="technicalUserSchema" :state="newUserForm" class="space-y-4" @submit="createTechnicalUser">
+          <UFormField name="name" label="Name" required>
+            <UInput v-model="newUserForm.name" placeholder="e.g. CI Pipeline" />
           </UFormField>
-          <UFormField label="Email">
-            <UInput v-model="newUserEmail" type="email" placeholder="e.g. ci@example.com" />
+          <UFormField name="email" label="Email" required>
+            <UInput v-model="newUserForm.email" type="email" placeholder="e.g. ci@example.com" />
           </UFormField>
           <UAlert v-if="createUserError" color="error" :title="createUserError" icon="i-lucide-circle-x" />
-        </div>
+        </UForm>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="createUserModalOpen = false" />
-          <UButton label="Create" :loading="createUserLoading" @click="createTechnicalUser" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+          <UButton type="submit" form="create-user-form" label="Create" :loading="createUserLoading" />
         </div>
       </template>
     </UModal>
@@ -138,20 +138,20 @@
     <!-- Generate Token Modal -->
     <UModal v-model:open="tokenModalOpen" title="Generate API Token" description="Create a new API token for this technical user.">
       <template #body>
-        <div class="space-y-4">
-          <UFormField label="Description (optional)">
-            <UInput v-model="tokenDescription" placeholder="e.g. CI/CD pipeline" />
+        <UForm id="token-form" :schema="technicalUserApiTokenSchema" :state="tokenForm" class="space-y-4" @submit="generateToken">
+          <UFormField name="description" label="Description (optional)">
+            <UInput v-model="tokenForm.description" placeholder="e.g. CI/CD pipeline" />
           </UFormField>
-          <UFormField label="Expires in (days, leave empty for no expiration)">
-            <UInput v-model="tokenExpiresInDays" type="number" placeholder="e.g. 90" />
+          <UFormField name="expiresInDays" label="Expires in (days, leave empty for no expiration)">
+            <UInput v-model="tokenForm.expiresInDays" type="number" placeholder="e.g. 90" />
           </UFormField>
           <UAlert v-if="tokenError" color="error" :title="tokenError" icon="i-lucide-circle-x" />
-        </div>
+        </UForm>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="tokenModalOpen = false" />
-          <UButton label="Generate" :loading="tokenLoading" @click="generateToken" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
+          <UButton type="submit" form="token-form" label="Generate" :loading="tokenLoading" />
         </div>
       </template>
     </UModal>
@@ -162,7 +162,7 @@
         <div class="space-y-4">
           <UAlert color="warning" icon="i-lucide-alert-triangle" title="This token will only be shown once. Copy it now." />
           <div class="relative">
-            <pre class="bg-(--ui-bg-elevated) p-4 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
+            <pre class="bg-elevated p-4 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
           </div>
         </div>
       </template>
@@ -175,17 +175,14 @@
     </UModal>
 
     <!-- Delete User Confirmation Modal -->
-    <UModal v-model:open="deleteUserModalOpen">
-      <template #header>
-        <h3 class="text-lg font-semibold">Delete User</h3>
-      </template>
+    <UModal v-model:open="deleteUserModalOpen" title="Delete User">
       <template #body>
         <p>Are you sure you want to delete <strong>{{ deleteUserTarget?.name || deleteUserTarget?.email }}</strong>?</p>
-        <p class="text-sm text-(--ui-text-muted) mt-2">This will also revoke all their API tokens. This action cannot be undone.</p>
+        <p class="text-sm text-muted mt-2">This will also revoke all their API tokens. This action cannot be undone.</p>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="deleteUserModalOpen = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
           <UButton
             :label="deleteUserLoading ? 'Deleting...' : 'Delete'"
             color="error"
@@ -199,19 +196,19 @@
     <!-- Invite GitHub User Modal -->
     <UModal v-model:open="inviteModalOpen" title="Invite GitHub User" description="Create a shareable invite link for a GitHub user.">
       <template #body>
-        <div class="space-y-4">
-          <UFormField label="GitHub Username" description="The user's GitHub login, e.g. octocat">
+        <UForm id="invite-form" :schema="inviteSchema" :state="inviteForm" class="space-y-4" @submit="createInvite">
+          <UFormField name="githubUsername" label="GitHub Username" description="The user's GitHub login, e.g. octocat">
             <UInput
-              v-model="inviteUsername"
+              v-model="inviteForm.githubUsername"
               placeholder="octocat"
               :disabled="!!inviteUrl"
               leading-icon="i-simple-icons-github"
             />
           </UFormField>
 
-          <UFormField label="Expires in">
+          <UFormField name="expiryDays" label="Expires in">
             <USelect
-              v-model="inviteExpiryDays"
+              v-model="inviteForm.expiryDays"
               :items="inviteExpiryOptions"
               :disabled="!!inviteUrl"
             />
@@ -224,11 +221,11 @@
               <UInput :model-value="inviteUrl" readonly class="flex-1 font-mono text-xs" />
               <UButton icon="i-lucide-copy" color="neutral" variant="outline" @click="copyInviteUrl" />
             </div>
-            <p v-if="copied" class="text-xs text-center text-(--ui-color-success-500)">Copied!</p>
+            <p v-if="copied" class="text-xs text-center text-success">Copied!</p>
           </template>
 
           <UAlert v-if="inviteError" color="error" :title="inviteError" icon="i-lucide-circle-x" />
-        </div>
+        </UForm>
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
@@ -237,19 +234,16 @@
             v-if="!inviteUrl"
             label="Create Invite"
             icon="i-lucide-link"
+            type="submit"
+            form="invite-form"
             :loading="inviteLoading"
-            :disabled="!inviteUsername.trim()"
-            @click="createInvite"
           />
         </div>
       </template>
     </UModal>
 
     <!-- Grant/Revoke Superuser Modal -->
-    <UModal v-model:open="roleModalOpen">
-      <template #header>
-        <h3 class="text-lg font-semibold">{{ roleModalTarget?.role === 'superuser' ? 'Revoke Superuser Access' : 'Grant Superuser Access' }}</h3>
-      </template>
+    <UModal v-model:open="roleModalOpen" :title="roleModalTarget?.role === 'superuser' ? 'Revoke Superuser Access' : 'Grant Superuser Access'">
       <template #body>
         <p v-if="roleModalTarget?.role === 'superuser'">
           Remove superuser access from <strong>{{ roleModalTarget?.name || roleModalTarget?.email }}</strong>? They will become a regular user.
@@ -259,9 +253,9 @@
         </p>
         <UAlert v-if="roleError" class="mt-3" color="error" :title="roleError" icon="i-lucide-circle-x" />
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="roleModalOpen = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
           <UButton
             :label="roleModalTarget?.role === 'superuser' ? 'Revoke' : 'Grant'"
             :color="roleModalTarget?.role === 'superuser' ? 'error' : 'warning'"
@@ -276,6 +270,7 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
+import * as z from 'zod'
 import type { TableColumn } from '@nuxt/ui'
 import type { ApiResponse } from '~~/types/api'
 
@@ -401,8 +396,14 @@ async function saveTeamMemberships() {
 
 // Create Technical User state
 const createUserModalOpen = ref(false)
-const newUserName = ref('')
-const newUserEmail = ref('')
+const technicalUserSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  email: z.email('Invalid email')
+})
+const newUserForm = reactive({
+  name: '',
+  email: ''
+})
 const createUserLoading = ref(false)
 const createUserError = ref('')
 
@@ -413,11 +414,11 @@ async function createTechnicalUser() {
   try {
     await $fetch('/api/admin/users', {
       method: 'POST',
-      body: { name: newUserName.value, email: newUserEmail.value }
+      body: { name: newUserForm.name, email: newUserForm.email }
     })
     createUserModalOpen.value = false
-    newUserName.value = ''
-    newUserEmail.value = ''
+    newUserForm.name = ''
+    newUserForm.email = ''
     await refreshNuxtData()
   } catch (e: unknown) {
     const err = e as { data?: { message?: string }; message?: string }
@@ -430,8 +431,10 @@ async function createTechnicalUser() {
 // Generate Token state
 const tokenModalOpen = ref(false)
 const tokenTarget = ref<User | null>(null)
-const tokenDescription = ref('')
-const tokenExpiresInDays = ref('')
+const tokenForm = reactive({
+  description: '',
+  expiresInDays: ''
+})
 const tokenLoading = ref(false)
 const tokenError = ref('')
 
@@ -441,8 +444,8 @@ const generatedToken = ref('')
 
 function openTokenModal(user: User) {
   tokenTarget.value = user
-  tokenDescription.value = ''
-  tokenExpiresInDays.value = ''
+  tokenForm.description = ''
+  tokenForm.expiresInDays = ''
   tokenError.value = ''
   tokenModalOpen.value = true
 }
@@ -458,8 +461,8 @@ async function generateToken() {
       {
         method: 'POST',
         body: {
-          description: tokenDescription.value || undefined,
-          expiresInDays: tokenExpiresInDays.value ? parseInt(tokenExpiresInDays.value, 10) : undefined
+          description: tokenForm.description || undefined,
+          expiresInDays: tokenForm.expiresInDays ? parseInt(tokenForm.expiresInDays, 10) : undefined
         }
       }
     )
@@ -480,12 +483,18 @@ function copyToken() {
 
 // Invite GitHub user modal state
 const inviteModalOpen = ref(false)
-const inviteUsername = ref('')
+const inviteSchema = z.object({
+  githubUsername: z.string().trim().min(1, 'GitHub username is required'),
+  expiryDays: z.number().nullable()
+})
+const inviteForm = reactive({
+  githubUsername: '',
+  expiryDays: 7 as number | null
+})
 const inviteUrl = ref('')
 const inviteLoading = ref(false)
 const inviteError = ref('')
 const copied = ref(false)
-const inviteExpiryDays = ref<number | null>(7)
 
 const inviteExpiryOptions = [
   { label: '7 days', value: 7 },
@@ -495,17 +504,17 @@ const inviteExpiryOptions = [
 ]
 
 const inviteSuccessMessage = computed(() => {
-  if (!inviteExpiryDays.value) return 'Share this link with the user. It does not expire.'
-  return `Share this link with the user. It expires in ${inviteExpiryDays.value} days.`
+  if (!inviteForm.expiryDays) return 'Share this link with the user. It does not expire.'
+  return `Share this link with the user. It expires in ${inviteForm.expiryDays} days.`
 })
 
 function closeInviteModal() {
   inviteModalOpen.value = false
-  inviteUsername.value = ''
+  inviteForm.githubUsername = ''
   inviteUrl.value = ''
   inviteError.value = ''
   copied.value = false
-  inviteExpiryDays.value = 7
+  inviteForm.expiryDays = 7
 }
 
 async function createInvite() {
@@ -514,7 +523,7 @@ async function createInvite() {
   try {
     const result = await $fetch<{ success: boolean; data: { inviteUrl: string } }>(
       '/api/admin/users/invite',
-      { method: 'POST', body: { githubUsername: inviteUsername.value.trim(), expiryDays: inviteExpiryDays.value } }
+      { method: 'POST', body: { githubUsername: inviteForm.githubUsername.trim(), expiryDays: inviteForm.expiryDays } }
     )
     inviteUrl.value = result.data.inviteUrl
     await refreshNuxtData()
@@ -613,7 +622,7 @@ const columns: TableColumn<User>[] = [
             }),
         h('div', {}, [
           h('div', { class: 'font-medium' }, user.name || 'Unknown'),
-          h('div', { class: 'text-sm text-(--ui-text-muted)' }, user.email)
+          h('div', { class: 'text-sm text-muted' }, user.email)
         ])
       ])
     }

@@ -14,20 +14,20 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Vulnerability Exposure</h3>
-              <UIcon name="i-lucide-shield-alert" class="size-5 text-(--ui-color-error-500)" />
+              <UIcon name="i-lucide-shield-alert" class="size-5 text-error" />
             </div>
           </template>
           <div class="grid grid-cols-3 gap-2 text-center">
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Critical</p>
-              <p class="text-xl font-bold text-(--ui-color-error-500)">{{ attention.vulnerabilityExposure.criticalComponents }}</p>
+              <p class="text-sm text-muted">Critical</p>
+              <p class="text-xl font-bold text-error">{{ attention.vulnerabilityExposure.criticalComponents }}</p>
             </div>
             <div>
-              <p class="text-sm text-(--ui-text-muted)">High</p>
-              <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ attention.vulnerabilityExposure.highComponents }}</p>
+              <p class="text-sm text-muted">High</p>
+              <p class="text-xl font-bold text-warning">{{ attention.vulnerabilityExposure.highComponents }}</p>
             </div>
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Systems</p>
+              <p class="text-sm text-muted">Systems</p>
               <p class="text-xl font-bold">{{ attention.vulnerabilityExposure.affectedSystems }}</p>
             </div>
           </div>
@@ -38,7 +38,7 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Advisory Hotspots</h3>
-              <UIcon name="i-lucide-radar" class="size-5 text-(--ui-color-warning-500)" />
+              <UIcon name="i-lucide-radar" class="size-5 text-warning" />
             </div>
           </template>
           <div v-if="attention.advisoryHotspots.length > 0" class="space-y-3">
@@ -49,21 +49,21 @@
             >
               <div class="min-w-0">
                 <p class="font-medium truncate">{{ advisory.aliases[0] || advisory.id }}</p>
-                <p class="text-xs text-(--ui-text-muted)">{{ advisory.affectedSystems }} systems · {{ advisory.affectedComponents }} components</p>
+                <p class="text-xs text-muted">{{ advisory.affectedSystems }} systems · {{ advisory.affectedComponents }} components</p>
               </div>
               <UBadge color="warning" variant="subtle">
                 {{ advisory.cvssScore ?? '—' }}
               </UBadge>
             </div>
           </div>
-          <p v-else class="text-sm text-(--ui-text-muted)">No active advisories observed.</p>
+          <p v-else class="text-sm text-muted">No active advisories observed.</p>
         </UCard>
 
         <UCard>
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Compliance Violations</h3>
-              <UIcon name="i-lucide-gavel" class="size-5 text-(--ui-color-error-500)" />
+              <UIcon name="i-lucide-gavel" class="size-5 text-error" />
             </div>
           </template>
           <div v-if="attention.complianceViolations.topViolations.length > 0" class="space-y-3">
@@ -75,35 +75,35 @@
             >
               <div class="min-w-0">
                 <p class="font-medium truncate">{{ violation.team }} · {{ violation.technology }}</p>
-                <p class="text-xs text-(--ui-text-muted)">{{ violation.systemCount }} system{{ violation.systemCount === 1 ? '' : 's' }} affected</p>
+                <p class="text-xs text-muted">{{ violation.systemCount }} system{{ violation.systemCount === 1 ? '' : 's' }} affected</p>
               </div>
               <UBadge :color="getSeverityColor(violation.violationType === 'eliminated' ? 'critical' : 'warning')" variant="subtle">
                 {{ violation.violationType }}
               </UBadge>
             </NuxtLink>
-            <p class="text-xs text-(--ui-text-muted)">{{ attention.complianceViolations.total }} violations across {{ attention.complianceViolations.teamsAffected }} teams.</p>
+            <p class="text-xs text-muted">{{ attention.complianceViolations.total }} violations across {{ attention.complianceViolations.teamsAffected }} teams.</p>
           </div>
-          <p v-else class="text-sm text-(--ui-text-muted)">No compliance violations observed.</p>
+          <p v-else class="text-sm text-muted">No compliance violations observed.</p>
         </UCard>
 
         <UCard>
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Version Constraint Violations</h3>
-              <UIcon name="i-lucide-alert-triangle" class="size-5 text-(--ui-color-error-500)" />
+              <UIcon name="i-lucide-alert-triangle" class="size-5 text-error" />
             </div>
           </template>
           <div class="grid grid-cols-3 gap-2 text-center">
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Critical</p>
-              <p class="text-xl font-bold text-(--ui-color-error-500)">{{ attention.versionConstraintViolations.critical }}</p>
+              <p class="text-sm text-muted">Critical</p>
+              <p class="text-xl font-bold text-error">{{ attention.versionConstraintViolations.critical }}</p>
             </div>
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Error</p>
-              <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ attention.versionConstraintViolations.error }}</p>
+              <p class="text-sm text-muted">Error</p>
+              <p class="text-xl font-bold text-warning">{{ attention.versionConstraintViolations.error }}</p>
             </div>
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Warning</p>
+              <p class="text-sm text-muted">Warning</p>
               <p class="text-xl font-bold">{{ attention.versionConstraintViolations.warning }}</p>
             </div>
           </div>
@@ -114,7 +114,7 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Unsupported / EOL Components</h3>
-              <UIcon name="i-lucide-calendar-x" class="size-5 text-(--ui-color-error-500)" />
+              <UIcon name="i-lucide-calendar-x" class="size-5 text-error" />
             </div>
           </template>
           <div v-if="attention.eolExposure.topItems.length > 0" class="space-y-3">
@@ -131,7 +131,7 @@
               </UBadge>
             </div>
           </div>
-          <p v-else class="text-sm text-(--ui-text-muted)">Nothing past end-of-life.</p>
+          <p v-else class="text-sm text-muted">Nothing past end-of-life.</p>
           <NuxtLink :to="{ path: '/components', query: { lifecycleRisk: 'true' } }" class="text-sm text-primary-700 dark:text-primary-300 mt-3 block">
             {{ attention.eolExposure.total }} component{{ attention.eolExposure.total === 1 ? '' : 's' }} past EOL →
           </NuxtLink>
@@ -141,11 +141,11 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Component Link Queue</h3>
-              <UIcon name="i-lucide-link" class="size-5 text-(--ui-primary)" />
+              <UIcon name="i-lucide-link" class="size-5 text-primary" />
             </div>
           </template>
           <p class="text-xl font-bold text-center">{{ attention.componentLinkQueue.total }}</p>
-          <p class="text-sm text-(--ui-text-muted) text-center">component{{ attention.componentLinkQueue.total === 1 ? '' : 's' }} awaiting a technology claim</p>
+          <p class="text-sm text-muted text-center">component{{ attention.componentLinkQueue.total === 1 ? '' : 's' }} awaiting a technology claim</p>
           <NuxtLink to="/admin/component-links" class="text-sm text-primary-700 dark:text-primary-300 mt-3 block">Triage queue →</NuxtLink>
         </UCard>
 
@@ -153,7 +153,7 @@
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Stewardship &amp; Ownership Gaps</h3>
-              <UIcon name="i-lucide-user-x" class="size-5 text-(--ui-color-warning-500)" />
+              <UIcon name="i-lucide-user-x" class="size-5 text-warning" />
             </div>
           </template>
           <div v-if="hasStewardshipGaps" class="space-y-2">
@@ -175,36 +175,36 @@
               <span class="truncate">{{ name }}</span>
               <UBadge color="warning" variant="subtle">no owner</UBadge>
             </NuxtLink>
-            <p class="text-xs text-(--ui-text-muted)">
+            <p class="text-xs text-muted">
               {{ attention.stewardshipGaps.unstewardedTechnologies }} unstewarded,
               {{ attention.stewardshipGaps.unownedSystems }} unowned.
             </p>
           </div>
-          <p v-else class="text-sm text-(--ui-text-muted)">Every technology and system has an accountable team.</p>
+          <p v-else class="text-sm text-muted">Every technology and system has an accountable team.</p>
         </UCard>
 
         <UCard>
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <h3 class="font-semibold">Refresh Coverage</h3>
-              <UIcon name="i-lucide-refresh-cw" class="size-5 text-(--ui-primary)" />
+              <UIcon name="i-lucide-refresh-cw" class="size-5 text-primary" />
             </div>
           </template>
           <div class="grid grid-cols-3 gap-2 text-center">
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Stale</p>
-              <p class="text-xl font-bold text-(--ui-color-warning-500)">{{ attention.refreshCoverage.staleComponents }}</p>
+              <p class="text-sm text-muted">Stale</p>
+              <p class="text-xl font-bold text-warning">{{ attention.refreshCoverage.staleComponents }}</p>
             </div>
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Never</p>
+              <p class="text-sm text-muted">Never</p>
               <p class="text-xl font-bold">{{ attention.refreshCoverage.neverCheckedComponents }}</p>
             </div>
             <div>
-              <p class="text-sm text-(--ui-text-muted)">Failed</p>
-              <p class="text-xl font-bold text-(--ui-color-error-500)">{{ attention.refreshCoverage.failedItems }}</p>
+              <p class="text-sm text-muted">Failed</p>
+              <p class="text-xl font-bold text-error">{{ attention.refreshCoverage.failedItems }}</p>
             </div>
           </div>
-          <p class="text-xs text-(--ui-text-muted) mt-3">{{ attention.refreshCoverage.refreshedComponents }} of {{ attention.refreshCoverage.totalComponents }} direct components checked.</p>
+          <p class="text-xs text-muted mt-3">{{ attention.refreshCoverage.refreshedComponents }} of {{ attention.refreshCoverage.totalComponents }} direct components checked.</p>
         </UCard>
       </div>
     </div>
@@ -214,19 +214,19 @@
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
         <NuxtLink to="/technologies" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.technologies }}</p>
-          <p class="text-sm text-(--ui-text-muted)">Technologies</p>
+          <p class="text-sm text-muted">Technologies</p>
         </NuxtLink>
         <NuxtLink to="/systems" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.systems }}</p>
-          <p class="text-sm text-(--ui-text-muted)">Systems</p>
+          <p class="text-sm text-muted">Systems</p>
         </NuxtLink>
         <NuxtLink to="/components" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.components }}</p>
-          <p class="text-sm text-(--ui-text-muted)">Components</p>
+          <p class="text-sm text-muted">Components</p>
         </NuxtLink>
         <NuxtLink to="/version-constraints" class="hover:text-primary-700 dark:text-primary-300">
           <p class="text-2xl font-bold">{{ counts.versionConstraints }}</p>
-          <p class="text-sm text-(--ui-text-muted)">Version Constraints</p>
+          <p class="text-sm text-muted">Version Constraints</p>
         </NuxtLink>
       </div>
     </UCard>

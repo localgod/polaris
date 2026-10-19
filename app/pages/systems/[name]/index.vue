@@ -56,7 +56,7 @@
               <NuxtLink v-if="item.value" :to="`/teams/${encodeURIComponent(String(item.value))}`" class="hover:underline">
                 {{ item.value }}
               </NuxtLink>
-              <span v-else class="text-(--ui-text-muted)">No owner assigned</span>
+              <span v-else class="text-muted">No owner assigned</span>
             </p>
           </template>
           <template #criticality="{ item }">
@@ -81,7 +81,7 @@
       >
         <template #header>
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-git-branch" class="w-5 h-5 text-(--ui-primary)" />
+            <UIcon name="i-lucide-git-branch" class="w-5 h-5 text-primary" />
             <h2 class="text-lg font-semibold">Repositories</h2>
           </div>
         </template>
@@ -90,10 +90,10 @@
       <UCard v-if="data.data.componentCount > 0">
         <template #header>
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-share-2" class="w-5 h-5 text-(--ui-primary)" />
+            <UIcon name="i-lucide-share-2" class="w-5 h-5 text-primary" />
             <h2 class="text-lg font-semibold">Dependency Graph</h2>
           </div>
-          <p class="text-sm text-(--ui-text-muted) mt-1">
+          <p class="text-sm text-muted mt-1">
             Click a group to show direct dependencies. Click a component to drill into its dependencies.
           </p>
         </template>
@@ -279,7 +279,7 @@ const repositoryColumns: TableColumn<Repository>[] = [
       rel: 'noopener noreferrer',
       class: 'flex items-center gap-2 font-medium hover:underline'
     }, () => [
-      h(resolveComponent('UIcon'), { name: 'i-lucide-github', class: 'size-4 shrink-0 text-(--ui-text-muted)' }),
+      h(resolveComponent('UIcon'), { name: 'i-lucide-github', class: 'size-4 shrink-0 text-muted' }),
       row.original.name
     ])
   },

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <!-- Empty state -->
-    <div v-if="!hasNodes" class="text-center py-12 text-(--ui-text-muted)">
+    <div v-if="!hasNodes" class="text-center py-12 text-muted">
       <UIcon name="i-lucide-share-2" class="text-4xl mb-3" />
       <p>No systems use this technology.</p>
     </div>
@@ -11,21 +11,21 @@
       <div class="flex flex-wrap gap-3 text-sm">
         <div v-for="ring in TIME_RINGS" :key="ring.key" class="flex items-center gap-1.5">
           <span class="inline-block w-3 h-3 rounded-full flex-shrink-0" :style="{ background: ring.color }" />
-          <span class="text-(--ui-text-muted)">{{ ring.label }}</span>
+          <span class="text-muted">{{ ring.label }}</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span
             class="inline-block w-3 h-3 rounded-full flex-shrink-0"
             :style="{ background: GAP_COLOR, border: `1.5px dashed ${GAP_STROKE}` }"
           />
-          <span class="text-(--ui-text-muted)">Compliance gap (no approval)</span>
+          <span class="text-muted">Compliance gap (no approval)</span>
         </div>
       </div>
 
       <!-- SVG canvas -->
       <div
         ref="containerRef"
-        class="relative border border-(--ui-border) rounded-lg bg-(--ui-bg-elevated)"
+        class="relative border border-default rounded-lg bg-elevated"
         style="height:520px;overflow:hidden;"
         @dblclick="resetZoom"
       >
@@ -33,11 +33,11 @@
 
         <div
           v-if="tooltip.visible"
-          class="absolute pointer-events-none z-10 px-2 py-1 rounded text-xs bg-(--ui-bg) border border-(--ui-border) shadow-sm text-(--ui-text) max-w-56"
+          class="absolute pointer-events-none z-10 px-2 py-1 rounded text-xs bg-default border border-default shadow-sm text-default max-w-56"
           :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
         >{{ tooltip.text }}</div>
 
-        <p class="absolute bottom-2 right-3 text-xs text-(--ui-text-muted) pointer-events-none select-none">
+        <p class="absolute bottom-2 right-3 text-xs text-muted pointer-events-none select-none">
           Scroll to zoom · Drag to pan · Double-click to reset
         </p>
       </div>
@@ -48,10 +48,10 @@
           <div class="flex justify-between items-start">
             <div>
               <h3 class="font-semibold text-base">{{ selectedNode.label }}</h3>
-              <p v-if="selectedNode.type === 'system' && selectedNode.versions?.length" class="text-sm text-(--ui-text-muted)">
+              <p v-if="selectedNode.type === 'system' && selectedNode.versions?.length" class="text-sm text-muted">
                 v{{ selectedNode.versions.join(', v') }}
               </p>
-              <p v-else-if="selectedNode.type === 'team'" class="text-sm text-(--ui-text-muted)">
+              <p v-else-if="selectedNode.type === 'team'" class="text-sm text-muted">
                 {{ selectedNode.systemCount }} system{{ selectedNode.systemCount === 1 ? '' : 's' }}
               </p>
             </div>
@@ -61,25 +61,25 @@
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
           <div v-if="selectedNode.type === 'system' && selectedNode.ownerTeamName">
-            <span class="text-(--ui-text-muted) block">Owning Team</span>
+            <span class="text-muted block">Owning Team</span>
             <NuxtLink
               :to="`/teams/${encodeURIComponent(selectedNode.ownerTeamName)}`"
-              class="font-medium hover:underline text-(--ui-primary)"
+              class="font-medium hover:underline text-primary"
             >{{ selectedNode.ownerTeamName }}</NuxtLink>
           </div>
           <div v-if="selectedNode.type === 'system'">
-            <span class="text-(--ui-text-muted) block">System</span>
+            <span class="text-muted block">System</span>
             <NuxtLink
               :to="`/systems/${encodeURIComponent(selectedNode.label)}`"
-              class="font-medium hover:underline text-(--ui-primary)"
+              class="font-medium hover:underline text-primary"
             >{{ selectedNode.label }}</NuxtLink>
           </div>
           <div v-if="selectedNode.type === 'system' && selectedNode.environment">
-            <span class="text-(--ui-text-muted) block">Environment</span>
+            <span class="text-muted block">Environment</span>
             <span class="font-medium">{{ selectedNode.environment }}</span>
           </div>
           <div v-if="!selectedNode.complianceGap">
-            <span class="text-(--ui-text-muted) block">TIME</span>
+            <span class="text-muted block">TIME</span>
             <UBadge :color="getTimeCategoryColor(selectedNode.time)" variant="subtle">{{ selectedNode.time ?? 'unclassified' }}</UBadge>
           </div>
         </div>

@@ -32,8 +32,8 @@
         description="Circular branches are marked and are not expanded further."
       />
 
-      <div v-if="treeItems.length === 0" class="rounded-md border border-dashed border-(--ui-border) p-6 text-center">
-        <UIcon name="i-lucide-package-open" class="mx-auto mb-2 size-8 text-(--ui-text-muted)" />
+      <div v-if="treeItems.length === 0" class="rounded-md border border-dashed border-default p-6 text-center">
+        <UIcon name="i-lucide-package-open" class="mx-auto mb-2 size-8 text-muted" />
         <p class="font-medium">{{ selectedScopes.length > 0 ? 'No dependencies match the selected filters.' : 'This component has no dependencies.' }}</p>
       </div>
 
@@ -48,13 +48,13 @@
           root: 'space-y-1',
           item: 'w-full',
           itemWithChildren: 'ps-1.5 -ms-px',
-          listWithChildren: 'ml-4 border-l border-(--ui-border) pl-3'
+          listWithChildren: 'ml-4 border-l border-default pl-3'
         }"
       >
         <template #item-wrapper="{ item, expanded, handleToggle }">
           <div
             v-if="item.placeholder"
-            class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-(--ui-text-muted)"
+            class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted"
           >
             <UIcon
               :name="item.loading ? 'i-lucide-loader-circle' : 'i-lucide-minus'"
@@ -82,7 +82,7 @@
             />
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="font-medium break-all" :class="{ 'text-(--ui-text-muted)': !item.node.isDirect }">
+                <span class="font-medium break-all" :class="{ 'text-muted': !item.node.isDirect }">
                   {{ item.displayName }}
                 </span>
                 <UBadge v-if="item.node.scope" :color="scopeColor(item.node.scope)" variant="subtle" size="xs">
@@ -95,19 +95,19 @@
                   circular
                 </UBadge>
               </div>
-              <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-(--ui-text-muted)">
+              <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
                 <span v-if="item.node.version">v{{ item.node.version }}</span>
                 <span v-if="item.node.packageManager">{{ item.node.packageManager }}</span>
                 <span>depth {{ item.node.depth }}</span>
               </div>
-              <code v-if="item.node.purl" class="mt-1 block truncate text-xs text-(--ui-text-muted)">
+              <code v-if="item.node.purl" class="mt-1 block truncate text-xs text-muted">
                 {{ item.node.purl }}
               </code>
             </div>
             <UIcon
               v-if="item.loading"
               name="i-lucide-loader-circle"
-              class="mt-0.5 size-4 animate-spin text-(--ui-text-muted)"
+              class="mt-0.5 size-4 animate-spin text-muted"
             />
           </UButton>
         </template>

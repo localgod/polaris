@@ -1,6 +1,6 @@
 # Component Selection
 
-Decision matrices for choosing the right component. When in doubt, use the MCP `search_components` tool.
+Decision matrices for choosing the right component. When in doubt, use the MCP `search-components` tool.
 
 ## Overlays
 
@@ -13,10 +13,11 @@ Decision matrices for choosing the right component. When in doubt, use the MCP `
 | Simple hover hint | `UTooltip` | Non-interactive, hover/focus only |
 
 ### Rules
+
 - Use `UModal` for destructive confirmations ("Are you sure you want to delete?")
 - Use `USlideover` for detail views in dashboards (email preview, user profile)
 - Use `UDrawer` for mobile navigation or action sheets
-- Modal and Slideover support `mode="drawer"` for automatic mobile drawer behavior
+- Use `UDashboardSidebar` with `mode="drawer"` for a drawer-based mobile menu; `UModal` and `USlideover` don't expose a `mode` prop
 - For programmatic overlays, use `useOverlay()` instead of `v-model:open`
 - Never put interactive content (buttons, links) inside `UTooltip`
 
@@ -32,6 +33,7 @@ Decision matrices for choosing the right component. When in doubt, use the MCP `
 | Step-by-step process | `UStepper` | Multi-step forms, wizards |
 
 ### Rules
+
 - Use `UNavigationMenu` with `orientation="vertical"` in sidebars, default horizontal in headers
 - Use `UTabs` when switching views that don't need their own URL
 - Use route-based navigation (`to` prop) when views should have shareable URLs
@@ -60,6 +62,7 @@ Decision matrices for choosing the right component. When in doubt, use the MCP `
 | File upload | `UFileUpload` | Button or drop area variants |
 
 ### Rules
+
 - Use `UAuthForm` for login/signup pages — handles fields, social providers, validation, and layout out of the box
 - Use `USelect` for short, known lists (country, status, role)
 - Use `USelectMenu` when the list is long or needs search
@@ -76,8 +79,10 @@ Decision matrices for choosing the right component. When in doubt, use the MCP `
 | App-wide announcement | `UBanner` | Sticky top bar, dismissible |
 | Loading state | `USkeleton` | Placeholder shimmer while loading |
 | Progress indicator | `UProgress` | Determinate or indeterminate progress |
+| Breakdown of a total | `UProgressGroup` | One bar split into colored segments that add up to `max` |
 
 ### Rules
+
 - Use `useToast()` for action feedback: "Item saved", "Email sent", "Error occurred"
 - Use `UAlert` for contextual warnings in forms or sections
 - Use `UBanner` for site-wide messages (maintenance, new feature)
@@ -97,6 +102,7 @@ When rendering Markdown (for instance with Comark), **prefer Prose components** 
 | Tabbed code blocks | `CodeGroup` | manual tabs |
 
 ### Rules
+
 - Prose components use native Vue slots — Comark maps named `#slot` blocks directly to `<slot name="..." />`
 - Theme via `appConfig.ui.prose.<name>` using the same override pattern as other Nuxt UI components
 - `Callout` colors: `neutral` (default), `primary`, `secondary`, `info`, `success`, `warning`, `error`
@@ -114,8 +120,10 @@ When rendering Markdown (for instance with Comark), **prefer Prose components** 
 | Centered content wrapper | `UContainer` | Max-width container |
 | Collapsible section | `UCollapsible` | Animated expand/collapse |
 | Accordion (multiple collapsibles) | `UAccordion` | FAQ, grouped collapsible content |
+| Resizable side-by-side panes | `USplitter` | IDE-style layouts, resizable sidebars |
 
 ### Rules
+
 - Don't overuse `UCard` — plain content with spacing is often better than wrapping everything in cards
 - Use `UPageCard` instead of `UCard` when you need icon, badge, highlight, or links — it's designed for feature grids and landing pages
 - Use `UPageSection` for marketing/landing page sections, not for app UI

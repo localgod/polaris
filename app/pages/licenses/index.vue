@@ -32,7 +32,7 @@
           <TableSearchHeader v-model="searchInput" />
         </template>
         <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
+          <div class="text-center text-muted py-12">
             No licenses found.
           </div>
         </template>
@@ -81,7 +81,7 @@ const columns: TableColumn<License>[] = [
     header: ({ column }) => getSortableHeader(column, 'Category'),
     cell: ({ row }) => {
       const category = row.getValue('category') as string
-      if (!category) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!category) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), {
         color: getCategoryColor(category),
         variant: 'subtle'

@@ -61,7 +61,7 @@
            Components table was folded into Version Risk (Package Manager
            column) since the two were showing the same underlying rows. -->
       <UCard>
-        <div class="divide-y divide-(--ui-border)">
+        <div class="divide-y divide-default">
           <div class="first:pt-0 last:pb-0 py-6">
             <h3 class="text-base font-semibold mb-3">Version Risk ({{ filteredVersionRiskData.length }})</h3>
             <UTable
@@ -71,10 +71,10 @@
               :columns="versionRiskColumns"
               class="flex-1"
             />
-            <div v-else-if="versionRiskData.length > 0" class="text-center text-(--ui-text-muted) py-8">
+            <div v-else-if="versionRiskData.length > 0" class="text-center text-muted py-8">
               {{ versionRiskData.length }} version(s) are only used as a transitive dependency. Turn off "Direct only" above to see them.
             </div>
-            <div v-else class="text-center text-(--ui-text-muted) py-8">
+            <div v-else class="text-center text-muted py-8">
               No versions found.
             </div>
           </div>
@@ -113,36 +113,33 @@
                 </template>
               </UButton>
             </div>
-            <p v-else class="text-sm text-(--ui-text-muted)">No version constraints yet.</p>
+            <p v-else class="text-sm text-muted">No version constraints yet.</p>
           </div>
         </div>
       </UCard>
 
       <!-- Add Version Constraint Modal -->
-      <UModal v-model:open="constraintModalOpen">
-        <template #header>
-          <h3 class="text-lg font-semibold">Add Version Constraint for {{ tech.name }}</h3>
-        </template>
+      <UModal v-model:open="constraintModalOpen" :title="`Add Version Constraint for ${tech.name ?? ''}`">
         <template #body>
-          <form class="space-y-4" @submit.prevent="submitConstraint">
-            <UFormField label="Version Range" required>
+          <UForm id="tech-constraint-form" :schema="versionConstraintSchema" :state="constraintForm" class="space-y-4" @submit="submitConstraint">
+            <UFormField name="versionRange" label="Version Range" required>
               <UInput v-model="constraintForm.versionRange" placeholder="e.g. >=18.0.0 <20.0.0" class="w-full" autofocus />
             </UFormField>
 
             <div class="grid grid-cols-2 gap-4">
-              <UFormField label="Severity" required>
+              <UFormField name="severity" label="Severity" required>
                 <USelect v-model="constraintForm.severity" :items="constraintSeverityOptions" placeholder="Select severity" class="w-full" />
               </UFormField>
-              <UFormField label="Scope" required>
+              <UFormField name="scope" label="Scope" required>
                 <USelect v-model="constraintForm.scope" :items="constraintScopeOptions" class="w-full" />
               </UFormField>
             </div>
 
-            <UFormField v-if="constraintForm.scope === 'team'" label="Subject Team" required>
+            <UFormField v-if="constraintForm.scope === 'team'" name="subjectTeam" label="Subject Team" required>
               <USelect v-model="constraintForm.subjectTeam" :items="constraintTeamOptions" placeholder="Select team" class="w-full" />
             </UFormField>
 
-            <UFormField label="Name" required hint="Auto-generated — edit to customize">
+            <UFormField name="name" label="Name" required hint="Auto-generated — edit to customize">
               <UInput
                 v-model="constraintForm.name"
                 placeholder="e.g. typescript-min-version"
@@ -151,7 +148,7 @@
               />
             </UFormField>
 
-            <UFormField label="Rationale">
+            <UFormField name="description" label="Rationale">
               <UTextarea v-model="constraintForm.description" placeholder="Why does this constraint exist? (e.g. CVE-2024-XXXX, contractual requirement...)" class="w-full" />
             </UFormField>
 
@@ -162,16 +159,16 @@
               icon="i-lucide-alert-circle"
               :description="constraintError"
             />
-          </form>
+          </UForm>
         </template>
-        <template #footer>
+        <template #footer="{ close }">
           <div class="flex justify-end gap-2">
-            <UButton label="Cancel" color="neutral" variant="outline" @click="constraintModalOpen = false" />
+            <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
             <UButton
+              type="submit"
+              form="tech-constraint-form"
               :label="isCreatingConstraint ? 'Creating...' : 'Create'"
               :loading="isCreatingConstraint"
-              :disabled="!constraintForm.name || !constraintForm.severity || !constraintForm.versionRange"
-              @click="submitConstraint"
             />
           </div>
         </template>
@@ -194,7 +191,7 @@
             </UBadge>
           </div>
         </div>
-        <p v-else class="text-sm text-(--ui-text-muted)">
+        <p v-else class="text-sm text-muted">
           {{ tech.systems.length }} use this only as a transitive dependency. Turn off "Direct only" above to see them.
         </p>
       </div>
@@ -455,17 +452,17 @@ const versionRiskColumns: TableColumn<VersionDetail>[] = [
       const lifecycle = row.original.lifecycle?.status
 
       let icon = 'i-lucide-check'
-      let color = 'text-(--ui-success)'
+      let color = 'text-success'
 
       if (violationCount > 0) {
         icon = 'i-lucide-alert-circle'
-        color = 'text-(--ui-error)'
+        color = 'text-error'
       } else if (lifecycle === 'approaching_eol') {
         icon = 'i-lucide-alert-triangle'
-        color = 'text-(--ui-warning)'
+        color = 'text-warning'
       } else if (lifecycle === 'unsupported') {
         icon = 'i-lucide-x-circle'
-        color = 'text-(--ui-error)'
+        color = 'text-error'
       }
 
       return h(resolveComponent('UIcon'), { name: icon, class: `${color} size-5` })

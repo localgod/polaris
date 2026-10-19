@@ -9,14 +9,14 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-git-branch" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-git-branch" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Overview</h2>
         </div>
       </template>
-      <p class="text-(--ui-text-muted)">
+      <p class="text-muted">
         Polaris uses Neo4j, a graph database, to model the relationships between technologies, systems, teams, and version constraints. This enables powerful queries about technology usage and compliance.
       </p>
-      <p class="text-(--ui-text-muted) mt-2">
+      <p class="text-muted mt-2">
         This page covers the core governance model. A few supporting node types (import jobs, health-refresh jobs, health snapshots, advisories, hashes, external references, API tokens) are omitted here for diagram clarity — see <code>.claude/mcp/graph-schema.md</code> for the complete schema.
       </p>
     </UCard>
@@ -25,7 +25,7 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-network" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-network" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Graph Visualization</h2>
         </div>
       </template>
@@ -36,7 +36,7 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-circle-dot" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-circle-dot" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Core Nodes</h2>
         </div>
       </template>
@@ -56,7 +56,7 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-arrow-right" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-arrow-right" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Key Relationships</h2>
         </div>
       </template>
@@ -66,13 +66,13 @@
           :key="rel.label"
           class="flex items-start gap-3"
         >
-          <UIcon name="i-lucide-arrow-right" class="w-4 h-4 text-(--ui-primary) shrink-0 mt-1" />
+          <UIcon name="i-lucide-arrow-right" class="w-4 h-4 text-primary shrink-0 mt-1" />
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="text-sm font-medium">{{ rel.description }}</span>
               <UBadge :label="rel.label" variant="subtle" color="neutral" size="xs" />
             </div>
-            <p class="text-sm text-(--ui-text-muted) mt-0.5">{{ rel.detail }}</p>
+            <p class="text-sm text-muted mt-0.5">{{ rel.detail }}</p>
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-search" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-search" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Query Examples</h2>
         </div>
       </template>

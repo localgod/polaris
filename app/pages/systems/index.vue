@@ -53,9 +53,9 @@
         </template>
         <template #empty>
           <div class="text-center py-12">
-            <UIcon name="i-lucide-inbox" class="text-5xl text-(--ui-text-muted)" />
+            <UIcon name="i-lucide-inbox" class="text-5xl text-muted" />
             <h3 class="mt-4">No Systems Found</h3>
-            <p class="text-(--ui-text-muted) mt-2">
+            <p class="text-muted mt-2">
               The database appears to be empty. Try running: <code>npm run seed</code>
             </p>
           </div>
@@ -64,10 +64,7 @@
     </template>
 
     <!-- Import from GitHub Modal -->
-    <UModal v-model:open="showImportModal" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Import from GitHub</h3>
-      </template>
+    <UModal v-model:open="showImportModal" :ui="{ footer: 'justify-end' }" title="Import from GitHub">
       <template #body>
         <div class="space-y-6">
           <!-- Step indicator -->
@@ -76,14 +73,14 @@
               <div class="flex items-center gap-1.5 shrink-0">
                 <div
                   class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
-                  :class="importStep > i ? 'bg-(--ui-success) text-white' : importStep === i ? 'bg-(--ui-primary) text-white' : 'bg-(--ui-bg-elevated) text-(--ui-text-muted)'"
+                  :class="importStep > i ? 'bg-success text-white' : importStep === i ? 'bg-primary text-white' : 'bg-elevated text-muted'"
                 >
                   <UIcon v-if="importStep > i" name="i-lucide-check" class="size-3" />
                   <span v-else>{{ i + 1 }}</span>
                 </div>
-                <span class="text-xs hidden sm:inline" :class="importStep === i ? 'font-semibold' : 'text-(--ui-text-muted)'">{{ stepLabel }}</span>
+                <span class="text-xs hidden sm:inline" :class="importStep === i ? 'font-semibold' : 'text-muted'">{{ stepLabel }}</span>
               </div>
-              <div v-if="i < 3" class="flex-1 h-px bg-(--ui-border) mx-2 min-w-2" />
+              <div v-if="i < 3" class="flex-1 h-px bg-border mx-2 min-w-2" />
             </template>
           </div>
 
@@ -121,11 +118,11 @@
                 <div>
                   <p class="font-medium">
                     {{ visibleOwnerRepositories.length }} repositories found
-                    <span v-if="visibleOwnerRepositories.length !== ownerRepositories.length" class="text-(--ui-text-muted) font-normal">
+                    <span v-if="visibleOwnerRepositories.length !== ownerRepositories.length" class="text-muted font-normal">
                       ({{ ownerRepositories.length - visibleOwnerRepositories.length }} hidden)
                     </span>
                   </p>
-                  <p class="text-sm text-(--ui-text-muted)">{{ selectedRepositoryFullNames.length }} selected</p>
+                  <p class="text-sm text-muted">{{ selectedRepositoryFullNames.length }} selected</p>
                 </div>
                 <div class="flex gap-2">
                   <UButton label="Select All" size="xs" color="neutral" variant="outline" @click="selectAllOwnerRepositories" />
@@ -136,7 +133,7 @@
                 <USwitch v-model="hidePrivateRepos" label="Hide private" size="sm" />
                 <USwitch v-model="hideArchivedRepos" label="Hide archived" size="sm" />
               </div>
-              <div class="max-h-80 overflow-auto divide-y divide-(--ui-border) rounded-md border border-(--ui-border)">
+              <div class="max-h-80 overflow-auto divide-y divide-default rounded-md border border-default">
                 <label
                   v-for="repo in visibleOwnerRepositories"
                   :key="repo.fullName"
@@ -153,7 +150,7 @@
                       <UBadge v-if="repo.archived" color="neutral" variant="subtle">archived</UBadge>
                       <UBadge v-if="repo.fork" color="info" variant="subtle">fork</UBadge>
                     </span>
-                    <span class="mt-1 block truncate text-xs text-(--ui-text-muted)">
+                    <span class="mt-1 block truncate text-xs text-muted">
                       {{ repo.language || 'Unknown language' }}<template v-if="repo.description"> · {{ repo.description }}</template>
                     </span>
                   </span>
@@ -179,14 +176,14 @@
                 @update:model-value="applyDefaultTeam"
               />
             </UFormField>
-            <p class="text-xs text-(--ui-text-muted)">Enter the same system name on multiple repositories to group them under one system.</p>
-            <div class="rounded-md border border-(--ui-border) overflow-hidden">
-              <div class="grid grid-cols-[1fr_160px_140px] gap-2 bg-(--ui-bg-elevated) px-3 py-2 text-xs font-medium text-(--ui-text-muted)">
+            <p class="text-xs text-muted">Enter the same system name on multiple repositories to group them under one system.</p>
+            <div class="rounded-md border border-default overflow-hidden">
+              <div class="grid grid-cols-[1fr_160px_140px] gap-2 bg-elevated px-3 py-2 text-xs font-medium text-muted">
                 <span>Repository</span>
                 <span>Owner team *</span>
                 <span>System name</span>
               </div>
-              <div class="divide-y divide-(--ui-border)">
+              <div class="divide-y divide-default">
                 <div
                   v-for="config in repoConfigs"
                   :key="config.repositoryFullName"
@@ -223,20 +220,20 @@
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <p class="font-medium">{{ importProgressLabel }}</p>
-                  <p class="text-sm text-(--ui-text-muted)">{{ activeImportJob.status }}</p>
+                  <p class="text-sm text-muted">{{ activeImportJob.status }}</p>
                 </div>
                 <UBadge :color="importJobStatusColor" variant="subtle">
                   {{ activeImportJob.completed }}/{{ activeImportJob.total }}
                 </UBadge>
               </div>
-              <div class="h-2 overflow-hidden rounded bg-(--ui-bg-elevated)">
-                <div class="h-full bg-(--ui-primary) transition-all duration-300" :style="{ width: `${importProgressPercent}%` }" />
+              <div class="h-2 overflow-hidden rounded bg-elevated">
+                <div class="h-full bg-primary transition-all duration-300" :style="{ width: `${importProgressPercent}%` }" />
               </div>
-              <div v-if="activeImportJob.items.length" class="max-h-64 overflow-auto divide-y divide-(--ui-border) rounded-md border border-(--ui-border)">
+              <div v-if="activeImportJob.items.length" class="max-h-64 overflow-auto divide-y divide-default rounded-md border border-default">
                 <div v-for="item in activeImportJob.items" :key="item.id" class="flex items-start justify-between gap-3 px-3 py-2">
                   <div class="min-w-0">
                     <p class="truncate text-sm font-medium">{{ item.repositoryFullName }}</p>
-                    <p v-if="item.message" class="text-xs text-(--ui-text-muted)">{{ item.message }}</p>
+                    <p v-if="item.message" class="text-xs text-muted">{{ item.message }}</p>
                   </div>
                   <UBadge :color="importItemStatusColor(item.status)" variant="subtle">{{ item.status }}</UBadge>
                 </div>
@@ -308,10 +305,7 @@
     </UModal>
 
     <!-- Edit System Modal -->
-    <UModal v-model:open="showEditSystemModal" :ui="{ footer: 'justify-end' }">
-      <template #header>
-        <h3 class="text-lg font-semibold">Edit System: {{ editSystemName }}</h3>
-      </template>
+    <UModal v-model:open="showEditSystemModal" :ui="{ footer: 'justify-end' }" :title="`Edit System: ${editSystemName ?? ''}`">
       <template #body>
         <UForm id="edit-system-form" :schema="editSystemSchema" :state="editSystemState" class="space-y-4" @submit="onEditSystem">
           <UFormField name="domain" label="Domain" required>
@@ -341,17 +335,14 @@
     </UModal>
 
     <!-- Delete System Confirmation Modal -->
-    <UModal v-model:open="showDeleteSystemModal">
-      <template #header>
-        <h3 class="text-lg font-semibold">Delete System</h3>
-      </template>
+    <UModal v-model:open="showDeleteSystemModal" title="Delete System">
       <template #body>
         <p>Are you sure you want to delete <strong>{{ deleteSystemTarget }}</strong>?</p>
-        <p class="text-sm text-(--ui-text-muted) mt-2">This will remove the system and all its component relationships. This action cannot be undone.</p>
+        <p class="text-sm text-muted mt-2">This will remove the system and all its component relationships. This action cannot be undone.</p>
       </template>
-      <template #footer>
+      <template #footer="{ close }">
         <div class="flex justify-end gap-2">
-          <UButton label="Cancel" color="neutral" variant="outline" @click="showDeleteSystemModal = false" />
+          <UButton label="Cancel" color="neutral" variant="outline" @click="close" />
           <UButton
             :label="isDeletingSystem ? 'Deleting...' : 'Delete'"
             color="error"
@@ -455,7 +446,7 @@ const columns: TableColumn<System>[] = [
           to: `/systems/${encodeURIComponent(system.name)}`,
           class: 'font-semibold hover:underline'
         }, () => system.name),
-        h('p', { class: 'text-sm text-(--ui-text-muted)' }, system.domain)
+        h('p', { class: 'text-sm text-muted' }, system.domain)
       ])
     }
   },
@@ -476,7 +467,7 @@ const columns: TableColumn<System>[] = [
     header: ({ column }) => getSortableHeader(column, 'Owner'),
     cell: ({ row }) => {
       const owner = row.getValue('ownerTeam') as string | null
-      if (!owner) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!owner) return h('span', { class: 'text-muted' }, '—')
       return h('span', { class: 'font-medium' }, owner)
     }
   },

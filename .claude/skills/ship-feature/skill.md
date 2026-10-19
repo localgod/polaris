@@ -1,13 +1,13 @@
 ---
 name: ship-feature
-description: Create a feature branch from the current changes, run mdlint/lint/tests/docs generation, and if everything passes commit, push, and open a draft PR.
+description: Create a feature branch from the current changes, run mdlint/lint/tests/docs generation, and if everything passes commit, push, and open a PR (ready for review, not a draft).
 ---
 
 ## Ship Feature
 
 Package up the current working-tree changes into a feature branch, verify
 them the same way CI does, and — only if every check passes — commit, push,
-and open a draft PR. Invoking this skill is the user's explicit go-ahead to
+and open a PR (never a draft). Invoking this skill is the user's explicit go-ahead to
 carry the flow through to the PR; do not pause for extra confirmation once
 checks pass.
 

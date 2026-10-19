@@ -5,7 +5,7 @@ description: Audit Vue components for Nuxt UI anti-patterns — raw HTML element
 
 # Nuxt UI Audit
 
-Scan the codebase for patterns that violate @nuxt/ui v4.9.0 best practices using targeted greps. Faster and cheaper than reading every file.
+Scan the codebase for patterns that violate @nuxt/ui v4 best practices (as documented by the `nuxt-ui` skill) using targeted greps. Faster and cheaper than reading every file.
 
 ## Steps
 
@@ -62,14 +62,17 @@ grep -rn "localStorage.*theme\|classList.*dark\|document\.documentElement" app/ 
 
 ---
 
-### 5. Hardcoded Tailwind palette colors instead of semantic tokens
+### 5. Hardcoded colors instead of semantic utility classes
 
 ```bash
-grep -rn "text-\(gray\|slate\|zinc\|neutral\|stone\)-[0-9]\|bg-\(gray\|slate\|zinc\|neutral\|stone\)-[0-9]" app/ --include="*.vue" | grep -v "color=\|<!--"
+# Raw Tailwind palette colors
+grep -rnE "\b(text|bg|border|ring|divide)-(gray|slate|zinc|neutral|stone|red|green|blue|yellow|amber|orange|emerald)-[0-9]{2,3}" app/ --include="*.vue" | grep -v "<!--"
+# CSS-variable arbitrary values where a semantic utility exists
+grep -rnE "\b(text|bg|border|ring|divide)-\(--ui-" app/ --include="*.vue" --include="*.ts"
 ```
 
-**Fix:** Replace with semantic tokens — `text-(--ui-text-muted)`, `bg-(--ui-bg-elevated)`, `border-(--ui-border)`, etc.  
-**Exception:** D3/SVG fill/stroke attributes that require hex values (not CSS classes).
+**Fix:** Use the semantic utilities — `text-muted`, `text-default`, `text-highlighted`, `text-primary`, `text-error`, `bg-default`, `bg-elevated`, `bg-muted`, `border-default`, `divide-default`, etc. Not `text-(--ui-text-muted)` / `border-(--ui-border)`: they render the same but bypass the utility layer the theme is built on. See `.claude/skills/nuxt-ui/references/guidelines/design-system.md`.
+**Exception:** D3/SVG `fill`/`stroke` attributes and `<style>` blocks, where plain `var(--ui-*)` is the right tool.
 
 ---
 
@@ -112,6 +115,39 @@ grep -rn "animate-spin" app/ --include="*.vue" -B2 | grep -v "UIcon\|i-lucide-lo
 
 **Fix:** Use `<UButton :loading="isLoading">` (adds spinner + disables automatically) or `<USkeleton>` for content placeholders.  
 **Exception:** `animate-spin` on a `UIcon` inside a tree/list item for per-item loading state is fine — `UButton :loading` only works when the whole button is in a loading state.
+
+---
+
+### 10. Forms without `UForm`
+
+```bash
+for f in $(grep -rl "<UFormField" app/ --include="*.vue"); do grep -q "<UForm\b" "$f" || echo "$f"; done
+grep -rn "<form\b" app/ --include="*.vue"
+```
+
+**Fix:** Wrap submitting forms in `<UForm :schema :state @submit>` with a zod schema and `name` on every `UFormField`, so validation errors render per field. Put server errors on a field with `form.setErrors([{ name, message }])`, and keep a `UAlert` only for errors that aren't tied to a field.
+**Exception:** Filter/search bars and single-control pickers that never submit — `UFormField` there is just a label wrapper.
+
+---
+
+### 11. Raw `<table>` instead of `UTable`
+
+```bash
+grep -rn "<table\b" app/ --include="*.vue"
+```
+
+**Fix:** `UTable` with a `columns: TableColumn<T>[]` definition and `#<column>-cell` slots for custom cells.
+
+---
+
+### 12. Hand-built overlay headers
+
+```bash
+grep -rn -A1 "<template #header>" app/ --include="*.vue" | grep "<h[1-6]"
+```
+
+**Fix:** On `UModal` / `USlideover`, pass `title` (and `description`) props instead of a `#header` slot holding a heading — the props are wired to the dialog's accessible name. Use `#footer="{ close }"` for Cancel buttons.
+**Exception:** Headers containing more than a title (badges, actions, links) — keep the slot.
 
 ---
 

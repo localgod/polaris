@@ -67,7 +67,7 @@
           </TableSearchHeader>
         </template>
         <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
+          <div class="text-center text-muted py-12">
             No components found.
           </div>
         </template>
@@ -186,7 +186,7 @@ const columns: TableColumn<GroupedComponent>[] = [
     header: ({ column }) => getSortableHeader(column, 'Package Manager'),
     cell: ({ row }) => {
       const pm = row.getValue('packageManager') as string | null
-      if (!pm) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!pm) return h('span', { class: 'text-muted' }, '—')
       return h('span', { class: 'flex items-center gap-1' }, [
         h(resolveComponent('UIcon'), { name: pmIcon(pm), style: { color: pmColor(pm) }, class: 'size-4 flex-shrink-0' }),
         pm,
@@ -200,7 +200,7 @@ const columns: TableColumn<GroupedComponent>[] = [
     cell: ({ row }) => {
       const licenses = row.original.licenses
       if (!licenses || licenses.length === 0) {
-        return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+        return h('span', { class: 'text-muted' }, '—')
       }
 
       const badges = licenses.slice(0, 2).map(lic =>
@@ -209,7 +209,7 @@ const columns: TableColumn<GroupedComponent>[] = [
       )
 
       if (licenses.length > 2) {
-        badges.push(h('span', { class: 'text-(--ui-text-muted) text-sm' }, `+${licenses.length - 2}`))
+        badges.push(h('span', { class: 'text-muted text-sm' }, `+${licenses.length - 2}`))
       }
 
       return h('div', {}, badges)
@@ -220,12 +220,12 @@ const columns: TableColumn<GroupedComponent>[] = [
     header: ({ column }) => getSortableHeader(column, 'Type'),
     cell: ({ row }) => {
       const type = row.original.primaryType
-      if (!type) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!type) return h('span', { class: 'text-muted' }, '—')
       const extraCount = Math.max(0, row.original.types.length - 1)
       return h('div', { class: 'flex items-center gap-1' }, [
         h(UBadge, { color: 'primary', variant: 'subtle' }, () => type),
         extraCount > 0
-          ? h('span', { class: 'text-(--ui-text-muted) text-sm' }, `+${extraCount}`)
+          ? h('span', { class: 'text-muted text-sm' }, `+${extraCount}`)
           : null
       ])
     }

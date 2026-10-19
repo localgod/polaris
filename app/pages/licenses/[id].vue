@@ -74,7 +74,7 @@
           <h3 class="text-lg font-semibold">Components Using This License ({{ license.componentCount || 0 }})</h3>
         </template>
         <template #empty>
-          <div class="text-center text-(--ui-text-muted) py-12">
+          <div class="text-center text-muted py-12">
             No components found using this license.
           </div>
         </template>
@@ -167,7 +167,7 @@ const componentColumns: TableColumn<LicenseComponent>[] = [
     header: 'Package Manager',
     cell: ({ row }) => {
       const pm = row.getValue('packageManager') as string
-      if (!pm) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!pm) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle' }, () => pm)
     }
   },
@@ -184,7 +184,7 @@ const componentColumns: TableColumn<LicenseComponent>[] = [
     header: 'Technology',
     cell: ({ row }) => {
       const tech = row.getValue('technologyName') as string
-      if (!tech) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!tech) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('NuxtLink'), {
         to: `/technologies/${encodeURIComponent(tech)}`,
         class: 'hover:underline'

@@ -1,13 +1,10 @@
 <template>
-  <UModal :open="open" :ui="{ footer: 'justify-end' }" @update:open="emit('update:open', $event)">
-    <template #header>
-      <h3 class="text-lg font-semibold">Set Up CI — {{ systemName }}</h3>
-    </template>
+  <UModal :open="open" :ui="{ footer: 'justify-end' }" :title="`Set Up CI — ${systemName ?? ''}`" @update:open="emit('update:open', $event)">
     <template #body>
       <div class="space-y-6">
         <div class="space-y-3">
           <h4 class="text-sm font-semibold">1. Generate an API token</h4>
-          <p class="text-sm text-(--ui-text-muted)">
+          <p class="text-sm text-muted">
             CI needs a Polaris API token to push SBOMs. It's only shown once — copy it into your CI secrets before closing this dialog.
           </p>
           <UButton
@@ -26,7 +23,7 @@
               title="This token will only be shown once. Copy it now."
             />
             <div class="flex items-start gap-2">
-              <pre class="flex-1 bg-(--ui-bg-elevated) p-3 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
+              <pre class="flex-1 bg-elevated p-3 rounded-md text-sm font-mono break-all whitespace-pre-wrap select-all">{{ generatedToken }}</pre>
               <UButton icon="i-lucide-copy" variant="outline" size="sm" @click="copyText(generatedToken)" />
             </div>
           </div>
@@ -48,12 +45,12 @@
           :description="`Setting up CI for ${selectedRepo?.name ?? selectedRepoUrl}`"
         />
 
-        <div class="border-t border-(--ui-border) pt-4">
+        <div class="border-t border-default pt-4">
           <h4 class="text-sm font-semibold mb-3">2. Wire up your CI</h4>
           <UTabs v-model="activeTab" :items="tabItems">
             <template #github>
               <div class="space-y-3 mt-3">
-                <ol class="text-sm text-(--ui-text-muted) list-decimal list-inside space-y-1">
+                <ol class="text-sm text-muted list-decimal list-inside space-y-1">
                   <li>
                     Add two repository secrets in GitHub (Settings → Secrets and variables → Actions):
                     <code class="font-mono">POLARIS_URL</code> = <code class="font-mono select-all">{{ polarisUrl }}</code>,
@@ -65,13 +62,13 @@
                   <UButton label="Copy" icon="i-lucide-copy" variant="outline" size="xs" @click="copyText(workflowYaml)" />
                   <UButton label="Download" icon="i-lucide-download" variant="outline" size="xs" @click="downloadWorkflow" />
                 </div>
-                <pre class="bg-(--ui-bg-elevated) p-4 rounded-md text-xs font-mono whitespace-pre overflow-x-auto max-h-80 overflow-y-auto">{{ workflowYaml }}</pre>
+                <pre class="bg-elevated p-4 rounded-md text-xs font-mono whitespace-pre overflow-x-auto max-h-80 overflow-y-auto">{{ workflowYaml }}</pre>
               </div>
             </template>
 
             <template #custom>
               <div class="space-y-3 mt-3">
-                <p class="text-sm text-(--ui-text-muted)">
+                <p class="text-sm text-muted">
                   Any CI system that can run Node.js and set protected environment variables works. Set these as
                   secrets/variables in your CI, then run the script below on every push to your default branch:
                 </p>
@@ -84,8 +81,8 @@
                 <div class="flex justify-end">
                   <UButton label="Copy" icon="i-lucide-copy" variant="outline" size="xs" @click="copyText(customSnippet)" />
                 </div>
-                <pre class="bg-(--ui-bg-elevated) p-4 rounded-md text-xs font-mono whitespace-pre overflow-x-auto">{{ customSnippet }}</pre>
-                <p class="text-sm text-(--ui-text-muted)">
+                <pre class="bg-elevated p-4 rounded-md text-xs font-mono whitespace-pre overflow-x-auto">{{ customSnippet }}</pre>
+                <p class="text-sm text-muted">
                   No script runner available? Any CI can instead <code class="font-mono">POST</code> a generated SBOM
                   directly to <code class="font-mono">/api/sboms</code> with the same token — see the
                   <NuxtLink to="/api-reference" class="hover:underline font-medium">API reference</NuxtLink>.

@@ -9,12 +9,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-shield" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-shield" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Roles</h2>
         </div>
       </template>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">Polaris has three access levels:</p>
+        <p class="text-muted">Polaris has three access levels:</p>
         <div class="space-y-3">
           <UPageFeature
             v-for="role in roles"
@@ -32,12 +32,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-table" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-table" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Access by Element</h2>
         </div>
       </template>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">Operations available at each access level. A dash (—) means the operation does not apply.</p>
+        <p class="text-muted">Operations available at each access level. A dash (—) means the operation does not apply.</p>
         <UTable :data="accessRows" :columns="accessColumns" />
       </div>
     </UCard>
@@ -46,12 +46,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-plus-circle" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-plus-circle" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">How Elements Are Created</h2>
         </div>
       </template>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">Not all elements are created directly through the UI.</p>
+        <p class="text-muted">Not all elements are created directly through the UI.</p>
         <UTable :data="creationRows" :columns="creationColumns" />
       </div>
     </UCard>
@@ -60,12 +60,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-lock" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-lock" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Superuser-Only Pages</h2>
         </div>
       </template>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">The following pages and actions are only visible when the current user has the superuser role:</p>
+        <p class="text-muted">The following pages and actions are only visible when the current user has the superuser role:</p>
         <div class="space-y-3">
           <UPageFeature
             v-for="page in superuserPages"
@@ -167,7 +167,7 @@ function badgeColor(level: string): 'success' | 'primary' | 'error' | 'warning' 
 const UBadgeComponent = resolveComponent('UBadge')
 
 function badgeCell(value: string) {
-  if (value === '—') return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+  if (value === '—') return h('span', { class: 'text-muted' }, '—')
   return h(UBadgeComponent, { color: badgeColor(value), variant: 'subtle', size: 'xs' }, () => value)
 }
 
@@ -177,7 +177,7 @@ const accessColumns: TableColumn<typeof accessRows[0]>[] = [
   { accessorKey: 'create', header: 'Create', cell: ({ row }) => badgeCell(row.getValue('create') as string) },
   { accessorKey: 'edit', header: 'Edit', cell: ({ row }) => badgeCell(row.getValue('edit') as string) },
   { accessorKey: 'delete', header: 'Delete', cell: ({ row }) => badgeCell(row.getValue('delete') as string) },
-  { accessorKey: 'notes', header: 'Notes', cell: ({ row }) => h('span', { class: 'text-(--ui-text-muted) text-xs' }, row.getValue('notes') as string) },
+  { accessorKey: 'notes', header: 'Notes', cell: ({ row }) => h('span', { class: 'text-muted text-xs' }, row.getValue('notes') as string) },
 ]
 
 const accessRows = [

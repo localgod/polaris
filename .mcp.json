@@ -22,6 +22,10 @@
     },
     "chrome-devtools": {
       "command": "/workspaces/polaris/.claude/mcp/chrome-devtools.sh"
+    },
+    "nuxt-ui": {
+      "type": "http",
+      "url": "https://ui.nuxt.com/mcp"
     }
   }
 }

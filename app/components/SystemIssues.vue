@@ -3,7 +3,7 @@
     <template #header>
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-shield-alert" class="w-5 h-5 text-(--ui-text-muted)" />
+          <UIcon name="i-lucide-shield-alert" class="w-5 h-5 text-muted" />
           <h2 class="text-lg font-semibold">Issues</h2>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -53,7 +53,7 @@
       <template #vulnerabilities>
         <UTable :data="visibleVulnerabilities" :columns="vulnColumns" class="mt-3">
           <template #empty>
-            <p class="text-sm text-(--ui-text-muted) py-4 text-center">
+            <p class="text-sm text-muted py-4 text-center">
               {{ vulnerabilitiesHiddenByDirectFilter
                 ? `${issues.vulnerabilities.length} in transitive dependencies. Turn off "Direct only" above to see them.`
                 : 'No vulnerabilities in this category.' }}
@@ -65,7 +65,7 @@
       <template #licenses>
         <UTable :data="visibleLicenseIssues" :columns="licenseColumns" class="mt-3">
           <template #empty>
-            <p class="text-sm text-(--ui-text-muted) py-4 text-center">
+            <p class="text-sm text-muted py-4 text-center">
               {{ licenseIssuesHiddenByDirectFilter
                 ? `${issues.licenseIssues.length} in transitive dependencies. Turn off "Direct only" above to see them.`
                 : 'No license issues in this category.' }}
@@ -77,7 +77,7 @@
       <template #health>
         <UTable :data="visibleHealthIssues" :columns="healthColumns" class="mt-3">
           <template #empty>
-            <p class="text-sm text-(--ui-text-muted) py-4 text-center">
+            <p class="text-sm text-muted py-4 text-center">
               {{ healthIssuesHiddenByDirectFilter
                 ? `${issues.healthIssues.length} in transitive dependencies. Turn off "Direct only" above to see them.`
                 : 'No health issues in this category.' }}
@@ -224,7 +224,7 @@ const vulnColumns: TableColumn<ComponentIssueRow>[] = [
     header: 'Advisories',
     cell: ({ row }) => {
       const advisories = row.original.advisories
-      if (!advisories.length) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!advisories.length) return h('span', { class: 'text-muted' }, '—')
 
       const topCvss = advisories
         .map(a => a.cvssScore)
@@ -237,7 +237,7 @@ const vulnColumns: TableColumn<ComponentIssueRow>[] = [
           variant: 'subtle',
         }, () => advisories.length === 1 ? '1 advisory' : `${advisories.length} advisories`),
         topCvss !== undefined
-          ? h('span', { class: 'text-sm text-(--ui-text-muted)' }, `CVSS ${topCvss.toFixed(1)}`)
+          ? h('span', { class: 'text-sm text-muted' }, `CVSS ${topCvss.toFixed(1)}`)
           : null,
       ])
     },
@@ -260,7 +260,7 @@ const licenseColumns: TableColumn<ComponentIssueRow>[] = [
     header: 'Disallowed Licenses',
     cell: ({ row }) => {
       const licenses = row.original.disallowedLicenses
-      if (!licenses.length) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!licenses.length) return h('span', { class: 'text-muted' }, '—')
       return h('div', { class: 'flex flex-wrap gap-1' },
         licenses.map(l =>
           h(UBadge, { color: 'warning', variant: 'subtle', key: l.id ?? l.name ?? '' },
@@ -319,7 +319,7 @@ const healthColumns: TableColumn<ComponentIssueRow>[] = [
     header: 'EOL Date',
     cell: ({ row }) => {
       const d = row.original.eolDate
-      if (!d) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!d) return h('span', { class: 'text-muted' }, '—')
       const formatted = new Date(d.includes('T') ? d : `${d}T00:00:00Z`)
         .toLocaleDateString(undefined, { timeZone: 'UTC' })
       return h('span', {}, formatted)

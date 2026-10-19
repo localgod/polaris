@@ -21,7 +21,7 @@
         icon="i-lucide-alert-circle"
         :description="queueError.message"
       />
-      <div v-else-if="reviewQueue.length === 0" class="text-sm text-(--ui-text-muted) py-4">
+      <div v-else-if="reviewQueue.length === 0" class="text-sm text-muted py-4">
         No conflicting approvals from migration.
       </div>
       <UTable
@@ -39,12 +39,12 @@
           <UBadge v-if="unclassified.length > 0" color="error" variant="subtle">{{ unclassified.length }}</UBadge>
         </div>
       </template>
-      <p class="text-sm text-(--ui-text-muted) mb-4">
+      <p class="text-sm text-muted mb-4">
         These technologies have no active org-level policy and count as compliance violations.
         Propose and activate a policy from each technology's detail page.
       </p>
       <USkeleton v-if="radarPending" class="h-24 w-full" />
-      <div v-else-if="unclassified.length === 0" class="text-sm text-(--ui-text-muted) py-4">
+      <div v-else-if="unclassified.length === 0" class="text-sm text-muted py-4">
         All technologies have an active policy.
       </div>
       <UTable
@@ -103,7 +103,7 @@ const queueColumns: TableColumn<ReviewQueueItem>[] = [
     header: 'Conflicting TIME values',
     cell: ({ row }) => {
       const values = row.original.conflictingValues
-      if (!values?.length) return h('span', { class: 'text-(--ui-text-muted)' }, 'No approvals')
+      if (!values?.length) return h('span', { class: 'text-muted' }, 'No approvals')
       return h('div', { class: 'flex gap-1 flex-wrap' },
         values.map(v => h(resolveComponent('UBadge'), { key: v, color: getTimeCategoryColor(v), variant: 'subtle', size: 'sm' }, () => v))
       )
@@ -147,7 +147,7 @@ const unclassifiedColumns: TableColumn<RadarTechnology>[] = [
     header: 'Type',
     cell: ({ row }) => {
       const type = row.original.type
-      if (!type) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!type) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle', size: 'sm' }, () => type)
     }
   },
@@ -156,7 +156,7 @@ const unclassifiedColumns: TableColumn<RadarTechnology>[] = [
     header: 'Domain',
     cell: ({ row }) => {
       const domain = row.original.domain
-      if (!domain) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!domain) return h('span', { class: 'text-muted' }, '—')
       return h(resolveComponent('UBadge'), { color: 'info', variant: 'subtle', size: 'sm' }, () => domain)
     }
   },

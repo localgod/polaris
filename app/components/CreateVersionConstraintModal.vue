@@ -1,10 +1,7 @@
 <template>
-  <UModal :open="open" :ui="{ footer: 'justify-end' }" @update:open="emit('update:open', $event)">
-    <template #header>
-      <h3 class="text-lg font-semibold">Create Version Constraint for {{ tech?.name }}</h3>
-    </template>
+  <UModal :open="open" :ui="{ footer: 'justify-end' }" :title="`Create Version Constraint for ${tech?.name ?? ''}`" @update:open="emit('update:open', $event)">
     <template #body>
-      <UForm id="vc-form" :schema="schema" :state="state" class="space-y-4" @submit="onSubmit">
+      <UForm id="vc-form" :schema="versionConstraintSchema" :state="state" class="space-y-4" @submit="onSubmit">
         <UFormField name="name" label="Name" required>
           <UInput v-model="state.name" />
         </UFormField>
@@ -36,7 +33,6 @@
 </template>
 
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Technology } from '~~/types/api'
 
@@ -60,18 +56,6 @@ const userTeams = computed(() =>
 
 const severityOptions = ['critical', 'error', 'warning', 'info']
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  severity: z.string().min(1, 'Severity is required'),
-  scope: z.string().min(1, 'Scope is required'),
-  subjectTeam: z.string().optional(),
-  versionRange: z.string().min(1, 'Version range is required')
-}).refine(data => data.scope !== 'team' || !!data.subjectTeam, {
-  message: 'Team is required when scope is team',
-  path: ['subjectTeam']
-})
-type Schema = z.infer<typeof schema>
 
 const loading = ref(false)
 const error = ref('')
@@ -81,7 +65,7 @@ function defaultName(): string {
   return `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-version-constraint`
 }
 
-const state = reactive<Partial<Schema>>({
+const state = reactive<Partial<VersionConstraintForm>>({
   name: defaultName(),
   description: '',
   severity: 'error',
@@ -90,7 +74,7 @@ const state = reactive<Partial<Schema>>({
   versionRange: ''
 })
 
-async function onSubmit(event: FormSubmitEvent<Schema>) {
+async function onSubmit(event: FormSubmitEvent<VersionConstraintForm>) {
   if (!props.tech) return
   loading.value = true
   error.value = ''

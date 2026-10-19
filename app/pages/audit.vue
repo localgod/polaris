@@ -51,7 +51,7 @@
 
       <UCard v-if="data">
         <div class="text-center">
-          <p class="text-sm text-(--ui-text-muted)">Total Entries</p>
+          <p class="text-sm text-muted">Total Entries</p>
           <p class="text-3xl font-bold mt-2">{{ data.count }}</p>
         </div>
       </UCard>
@@ -66,13 +66,13 @@
           class="flex-1"
         >
           <template #empty>
-            <div class="text-center text-(--ui-text-muted) py-12">
+            <div class="text-center text-muted py-12">
               No audit log entries found matching your filters.
             </div>
           </template>
         </UTable>
 
-        <div v-if="total > pageSize" class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+        <div v-if="total > pageSize" class="flex justify-center border-t border-default pt-4 mt-4">
           <UPagination
             v-model:page="page"
             :total="total"
@@ -178,7 +178,7 @@ const columns: TableColumn<AuditEntry>[] = [
     cell: ({ row }) => {
       const changes = row.original.changes
       if (!changes || Object.keys(changes).length === 0) {
-        return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+        return h('span', { class: 'text-muted' }, '—')
       }
       const entries = Object.entries(changes)
       const UPopover = resolveComponent('UPopover')
@@ -195,16 +195,16 @@ const columns: TableColumn<AuditEntry>[] = [
           h('table', { class: 'w-full text-xs' }, [
             h('thead', {}, [
               h('tr', {}, [
-                h('th', { class: 'text-left pb-1 pr-3 font-medium text-(--ui-text-muted)' }, 'Field'),
-                h('th', { class: 'text-left pb-1 pr-3 font-medium text-(--ui-text-muted)' }, 'Before'),
-                h('th', { class: 'text-left pb-1 font-medium text-(--ui-text-muted)' }, 'After'),
+                h('th', { class: 'text-left pb-1 pr-3 font-medium text-muted' }, 'Field'),
+                h('th', { class: 'text-left pb-1 pr-3 font-medium text-muted' }, 'Before'),
+                h('th', { class: 'text-left pb-1 font-medium text-muted' }, 'After'),
               ])
             ]),
             h('tbody', {}, entries.map(([field, change]) =>
-              h('tr', { key: field, class: 'border-t border-(--ui-border)' }, [
+              h('tr', { key: field, class: 'border-t border-default' }, [
                 h('td', { class: 'py-1 pr-3 font-mono font-medium' }, field),
-                h('td', { class: 'py-1 pr-3 text-(--ui-text-muted) line-through' }, formatChangeValue(change.before)),
-                h('td', { class: 'py-1 text-(--ui-text-highlighted)' }, formatChangeValue(change.after)),
+                h('td', { class: 'py-1 pr-3 text-muted line-through' }, formatChangeValue(change.before)),
+                h('td', { class: 'py-1 text-highlighted' }, formatChangeValue(change.after)),
               ])
             ))
           ])
@@ -218,7 +218,7 @@ const columns: TableColumn<AuditEntry>[] = [
     cell: ({ row }) => {
       const entry = row.original
       const display = entry.userName || entry.userId
-      if (!display) return h('span', { class: 'text-(--ui-text-muted)' }, '—')
+      if (!display) return h('span', { class: 'text-muted' }, '—')
       return display
     }
   },

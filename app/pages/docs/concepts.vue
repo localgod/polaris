@@ -8,7 +8,7 @@
     <!-- Overview -->
     <UCard>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           Polaris is an enterprise technology catalog that helps organizations govern which software technologies are approved for use, track what is actually running in their systems, and ensure compliance between the two.
         </p>
         <UAlert
@@ -25,12 +25,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-settings" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-settings" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Technology</h2>
         </div>
       </template>
       <div class="space-y-6">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           A <strong>Technology</strong> is a governed software entity that requires architectural approval, lifecycle management, and version constraint compliance.
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -48,7 +48,7 @@
             <div class="space-y-2 pb-2">
               <div v-for="type in technologyTypes" :key="type.name" class="flex items-start gap-3">
                 <UBadge :label="type.name" variant="subtle" color="neutral" class="shrink-0 mt-0.5" />
-                <span class="text-sm text-(--ui-text-muted)">{{ type.description }}</span>
+                <span class="text-sm text-muted">{{ type.description }}</span>
               </div>
             </div>
           </template>
@@ -56,7 +56,7 @@
             <div class="space-y-2 pb-2">
               <div v-for="domain in technologyDomains" :key="domain.name" class="flex items-start gap-3">
                 <UBadge :label="domain.name" variant="subtle" color="neutral" class="shrink-0 mt-0.5" />
-                <span class="text-sm text-(--ui-text-muted)">{{ domain.description }}</span>
+                <span class="text-sm text-muted">{{ domain.description }}</span>
               </div>
             </div>
           </template>
@@ -68,12 +68,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-box" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-box" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Component</h2>
         </div>
       </template>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           A <strong>Component</strong> is a software artifact discovered in systems through SBOM (Software Bill of Materials) scanning.
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -92,14 +92,14 @@
     <!-- Technology vs Component -->
     <div class="space-y-3">
       <div class="flex items-center gap-2 px-1">
-        <UIcon name="i-lucide-git-compare" class="w-5 h-5 text-(--ui-text-muted)" />
+        <UIcon name="i-lucide-git-compare" class="w-5 h-5 text-muted" />
         <h2 class="text-lg font-semibold">Technology vs Component</h2>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-settings" class="w-4 h-4 text-(--ui-primary)" />
+              <UIcon name="i-lucide-settings" class="w-4 h-4 text-primary" />
               <span class="font-semibold">Technology</span>
             </div>
           </template>
@@ -117,7 +117,7 @@
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-box" class="w-4 h-4 text-(--ui-primary)" />
+              <UIcon name="i-lucide-box" class="w-4 h-4 text-primary" />
               <span class="font-semibold">Component</span>
             </div>
           </template>
@@ -139,7 +139,7 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-workflow" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-workflow" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">How Polaris Works</h2>
         </div>
       </template>
@@ -150,12 +150,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-clock" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-clock" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">TIME Framework</h2>
         </div>
       </template>
       <div class="space-y-6">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           The TIME framework categorizes technologies based on their lifecycle stage and organizational adoption strategy.
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -182,12 +182,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-check-circle" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-check-circle" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Team Approvals</h2>
         </div>
       </template>
       <div class="space-y-6">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           Each team independently assigns a TIME category (Tolerate, Invest, Migrate, Eliminate) to the technologies it uses. Compliance violations are detected when a component appears in an SBOM without a corresponding team approval, or when the assigned category is Eliminate.
         </p>
         <UAlert
@@ -198,12 +198,12 @@
           description="A technology with no recorded team approval is 'unclassified' — a distinct state from an explicit Eliminate vote, not the same value. Both are treated as compliance violations, so nothing is ungoverned by omission, but Polaris keeps 'never reviewed' distinguishable from 'actively banned' since stewards need to know which one they're looking at."
         />
         <div>
-          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">How it works</p>
+          <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">How it works</p>
           <UTimeline :items="approvalWorkflowSteps" />
         </div>
         <div>
-          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Stewardship</p>
-          <p class="text-sm text-(--ui-text-muted) mb-3">Each technology has designated stewards responsible for:</p>
+          <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Stewardship</p>
+          <p class="text-sm text-muted mb-3">Each technology has designated stewards responsible for:</p>
           <div class="space-y-3">
             <UPageFeature
               v-for="duty in stewardshipDuties"
@@ -216,7 +216,7 @@
           </div>
         </div>
         <div>
-          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Why Team Ownership?</p>
+          <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Why Team Ownership?</p>
           <div class="space-y-3">
             <UPageFeature
               v-for="reason in teamOwnershipReasons"
@@ -235,12 +235,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-radar" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-radar" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Technology Radar</h2>
         </div>
       </template>
       <div class="space-y-6">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           The Technology Radar aggregates every team's individual TIME approval for a technology into a single, organization-wide consensus view — a majority vote across all teams that have recorded a stance.
         </p>
         <UAlert
@@ -257,12 +257,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-git-fork" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-git-fork" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Version Sprawl</h2>
         </div>
       </template>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           Version sprawl detection flags components in use at too many distinct versions across the organization at once — a signal that a technology has drifted out of consistent, centrally-governed use.
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -282,12 +282,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-scale" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-scale" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">License Compliance</h2>
         </div>
       </template>
       <div class="space-y-4">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           Every license discovered through SBOM ingestion is checked against an organization-managed allow list, maintained by superusers.
         </p>
         <UAlert
@@ -311,12 +311,12 @@
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-clipboard-list" class="w-5 h-5 text-(--ui-primary)" />
+          <UIcon name="i-lucide-clipboard-list" class="w-5 h-5 text-primary" />
           <h2 class="text-lg font-semibold">Audit Trail</h2>
         </div>
       </template>
       <div class="space-y-6">
-        <p class="text-(--ui-text-muted)">
+        <p class="text-muted">
           The audit trail captures governance decisions — changes to version constraints, approvals, team structure, and system ownership. Operational data that changes frequently through automated processes (components discovered via SBOM, repositories) is excluded.
         </p>
         <UAlert
@@ -327,7 +327,7 @@
           description="A failed governance operation — for example a rejected technology creation — still produces an audit entry, not just successful ones. Certain sensitive reads, such as viewing the full user list as an admin, are logged as well, even though nothing was changed. Audit writes are best-effort: if writing the audit entry itself fails, the operation it was recording still completes — auditability never blocks or breaks the action it documents."
         />
         <div>
-          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Governance Operations</p>
+          <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Governance Operations</p>
           <div class="space-y-3">
             <UPageFeature
               v-for="event in auditGovernanceEvents"
@@ -340,7 +340,7 @@
           </div>
         </div>
         <div>
-          <p class="text-sm font-semibold text-(--ui-text-muted) uppercase tracking-wide mb-3">Relationship Changes</p>
+          <p class="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Relationship Changes</p>
           <div class="space-y-3">
             <UPageFeature
               v-for="event in auditRelationshipEvents"
