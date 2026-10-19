@@ -1,25 +1,38 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Node 24 — matches `node-version: 'lts/*'` in .github/workflows/ci.yml, which
+    # resolved to 22 until Node 24 entered LTS (Oct 2025). Keep this in step with
+    # CI so a dev-container pass is evidence the pipeline will pass too.
+    # The leading number is the devcontainer template version, not Node: Node 24
+    # images are only published under template 3/4, so this is 4-24, not 1-24.
+    # Pinned to bookworm — the base this repo has always run on — so the bump from
+    # 1-22 changes the Node major only, not also Debian 12 → 13 (trixie), which the
+    # unsuffixed tag would eventually float to.
+    image: mcr.microsoft.com/devcontainers/typescript-node:4-24-bookworm
     volumes:
       - ..:/workspaces/polaris:cached
+      # devcontainer.json declares the docker-out feature, which installs the
+      # docker CLI but cannot supply a daemon on its own.
+      #
+      # SECURITY: mounting /var/run/docker.sock gives this container effectively
+      # root-equivalent control over the host's Docker daemon. Keep this local-only.
+      #
+      # Without this mount /var/run/docker.sock is a dead stub and every docker
+      # command inside the container fails with "Cannot connect to the Docker daemon"
+      # — including the `docker compose ps/logs` you need to diagnose a sick neo4j service.
+      - /var/run/docker.sock:/var/run/docker.sock
     command: sleep infinity
     network_mode: host
+    # The local-model MCP server calls Ollama at host.docker.internal:11434. Docker
+    # Desktop resolves that name on its own; a native Linux daemon does not, so map
+    # it to the host gateway explicitly.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   neo4j:
-    image: neo4j:5-community
-    # Name deliberately identical to docker-compose-local.yml. Docker refuses to
-    # start a second container under a name already in use, and both files
-    # bind-mount the same ../.data/neo4j directory, so the shared name is what
-    # keeps two databases off one data directory.
-    #
-    # On Ona this is inert: docker-in-docker gives each workspace its own daemon
-    # with a single Neo4j, so no collision is possible. The name is set here for
-    # the case that made it matter — this file being run against a local Docker
-    # Desktop daemon alongside docker-compose-local.yml, where the two containers
-    # fight over the store lock and ports 7474/7687 and one restart-loops.
+    # 5.26 is the final 5.x release (LTS). Pinned so a floating `5-community` tag
+    # can't change the store format under the bind-mounted ../.data/neo4j.
+    image: neo4j:5.26-community
     container_name: polaris-neo4j
     restart: unless-stopped
     environment:
@@ -36,13 +49,14 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-        
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
     volumes:
       - ../.data/neo4j/data:/data
       - ../.data/neo4j/logs:/logs
       - ../.data/neo4j/import:/var/lib/neo4j/import
       - ../.data/neo4j/plugins:/plugins
-    network_mode: host
     healthcheck:
       test: ["CMD", "bash", "-c", "wget -qO- http://localhost:7474 > /dev/null 2>&1 && (echo > /dev/tcp/localhost/7687) 2>/dev/null"]
       interval: 15s

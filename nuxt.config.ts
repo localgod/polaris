@@ -46,7 +46,7 @@ export default defineNuxtConfig({
   auth: {
     // AUTH_ORIGIN overrides auto-detection. Required when the app is behind a proxy
     // or running in an environment where the request origin is not the public URL
-    // (e.g. Gitpod, Cloudflare, reverse proxies).
+    // (e.g. Cloudflare, reverse proxies).
     // Format: https://your-domain.com/api/auth
     baseURL: process.env.AUTH_ORIGIN
       || (process.env.NODE_ENV === 'test' ? 'http://localhost:3000/api/auth' : undefined),
@@ -75,7 +75,7 @@ export default defineNuxtConfig({
       include: ['@vue/devtools-core', '@vue/devtools-kit', '@vueuse/core']
     },
     server: {
-      allowedHosts: ['.gitpod.dev', '.gitpod.io', 'localhost', '127.0.0.1']
+      allowedHosts: ['localhost', '127.0.0.1']
     }
   },
 

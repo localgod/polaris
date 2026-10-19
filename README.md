@@ -76,8 +76,7 @@ polaris/
 │   └── testing/           # Testing guides
 ├── public/                # Static assets
 ├── .github/               # GitHub Actions workflows
-├── .devcontainer/         # Dev container configuration
-└── .ona/                  # Gitpod automations
+└── .devcontainer/         # Dev container configuration
 ```
 
 ## Quick Start
@@ -197,10 +196,9 @@ Run the specific script name shown in `package.json` to execute a task (for exam
 
 The project supports multiple development environments:
 - **Dev Containers**: Fully configured environment with Neo4j
-- **Gitpod**: Cloud-based development with automations
 - **Local**: Manual setup with Docker Compose
 
-See [Dev Container README](.devcontainer/README.md) and [Gitpod Automations](.ona/README.md) for details.
+See [Dev Container README](.devcontainer/README.md) for details.
 
 ## Testing
 
@@ -372,7 +370,6 @@ Tests run in **parallel** in GitHub Actions:
 
 - **[Contributing Guide](CONTRIBUTING.md)** - Complete guide for contributors including setup, workflow, testing, and database management
 - **[Dev Container Setup](.devcontainer/README.md)** - Development container configuration
-- **[Gitpod Automations](.ona/README.md)** - Automation configuration for cloud development
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
 - **[Agent Instructions](AGENTS.md)** - Guidelines for AI agents working on this project
 - **Deployment** - This repository publishes the `polaris` and `polaris-migrator` images to Docker Hub; the production server, its configuration and the deploy workflow live in the private repository [localgod/infra](https://github.com/localgod/infra), which the Publish workflow triggers
@@ -394,7 +391,7 @@ Access the documentation at `/docs` when running the application, or browse the 
 - **Database**: Neo4j 5 Community Edition (graph database)
 - **Documentation**: @nuxt/content with Markdown
 - **Testing**: Vitest with Gherkin-style BDD
-- **Development**: Docker, Dev Containers, Gitpod
+- **Development**: Docker, Dev Containers
 - **CI/CD**: GitHub Actions with automated testing, coverage, and Lighthouse audits
 
 ## Key Features

@@ -1,4 +1,4 @@
-# Polaris — Copilot Review Instructions
+# Polaris — Runtime Risk Review Checklist
 
 Focus reviews on **runtime failures and production risks**. Skip style, naming, documentation, and convention reminders — ESLint, `mdlint`, and the PR template handle those.
 
@@ -38,7 +38,7 @@ Parameters are safe; template literals or string concatenation that embed values
 ### API routes and middleware
 
 **Missing authentication**
-Every route in `server/api/` must call `requireUserSession()` (or equivalent) or be explicitly marked public. Flag new handlers that do neither.
+Every route in `server/api/` must call `requireAuth` / `requireRole` / `requireSuperuser` or be explicitly marked public. Flag new handlers that do neither.
 
 **Authentication without authorization**
 Confirming identity is not the same as confirming permission. Flag admin-level operations (writes, deletes, role changes) that check `session` but not the user's role or superuser status.

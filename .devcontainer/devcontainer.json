@@ -3,7 +3,7 @@
 {
 	"name": "Polaris Local Dev Container",
 	// Use docker-compose to start both app and neo4j services
-	"dockerComposeFile": "docker-compose-local.yml",
+	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/polaris",
 	"features": {

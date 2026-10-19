@@ -26,7 +26,7 @@ This ensures Neo4j is always running when you start working.
 
 ### Neo4j Database
 
-- **Version**: 5.26 Community Edition (pinned in `docker-compose-local.yml`)
+- **Version**: 5.26 Community Edition (pinned in `docker-compose.yml`)
 - **HTTP Port**: 7474 (Neo4j Browser)
 - **Bolt Port**: 7687 (Database connection)
 - **Default Credentials**:
@@ -39,7 +39,6 @@ This ensures Neo4j is always running when you start working.
 
 Once the dev container is running, access the Neo4j Browser at:
 - Local: `http://localhost:7474`
-- Gitpod: Check the "Ports" tab for the forwarded URL
 
 ### Connection Details
 
@@ -50,24 +49,12 @@ NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=devpassword
 ```
 
-## Compose files
+## Compose file
 
-There are two compose files, one per environment. **Always pass `-f` explicitly** —
-a bare `docker compose` in `.devcontainer/` resolves to `docker-compose.yml`, which
-is the Ona file, and starting it on macOS gives you a second Neo4j fighting the
-first for the store lock and ports 7474/7687.
-
-| File | Used by | Neo4j networking |
-| ---- | ------- | ---------------- |
-| `docker-compose-local.yml` | `devcontainer.json` — local Docker Desktop | bridge, ports `7474`/`7687` published |
-| `docker-compose.yml` | `devcontainer-ona.json` — Ona (Linux) | `network_mode: host` |
-
-Both define the Neo4j service as `container_name: polaris-neo4j`. That shared name
-is a deliberate guard: Docker refuses to start a second container under a name
-already in use, so the two projects cannot both run a database against the same
-`../.data/neo4j` directory. The guard matters on a local Docker Desktop daemon,
-where both files target the same daemon; on Ona, docker-in-docker gives each
-workspace an isolated daemon, so the name is simply inert there.
+`docker-compose.yml` defines both services and is used by `devcontainer.json`. The
+`app` service uses `network_mode: host`; Neo4j publishes ports `7474`/`7687`. The
+Neo4j container is named `polaris-neo4j`, so Docker refuses to start a second copy
+against the same `../.data/neo4j` directory.
 
 ## Data Persistence
 
@@ -89,7 +76,7 @@ If you need to rebuild the dev container:
 1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
 2. Select "Dev Containers: Rebuild Container"
 
-Note: in `docker-compose.yml` (Ona) all services use `network_mode: host`, so the app connects to Neo4j via `bolt://localhost:7687`. Host networking requires a Linux host — it is not supported on Docker Desktop for macOS or Windows, which is why `docker-compose-local.yml` publishes ports instead. The app reaches Neo4j at the same `bolt://localhost:7687` either way, so `.env` needs no per-environment change.
+Note: the `app` service uses `network_mode: host` and Neo4j publishes ports `7474`/`7687`, so the app connects to Neo4j via `bolt://localhost:7687`.
 
 ### Host Browser Access (Linux)
 
@@ -101,22 +88,21 @@ If `http://localhost:3000` hangs while `http://127.0.0.1:3000` works, the host m
 
 ## Manual Service Management
 
-If you need to manually manage the Neo4j service, substitute the compose file for
-your environment (`docker-compose-local.yml` locally, `docker-compose.yml` on Ona):
+If you need to manually manage the Neo4j service:
 
 **Start Neo4j:**
 ```bash
-docker compose -f .devcontainer/docker-compose-local.yml up -d neo4j
+docker compose -f .devcontainer/docker-compose.yml up -d neo4j
 ```
 
 **Stop Neo4j:**
 ```bash
-docker compose -f .devcontainer/docker-compose-local.yml stop neo4j
+docker compose -f .devcontainer/docker-compose.yml stop neo4j
 ```
 
 **Restart Neo4j:**
 ```bash
-docker compose -f .devcontainer/docker-compose-local.yml restart neo4j
+docker compose -f .devcontainer/docker-compose.yml restart neo4j
 ```
 
 ## Troubleshooting
@@ -126,7 +112,7 @@ docker compose -f .devcontainer/docker-compose-local.yml restart neo4j
 Opening the dev container should start Neo4j, since it is a service in the same
 compose project. If it didn't, start it by hand:
 ```bash
-docker compose -f .devcontainer/docker-compose-local.yml up -d neo4j
+docker compose -f .devcontainer/docker-compose.yml up -d neo4j
 ```
 
 ### Neo4j not responding
@@ -140,7 +126,7 @@ docker logs --tail 100 polaris-neo4j
 
 Ensure Neo4j is fully started (can take 10-20 seconds on first start):
 ```bash
-docker compose -f .devcontainer/docker-compose-local.yml ps
+docker compose -f .devcontainer/docker-compose.yml ps
 ```
 
 ### Neo4j restart-looping
@@ -170,7 +156,7 @@ of two containers writing that file at once.
 To start fresh, delete the bind-mounted state (`down -v` will not clear it, since
 the data lives in `../.data/neo4j`, not in named volumes):
 ```bash
-docker compose -f .devcontainer/docker-compose-local.yml down
+docker compose -f .devcontainer/docker-compose.yml down
 rm -rf .data/neo4j/data
 ```
 Then rebuild the container or run the post-create script.
