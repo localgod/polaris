@@ -1,16 +1,24 @@
 name: CI
 
+# Branch work is covered by pull_request alone — also triggering on push to
+# feature branches ran the whole matrix twice per commit (the two events use
+# different refs, so the concurrency group never deduplicated them).
+# push to main checks the merged result, which no PR run ever sees.
+# workflow_dispatch runs CI on a branch that has no PR yet.
 on:
   pull_request:
     branches:
       - main
   push:
-    branches-ignore:
+    branches:
       - main
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede stale runs on a PR branch, but let every main run finish so each
+  # merge gets a complete result.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
