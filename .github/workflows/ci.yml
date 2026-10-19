@@ -464,6 +464,8 @@ jobs:
           NEO4J_PASSWORD: testpassword
           AUTH_ORIGIN: http://localhost:3000/api/auth
           AUTH_TRUST_HOST: 'true'
+          # Read at runtime; without it every SSR page answers 500
+          AUTH_SECRET: test-secret-for-lighthouse
           HOST: 0.0.0.0
 
       - name: Run Lighthouse audits
