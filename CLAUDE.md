@@ -273,9 +273,10 @@ this keeps each run's output small enough to summarize accurately:
 2. `npm run test:server:services`
 3. `npm run test:server:repositories`
 4. `npm run test:server:utils`
-5. `npm run test:app`
-6. `npx vitest run test/schema`
-7. `npx vitest run test/app/e2e`
+5. `npm run test:server:middleware`
+6. `npm run test:app:unit`
+7. `npx vitest run test/schema`
+8. `npx vitest run test/app/e2e`
 
 Together these cover the same suite as `npm run test` (everything except
 `test/integration/**`).

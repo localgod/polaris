@@ -70,6 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       test-layers: ${{ steps.build-matrix.outputs.test-layers }}
+      db-layers: ${{ steps.build-matrix.outputs.db-layers }}
       run-tests: ${{ steps.build-matrix.outputs.run-tests }}
       build-required: ${{ steps.build-matrix.outputs.build-required }}
     steps:
@@ -82,13 +83,23 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
+          # Every test layer lists its own test directory, so a test-only change
+          # still runs that layer. Shared test infrastructure and the CI
+          # definition itself go under config, which runs everything.
           filters: |
             config:
               - 'package.json'
               - 'package-lock.json'
+              - '.nvmrc'
               - 'vitest.config.ts'
+              - 'vitest.*.config.ts'
               - 'tsconfig.json'
               - 'nuxt.config.ts'
+              - 'test/setup/**'
+              - 'test/fixtures/**'
+              - 'scripts/check-coverage-thresholds.mjs'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/**'
             build:
               - 'app/**'
               - 'server/**'
@@ -99,6 +110,8 @@ jobs:
               - 'package-lock.json'
               - 'Dockerfile'
               - '.nuxtrc'
+              - 'scripts/copy-runtime-assets.mjs'
+              - '.github/workflows/ci.yml'
             integration:
               - 'server/**'
               - 'types/**'
@@ -108,38 +121,59 @@ jobs:
               - 'server/plugins/**'
               - 'server/middleware/**'
               - 'types/**'
+              - 'test/server/api/**'
             server-services:
               - 'server/services/**'
               - 'server/utils/**'
               - 'types/**'
+              - 'test/server/services/**'
             server-repositories:
               - 'server/database/**'
               - 'server/repositories/**'
               - 'server/schemas/**'
               - 'types/**'
+              - 'test/server/repositories/**'
             server-utils:
               - 'server/utils/**'
               - 'server/middleware/**'
               - 'types/**'
+              - 'test/server/utils/**'
+            server-middleware:
+              - 'server/middleware/**'
+              - 'server/utils/**'
+              - 'types/**'
+              - 'test/server/middleware/**'
             schema:
               - 'schema/**'
+              - 'test/schema/**'
+            app-unit:
+              - 'app/**'
+              - 'types/**'
+              - 'test/app/**'
             app-e2e:
               - 'app/**'
               - 'types/**'
+              - 'test/app/e2e/**'
 
       - name: Build test matrix
         id: build-matrix
         run: |
+          # Layer names map to npm scripts: server-api → test:server:api.
+          # Together they cover every spec under test/ except test/integration
+          # (its own layer) — keep this list in sync when adding a test directory.
+          ALL_LAYERS='["integration","server-api","server-services","server-repositories","server-utils","server-middleware","schema","app-unit","app-e2e"]'
+
+          # Only these layers talk to Neo4j; the rest skip the service container
+          # and the migrate/seed step.
+          echo 'db-layers=["integration","server-repositories","schema","app-e2e"]' >> $GITHUB_OUTPUT
+
           # Config changes (package.json, vitest.config.ts, etc.) could break anything — run all layers
           if [[ '${{ steps.filter.outputs.config }}' == 'true' ]]; then
             echo "Config files changed — running all test layers"
-            LAYERS='["integration","server-api","server-services","server-repositories","server-utils","schema","app-e2e","smoke"]'
+            LAYERS="$ALL_LAYERS"
           else
-            # Take matched layers, drop 'config' (not a test layer), append 'smoke' if any code changed
+            # Take matched layers, dropping the filters that aren't test layers
             LAYERS=$(echo '${{ steps.filter.outputs.changes }}' | jq -c '[.[] | select(. != "config" and . != "build")]')
-            if [ "$LAYERS" != "[]" ]; then
-              LAYERS=$(echo "$LAYERS" | jq -c '. + ["smoke"]')
-            fi
           fi
 
           if [ "$LAYERS" == "[]" ]; then
@@ -174,7 +208,9 @@ jobs:
 
     services:
       neo4j:
-        image: neo4j:5.26-community
+        # An empty image skips the container, so layers that never touch the
+        # database don't wait for Neo4j to start.
+        image: ${{ contains(fromJson(needs.detect-changes.outputs.db-layers), matrix.test-layer) && 'neo4j:5.26-community' || '' }}
         env:
           NEO4J_AUTH: neo4j/testpassword
           NEO4J_PLUGINS: '["apoc"]'
@@ -207,6 +243,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Neo4j setup
+        if: contains(fromJson(needs.detect-changes.outputs.db-layers), matrix.test-layer)
         uses: ./.github/actions/neo4j-setup
 
       - name: Start dev server (E2E and HTTP integration tests)
@@ -282,10 +319,16 @@ jobs:
         run: |
           mkdir -p .nyc_output coverage
 
-          find coverage-artifacts -name 'coverage-final.json' -type f | while read file; do
-            layer=$(basename $(dirname "$file"))
+          layers=()
+          while read -r file; do
+            layer=$(basename "$(dirname "$file")")
             cp "$file" ".nyc_output/${layer}.json"
-          done
+            layers+=("${layer#coverage-}")
+          done < <(find coverage-artifacts -name 'coverage-final.json' -type f)
+
+          # Tell the threshold check which layers contributed, so it only judges
+          # folders whose own tests ran in this workflow.
+          echo "COVERAGE_LAYERS=$(IFS=,; echo "${layers[*]}")" >> "$GITHUB_ENV"
 
           npx nyc merge .nyc_output coverage/coverage-final.json
           npx nyc report \
@@ -325,6 +368,11 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Baked in at build time; matches the preview server the lighthouse
+          # job runs from this build's output.
+          AUTH_ORIGIN: http://localhost:3000/api/auth
+          AUTH_TRUST_HOST: 'true'
 
       - name: Check build output
         run: |
@@ -334,9 +382,18 @@ jobs:
           fi
           echo "Build successful: .output directory created"
 
+      - name: Upload build output
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nuxt-output
+          path: .output/
+          include-hidden-files: true
+          retention-days: 1
+
   lighthouse:
     runs-on: ubuntu-latest
-    needs: detect-changes
+    # Audits the build job's output rather than building a second time.
+    needs: [detect-changes, build]
     if: needs.detect-changes.outputs.build-required == 'true'
 
     services:
@@ -375,23 +432,28 @@ jobs:
       - name: Neo4j setup
         uses: ./.github/actions/neo4j-setup
 
-      - name: Build
-        run: npm run build
-        env:
-          NEO4J_URI: bolt://localhost:7687
-          NEO4J_USERNAME: neo4j
-          NEO4J_PASSWORD: testpassword
-          AUTH_ORIGIN: http://localhost:3000/api/auth
-          AUTH_TRUST_HOST: 'true'
+      - name: Download build output
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nuxt-output
+          path: .output/
 
       - name: Start preview server
         run: |
           npm run preview -- -p 3000 &
+          # -f so an error page doesn't count as ready; two successes in a row
+          # so a server that is still warming up isn't audited.
+          ready=0
           for i in {1..30}; do
-            if curl -s http://localhost:3000 > /dev/null; then
-              exit 0
+            if curl -sf http://localhost:3000/api/version > /dev/null && curl -sf http://localhost:3000/ > /dev/null; then
+              ready=$((ready + 1))
+              if [ "$ready" -ge 2 ]; then
+                exit 0
+              fi
+            else
+              ready=0
+              echo "Attempt $i/30: Preview server not ready yet, waiting..."
             fi
-            echo "Attempt $i/30: Preview server not ready yet, waiting..."
             sleep 2
           done
           echo "Preview server failed to start"

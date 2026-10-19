@@ -835,9 +835,13 @@ npm run test:server:api
 npm run test:server:services
 npm run test:server:repositories
 npm run test:server:utils
+npm run test:server:middleware
 
 # Backend integration tests (cross-layer workflows, no UI)
 npm run test:integration
+
+# Frontend component/page/util tests (no server needed)
+npm run test:app:unit
 
 # Frontend E2E tests (full-stack with browser)
 npm run test:app:e2e
@@ -856,6 +860,7 @@ npm run test:vitest-ui
 
 - `test:server:*` - Backend unit tests (isolated layers)
 - `test:integration` - Backend integration tests (cross-layer, no UI)
+- `test:app:unit` - Frontend tests that need no server (everything in `test/app` except `e2e`)
 - `test:app:e2e` - Frontend E2E tests (full-stack with UI)
 - `test:unit` - All unit tests (fast feedback)
 - `test:*` - Other test categories
