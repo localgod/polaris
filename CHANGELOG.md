@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.172] - 2026-10-19
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps-dev): bump dotenv from 17.4.2 to 18.0.8 @[dependabot[bot]](https://github.com/apps/dependabot) (#988)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.171...v0.6.172
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
