@@ -36,6 +36,9 @@ const unreleasedBlock = [
   '### Fixed',
   '',
   '### Security',
+  // Trailing blank line: the block is inserted directly before `\n## [x.y.z]`,
+  // so without it the headings touch and markdownlint (MD022) fails.
+  '',
 ].join('\n')
 
 // Replace the existing [Unreleased] section with the new versioned entry.

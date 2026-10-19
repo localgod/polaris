@@ -1,4 +1,4 @@
-FROM node:lts-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN npm run build
 
 # ---
 
-FROM node:lts-alpine AS runner
+FROM node:24-alpine AS runner
 
 RUN apk add --no-cache git openjdk21-jdk maven
 
@@ -51,7 +51,7 @@ CMD ["node", "output/server/index.mjs"]
 
 # ---
 
-FROM node:lts-alpine AS migrator
+FROM node:24-alpine AS migrator
 
 WORKDIR /app
 

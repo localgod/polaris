@@ -1,6 +1,14 @@
 services:
   app:
-    image: mcr.microsoft.com/devcontainers/typescript-node:1-22
+    # Node 24 — matches `node-version: 'lts/*'` in .github/workflows/ci.yml, which
+    # resolved to 22 until Node 24 entered LTS (Oct 2025). Keep this in step with
+    # CI so a dev-container pass is evidence the pipeline will pass too.
+    # The leading number is the devcontainer template version, not Node: Node 24
+    # images are only published under template 3/4, so this is 4-24, not 1-24.
+    # Pinned to bookworm — the base this repo has always run on — so the bump from
+    # 1-22 changes the Node major only, not also Debian 12 → 13 (trixie), which the
+    # unsuffixed tag would eventually float to.
+    image: mcr.microsoft.com/devcontainers/typescript-node:4-24-bookworm
     volumes:
       - ..:/workspaces/polaris:cached
       # devcontainer.json declares the docker-out feature, which installs the
@@ -15,9 +23,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: sleep infinity
     network_mode: host
+    # The local-model MCP server calls Ollama at host.docker.internal:11434. Docker
+    # Desktop resolves that name on its own; a native Linux daemon does not, so map
+    # it to the host gateway explicitly.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   neo4j:
-    image: neo4j:5-community
+    # 5.26 is the final 5.x release (LTS). Pinned so a floating `5-community` tag
+    # can't change the store format under the bind-mounted ../.data/neo4j.
+    image: neo4j:5.26-community
     # See the matching comment in docker-compose.yml — the shared name is what
     # stops the Ona and local compose projects from running two Neo4j containers
     # against the same ../.data/neo4j directory.
