@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.171] - 2026-10-19
+
+## What's Changed
+
+* fix(ci): give the Lighthouse preview server an AUTH\_SECRET @localgod (#984)
+* fix(ci): run every test layer and stop overwriting release images @localgod (#983)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.170...v0.6.171
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
