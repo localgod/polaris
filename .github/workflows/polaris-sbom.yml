@@ -54,10 +54,11 @@ jobs:
         run: npm ci
 
       - name: Install cdxgen
-        # Installs cdxgen globally so it is available to the push script.
-        # If @cyclonedx/cdxgen is already in your project's devDependencies you
-        # can remove this step.
-        run: npm install -g @cyclonedx/cdxgen
+        # The push script imports @cyclonedx/cdxgen, so it must be resolvable
+        # from the project. If it is already a dependency (as in Polaris), the
+        # lockfile pins it; otherwise install an exact version — the next step
+        # runs it with POLARIS_TOKEN in its environment, so never take latest.
+        run: npm ls @cyclonedx/cdxgen > /dev/null 2>&1 || npm install --no-save @cyclonedx/cdxgen@12.8.5
 
       - name: Push SBOM to Polaris
         # continue-on-error ensures a Polaris outage or misconfiguration never
@@ -103,9 +104,10 @@ jobs:
 
         run: node scripts/polaris-push.mjs
         # If polaris-push.mjs is not in your repo, fetch it from the Polaris
-        # repository instead:
+        # repository instead. Pin a release tag (not main) — the script runs
+        # with POLARIS_TOKEN in its environment:
         #
         #   run: |
-        #     curl -fsSL https://raw.githubusercontent.com/localgod/polaris/main/scripts/polaris-push.mjs \
+        #     curl -fsSL https://raw.githubusercontent.com/localgod/polaris/v0.6.170/scripts/polaris-push.mjs \
         #       -o polaris-push.mjs
         #     node polaris-push.mjs
