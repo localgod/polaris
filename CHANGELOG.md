@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.167] - 2026-10-19
+
+## What's Changed
+
+* chore(devcontainer): modernize dev setup, pin toolchain, add typecheck @localgod (#973)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.166...v0.6.167
+
 ## [0.6.153] - 2026-10-09
 
 ## What's Changed
