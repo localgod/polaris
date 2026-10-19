@@ -1,7 +1,0 @@
-polaris.mindfield.dk {
-    reverse_proxy app:3000
-}
-
-logs.mindfield.dk {
-    reverse_proxy dozzle:8080
-}

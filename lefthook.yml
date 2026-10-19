@@ -3,6 +3,11 @@
 # or bypass once with `git commit --no-verify`.
 pre-commit:
   parallel: true
+  # A merge/rebase "stages" every file pulled in from upstream, so linting would
+  # block on content this branch didn't write — CI still lints the result.
+  skip:
+    - merge
+    - rebase
   commands:
     eslint:
       glob: "*.{js,mjs,cjs,ts,mts,cts,vue}"

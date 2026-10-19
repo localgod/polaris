@@ -158,7 +158,7 @@ The ~60s cadence is Docker's `restart: unless-stopped` backoff hitting its cap.
 First check for a duplicate container from the other compose file:
 
 ```bash
-docker ps -a --filter ancestor=neo4j:5-community
+docker ps -a --filter ancestor=neo4j:5.26-community --filter ancestor=neo4j:5-community
 ```
 
 If more than one exists, remove the extras and keep `polaris-neo4j`. Interleaved

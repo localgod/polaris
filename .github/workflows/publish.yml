@@ -73,3 +73,18 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ steps.version.outputs.major }}
           cache-from: type=gha,scope=${{ matrix.cache }}
           cache-to: type=gha,mode=max,scope=${{ matrix.cache }}
+
+  # The server and its deploys live in localgod/infra; tell it the new images are on Docker Hub.
+  notify-infra:
+    name: Trigger deploy in localgod/infra
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Send repository_dispatch
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+        run: |
+          gh api repos/localgod/infra/dispatches \
+            -f event_type=polaris-published \
+            -f "client_payload[sha]=${{ github.sha }}"
