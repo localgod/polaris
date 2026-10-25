@@ -19,6 +19,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.184] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump body-parser from 2.3.0 to 2.4.0 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#1016)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.183...v0.6.184
+
+## [0.6.183] - 2026-10-25
+
+## What's Changed
+
+* No changes
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.182...v0.6.183
+
+## [0.6.183] - 2026-10-25
+
+## What's Changed
+
+* No changes
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.182...v0.6.183
+
+## [0.6.182] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps-dev): bump happy-dom from 20.14.6 to 21.0.4 @[dependabot[bot]](https://github.com/apps/dependabot) (#1006)
+* chore(deps)(deps): bump serialize-javascript from 7.1.2 to 7.1.4 @[dependabot[bot]](https://github.com/apps/dependabot) (#1007)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.181...v0.6.182
+
+## [0.6.181] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump undici and @cyclonedx/cdxgen @[dependabot[bot]](https://github.com/apps/dependabot) (#1008)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.180...v0.6.181
+
+## [0.6.180] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump hono from 4.13.7 to 4.13.13 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#1001)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.179...v0.6.180
+
+## [0.6.179] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps): bump @modelcontextprotocol/sdk from 1.31.0 to 1.32.0 in /.claude/mcp @[dependabot[bot]](https://github.com/apps/dependabot) (#1002)
+* chore: release v0.6.178 @[github-actions[bot]](https://github.com/apps/github-actions) (#1000)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.178...v0.6.179
+
 ## [0.6.178] - 2026-10-19
 
 ## What's Changed
