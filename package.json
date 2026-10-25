@@ -115,7 +115,7 @@
     "chrome-launcher": "^1.2.2",
     "dotenv": "^18.0.8",
     "eslint": "^10.12.0",
-    "happy-dom": "^20.14.5",
+    "happy-dom": "^21.0.4",
     "lefthook": "^2.2.2",
     "lighthouse": "^13.5.0",
     "markdownlint-cli": "^0.49.1",
