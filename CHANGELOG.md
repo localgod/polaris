@@ -19,6 +19,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.188] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump js-yaml and markdownlint-cli @[dependabot[bot]](https://github.com/apps/dependabot) (#1022)
+* chore: release v0.6.186 @[github-actions[bot]](https://github.com/apps/github-actions) (#1019)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.187...v0.6.188
+
+## [0.6.187] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump @nuxt/nitro-server and nuxt @[dependabot[bot]](https://github.com/apps/dependabot) (#1013)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.186...v0.6.187
+
 ## [0.6.186] - 2026-10-25
 
 ## What's Changed
