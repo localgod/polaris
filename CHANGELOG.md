@@ -19,6 +19,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.191] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(actions): bump docker/login-action from 4.6.0 to 4.7.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#1024)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.190...v0.6.191
+
+## [0.6.190] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump @nuxt/image from 2.1.0 to 2.2.0 in the production-dependencies group @[dependabot[bot]](https://github.com/apps/dependabot) (#1025)
+* chore(deps)(deps-dev): bump the development-dependencies group with 2 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#1026)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.189...v0.6.190
+
+## [0.6.189] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump h3 from 1.15.11 to 2.0.8 @[dependabot[bot]](https://github.com/apps/dependabot) (#1027)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.188...v0.6.189
+
+## [0.6.188] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump js-yaml and markdownlint-cli @[dependabot[bot]](https://github.com/apps/dependabot) (#1022)
+* chore: release v0.6.186 @[github-actions[bot]](https://github.com/apps/github-actions) (#1019)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.187...v0.6.188
+
+## [0.6.187] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump @nuxt/nitro-server and nuxt @[dependabot[bot]](https://github.com/apps/dependabot) (#1013)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.186...v0.6.187
+
 ## [0.6.186] - 2026-10-25
 
 ## What's Changed
