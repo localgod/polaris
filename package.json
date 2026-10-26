@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@cyclonedx/cdxgen": "^12.9.0",
-    "@nuxt/image": "^2.1.0",
+    "@nuxt/image": "^2.2.0",
     "@nuxt/ui": "4.12.0",
     "@sidebase/nuxt-auth": "1.4.0",
     "ajv": "^8.20.0",
