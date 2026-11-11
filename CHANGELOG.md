@@ -19,6 +19,155 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.201] - 2026-11-11
+
+## What's Changed
+
+* No changes
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.200...v0.6.201
+
+## [0.6.200] - 2026-11-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump node-forge from 1.4.2 to 1.4.3 @[dependabot[bot]](https://github.com/apps/dependabot) (#1046)
+* chore(deps)(deps): bump re2js and markdownlint @[dependabot[bot]](https://github.com/apps/dependabot) (#1047)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.199...v0.6.200
+
+## [0.6.199] - 2026-11-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(actions): bump docker/login-action from 4.7.0 to 4.8.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#1040)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.198...v0.6.199
+
+## [0.6.198] - 2026-11-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(actions): bump davelosert/vitest-coverage-report-action from 2.13.1 to 2.13.2 @[dependabot[bot]](https://github.com/apps/dependabot) (#1039)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.197...v0.6.198
+
+## [0.6.197] - 2026-11-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump the production-dependencies group with 7 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#1041)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.196...v0.6.197
+
+## [0.6.196] - 2026-11-11
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps-dev): bump the development-dependencies group with 8 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#1042)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.195...v0.6.196
+
+## [0.6.195] - 2026-11-02
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump node-forge from 1.4.0 to 1.4.2 @[dependabot[bot]](https://github.com/apps/dependabot) (#1036)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.194...v0.6.195
+
+## [0.6.194] - 2026-11-02
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump nuxt from 4.6.2 to 4.6.3 in the production-dependencies group @[dependabot[bot]](https://github.com/apps/dependabot) (#1032)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.193...v0.6.194
+
+## [0.6.193] - 2026-11-02
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps-dev): bump the development-dependencies group with 5 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#1033)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.192...v0.6.193
+
+## [0.6.192] - 2026-10-26
+
+## What's Changed
+
+* No changes
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.191...v0.6.192
+
+## [0.6.191] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(actions): bump docker/login-action from 4.6.0 to 4.7.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#1024)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.190...v0.6.191
+
+## [0.6.190] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump @nuxt/image from 2.1.0 to 2.2.0 in the production-dependencies group @[dependabot[bot]](https://github.com/apps/dependabot) (#1025)
+* chore(deps)(deps-dev): bump the development-dependencies group with 2 updates @[dependabot[bot]](https://github.com/apps/dependabot) (#1026)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.189...v0.6.190
+
+## [0.6.189] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump h3 from 1.15.11 to 2.0.8 @[dependabot[bot]](https://github.com/apps/dependabot) (#1027)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.188...v0.6.189
+
+## [0.6.188] - 2026-10-26
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump js-yaml and markdownlint-cli @[dependabot[bot]](https://github.com/apps/dependabot) (#1022)
+* chore: release v0.6.186 @[github-actions[bot]](https://github.com/apps/github-actions) (#1019)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.187...v0.6.188
+
+## [0.6.187] - 2026-10-25
+
+## What's Changed
+
+## 🔧 Maintenance
+
+* chore(deps)(deps): bump @nuxt/nitro-server and nuxt @[dependabot[bot]](https://github.com/apps/dependabot) (#1013)
+
+**Full Changelog**: https://github.com/localgod/polaris/compare/v0.6.186...v0.6.187
+
 ## [0.6.186] - 2026-10-25
 
 ## What's Changed
